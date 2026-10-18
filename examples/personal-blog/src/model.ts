@@ -1,10 +1,10 @@
 import { Schema } from 'effect'
 
-import { Counter } from './island'
+import { CounterBlock } from './island'
 import { ApplicationRoute } from './route'
 
 export const Model = Schema.Struct({
   route: ApplicationRoute,
-  counter: Counter.Model,
+  counter: CounterBlock.Model,
 })
 export type Model = typeof Model.Type

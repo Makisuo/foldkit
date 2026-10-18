@@ -1,10 +1,9 @@
 import { clsx } from 'clsx'
 import { Array } from 'effect'
-import { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
 import * as Icon from '../icon'
 import { checkoutMachine } from '../machine'
-import { Message } from '../message'
 import { type Model } from '../model'
 
 export const formatTags = (tags: ReadonlyArray<string>): string =>
@@ -15,7 +14,7 @@ export const formatTags = (tags: ReadonlyArray<string>): string =>
 
 export const transitionLogView = (
   model: Model,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ): Html => {
   const transitionLogClassName =
     'border-l-2 border-orange-700 pl-3 font-mono text-xs leading-5 text-stone-300 lg:col-span-3'
@@ -43,7 +42,7 @@ export const DEAD_TRANSITIONS = checkoutMachine.deadTransitions()
 export const UNREACHABLE_STATE_TAGS = checkoutMachine.unreachableStates()
 export const MERMAID_DEFINITION = checkoutMachine.toMermaid()
 
-export const analysisView = (model: Model, h: HtmlBuilder<Message>): Html =>
+export const analysisView = (model: Model, h: ApplicationViewBuilder): Html =>
   h.section(
     [
       h.AriaLabel('State machine inspector'),
@@ -167,3 +166,4 @@ export const analysisView = (model: Model, h: HtmlBuilder<Message>): Html =>
       ),
     ],
   )
+import type { ApplicationViewBuilder } from '../composition'

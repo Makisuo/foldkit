@@ -1,26 +1,17 @@
 export {
-  init,
   create,
-  update,
-  view,
-  block,
-  Model,
-  Message,
-  OutMessage,
+  ScrollAlignment,
+  ScrollTarget,
+  ApplyScrollOutcome,
   ObservedAnchor,
   ContainerScrollObservation,
   ContentAlignment,
-  ScrollAlignment,
-  ScrollTarget,
-  ApplyScroll,
-  ObserveVirtualList,
-  mounts,
+  type InitConfig,
+  type RowHeightInputs,
+  type ScrollToOptions,
+  type ViewInputs,
+  type Completed,
 } from './index.js'
 
-export type {
-  Completed,
-  InitConfig,
-  RowHeightInputs,
-  ScrollToOptions,
-  ViewInputs,
-} from './index.js'
+/** Original VirtualList Command and Mount Definitions for Story and Scene test resolution. */
+export * as test from './test.js'

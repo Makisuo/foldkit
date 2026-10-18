@@ -107,7 +107,7 @@ type CompleteBlock = Readonly<{
   subscriptions: EmptyRecord
   managedResources: EmptyRecord
   mounts: readonly []
-  childBindings: readonly []
+  bindings: readonly []
   EffectsLayer: typeof LoadRoom.layer
   hostHandlers: readonly [typeof Initialize, typeof ReadHostState]
 }>
@@ -193,7 +193,7 @@ type ChildBlock = Readonly<{
   subscriptions: EmptyRecord
   managedResources: EmptyRecord
   mounts: readonly []
-  childBindings: readonly []
+  bindings: readonly []
   EffectsLayer: Layer.Layer<never, never, never>
   hostHandlers: readonly [ChildWork]
 }>
@@ -214,7 +214,7 @@ type ParentBase = Readonly<{
   subscriptions: EmptyRecord
   managedResources: EmptyRecord
   mounts: readonly []
-  childBindings: readonly [ChildBinding]
+  bindings: readonly [ChildBinding]
 }>
 
 type ParentSatisfiesChild = ParentBase &
@@ -333,7 +333,7 @@ type RuntimeHandleBlock = Readonly<{
   subscriptions: EmptyRecord
   managedResources: Registrations['managedResources']
   mounts: readonly []
-  childBindings: readonly []
+  bindings: readonly []
   EffectsLayer: Layer.Layer<never, never, RoomConnectionService>
   hostHandlers: readonly [ManageRoomConnection]
 }>
@@ -362,7 +362,7 @@ type ParentWithLiftedRuntimeHandle = Readonly<{
   subscriptions: EmptyRecord
   managedResources: Registrations['managedResources']
   mounts: readonly []
-  childBindings: readonly [RuntimeHandleBinding]
+  bindings: readonly [RuntimeHandleBinding]
   EffectsLayer: Layer.Layer<never, never, never>
   hostHandlers: readonly [ManageRoomConnection]
 }>
@@ -382,7 +382,7 @@ type NearbyOrdinaryServiceBlock = Readonly<{
   subscriptions: EmptyRecord
   managedResources: EmptyRecord
   mounts: readonly []
-  childBindings: readonly []
+  bindings: readonly []
   EffectsLayer: Layer.Layer<RoomsClient, never, never>
   hostHandlers: readonly []
 }>
@@ -432,7 +432,7 @@ type ImportedBase = Readonly<{
   subscriptions: EmptyRecord
   managedResources: EmptyRecord
   mounts: readonly []
-  childBindings: readonly []
+  bindings: readonly []
 }>
 
 type LocallyProvidedImportedCommand = ImportedBase &
@@ -511,7 +511,7 @@ type OperationFactoryConnection = BindingBlockEvidence<
 type ParentWithPolicyStep = Readonly<{
   init: () => Update.Return<Model, Message>
   update: (model: Model, message: Message) => Update.Return<Model, Message>
-  childBindings: readonly [OperationFactoryConnection]
+  bindings: readonly [OperationFactoryConnection]
   EffectsLayer: Layer.Layer<never, never, never>
   hostHandlers: readonly []
 }>

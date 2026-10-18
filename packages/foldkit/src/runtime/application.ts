@@ -950,12 +950,12 @@ type ValidateRootView<
                 ? FunctionReturn<View> extends Document
                   ? unknown
                   : Readonly<{
-                      'ApplicationComposition.makeApplication requires a Document view': View
+                      'ApplicationComposition.assembleApplication requires a Document view': View
                     }>
                 : FunctionReturn<View> extends VNode | null
                   ? unknown
                   : Readonly<{
-                      'ApplicationComposition.makeElement requires an Element view': View
+                      'ApplicationComposition.assembleElement requires an Element view': View
                     }>
               : Readonly<{
                   'Application root view must not require view inputs': View
@@ -1302,17 +1302,17 @@ type ValidateElementFlags<FlagsSchema, FlagsEffect> =
     ? undefined extends FlagsEffect
       ? unknown
       : Readonly<{
-          'ApplicationComposition.makeElement requires matching Flags and flags': FlagsEffect
+          'ApplicationComposition.assembleElement requires matching Flags and flags': FlagsEffect
         }>
     : FlagsSchema extends Schema.Codec<any, any, never, never>
       ? undefined extends FlagsEffect
         ? Readonly<{
-            'ApplicationComposition.makeElement requires matching Flags and flags': FlagsSchema
+            'ApplicationComposition.assembleElement requires matching Flags and flags': FlagsSchema
           }>
         : FlagsEffect extends Effect.Effect<FlagsSchema['Type'], never, any>
           ? unknown
           : Readonly<{
-              'ApplicationComposition.makeElement requires matching Flags and flags': FlagsEffect
+              'ApplicationComposition.assembleElement requires matching Flags and flags': FlagsEffect
             }>
       : never
 
@@ -1364,7 +1364,7 @@ type RootPorts<PortsValue> = undefined extends PortsValue
  * Remaining ordinary Service requirements stay in the returned type until
  * application.provide supplies them. Runtime.run builds Layers and starts it.
  */
-export interface MakeApplication<CompositionValue extends AnyComposition> {
+export interface AssembleApplication<CompositionValue extends AnyComposition> {
   <
     const Init extends AnyRootFunction,
     const UpdateFunction extends AnyRootFunction,
@@ -1452,7 +1452,7 @@ export interface MakeApplication<CompositionValue extends AnyComposition> {
  * from the supplied Effect. Runtime.run or Runtime.embed builds its Layers and
  * starts its lifecycle work; completion does not execute handlers.
  */
-export interface MakeElement<CompositionValue extends AnyComposition> {
+export interface AssembleElement<CompositionValue extends AnyComposition> {
   <
     const Init extends AnyRootFunction,
     const UpdateFunction extends AnyRootFunction,
@@ -1538,11 +1538,11 @@ export interface MakeElement<CompositionValue extends AnyComposition> {
 }
 
 /**
- * Internal implementation of the owned makeApplication completion method.
+ * Internal implementation of the owned assembleApplication completion method.
  * Captures passive configuration and validates handler and view coverage.
  * The Runtime constructs the selected handler and Service Layers at start.
  */
-export function makeApplication<
+export function assembleApplication<
   const CompositionValue extends AnyComposition,
   const Init extends AnyRootFunction,
   const UpdateFunction extends AnyRootFunction,
@@ -1622,7 +1622,10 @@ export function makeApplication<
     >
   >
 >
-export function makeApplication(composition: AnyComposition, config: any): any {
+export function assembleApplication(
+  composition: AnyComposition,
+  config: any,
+): any {
   const { block, options } = completeRoot(composition, config)
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const lowered = lowerBlock(block as never)
@@ -1633,11 +1636,11 @@ export function makeApplication(composition: AnyComposition, config: any): any {
 }
 
 /**
- * Internal implementation of the owned makeElement completion method.
+ * Internal implementation of the owned assembleElement completion method.
  * Captures passive container configuration; the Runtime constructs handler
  * Layers and starts lifecycle work later.
  */
-export function makeElement<
+export function assembleElement<
   const CompositionValue extends AnyComposition,
   const Init extends AnyRootFunction,
   const UpdateFunction extends AnyRootFunction,
@@ -1720,7 +1723,7 @@ export function makeElement<
     >
   >
 >
-export function makeElement(composition: AnyComposition, config: any): any {
+export function assembleElement(composition: AnyComposition, config: any): any {
   const { block, options } = completeRoot(composition, config)
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const element = __makeElementFromConfig({
@@ -1810,7 +1813,7 @@ const provideProgram = (
 
   if (internals === undefined) {
     throw new Error(
-      '[foldkit] application.provide expects a program created by ApplicationComposition.makeApplication or ApplicationComposition.makeElement.',
+      '[foldkit] application.provide expects a program created by ApplicationComposition.assembleApplication or ApplicationComposition.assembleElement.',
     )
   }
 

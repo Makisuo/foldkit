@@ -45,7 +45,7 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-export const OperationConstructorProofChildDefinition = Block.define(
+export const OperationConstructorProofChildDefinition = Block.makeDefinition(
   'OperationConstructorProofChild',
   {
     Model,
@@ -110,27 +110,28 @@ export const EffectsLayer = Layer.merge(
   ),
 )
 
-export const ChildBlock = OperationConstructorProofChildComposition.makeBlock({
-  init: () => ({ model: Model.make({ value: '' }) }),
-  update,
-  operations: {
-    resetValue,
-    updateValue,
-    updatePositionally: (
-      value: string,
-      required: Readonly<{ prefix: string }>,
-    ) => Tuple.make(Message.UpdatedValue({ value }), required),
-    updateRefined: (value: 'First' | 'Second') =>
-      Tuple.make(
-        Message.UpdatedValue({ value }),
-        { prefix: 'refined' },
-        undefined,
-        undefined,
-      ),
-  },
-  EffectsLayer,
-  hostHandlers: [RecordValue],
-})
+export const ChildBlock =
+  OperationConstructorProofChildComposition.assembleBlock({
+    init: () => ({ model: Model.make({ value: '' }) }),
+    update,
+    operations: {
+      resetValue,
+      updateValue,
+      updatePositionally: (
+        value: string,
+        required: Readonly<{ prefix: string }>,
+      ) => Tuple.make(Message.UpdatedValue({ value }), required),
+      updateRefined: (value: 'First' | 'Second') =>
+        Tuple.make(
+          Message.UpdatedValue({ value }),
+          { prefix: 'refined' },
+          undefined,
+          undefined,
+        ),
+    },
+    EffectsLayer,
+    hostHandlers: [RecordValue],
+  })
 
 export const ParentModel = Schema.Struct({
   maybeChild: Schema.Option(Model),
@@ -138,14 +139,10 @@ export const ParentModel = Schema.Struct({
 })
 export type ParentModel = typeof ParentModel.Type
 export const ParentMessage = defineMessageUnion({
-  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture deliberately probes routed child Message ownership.
-  GotChildMessage: { message: Message },
-  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture deliberately probes routed child Message ownership.
-  GotEntryMessage: { id: Schema.String, message: Message },
   RequestedUpdateChild: { value: Schema.String },
   RequestedUpdateEntry: { id: Schema.String, value: Schema.String },
 })
-export const OperationConstructorProofParentDefinition = Block.define(
+export const OperationConstructorProofParentDefinition = Block.makeDefinition(
   'OperationConstructorProofParent',
   {
     Model: ParentModel,
@@ -159,11 +156,8 @@ export const ChildBinding = OperationConstructorProofParentDefinition.bindChild(
     read: model => model.maybeChild,
     write: (model, nextChild) =>
       modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
-    toParentMessage: message => ParentMessage.GotChildMessage({ message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotChildMessage,
-      args: (_model, { message }) =>
-        Option.some([message, { prefix: 'routed' }]),
+    delivery: {
+      toUpdateContext: () => [{ prefix: 'routed' }],
     },
     outMessage: {
       fold: OutMessage.match<
@@ -180,6 +174,7 @@ export const EntryBinding = OperationConstructorProofParentDefinition.bindChild(
     placement: 'entries',
     readAll: model => model.entries,
     key: entry => entry.id,
+    keySchema: Schema.String,
     read: entry => entry.child,
     writeAt: (model, id, nextChild) =>
       modifyFields(model, {
@@ -187,12 +182,8 @@ export const EntryBinding = OperationConstructorProofParentDefinition.bindChild(
           entry.id === id ? { ...entry, child: nextChild } : entry,
         ),
       }),
-    toParentMessage: (id, message) =>
-      ParentMessage.GotEntryMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotEntryMessage,
-      args: (_model, { id, message }) =>
-        Option.some([id, message, { prefix: 'routed' }]),
+    delivery: {
+      toUpdateContext: () => [{ prefix: 'routed' }],
     },
     outMessage: {
       fold: (_id, outMessage) =>
@@ -207,11 +198,11 @@ export const EntryBinding = OperationConstructorProofParentDefinition.bindChild(
 )
 export const OperationConstructorProofParentComposition =
   OperationConstructorProofParentDefinition.makeComposition({
-    childBindings: [ChildBinding, EntryBinding],
+    bindings: [ChildBinding, EntryBinding],
   })
 
-export const ParentBlock = OperationConstructorProofParentComposition.makeBlock(
-  {
+export const ParentBlock =
+  OperationConstructorProofParentComposition.assembleBlock({
     init: () => ({
       model: ParentModel.make({ maybeChild: Option.none(), entries: [] }),
     }),
@@ -237,8 +228,7 @@ export const ParentBlock = OperationConstructorProofParentComposition.makeBlock(
         Effect.succeed(Message.CompletedRecordValue({ value })),
       ),
     ),
-  },
-)
+  })
 
 export function makeChoice<
   const Values extends readonly [string, ...Array<string>],
@@ -246,18 +236,17 @@ export function makeChoice<
   const Value = Schema.Literals(values)
   const ChoiceModel = Schema.Struct({ selected: Value })
   const ChoiceMessage = defineMessageUnion({ SelectedValue: { value: Value } })
-  const OperationConstructorProofChoiceDefinition = Block.define(
+
+  const OperationConstructorProofChoiceComposition = Block.makeDefinition(
     'OperationConstructorProofChoice',
     {
       Model: ChoiceModel,
       Message: ChoiceMessage,
     },
-  )
-  const OperationConstructorProofChoiceComposition =
-    OperationConstructorProofChoiceDefinition.makeComposition()
+  ).makeComposition()
   const select = ChoiceMessage.SelectedValue
 
-  return OperationConstructorProofChoiceComposition.makeBlock({
+  return OperationConstructorProofChoiceComposition.assembleBlock({
     init: (selected: Values[number]) => ({
       model: ChoiceModel.make({ selected }),
     }),
@@ -342,7 +331,7 @@ type BindingRegistrationRemains = Expect<
     Update.RegistrationEvidenceOf<
       ReturnType<ReturnType<typeof EntryBinding.updateValue>>
     >,
-    Block.BindingRequirement<'entries', typeof ChildBlock>
+    Block.RequirementOfBinding<typeof EntryBinding>
   >
 >
 type ParentCommandRequirementsRemain = Expect<
@@ -409,11 +398,14 @@ export type OperationConstructorAssertions = readonly [
 ]
 
 export const makeNamed = <const Name extends string>(name: Name) => {
-  const NamedOwnerDefinition = Block.define(name)
-  const NamedDefinition = NamedOwnerDefinition.define({ Model, Message })
-  const NamedComposition = NamedDefinition.makeComposition()
+  const NamedOwnerNamespace = Block.makeNamespace(name)
 
-  return NamedComposition.makeBlock({
+  const NamedComposition = NamedOwnerNamespace.makeDefinition({
+    Model,
+    Message,
+  }).makeComposition()
+
+  return NamedComposition.assembleBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: NamedComposition.makeUpdate(model => ({ model })),
     operations: {

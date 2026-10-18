@@ -1,10 +1,10 @@
-import type { Schema } from 'effect'
+import { Predicate, Schema } from 'effect'
 
 import type * as Mount from '../mount/index.js'
 import type { AnyBinding } from './binding.js'
 import type { Base, Composition, ValidateChildBindings } from './definition.js'
 import type { CompositionDeliveryArguments } from './delivery.js'
-import type { ValidateChildStartup } from './initialization.js'
+import type { ValidateChildInitContext } from './initialization.js'
 import {
   type DefineCommand,
   type DefineMount,
@@ -15,6 +15,56 @@ import {
 import type { Owner } from './owner.js'
 
 type AnySchema = Schema.Codec<any, any, any, any>
+
+type RuntimeDefinitionContracts = Readonly<{
+  Model: AnySchema
+  Message: AnySchema
+  OutMessage?: AnySchema
+  ChildInitContext?: AnySchema
+}>
+
+const isDefinitionContractField = (field: string): boolean =>
+  field === 'Model' ||
+  field === 'Message' ||
+  field === 'OutMessage' ||
+  field === 'ChildInitContext'
+
+const assertOptionalDefinitionSchema = (
+  contracts: object,
+  field: 'OutMessage' | 'ChildInitContext',
+): void => {
+  const schema = Reflect.get(contracts, field)
+  if (schema !== undefined && !Schema.isSchema(schema)) {
+    throw new Error(
+      `[foldkit] Block.makeDefinition ${field} must be a Schema when present.`,
+    )
+  }
+}
+
+const assertDefinitionContracts: (
+  contracts: unknown,
+) => asserts contracts is RuntimeDefinitionContracts = contracts => {
+  if (
+    !Predicate.isObject(contracts) ||
+    !Schema.isSchema(Reflect.get(contracts, 'Model')) ||
+    !Schema.isSchema(Reflect.get(contracts, 'Message'))
+  ) {
+    throw new Error(
+      '[foldkit] Block.makeDefinition requires Model and Message Schemas. Use Block.makeNamespace(id) to declare owned effects before generic contracts are available.',
+    )
+  }
+
+  for (const field of Reflect.ownKeys(contracts)) {
+    if (Predicate.isString(field) && !isDefinitionContractField(field)) {
+      throw new Error(
+        `[foldkit] Block.makeDefinition config field "${field}" is not supported. Expected only Model, Message, OutMessage, and ChildInitContext.`,
+      )
+    }
+  }
+
+  assertOptionalDefinitionSchema(contracts, 'OutMessage')
+  assertOptionalDefinitionSchema(contracts, 'ChildInitContext')
+}
 
 /** Effect declaration helpers scoped to one Block identity. */
 export type Primitives<Id extends string, Message = unknown> = Readonly<{
@@ -36,7 +86,7 @@ export interface AuthoringMakeComposition<
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
   Concrete extends boolean = true,
-  StartupSchema extends AnySchema | undefined = undefined,
+  ChildInitContextSchema extends AnySchema | undefined = undefined,
 > {
   (
     ...validation: CompositionDeliveryArguments<
@@ -61,12 +111,14 @@ export interface AuthoringMakeComposition<
        * to an empty registry. */
       mounts?: Mounts & Mount.PreciseMountRegistry<Mounts>
       /** Child Bindings registered in this Block's composition graph. Omitted
-       * childBindings default to an empty tuple. */
-      childBindings?: Children
+       * bindings default to an empty tuple. */
+      bindings?: Children
     }> &
-      ValidateChildStartup<
+      ValidateChildInitContext<
         Children,
-        StartupSchema extends AnySchema ? StartupSchema['Type'] : never
+        ChildInitContextSchema extends AnySchema
+          ? ChildInitContextSchema['Type']
+          : never
       > &
       ValidateChildBindings<
         Children,
@@ -92,14 +144,14 @@ export type AuthoringDefinition<
   MessageSchema extends AnySchema,
   OutMessageSchema extends AnySchema | undefined,
   Concrete extends boolean = true,
-  StartupSchema extends AnySchema | undefined = undefined,
+  ChildInitContextSchema extends AnySchema | undefined = undefined,
 > = Omit<
   Base<
     Owner<Id, Concrete>,
     ModelSchema,
     MessageSchema,
     OutMessageSchema,
-    StartupSchema
+    ChildInitContextSchema
   >,
   'makeComposition'
 > &
@@ -113,13 +165,13 @@ export type AuthoringDefinition<
       MessageSchema,
       OutMessageSchema,
       Concrete,
-      StartupSchema
+      ChildInitContextSchema
     >
   }>
 
 /** Establishes Model, Message, and optional OutMessage Schemas under an already
  * declared Block identity. */
-export interface DefineContracts<
+export interface NamespaceMakeDefinition<
   Id extends string,
   Concrete extends boolean = true,
 > {
@@ -127,7 +179,7 @@ export interface DefineContracts<
     const ModelSchema extends AnySchema,
     const MessageSchema extends AnySchema,
     const OutMessageSchema extends AnySchema,
-    const StartupSchema extends AnySchema | undefined = undefined,
+    const ChildInitContextSchema extends AnySchema | undefined = undefined,
   >(
     config: Readonly<{
       /** Schema for the Block's Model. */
@@ -136,10 +188,10 @@ export interface DefineContracts<
       Message: MessageSchema
       /** Schema for facts the Block can report to a parent. */
       OutMessage: OutMessageSchema
-      /** Shared input Schema for Binding startup selectors, separate from Model state. */
-      Startup?: StartupSchema
+      /** Schema for the parent-prepared context shared with its child Binding init policies. */
+      ChildInitContext?: ChildInitContextSchema
       mounts?: never
-      childBindings?: never
+      bindings?: never
     }>,
   ): AuthoringDefinition<
     Id,
@@ -147,23 +199,23 @@ export interface DefineContracts<
     MessageSchema,
     OutMessageSchema,
     Concrete,
-    StartupSchema
+    ChildInitContextSchema
   >
   <
     const ModelSchema extends AnySchema,
     const MessageSchema extends AnySchema,
-    const StartupSchema extends AnySchema | undefined = undefined,
+    const ChildInitContextSchema extends AnySchema | undefined = undefined,
   >(
     config: Readonly<{
       /** Schema for the Block's Model. */
       Model: ModelSchema
       /** Schema for facts the Block's update function handles. */
       Message: MessageSchema
-      /** Shared input Schema for Binding startup selectors, separate from Model state. */
-      Startup?: StartupSchema
+      /** Schema for the parent-prepared context shared with its child Binding init policies. */
+      ChildInitContext?: ChildInitContextSchema
       OutMessage?: never
       mounts?: never
-      childBindings?: never
+      bindings?: never
     }>,
   ): AuthoringDefinition<
     Id,
@@ -171,155 +223,33 @@ export interface DefineContracts<
     MessageSchema,
     undefined,
     Concrete,
-    StartupSchema
+    ChildInitContextSchema
   >
 }
 
-/** A Block identity whose owned effects can be declared before a generic
+/** A Block namespace whose owned effects can be declared before a generic
  * factory establishes its Model and Message contracts. */
-export type Authoring<
+export type Namespace<
   Id extends string,
   Concrete extends boolean = true,
 > = Primitives<Id> &
   Readonly<{
-    /** Establishes a typed Definition under this existing Block identity. */
-    define: DefineContracts<Id, Concrete>
+    /** Establishes typed contracts sharing this namespace's identity and owned effects. */
+    makeDefinition: NamespaceMakeDefinition<Id, Concrete>
   }>
 
-/** Defines a Block identity before a generic factory establishes its Model and
+/** Creates a shared Block namespace before a generic factory establishes its Model and
  * Message contracts. The returned authoring value is passive configuration. */
-export function define(
+export function makeNamespace(
   id: '' | `${string}/${string}` | `${string}::${string}`,
 ): never
-export function define<const Id extends string>(
+export function makeNamespace<const Id extends string>(
   id: Id & (string extends Id ? never : unknown),
-): Authoring<Id, true>
-export function define<const Id extends string>(id: Id): Authoring<Id, false>
-/** Defines one Block's identity, Schemas, typed authoring helpers, and owned
- * effect declarations. The returned Definition is passive configuration. */
-export function define<
-  const Id extends string,
-  const ModelSchema extends AnySchema,
-  const MessageSchema extends AnySchema,
-  const OutMessageSchema extends AnySchema,
-  const StartupSchema extends AnySchema | undefined = undefined,
->(
-  id: (Id extends '' | `${string}/${string}` | `${string}::${string}`
-    ? never
-    : Id) &
-    (string extends Id ? never : unknown),
-  config: Readonly<{
-    Model: ModelSchema
-    Message: MessageSchema
-    OutMessage: OutMessageSchema
-    /** Shared input Schema for Binding startup selectors, separate from Model state. */
-    Startup?: StartupSchema
-    mounts?: never
-    childBindings?: never
-  }>,
-): AuthoringDefinition<
-  Id,
-  ModelSchema,
-  MessageSchema,
-  OutMessageSchema,
-  true,
-  StartupSchema
->
-/** Defines one Block's identity, Schemas, typed authoring helpers, and owned
- * effect declarations. The returned Definition is passive configuration. */
-export function define<
-  const Id extends string,
-  const ModelSchema extends AnySchema,
-  const MessageSchema extends AnySchema,
-  const StartupSchema extends AnySchema | undefined = undefined,
->(
-  id: (Id extends '' | `${string}/${string}` | `${string}::${string}`
-    ? never
-    : Id) &
-    (string extends Id ? never : unknown),
-  config: Readonly<{
-    Model: ModelSchema
-    Message: MessageSchema
-    /** Shared input Schema for Binding startup selectors, separate from Model state. */
-    Startup?: StartupSchema
-    OutMessage?: never
-    mounts?: never
-    childBindings?: never
-  }>,
-): AuthoringDefinition<
-  Id,
-  ModelSchema,
-  MessageSchema,
-  undefined,
-  true,
-  StartupSchema
->
-/** Defines one Block's identity, Schemas, typed authoring helpers, and owned
- * effect declarations. The returned Definition is passive configuration. */
-export function define<
-  const Id extends string,
-  const ModelSchema extends AnySchema,
-  const MessageSchema extends AnySchema,
-  const OutMessageSchema extends AnySchema,
-  const StartupSchema extends AnySchema | undefined = undefined,
->(
-  id: Id extends '' | `${string}/${string}` | `${string}::${string}`
-    ? never
-    : Id,
-  config: Readonly<{
-    Model: ModelSchema
-    Message: MessageSchema
-    OutMessage: OutMessageSchema
-    /** Shared input Schema for Binding startup selectors, separate from Model state. */
-    Startup?: StartupSchema
-    mounts?: never
-    childBindings?: never
-  }>,
-): AuthoringDefinition<
-  Id,
-  ModelSchema,
-  MessageSchema,
-  OutMessageSchema,
-  false,
-  StartupSchema
->
-/** Defines one Block's identity, Schemas, typed authoring helpers, and owned
- * effect declarations. The returned Definition is passive configuration. */
-export function define<
-  const Id extends string,
-  const ModelSchema extends AnySchema,
-  const MessageSchema extends AnySchema,
-  const StartupSchema extends AnySchema | undefined = undefined,
->(
-  id: Id extends '' | `${string}/${string}` | `${string}::${string}`
-    ? never
-    : Id,
-  config: Readonly<{
-    Model: ModelSchema
-    Message: MessageSchema
-    /** Shared input Schema for Binding startup selectors, separate from Model state. */
-    Startup?: StartupSchema
-    OutMessage?: never
-    mounts?: never
-    childBindings?: never
-  }>,
-): AuthoringDefinition<
-  Id,
-  ModelSchema,
-  MessageSchema,
-  undefined,
-  false,
-  StartupSchema
->
-export function define(
-  id: string,
-  config?: Readonly<{
-    Model: AnySchema
-    Message: AnySchema
-    OutMessage?: AnySchema
-    Startup?: AnySchema
-  }>,
-): any {
+): Namespace<Id, true>
+export function makeNamespace<const Id extends string>(
+  id: Id,
+): Namespace<Id, false>
+export function makeNamespace(id: string): any {
   const authoring = makeAuthoringContext(id)
   const primitives = {
     command: authoring.command,
@@ -327,20 +257,15 @@ export function define(
     mountStream: authoring.mountStream,
     resource: authoring.resource,
   }
-  const defineContracts = (
-    contracts: Readonly<{
-      Model: AnySchema
-      Message: AnySchema
-      OutMessage?: AnySchema
-      Startup?: AnySchema
-    }>,
-  ) => {
+  const makeDefinition = (contracts: unknown) => {
+    assertDefinitionContracts(contracts)
+
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const base = authoring.define(contracts as never)
     const makeComposition = (
       graph: Readonly<{
         mounts?: ReadonlyArray<Mount.LayeredMountDefinition>
-        childBindings?: ReadonlyArray<AnyBinding>
+        bindings?: ReadonlyArray<AnyBinding>
       }> = {},
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     ) => base.makeComposition(graph as never)
@@ -348,9 +273,135 @@ export function define(
     return { ...base, ...primitives, makeComposition }
   }
 
-  if (config === undefined) {
-    return { ...primitives, define: defineContracts }
-  } else {
-    return defineContracts(config)
-  }
+  return { ...primitives, makeDefinition }
+}
+
+/** Defines one Block's identity, Schemas, typed authoring helpers, and owned
+ * effect declarations. The returned Definition is passive configuration. */
+export function makeDefinition<
+  const Id extends string,
+  const ModelSchema extends AnySchema,
+  const MessageSchema extends AnySchema,
+  const OutMessageSchema extends AnySchema,
+  const ChildInitContextSchema extends AnySchema | undefined = undefined,
+>(
+  id: (Id extends '' | `${string}/${string}` | `${string}::${string}`
+    ? never
+    : Id) &
+    (string extends Id ? never : unknown),
+  config: Readonly<{
+    Model: ModelSchema
+    Message: MessageSchema
+    OutMessage: OutMessageSchema
+    /** Schema for the parent-prepared context shared with its child Binding init policies. */
+    ChildInitContext?: ChildInitContextSchema
+    mounts?: never
+    bindings?: never
+  }>,
+): AuthoringDefinition<
+  Id,
+  ModelSchema,
+  MessageSchema,
+  OutMessageSchema,
+  true,
+  ChildInitContextSchema
+>
+/** Defines one Block's identity, Schemas, typed authoring helpers, and owned
+ * effect declarations. The returned Definition is passive configuration. */
+export function makeDefinition<
+  const Id extends string,
+  const ModelSchema extends AnySchema,
+  const MessageSchema extends AnySchema,
+  const ChildInitContextSchema extends AnySchema | undefined = undefined,
+>(
+  id: (Id extends '' | `${string}/${string}` | `${string}::${string}`
+    ? never
+    : Id) &
+    (string extends Id ? never : unknown),
+  config: Readonly<{
+    Model: ModelSchema
+    Message: MessageSchema
+    /** Schema for the parent-prepared context shared with its child Binding init policies. */
+    ChildInitContext?: ChildInitContextSchema
+    OutMessage?: never
+    mounts?: never
+    bindings?: never
+  }>,
+): AuthoringDefinition<
+  Id,
+  ModelSchema,
+  MessageSchema,
+  undefined,
+  true,
+  ChildInitContextSchema
+>
+/** Defines one Block's identity, Schemas, typed authoring helpers, and owned
+ * effect declarations. The returned Definition is passive configuration. */
+export function makeDefinition<
+  const Id extends string,
+  const ModelSchema extends AnySchema,
+  const MessageSchema extends AnySchema,
+  const OutMessageSchema extends AnySchema,
+  const ChildInitContextSchema extends AnySchema | undefined = undefined,
+>(
+  id: Id extends '' | `${string}/${string}` | `${string}::${string}`
+    ? never
+    : Id,
+  config: Readonly<{
+    Model: ModelSchema
+    Message: MessageSchema
+    OutMessage: OutMessageSchema
+    /** Schema for the parent-prepared context shared with its child Binding init policies. */
+    ChildInitContext?: ChildInitContextSchema
+    mounts?: never
+    bindings?: never
+  }>,
+): AuthoringDefinition<
+  Id,
+  ModelSchema,
+  MessageSchema,
+  OutMessageSchema,
+  false,
+  ChildInitContextSchema
+>
+/** Defines one Block's identity, Schemas, typed authoring helpers, and owned
+ * effect declarations. The returned Definition is passive configuration. */
+export function makeDefinition<
+  const Id extends string,
+  const ModelSchema extends AnySchema,
+  const MessageSchema extends AnySchema,
+  const ChildInitContextSchema extends AnySchema | undefined = undefined,
+>(
+  id: Id extends '' | `${string}/${string}` | `${string}::${string}`
+    ? never
+    : Id,
+  config: Readonly<{
+    Model: ModelSchema
+    Message: MessageSchema
+    /** Schema for the parent-prepared context shared with its child Binding init policies. */
+    ChildInitContext?: ChildInitContextSchema
+    OutMessage?: never
+    mounts?: never
+    bindings?: never
+  }>,
+): AuthoringDefinition<
+  Id,
+  ModelSchema,
+  MessageSchema,
+  undefined,
+  false,
+  ChildInitContextSchema
+>
+export function makeDefinition(
+  id: string,
+  config: Readonly<{
+    Model: AnySchema
+    Message: AnySchema
+    OutMessage?: AnySchema
+    ChildInitContext?: AnySchema
+  }>,
+): any {
+  const blockNamespace = makeNamespace(id)
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  return blockNamespace.makeDefinition(config as never)
 }

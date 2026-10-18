@@ -41,6 +41,13 @@ export const update = WorkHistoryEntryComposition.makeUpdate((model, message) =>
       model: modifyFields(model, { description: () => value }),
     }),
 
+    RequestedRevealErrors: () => ({
+      model: modifyFields(model, {
+        company: revealFieldErrors(companyRules),
+        title: revealFieldErrors(titleRules),
+      }),
+    }),
+
     ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
   }),
 )
@@ -55,9 +62,3 @@ export const isComplete = (entry: Model): boolean =>
     [entry.company, companyRules],
     [entry.title, titleRules],
   ])
-
-export const revealErrors = (entry: Model): Model =>
-  modifyFields(entry, {
-    company: revealFieldErrors(companyRules),
-    title: revealFieldErrors(titleRules),
-  })

@@ -1,4 +1,4 @@
-import { Array, Context, Effect, Layer, Option, Schema } from 'effect'
+import { Context, Effect, Layer, Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
 import { defineMessageUnion } from 'foldkit/message'
@@ -20,13 +20,13 @@ const ChildMessage = defineMessageUnion({
 })
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const ChildDefinition = Block.define('StrictRoutingChild', {
+
+// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
+const ChildComposition = Block.makeDefinition('StrictRoutingChild', {
   Model: ChildModel,
   Message: ChildMessage,
-})
-// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const ChildComposition = ChildDefinition.makeComposition()
-export const ChildBlock = ChildComposition.makeBlock({
+}).makeComposition()
+export const ChildBlock = ChildComposition.assembleBlock({
   init: ChildComposition.makeInit(() => ({
     model: ChildModel.make({ count: 0 }),
   })),
@@ -40,13 +40,16 @@ export const ChildBlock = ChildComposition.makeBlock({
 type DispatchContext = Readonly<{ multiplier: number }>
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const ContextChildDefinition = Block.define('StrictRoutingContextChild', {
-  Model: ChildModel,
-  Message: ChildMessage,
-})
+
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const ContextChildComposition = ContextChildDefinition.makeComposition()
-export const ContextChildBlock = ContextChildComposition.makeBlock({
+const ContextChildComposition = Block.makeDefinition(
+  'StrictRoutingContextChild',
+  {
+    Model: ChildModel,
+    Message: ChildMessage,
+  },
+).makeComposition()
+export const ContextChildBlock = ContextChildComposition.assembleBlock({
   init: ContextChildComposition.makeInit(() => ({
     model: ChildModel.make({ count: 0 }),
   })),
@@ -71,61 +74,38 @@ export const ParentModel = Schema.Struct({
   resets: Schema.Number,
 })
 export const ParentMessage = defineMessageUnion({
-  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture deliberately probes reserved Got* routing with a nonstandard payload.
-  GotChildMessage: { message: ChildMessage },
-  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture deliberately probes reserved Got* routing with a nonstandard payload.
-  GotContextEvent: { event: ChildMessage },
-  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture deliberately probes reserved Got* routing with a nonstandard payload.
-  GotEntry: { id: Schema.String, event: ChildMessage },
   ClickedReset: {},
 })
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-export const ParentDefinition = Block.define('StrictRoutingParent', {
+export const ParentDefinition = Block.makeDefinition('StrictRoutingParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
 
 export const CanonicalBinding = ParentDefinition.bindChild(ChildBlock, {
   field: 'child',
-  parentMessage: ParentMessage.GotChildMessage,
 })
 
 export const ContextBinding = ParentDefinition.bindChild(ContextChildBlock, {
   field: 'contextualChild',
-  toParentMessage: (message): typeof ParentMessage.Type =>
-    ParentMessage.GotContextEvent({ event: message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotContextEvent,
-    args: (model, { event }) =>
-      Option.some([event, { multiplier: model.multiplier }]),
+  delivery: {
+    toUpdateContext: model => [{ multiplier: model.multiplier }],
   },
 })
 
 export const KeyedBinding = ParentDefinition.bindChild(ChildBlock, {
-  readAll: model => model.entries,
-  key: entry => entry.id,
-  read: entry => entry.child,
-  writeAt: (model, id, nextChild) =>
-    modifyFields(model, {
-      entries: Array.map(entry =>
-        entry.id === id
-          ? modifyFields(entry, { child: () => nextChild })
-          : entry,
-      ),
-    }),
-  toParentMessage: (id, message) =>
-    ParentMessage.GotEntry({ id, event: message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotEntry,
-    args: (_model, { id, event }) =>
-      id === 'active' ? Option.some([id, event]) : Option.none(),
+  field: 'entries',
+  key: 'id',
+  childField: 'child',
+  delivery: {
+    when: (_model, id) => id === 'active',
   },
 })
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 export const ParentComposition = ParentDefinition.makeComposition({
-  childBindings: [CanonicalBinding, ContextBinding, KeyedBinding],
+  bindings: [CanonicalBinding, ContextBinding, KeyedBinding],
 })
 
 export const parentUpdate = ParentComposition.makeUpdate((model, message) => {
@@ -151,15 +131,14 @@ export const parentModel = ParentModel.make({
 
 export const rawFullMessageUpdate = (
   model: typeof ParentModel.Type,
-  message: typeof ParentMessage.Type,
+  _message: typeof ParentMessage.Type,
 ) => ({
   model: modifyFields(model, {
-    resets: resets =>
-      message._tag === 'GotChildMessage' ? resets + 100 : resets + 1,
+    resets: resets => resets + 1,
   }),
 })
 
-export const RawCompletionBlock = ParentComposition.makeBlock({
+export const RawCompletionBlock = ParentComposition.assembleBlock({
   init: ParentComposition.makeInit(() => ({
     model: {
       entries: [],
@@ -170,7 +149,7 @@ export const RawCompletionBlock = ParentComposition.makeBlock({
   update: rawFullMessageUpdate,
 })
 
-export const GeneratedCompletionBlock = ParentComposition.makeBlock({
+export const GeneratedCompletionBlock = ParentComposition.assembleBlock({
   init: ParentComposition.makeInit(() => ({
     model: {
       entries: [],
@@ -190,7 +169,7 @@ void rawUpdateSignatureProof
 
 const SilentModel = Schema.Struct({ ready: Schema.Boolean })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const SilentDefinition = Block.define('StrictRoutingSilent', {
+const SilentDefinition = Block.makeDefinition('StrictRoutingSilent', {
   Model: SilentModel,
   Message: Schema.Never,
 })
@@ -208,7 +187,7 @@ const WaitForever = SilentDefinition.command('WaitForever', {
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 const SilentComposition = SilentDefinition.makeComposition()
 export const silentUpdate = SilentComposition.makeUpdate()
-export const SilentBlock = SilentComposition.makeBlock({
+export const SilentBlock = SilentComposition.assembleBlock({
   init: SilentComposition.makeInit(() => ({
     model: SilentModel.make({ ready: true }),
     commands: [WaitForever()],
@@ -222,7 +201,7 @@ const SilentParentMessage = defineMessageUnion({
   ClickedParent: {},
 })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-export const SilentParentDefinition = Block.define(
+export const SilentParentDefinition = Block.makeDefinition(
   'StrictRoutingSilentParent',
   {
     Model: SilentParentModel,
@@ -236,7 +215,7 @@ export const SilentBinding = SilentParentDefinition.bindChild(SilentBlock, {
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 export const SilentParentComposition = SilentParentDefinition.makeComposition({
-  childBindings: [SilentBinding],
+  bindings: [SilentBinding],
 })
 export const initializeSilent = SilentParentDefinition.step(model =>
   SilentBinding.init({
@@ -244,7 +223,7 @@ export const initializeSilent = SilentParentDefinition.step(model =>
     toParentModel: silent => modifyFields(model, { silent: () => silent }),
   }),
 )
-export const SilentParentBlock = SilentParentComposition.makeBlock({
+export const SilentParentBlock = SilentParentComposition.assembleBlock({
   init: SilentParentComposition.makeInit(() => ({
     model: {},
   })),
@@ -256,16 +235,15 @@ const ImpossibleParentMessage = defineMessageUnion({
   GotImpossible: { message: Schema.Never },
 })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const ImpossibleParentDefinition = Block.define(
+
+// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
+export const ImpossibleParentComposition = Block.makeDefinition(
   'StrictRoutingImpossibleParent',
   {
     Model: Schema.Null,
     Message: ImpossibleParentMessage,
   },
-)
-// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-export const ImpossibleParentComposition =
-  ImpossibleParentDefinition.makeComposition()
+).makeComposition()
 
 type SilentUpdateParameters = Expect<
   Equal<

@@ -3,9 +3,7 @@ import { expect, given, placeholder, role, scene, text } from 'foldkit/scene'
 import { modifyFields } from 'foldkit/struct'
 import { describe, test } from 'vitest'
 
-import { Listbox } from '@foldkit/ui'
-
-import { type Model } from './model'
+import { DietListboxBlock, type Model, PeriodListboxBlock } from './model'
 import { ApplicationRoute, Sorting } from './route'
 import { update } from './update'
 import { view } from './view'
@@ -17,8 +15,8 @@ const browseModel: Model = {
     diet: Option.none(),
     period: Option.none(),
   }),
-  dietListbox: Listbox.init({ id: 'diet-filter' }),
-  periodListbox: Listbox.init({ id: 'period-filter' }),
+  dietListbox: DietListboxBlock.init({ id: 'diet-filter' }).model,
+  periodListbox: PeriodListboxBlock.init({ id: 'period-filter' }).model,
 }
 
 describe('view', () => {

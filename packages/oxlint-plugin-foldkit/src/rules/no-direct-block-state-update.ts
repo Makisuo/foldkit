@@ -112,15 +112,19 @@ const expressionReturnedBy = (
 }
 
 const isFunction = (
-  node: ESTree.Node,
+  node: unknown,
 ): node is ESTree.ArrowFunctionExpression | ESTree.Function =>
-  node.type === 'ArrowFunctionExpression' ||
-  node.type === 'FunctionExpression' ||
-  node.type === 'FunctionDeclaration'
+  isNode(node) &&
+  (node.type === 'ArrowFunctionExpression' ||
+    node.type === 'FunctionExpression' ||
+    node.type === 'FunctionDeclaration')
 
 const expressionsReturnedBy = (
-  callback: ESTree.ArrowFunctionExpression,
+  callback: ESTree.ArrowFunctionExpression | ESTree.Function,
 ): ReadonlyArray<ESTree.Expression> => {
+  if (callback.body === null) {
+    return []
+  }
   if (callback.body.type !== 'BlockStatement') {
     return [callback.body]
   }
@@ -459,7 +463,92 @@ const callbackValue = (
       ? callbacks.get(value.name)
       : undefined
 
+type ChildBlockOwner = Readonly<{
+  fallbackRootName: string
+  localPrefix: ReadonlyArray<string>
+  imported?: Readonly<{
+    members: ReadonlyArray<string>
+    source: string
+  }>
+  variable?: Variable
+}>
+
+const pathPrefix = (members: ReadonlyArray<string>): ReadonlyArray<string> =>
+  members.slice(0, -1)
+
+const childBlockOwner = (
+  node: unknown,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): ChildBlockOwner | undefined => {
+  const maybePath = staticMemberPath(node)
+  if (Option.isNone(maybePath)) {
+    return undefined
+  }
+
+  const { root, members } = maybePath.value
+  const localPrefix = members.length === 0 ? [] : pathPrefix(members)
+  if (references === undefined) {
+    return { fallbackRootName: root.name, localPrefix }
+  }
+
+  const imported = Option.getOrUndefined(resolveImportedPath(references, node))
+  return {
+    fallbackRootName: root.name,
+    localPrefix,
+    ...(imported === undefined
+      ? {}
+      : { imported: { members: imported.members, source: imported.source } }),
+    ...Option.match(resolvedVariable(references, root), {
+      onNone: () => ({}),
+      onSome: variable => ({ variable }),
+    }),
+  }
+}
+
+const samePathPrefix = (
+  left: ReadonlyArray<string>,
+  right: ReadonlyArray<string>,
+): boolean =>
+  left.length === right.length &&
+  left.every((member, index) => member === right[index])
+
+const ownerMatchesPath = (
+  owner: ChildBlockOwner,
+  node: unknown,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => {
+  const candidate = childBlockOwner(node, references)
+  if (candidate === undefined) {
+    return false
+  }
+
+  const sameRoot =
+    owner.variable !== undefined || candidate.variable !== undefined
+      ? owner.variable !== undefined && owner.variable === candidate.variable
+      : owner.fallbackRootName === candidate.fallbackRootName
+  if (sameRoot && samePathPrefix(owner.localPrefix, candidate.localPrefix)) {
+    return true
+  }
+
+  const ownerImport = owner.imported
+  const candidateImport = candidate.imported
+  if (
+    ownerImport === undefined ||
+    candidateImport === undefined ||
+    ownerImport.source !== candidateImport.source
+  ) {
+    return false
+  }
+
+  return (
+    ownerImport.members.length === 1 &&
+    ownerImport.members[0] === 'block' &&
+    candidateImport.members.length === 1
+  )
+}
+
 type FoldDefinition = Readonly<{
+  childOwner?: ChildBlockOwner
   childField: string
   kind: FoldKind
   owner?: DefinitionOwner
@@ -467,55 +556,39 @@ type FoldDefinition = Readonly<{
 }>
 
 type CombineStepDefinition = Readonly<{
-  childFields: ReadonlySet<string>
-  keyedChildFields: ReadonlySet<string>
-  wrappedChildFields: ReadonlyMap<string, ReadonlySet<string>>
+  bindings: ReadonlyArray<FoldDefinition>
+  stepFieldsCalls: ReadonlySet<ESTree.CallExpression>
 }>
 
 type FoldEvidence = Readonly<{
-  childFieldsByParentModel: ReadonlyMap<Variable, ReadonlySet<string>>
-  fallbackChildFieldsByParentModel: ReadonlyMap<string, ReadonlySet<string>>
-  keyedChildFieldsByParentModel: ReadonlyMap<Variable, ReadonlySet<string>>
-  fallbackKeyedChildFieldsByParentModel: ReadonlyMap<
-    string,
-    ReadonlySet<string>
-  >
-  wrappedChildFieldsByParentModel: ReadonlyMap<
+  registrationsByParentModel: ReadonlyMap<
     Variable,
-    ReadonlyMap<string, ReadonlySet<string>>
+    ReadonlyMap<string, ReadonlyArray<FoldDefinition>>
   >
-  fallbackWrappedChildFieldsByParentModel: ReadonlyMap<
+  fallbackRegistrationsByParentModel: ReadonlyMap<
     string,
-    ReadonlyMap<string, ReadonlySet<string>>
+    ReadonlyMap<string, ReadonlyArray<FoldDefinition>>
+  >
+  parentModelByStepFieldsCall: WeakMap<
+    ESTree.CallExpression,
+    ESTree.IdentifierReference
   >
   writeCallbacks: ReadonlySet<ESTree.Node>
 }>
 
-const addChildField = <Key>(
-  fieldsByParentModel: Map<Key, Set<string>>,
+const addRegistration = <Key>(
+  registrationsByParentModel: Map<Key, Map<string, Array<FoldDefinition>>>,
   parentModel: Key,
-  childField: string,
+  definition: FoldDefinition,
 ): void => {
-  const fields = fieldsByParentModel.get(parentModel)
-  if (fields === undefined) {
-    fieldsByParentModel.set(parentModel, new Set([childField]))
-    return
-  }
-  fields.add(childField)
-}
-
-const addWrappedChildField = <Key>(
-  fieldsByParentModel: Map<Key, Map<string, Set<string>>>,
-  parentModel: Key,
-  parentField: string,
-  childField: string,
-): void => {
-  const fieldsByParentField =
-    fieldsByParentModel.get(parentModel) ?? new Map<string, Set<string>>()
-  const fields = fieldsByParentField.get(parentField) ?? new Set<string>()
-  fields.add(childField)
-  fieldsByParentField.set(parentField, fields)
-  fieldsByParentModel.set(parentModel, fieldsByParentField)
+  const registrationsByChildField =
+    registrationsByParentModel.get(parentModel) ??
+    new Map<string, Array<FoldDefinition>>()
+  const registrations =
+    registrationsByChildField.get(definition.childField) ?? []
+  registrations.push(definition)
+  registrationsByChildField.set(definition.childField, registrations)
+  registrationsByParentModel.set(parentModel, registrationsByChildField)
 }
 
 const foldDefinitions = (
@@ -556,6 +629,10 @@ const foldDefinitions = (
       }
 
       const bindingMethod = blockBindingMethod(declarator.init, references)
+      const [boundChild] = declarator.init.arguments
+      const childOwner = Option.isSome(bindingMethod)
+        ? childBlockOwner(boundChild, references)
+        : undefined
       const owner = Option.isSome(bindingMethod)
         ? definitionOwner(declarator.init, 'bindChild', references)
         : undefined
@@ -573,6 +650,7 @@ const foldDefinitions = (
         const definition = {
           childField: directField,
           kind,
+          ...(childOwner === undefined ? {} : { childOwner }),
           ...(owner === undefined ? {} : { owner }),
           ...(wrappedChildField === undefined ? {} : { wrappedChildField }),
         }
@@ -624,6 +702,7 @@ const foldDefinitions = (
       const definition = {
         childField: readField,
         kind,
+        ...(childOwner === undefined ? {} : { childOwner }),
         ...(owner === undefined ? {} : { owner }),
       }
       fallbackByName.set(declarator.id.name, definition)
@@ -641,7 +720,7 @@ const foldDefinitions = (
 }
 
 type CompositionDefinition = Readonly<{
-  childBindings: ReadonlyArray<FoldDefinition>
+  bindings: ReadonlyArray<FoldDefinition>
 }>
 
 const compositionDefinitions = (
@@ -688,12 +767,12 @@ const compositionDefinitions = (
         continue
       }
 
-      const childBindings = propertyValue(configuration, 'childBindings')
-      if (!isArrayExpression(childBindings)) {
+      const bindings = propertyValue(configuration, 'bindings')
+      if (!isArrayExpression(bindings)) {
         continue
       }
 
-      const registeredBindings = childBindings.elements.flatMap(binding => {
+      const registeredBindings = bindings.elements.flatMap(binding => {
         if (!isIdentifierReference(binding)) {
           return []
         }
@@ -707,7 +786,7 @@ const compositionDefinitions = (
         continue
       }
 
-      const definition = { childBindings: registeredBindings }
+      const definition = { bindings: registeredBindings }
       fallbackByName.set(declarator.id.name, definition)
       for (const scope of scopes ?? []) {
         for (const variable of scope.variables) {
@@ -792,6 +871,41 @@ const foldDefinitionFor = (
 const isArrayExpression = (value: unknown): value is ESTree.ArrayExpression =>
   isNode(value) && value.type === 'ArrayExpression'
 
+const ownedStepFieldsCallFor = (
+  node: unknown,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): ESTree.CallExpression | undefined => {
+  if (isCallExpression(node)) {
+    return isOwnedDefinitionCall(node, 'stepFields', references)
+      ? node
+      : undefined
+  }
+  if (references === undefined || !isIdentifierReference(node)) {
+    return undefined
+  }
+
+  return Option.getOrUndefined(
+    Option.flatMap(resolvedVariable(references, node), variable =>
+      Option.fromNullishOr(
+        variable.defs.flatMap(definition => {
+          if (
+            !isVariableDeclarator(definition.node) ||
+            !isCallExpression(definition.node.init) ||
+            !isOwnedDefinitionCall(
+              definition.node.init,
+              'stepFields',
+              references,
+            )
+          ) {
+            return []
+          }
+          return [definition.node.init]
+        })[0],
+      ),
+    ),
+  )
+}
+
 const childFieldsForCombine = (
   node: ESTree.CallExpression,
   definitions: Readonly<{
@@ -802,9 +916,8 @@ const childFieldsForCombine = (
 ): CombineStepDefinition => {
   if (!isCombineCall(node, references)) {
     return {
-      childFields: new Set(),
-      keyedChildFields: new Set(),
-      wrappedChildFields: new Map(),
+      bindings: [],
+      stepFieldsCalls: new Set(),
     }
   }
   const [firstArgument, secondArgument] = node.arguments
@@ -815,32 +928,23 @@ const childFieldsForCombine = (
       : undefined
   if (steps === undefined) {
     return {
-      childFields: new Set(),
-      keyedChildFields: new Set(),
-      wrappedChildFields: new Map(),
+      bindings: [],
+      stepFieldsCalls: new Set(),
     }
   }
 
-  const childFields = new Set<string>()
-  const keyedChildFields = new Set<string>()
-  const wrappedChildFields = new Map<string, Set<string>>()
-  const addDefinition = (definition: FoldDefinition): void => {
-    childFields.add(definition.childField)
-    if (definition.kind === 'Keyed') {
-      keyedChildFields.add(definition.childField)
-    }
-    if (definition.wrappedChildField !== undefined) {
-      const fields =
-        wrappedChildFields.get(definition.childField) ?? new Set<string>()
-      fields.add(definition.wrappedChildField)
-      wrappedChildFields.set(definition.childField, fields)
-    }
-  }
+  const bindings: Array<FoldDefinition> = []
+  const stepFieldsCalls = new Set<ESTree.CallExpression>()
   for (const step of steps.elements) {
+    const stepFieldsCall = ownedStepFieldsCallFor(step, references)
+    if (stepFieldsCall !== undefined) {
+      stepFieldsCalls.add(stepFieldsCall)
+      continue
+    }
     if (isIdentifierReference(step)) {
       const definition = foldDefinitionFor(step, definitions, references)
       if (definition?.kind === 'Step') {
-        addDefinition(definition)
+        bindings.push(definition)
       }
       continue
     }
@@ -851,10 +955,10 @@ const childFieldsForCombine = (
 
     const definition = foldDefinitionFor(step.callee, definitions, references)
     if (definition?.kind === 'Fold' || definition?.kind === 'Keyed') {
-      addDefinition(definition)
+      bindings.push(definition)
     }
   }
-  return { childFields, keyedChildFields, wrappedChildFields }
+  return { bindings, stepFieldsCalls }
 }
 
 const combineStepDefinitions = (
@@ -885,13 +989,16 @@ const combineStepDefinitions = (
     if (!isArrayExpression(firstArgument) || secondArgument !== undefined) {
       return
     }
-    const { childFields, keyedChildFields, wrappedChildFields } =
-      childFieldsForCombine(node.init, definitions, references)
-    if (childFields.size === 0) {
+    const { bindings, stepFieldsCalls } = childFieldsForCombine(
+      node.init,
+      definitions,
+      references,
+    )
+    if (bindings.length === 0 && stepFieldsCalls.size === 0) {
       return
     }
 
-    const definition = { childFields, keyedChildFields, wrappedChildFields }
+    const definition = { bindings, stepFieldsCalls }
     fallbackByName.set(node.id.name, definition)
     for (const scope of scopes ?? []) {
       for (const variable of scope.variables) {
@@ -967,39 +1074,20 @@ const combineModel = (
 const addDefinitionEvidence = (
   definition: FoldDefinition,
   parentModel: ESTree.IdentifierReference,
-  childFieldsByParentModel: Map<Variable, Set<string>>,
-  fallbackChildFieldsByParentModel: Map<string, Set<string>>,
-  keyedChildFieldsByParentModel: Map<Variable, Set<string>>,
-  fallbackKeyedChildFieldsByParentModel: Map<string, Set<string>>,
-  wrappedChildFieldsByParentModel: Map<Variable, Map<string, Set<string>>>,
-  fallbackWrappedChildFieldsByParentModel: Map<
+  registrationsByParentModel: Map<Variable, Map<string, Array<FoldDefinition>>>,
+  fallbackRegistrationsByParentModel: Map<
     string,
-    Map<string, Set<string>>
+    Map<string, Array<FoldDefinition>>
   >,
   references: WeakMap<ESTree.Node, Reference> | undefined,
   declaredVariables: ReadonlyArray<Variable>,
 ): void => {
   if (references === undefined) {
-    addChildField(
-      fallbackChildFieldsByParentModel,
+    addRegistration(
+      fallbackRegistrationsByParentModel,
       parentModel.name,
-      definition.childField,
+      definition,
     )
-    if (definition.kind === 'Keyed') {
-      addChildField(
-        fallbackKeyedChildFieldsByParentModel,
-        parentModel.name,
-        definition.childField,
-      )
-    }
-    if (definition.wrappedChildField !== undefined) {
-      addWrappedChildField(
-        fallbackWrappedChildFieldsByParentModel,
-        parentModel.name,
-        definition.childField,
-        definition.wrappedChildField,
-      )
-    }
     return
   }
 
@@ -1014,22 +1102,7 @@ const addDefinitionEvidence = (
   )
 
   Option.map(maybeVariable, variable => {
-    addChildField(childFieldsByParentModel, variable, definition.childField)
-    if (definition.kind === 'Keyed') {
-      addChildField(
-        keyedChildFieldsByParentModel,
-        variable,
-        definition.childField,
-      )
-    }
-    if (definition.wrappedChildField !== undefined) {
-      addWrappedChildField(
-        wrappedChildFieldsByParentModel,
-        variable,
-        definition.childField,
-        definition.wrappedChildField,
-      )
-    }
+    addRegistration(registrationsByParentModel, variable, definition)
   })
 }
 
@@ -1052,19 +1125,25 @@ const foldEvidence = (
     definitions,
     references,
   )
-  const childFieldsByParentModel = new Map<Variable, Set<string>>()
-  const fallbackChildFieldsByParentModel = new Map<string, Set<string>>()
-  const keyedChildFieldsByParentModel = new Map<Variable, Set<string>>()
-  const fallbackKeyedChildFieldsByParentModel = new Map<string, Set<string>>()
-  const wrappedChildFieldsByParentModel = new Map<
+  const registrationsByParentModel = new Map<
     Variable,
-    Map<string, Set<string>>
+    Map<string, Array<FoldDefinition>>
   >()
-  const fallbackWrappedChildFieldsByParentModel = new Map<
+  const fallbackRegistrationsByParentModel = new Map<
     string,
-    Map<string, Set<string>>
+    Map<string, Array<FoldDefinition>>
+  >()
+  const parentModelByStepFieldsCall = new WeakMap<
+    ESTree.CallExpression,
+    ESTree.IdentifierReference
   >()
   const declaredVariables = (scopes ?? []).flatMap(scope => scope.variables)
+  const helperCalls: Array<
+    Readonly<{
+      source: ESTree.IdentifierReference
+      target: ESTree.IdentifierReference
+    }>
+  > = []
   const addEvidence = (
     definition: FoldDefinition,
     parentModel: ESTree.IdentifierReference,
@@ -1072,12 +1151,8 @@ const foldEvidence = (
     addDefinitionEvidence(
       definition,
       parentModel,
-      childFieldsByParentModel,
-      fallbackChildFieldsByParentModel,
-      keyedChildFieldsByParentModel,
-      fallbackKeyedChildFieldsByParentModel,
-      wrappedChildFieldsByParentModel,
-      fallbackWrappedChildFieldsByParentModel,
+      registrationsByParentModel,
+      fallbackRegistrationsByParentModel,
       references,
       declaredVariables,
     )
@@ -1085,25 +1160,55 @@ const foldEvidence = (
     definition: CombineStepDefinition,
     parentModel: ESTree.IdentifierReference,
   ): void => {
-    for (const childField of definition.childFields) {
-      const kind = definition.keyedChildFields.has(childField)
-        ? 'Keyed'
-        : 'Step'
-      const wrappedChildFields = definition.wrappedChildFields.get(childField)
-      if (wrappedChildFields === undefined) {
-        addEvidence({ childField, kind }, parentModel)
-        continue
-      }
+    for (const stepFieldsCall of definition.stepFieldsCalls) {
+      parentModelByStepFieldsCall.set(stepFieldsCall, parentModel)
+    }
+    for (const binding of definition.bindings) {
+      addEvidence(binding, parentModel)
+    }
+  }
+  const copyParentEvidence = (
+    source: ESTree.IdentifierReference,
+    target: ESTree.IdentifierReference,
+  ): boolean => {
+    const sourceVariable =
+      references === undefined
+        ? undefined
+        : Option.getOrUndefined(resolvedVariable(references, source))
+    const registrations =
+      references === undefined
+        ? fallbackRegistrationsByParentModel.get(source.name)
+        : sourceVariable === undefined
+          ? undefined
+          : registrationsByParentModel.get(sourceVariable)
+    if (registrations === undefined) {
+      return false
+    }
 
-      for (const wrappedChildField of wrappedChildFields) {
-        addEvidence({ childField, kind, wrappedChildField }, parentModel)
+    for (const definitionsByField of registrations.values()) {
+      for (const definition of definitionsByField) {
+        addEvidence(definition, target)
       }
     }
+    return true
   }
 
   walk(program, (node, ancestors) => {
     if (!isCallExpression(node)) {
       return
+    }
+
+    const [helperArgument] = node.arguments
+    const helper =
+      references !== undefined && isIdentifierReference(node.callee)
+        ? localFunction(node.callee, references)
+        : undefined
+    const [helperModel] = helper?.params ?? []
+    if (
+      isIdentifierReference(helperArgument) &&
+      isIdentifierReference(helperModel)
+    ) {
+      helperCalls.push({ source: helperArgument, target: helperModel })
     }
 
     const composition = compositionDefinitionForUpdate(
@@ -1116,8 +1221,8 @@ const foldEvidence = (
       const update = callbackValue(updateValue, callbacks)
       const [parentModel] = update?.params ?? []
       if (isIdentifierReference(parentModel)) {
-        for (const childBinding of composition.childBindings) {
-          addEvidence(childBinding, parentModel)
+        for (const binding of composition.bindings) {
+          addEvidence(binding, parentModel)
         }
       }
     }
@@ -1128,6 +1233,15 @@ const foldEvidence = (
     if (parentModelForCombine !== undefined) {
       const childFields = childFieldsForCombine(node, definitions, references)
       addCombineEvidence(childFields, parentModelForCombine)
+    }
+
+    const appliedStepFields = ownedStepFieldsCallFor(node.callee, references)
+    const [stepFieldsParentModel] = node.arguments
+    if (
+      appliedStepFields !== undefined &&
+      isIdentifierReference(stepFieldsParentModel)
+    ) {
+      parentModelByStepFieldsCall.set(appliedStepFields, stepFieldsParentModel)
     }
 
     if (isDataLastFoldCall(node, ancestors)) {
@@ -1178,22 +1292,304 @@ const foldEvidence = (
 
     addEvidence(definition, parentModel)
   })
+
+  const pendingHelperCalls = new Set(helperCalls)
+  for (
+    let pass = 0;
+    pass < helperCalls.length && pendingHelperCalls.size > 0;
+    pass += 1
+  ) {
+    for (const helperCall of pendingHelperCalls) {
+      if (copyParentEvidence(helperCall.source, helperCall.target)) {
+        pendingHelperCalls.delete(helperCall)
+      }
+    }
+  }
   return {
-    childFieldsByParentModel,
-    fallbackChildFieldsByParentModel,
-    keyedChildFieldsByParentModel,
-    fallbackKeyedChildFieldsByParentModel,
-    wrappedChildFieldsByParentModel,
-    fallbackWrappedChildFieldsByParentModel,
+    registrationsByParentModel,
+    fallbackRegistrationsByParentModel,
+    parentModelByStepFieldsCall,
     writeCallbacks: definitions.writeCallbacks,
   }
+}
+
+const isTypeReference = (node: unknown): node is ESTree.TSTypeReference =>
+  isNode(node) && node.type === 'TSTypeReference'
+
+const annotatedType = (node: unknown): unknown => {
+  if (
+    !isIdentifier(node) ||
+    !('typeAnnotation' in node) ||
+    typeof node.typeAnnotation !== 'object' ||
+    node.typeAnnotation === undefined ||
+    node.typeAnnotation === null ||
+    !('typeAnnotation' in node.typeAnnotation)
+  ) {
+    return undefined
+  }
+  return node.typeAnnotation.typeAnnotation
+}
+
+const functionReturnType = (
+  callback: ESTree.ArrowFunctionExpression | ESTree.Function,
+): unknown => callback.returnType?.typeAnnotation
+
+const typeIsOwnedBy = (
+  typeNode: unknown,
+  owner: ChildBlockOwner,
+  references: WeakMap<ESTree.Node, Reference>,
+): boolean =>
+  isTypeReference(typeNode) &&
+  ownerMatchesPath(owner, typeNode.typeName, references)
+
+const transformsFirstParameter = (
+  callback: ESTree.ArrowFunctionExpression | ESTree.Function,
+  references: WeakMap<ESTree.Node, Reference>,
+): boolean => {
+  const [model] = callback.params
+  if (!isIdentifier(model)) {
+    return false
+  }
+
+  return expressionsReturnedBy(callback).some(returned => {
+    if (
+      !isCallExpression(returned) ||
+      !isModifyFieldsCall(returned, references)
+    ) {
+      return false
+    }
+    const [updatedModel] = returned.arguments
+    return isIdentifier(updatedModel, model.name)
+  })
+}
+
+const localFunction = (
+  node: ESTree.IdentifierReference,
+  references: WeakMap<ESTree.Node, Reference>,
+): ESTree.ArrowFunctionExpression | ESTree.Function | undefined =>
+  Option.getOrUndefined(
+    Option.flatMap(resolvedVariable(references, node), variable =>
+      Option.fromNullishOr(
+        variable.defs.flatMap(definition => {
+          if (
+            isVariableDeclarator(definition.node) &&
+            isFunction(definition.node.init)
+          ) {
+            return [definition.node.init]
+          }
+          return isFunction(definition.node) ? [definition.node] : []
+        })[0],
+      ),
+    ),
+  )
+
+const isOwnedLocalChildTransform = (
+  node: ESTree.IdentifierReference,
+  childOwners: ReadonlyArray<ChildBlockOwner>,
+  references: WeakMap<ESTree.Node, Reference>,
+): boolean => {
+  const callback = localFunction(node, references)
+  if (
+    callback === undefined ||
+    !transformsFirstParameter(callback, references)
+  ) {
+    return false
+  }
+
+  const [model] = callback.params
+  const modelType = annotatedType(model)
+  const returnType = functionReturnType(callback)
+  return childOwners.some(
+    owner =>
+      typeIsOwnedBy(modelType, owner, references) &&
+      typeIsOwnedBy(returnType, owner, references),
+  )
+}
+
+const isOwnedChildTransform = (
+  node: unknown,
+  childOwners: ReadonlyArray<ChildBlockOwner>,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => {
+  if (childOwners.length === 0) {
+    return false
+  }
+
+  if (childOwners.some(owner => ownerMatchesPath(owner, node, references))) {
+    return true
+  }
+
+  return (
+    references !== undefined &&
+    isIdentifierReference(node) &&
+    isOwnedLocalChildTransform(node, childOwners, references)
+  )
+}
+
+const transformDirectlyUpdatesChild = (
+  value: unknown,
+  childOwners: ReadonlyArray<ChildBlockOwner>,
+  isKeyed: boolean,
+  wrappedChildFields: ReadonlySet<string> | undefined,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): boolean => {
+  if (
+    isKeyed &&
+    isCallExpression(value) &&
+    (wrappedChildFields === undefined
+      ? updatesKeyedChildArray(value, undefined, childOwners, references)
+      : updatesWrappedKeyedChildArray(
+          value,
+          undefined,
+          wrappedChildFields,
+          references,
+        ))
+  ) {
+    return true
+  }
+
+  if (
+    (isCallExpression(value) && isLegacyReflectCall(value)) ||
+    isOwnedChildTransform(value, childOwners, references)
+  ) {
+    return true
+  }
+
+  if (!isArrowFunction(value)) {
+    return false
+  }
+
+  const [childModel] = value.params
+  if (!isIdentifier(childModel)) {
+    return false
+  }
+
+  return expressionsReturnedBy(value).some(returned => {
+    if (isCallExpression(returned) && isLegacyReflectCall(returned)) {
+      return true
+    }
+    if (
+      isKeyed &&
+      (wrappedChildFields === undefined
+        ? updatesKeyedChildArray(
+            returned,
+            childModel.name,
+            childOwners,
+            references,
+          )
+        : updatesWrappedKeyedChildArray(
+            returned,
+            childModel.name,
+            wrappedChildFields,
+            references,
+          ))
+    ) {
+      return true
+    }
+    if (
+      !isCallExpression(returned) ||
+      !isModifyFieldsCall(returned, references)
+    ) {
+      return false
+    }
+    const [nestedModel] = returned.arguments
+    return isIdentifier(nestedModel, childModel.name)
+  })
+}
+
+const directChildStepFieldsField = (
+  node: ESTree.CallExpression,
+  evidence: FoldEvidence,
+  callbacks: ReadonlyMap<string, ESTree.ArrowFunctionExpression>,
+  references: WeakMap<ESTree.Node, Reference> | undefined,
+): DirectChildStateUpdate | undefined => {
+  if (!isOwnedDefinitionCall(node, 'stepFields', references)) {
+    return undefined
+  }
+
+  const stepOwner = definitionOwner(node, 'stepFields', references)
+  const parentModel = evidence.parentModelByStepFieldsCall.get(node)
+  if (stepOwner === undefined || parentModel === undefined) {
+    return undefined
+  }
+
+  const registrations =
+    references === undefined
+      ? evidence.fallbackRegistrationsByParentModel.get(parentModel.name)
+      : Option.getOrUndefined(
+          Option.flatMap(resolvedVariable(references, parentModel), variable =>
+            Option.fromNullishOr(
+              evidence.registrationsByParentModel.get(variable),
+            ),
+          ),
+        )
+  if (registrations === undefined) {
+    return undefined
+  }
+  const [callbackNode] = node.arguments
+  const callback = callbackValue(callbackNode, callbacks)
+  if (callback === undefined) {
+    return undefined
+  }
+
+  for (const returned of expressionsReturnedBy(callback)) {
+    if (!isObjectExpression(returned)) {
+      continue
+    }
+    for (const property of returned.properties) {
+      if (property.type !== 'Property') {
+        continue
+      }
+      const fieldName = Option.getOrUndefined(staticPropertyName(property))
+      const fieldRegistrations =
+        fieldName === undefined
+          ? []
+          : (registrations.get(fieldName) ?? []).filter(
+              registration =>
+                registration.owner !== undefined &&
+                isSameDefinitionOwner(registration.owner, stepOwner),
+            )
+      if (fieldName === undefined || fieldRegistrations.length === 0) {
+        continue
+      }
+
+      const childOwners = fieldRegistrations.flatMap(registration =>
+        registration.childOwner === undefined ? [] : [registration.childOwner],
+      )
+      const wrappedChildFields = new Set(
+        fieldRegistrations.flatMap(registration =>
+          registration.wrappedChildField === undefined
+            ? []
+            : [registration.wrappedChildField],
+        ),
+      )
+
+      if (
+        transformDirectlyUpdatesChild(
+          property.value,
+          childOwners,
+          fieldRegistrations.some(
+            registration => registration.kind === 'Keyed',
+          ),
+          wrappedChildFields.size === 0 ? undefined : wrappedChildFields,
+          references,
+        )
+      ) {
+        return {
+          fieldName,
+          message: directBlockStateUpdateMessage(fieldName),
+        }
+      }
+    }
+  }
+  return undefined
 }
 
 const keyedChildArrayUpdater = (
   expression: ESTree.Expression,
   childrenName: string | undefined,
   references: WeakMap<ESTree.Node, Reference> | undefined,
-): ESTree.ArrowFunctionExpression | undefined => {
+): unknown => {
   if (!isCallExpression(expression)) {
     return undefined
   }
@@ -1229,7 +1625,7 @@ const keyedChildArrayUpdater = (
     staticMap &&
     childrenName === undefined &&
     secondArgument === undefined &&
-    isArrowFunction(firstArgument)
+    isNode(firstArgument)
   ) {
     return firstArgument
   }
@@ -1238,7 +1634,7 @@ const keyedChildArrayUpdater = (
     staticMap &&
     childrenName !== undefined &&
     isIdentifier(firstArgument, childrenName) &&
-    isArrowFunction(secondArgument)
+    isNode(secondArgument)
   ) {
     return secondArgument
   }
@@ -1249,7 +1645,7 @@ const keyedChildArrayUpdater = (
     childrenName !== undefined &&
     isIdentifier(expression.callee.object, childrenName) &&
     isIdentifier(expression.callee.property, 'map') &&
-    isArrowFunction(firstArgument)
+    isNode(firstArgument)
   ) {
     return firstArgument
   }
@@ -1260,10 +1656,19 @@ const keyedChildArrayUpdater = (
 const updatesKeyedChildArray = (
   expression: ESTree.Expression,
   childrenName: string | undefined,
+  childOwners: ReadonlyArray<ChildBlockOwner>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
   const updater = keyedChildArrayUpdater(expression, childrenName, references)
   if (updater === undefined) {
+    return false
+  }
+
+  if (isOwnedChildTransform(updater, childOwners, references)) {
+    return true
+  }
+
+  if (!isArrowFunction(updater)) {
     return false
   }
 
@@ -1293,6 +1698,10 @@ const updatesWrappedKeyedChildArray = (
 ): boolean => {
   const updater = keyedChildArrayUpdater(expression, childrenName, references)
   if (updater === undefined) {
+    return false
+  }
+
+  if (!isArrowFunction(updater)) {
     return false
   }
 
@@ -1499,139 +1908,78 @@ const directChildModifyFieldsField = (
   if (!isIdentifierReference(model) || !isObjectExpression(updates)) {
     return undefined
   }
-  const childFields =
+  const registrations =
     references === undefined
-      ? evidence.fallbackChildFieldsByParentModel.get(model.name)
+      ? evidence.fallbackRegistrationsByParentModel.get(model.name)
       : Option.getOrUndefined(
           Option.flatMap(resolvedVariable(references, model), variable =>
             Option.fromNullishOr(
-              evidence.childFieldsByParentModel.get(variable),
+              evidence.registrationsByParentModel.get(variable),
             ),
           ),
         )
-  if (childFields === undefined) {
+  if (registrations === undefined) {
     return undefined
   }
-  const keyedChildFields =
-    references === undefined
-      ? evidence.fallbackKeyedChildFieldsByParentModel.get(model.name)
-      : Option.getOrUndefined(
-          Option.flatMap(resolvedVariable(references, model), variable =>
-            Option.fromNullishOr(
-              evidence.keyedChildFieldsByParentModel.get(variable),
-            ),
-          ),
-        )
-  const wrappedChildFields =
-    references === undefined
-      ? evidence.fallbackWrappedChildFieldsByParentModel.get(model.name)
-      : Option.getOrUndefined(
-          Option.flatMap(resolvedVariable(references, model), variable =>
-            Option.fromNullishOr(
-              evidence.wrappedChildFieldsByParentModel.get(variable),
-            ),
-          ),
-        )
   for (const property of updates.properties) {
     if (
       property.type !== 'Property' ||
       property.computed ||
-      !isIdentifier(property.key) ||
-      !childFields.has(property.key.name)
+      !isIdentifier(property.key)
     ) {
       continue
     }
-
-    if (
-      keyedChildFields?.has(property.key.name) === true &&
-      isCallExpression(property.value) &&
-      (wrappedChildFields?.get(property.key.name) === undefined
-        ? updatesKeyedChildArray(property.value, undefined, references)
-        : updatesWrappedKeyedChildArray(
-            property.value,
-            undefined,
-            wrappedChildFields.get(property.key.name) ?? new Set(),
-            references,
-          ))
-    ) {
-      return {
-        fieldName: property.key.name,
-        message: directBlockStateUpdateMessage(property.key.name),
-      }
-    }
-
-    if (
-      isCallExpression(property.value) &&
-      isLegacyReflectCall(property.value)
-    ) {
-      return {
-        fieldName: property.key.name,
-        message: directBlockStateUpdateMessage(property.key.name),
-      }
-    }
-
-    if (!isArrowFunction(property.value)) {
+    const fieldRegistrations = registrations.get(property.key.name) ?? []
+    if (fieldRegistrations.length === 0) {
       continue
     }
-
-    const copiedReturn = copiedChildReturn(
-      property.value,
-      model,
-      property.key.name,
-      origins,
-      references,
+    const owners = fieldRegistrations.flatMap(registration =>
+      registration.childOwner === undefined ? [] : [registration.childOwner],
     )
-    if (copiedReturn !== undefined) {
-      return { fieldName: property.key.name, message: copiedReturn.message }
+    const isKeyed = fieldRegistrations.some(
+      registration => registration.kind === 'Keyed',
+    )
+    const wrappedChildFields = new Set(
+      fieldRegistrations.flatMap(registration =>
+        registration.wrappedChildField === undefined
+          ? []
+          : [registration.wrappedChildField],
+      ),
+    )
+
+    if (isArrowFunction(property.value)) {
+      const copiedReturn = copiedChildReturn(
+        property.value,
+        model,
+        property.key.name,
+        origins,
+        references,
+      )
+      if (copiedReturn !== undefined) {
+        return { fieldName: property.key.name, message: copiedReturn.message }
+      }
     }
 
-    const [childModel] = property.value.params
-    if (!isIdentifier(childModel)) {
-      continue
-    }
-    for (const nestedUpdate of expressionsReturnedBy(property.value)) {
-      if (isCallExpression(nestedUpdate) && isLegacyReflectCall(nestedUpdate)) {
-        return {
-          fieldName: property.key.name,
-          message: directBlockStateUpdateMessage(property.key.name),
-        }
-      }
-      if (
-        keyedChildFields?.has(property.key.name) === true &&
-        (wrappedChildFields?.get(property.key.name) === undefined
-          ? updatesKeyedChildArray(nestedUpdate, childModel.name, references)
-          : updatesWrappedKeyedChildArray(
-              nestedUpdate,
-              childModel.name,
-              wrappedChildFields.get(property.key.name) ?? new Set(),
-              references,
-            ))
-      ) {
-        return {
-          fieldName: property.key.name,
-          message: directBlockStateUpdateMessage(property.key.name),
-        }
-      }
-      if (
-        !isCallExpression(nestedUpdate) ||
-        !isModifyFieldsCall(nestedUpdate, references)
-      ) {
-        continue
-      }
-      const [nestedModel] = nestedUpdate.arguments
-      if (isIdentifier(nestedModel, childModel.name)) {
-        return {
-          fieldName: property.key.name,
-          message: directBlockStateUpdateMessage(property.key.name),
-        }
+    if (
+      transformDirectlyUpdatesChild(
+        property.value,
+        owners,
+        isKeyed,
+        wrappedChildFields.size === 0 ? undefined : wrappedChildFields,
+        references,
+      )
+    ) {
+      return {
+        fieldName: property.key.name,
+        message: directBlockStateUpdateMessage(property.key.name),
       }
     }
   }
   return undefined
 }
 
-/** Flags parent-owned modifyFields calls that directly update a child Block Model
- *  or copy a child Return's Model while discarding its Commands or OutMessage. */
+/** Flags parent-owned field transformations that directly update a child Block
+ *  Model or copy a child Return's Model while discarding Commands or OutMessage. */
 export const noDirectBlockStateUpdate = Rule.define({
   name: 'no-direct-block-state-update',
   meta: Rule.meta({
@@ -1650,9 +1998,10 @@ export const noDirectBlockStateUpdate = Rule.define({
         }
         const evidence = foldEvidence(node, scopes, references)
         const origins = collectChildReturnOrigins(node, scopes, references)
+        const callbacks = moduleCallbacks(node)
         if (
-          evidence.childFieldsByParentModel.size === 0 &&
-          evidence.fallbackChildFieldsByParentModel.size === 0
+          evidence.registrationsByParentModel.size === 0 &&
+          evidence.fallbackRegistrationsByParentModel.size === 0
         ) {
           return Effect.void
         }
@@ -1676,12 +2025,19 @@ export const noDirectBlockStateUpdate = Rule.define({
               ) {
                 return
               }
-              const finding = directChildModifyFieldsField(
-                candidate,
-                evidence,
-                origins,
-                references,
-              )
+              const finding =
+                directChildStepFieldsField(
+                  candidate,
+                  evidence,
+                  callbacks,
+                  references,
+                ) ??
+                directChildModifyFieldsField(
+                  candidate,
+                  evidence,
+                  origins,
+                  references,
+                )
               if (finding !== undefined) {
                 findings.push({ node: candidate, ...finding })
               }

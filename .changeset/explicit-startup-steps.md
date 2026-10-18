@@ -30,20 +30,16 @@ return Update.foldChildInit(Dialog.boot({ id: 'confirm' }), {
 After, declare the initial inputs and register the Binding in composition.ts. The early Application Definition lives in definition.ts:
 
 ```ts
-import { Dialog } from '@foldkit/ui'
-
+import { DialogBlock } from '@foldkit/ui'
 import { ApplicationDefinition } from './definition'
-import { Message } from './message'
 import { foldDialogOutMessage } from './operation'
-
-export const DialogBinding = ApplicationDefinition.bindChild(Dialog.block, {
+export const DialogBinding = ApplicationDefinition.bindChild(DialogBlock, {
   field: 'dialog',
-  parentMessage: Message.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
-  init: { startupToArgs: () => [{ id: 'confirm' }] },
+  init: { contextToArgs: () => [{ id: 'confirm' }] },
 })
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [DialogBinding],
+  bindings: [DialogBinding],
 })
 ```
 

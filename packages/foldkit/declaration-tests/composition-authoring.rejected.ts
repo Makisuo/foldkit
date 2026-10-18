@@ -1,26 +1,23 @@
 import { Layer, Option } from 'effect'
-import { Runtime, Update } from 'foldkit'
-import type { Block } from 'foldkit'
+import { Block, Runtime, Update } from 'foldkit'
 
 import {
   ApplicationRoute,
   CurrentUser,
-  FirstStatusBinding,
+  NoStartupComposition,
+  type ParentChildInitContext,
   ParentComposition,
   ParentDefinition,
   ParentMessage,
   ParentModel,
   ParentOutMessage,
-  type ParentStartup,
   PendingServiceApplicationElement,
   ProjectedStatusBinding,
   RoomBinding,
   RoomBlock,
-  SecondStatusBinding,
   SettingsBinding,
   SettingsBlock,
   SettingsComposition,
-  SettingsMessage,
   SettingsModel,
   SettingsOutMessage,
   StatusBinding,
@@ -33,6 +30,21 @@ import {
   settingsInit,
   settingsUpdate,
 } from './composition-authoring.accepted.js'
+
+// @ts-expect-error A typed Definition requires Model and Message contracts.
+Block.makeDefinition('MissingContracts')
+
+// @ts-expect-error Initializers reject unknown fields instead of silently dropping them.
+NoStartupComposition.makeInit(() => ({ model: {}, unexpected: true }))
+
+const unexpectedPlan = { model: {}, unexpected: true }
+// @ts-expect-error Predeclared results retain exact plan field validation.
+NoStartupComposition.makeInit(() => unexpectedPlan)
+
+// @ts-expect-error Every returned plan variant must use supported fields.
+NoStartupComposition.makeInit((isUnexpected: boolean) =>
+  isUnexpected ? { model: {}, unexpected: true } : { model: {} },
+)
 
 // @ts-expect-error Runtime cannot start an Application with an unprovided ordinary Service.
 Runtime.embed(PendingServiceApplicationElement)
@@ -67,7 +79,7 @@ const uncompletedRawRefreshUpdate = (
   _message: typeof ParentMessage.Type,
 ) => rawRefresh(model)
 
-ParentComposition.makeBlock({
+ParentComposition.assembleBlock({
   init: parentInit,
   // @ts-expect-error A connected recipe must pass through Composition.makeUpdate before Block completion.
   update: uncompletedRawRefreshUpdate,
@@ -75,154 +87,86 @@ ParentComposition.makeBlock({
 })
 
 // @ts-expect-error The Settings Command handler must be registered.
-SettingsComposition.makeBlock({
+SettingsComposition.assembleBlock({
   init: settingsInit,
   update: settingsUpdate,
   EffectsLayer: Layer.empty,
 })
 
-// @ts-expect-error A direct child with required dispatch context needs a route resolver.
-// oxfmt-ignore
-ParentDefinition.bindChild(SettingsBlock, { field: 'settings', placement: 'settingsWithoutContext', parentMessage: ParentMessage.GotSettingsMessage, outMessage: { forward: forwardSettingsOutMessage } })
+// @ts-expect-error A direct child with required dispatch context needs a delivery context mapper.
+ParentDefinition.bindChild(SettingsBlock, {
+  field: 'settings',
+  placement: 'settingsWithoutContext',
+  outMessage: { forward: forwardSettingsOutMessage },
+})
 
-// @ts-expect-error The native fold tuple includes the required CurrentUser.
-// oxfmt-ignore
-ParentDefinition.bindChild(SettingsBlock, { field: 'settings', placement: 'settingsWithoutCompleteContext', parentMessage: ParentMessage.GotSettingsMessage, fromParentMessage: { args: (_model, { message }) => Option.some([message]) }, outMessage: { forward: forwardSettingsOutMessage } })
+// @ts-expect-error Generated delivery requires the child's exact CurrentUser context tuple.
+ParentDefinition.bindChild(SettingsBlock, {
+  field: 'settings',
+  placement: 'settingsWithoutCompleteContext',
+  delivery: { toUpdateContext: () => [] },
+  outMessage: { forward: forwardSettingsOutMessage },
+})
 
-// @ts-expect-error The native fold tuple preserves Message and context order.
-// oxfmt-ignore
-ParentDefinition.bindChild(SettingsBlock, { field: 'settings', placement: 'settingsWithReversedContext', parentMessage: ParentMessage.GotSettingsMessage, fromParentMessage: { args: (model, { message }) => Option.some([model.currentUser, message]) }, outMessage: { forward: forwardSettingsOutMessage } })
+// @ts-expect-error Generated delivery does not reinsert the child Message or extra arguments.
+ParentDefinition.bindChild(SettingsBlock, {
+  field: 'settings',
+  placement: 'settingsWithExtraContext',
+  delivery: {
+    toUpdateContext: model => [model.currentUser, model.currentUser],
+  },
+  outMessage: { forward: forwardSettingsOutMessage },
+})
 
+// @ts-expect-error A generated general keyed Binding requires an exact key Schema.
 ParentDefinition.bindChild(RoomBlock, {
-  placement: 'roomWithoutRoute',
+  placement: 'roomWithoutKeySchema',
   readAll: model => Option.toArray(model.maybeRoom),
-  // @ts-expect-error Keyed Bindings require an explicit parent Message route.
   key: room => room.id,
-  // @ts-expect-error The invalid Binding config is uninhabitable.
   read: room => room,
   writeAt: (model, _roomId, nextRoom) =>
     ParentModel.make({ ...model, maybeRoom: Option.some(nextRoom) }),
-  toParentMessage: (roomId, message) =>
-    ParentMessage.GotRoomMessage({ roomId, message }),
+  delivery: {
+    toUpdateContext: (_model: typeof ParentModel.Type, roomId: string) => [
+      { roomId },
+    ],
+  },
 })
 
+// @ts-expect-error A keyed child with required dispatch context needs a delivery context mapper.
 ParentDefinition.bindChild(RoomBlock, {
-  placement: 'roomWithoutCompleteContext',
+  placement: 'roomWithoutContext',
   readAll: model => Option.toArray(model.maybeRoom),
   key: room => room.id,
+  keySchema: RoomBlock.Model.fields.id,
   read: room => room,
   writeAt: (model, _roomId, nextRoom) =>
     ParentModel.make({ ...model, maybeRoom: Option.some(nextRoom) }),
-  toParentMessage: (roomId, message) =>
-    ParentMessage.GotRoomMessage({ roomId, message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotRoomMessage,
-    // @ts-expect-error A keyed native fold tuple includes key, Message, and dispatch context.
-    args: (_model, { roomId, message }) => Option.some([roomId, message]),
-  },
-})
-
-const readRooms = (model: typeof ParentModel.Type) =>
-  Option.toArray(model.maybeRoom)
-const readRoomKey = (room: typeof RoomBlock.Model.Type) => room.id
-const readRoom = (room: typeof RoomBlock.Model.Type) => room
-const writeRoom = (
-  model: typeof ParentModel.Type,
-  _roomId: string,
-  nextRoom: typeof RoomBlock.Model.Type,
-) => ParentModel.make({ ...model, maybeRoom: Option.some(nextRoom) })
-const toParentRoomMessage = (
-  roomId: string,
-  message: typeof RoomBlock.Message.Type,
-) => ParentMessage.GotRoomMessage({ roomId, message })
-
-ParentDefinition.bindChild(RoomBlock, {
-  placement: 'roomWithWrongRouteKey',
-  readAll: readRooms,
-  key: readRoomKey,
-  read: readRoom,
-  writeAt: writeRoom,
-  toParentMessage: toParentRoomMessage,
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotRoomMessage,
-    // @ts-expect-error A keyed native fold route preserves the string occurrence key.
-    args: (_model, { message, roomId }) =>
-      Option.some([1, message, { roomId }]),
-  },
 })
 
 ParentDefinition.bindChild(RoomBlock, {
-  placement: 'roomWithWrongRouteMessage',
-  readAll: readRooms,
-  key: readRoomKey,
-  read: readRoom,
-  writeAt: writeRoom,
-  toParentMessage: toParentRoomMessage,
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotRoomMessage,
-    // @ts-expect-error A keyed native fold route requires the child Message union.
-    args: (_model, { roomId }) =>
-      Option.some([roomId, SettingsMessage.RequestedSync(), { roomId }]),
-  },
+  placement: 'roomWithWrongKeySchema',
+  readAll: model => Option.toArray(model.maybeRoom),
+  key: room => room.id,
+  // @ts-expect-error The decoded key Schema must match the selector's exact key type.
+  keySchema: Schema.Number,
+  read: room => room,
+  writeAt: (model, _roomId, nextRoom) =>
+    ParentModel.make({ ...model, maybeRoom: Option.some(nextRoom) }),
+  delivery: { toUpdateContext: (_model, roomId) => [{ roomId }] },
 })
 
 ParentDefinition.bindChild(RoomBlock, {
-  placement: 'roomWithWrongRouteMessagePayload',
-  readAll: readRooms,
-  key: readRoomKey,
-  read: readRoom,
-  writeAt: writeRoom,
-  toParentMessage: toParentRoomMessage,
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotRoomMessage,
-    // @ts-expect-error A keyed native fold route preserves refined child Message payloads.
-    args: (_model, { roomId }) =>
-      Option.some([roomId, { _tag: 'RenamedRoom', name: 1 }, { roomId }]),
-  },
-})
-
-ParentDefinition.bindChild(RoomBlock, {
-  placement: 'roomWithWrongRouteContext',
-  readAll: readRooms,
-  key: readRoomKey,
-  read: readRoom,
-  writeAt: writeRoom,
-  toParentMessage: toParentRoomMessage,
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotRoomMessage,
-    // @ts-expect-error A keyed native fold route preserves the required context fields.
-    args: (_model, { message, roomId }) =>
-      Option.some([roomId, message, { sourceRoomId: roomId }]),
-  },
-})
-
-ParentDefinition.bindChild(RoomBlock, {
-  placement: 'roomWithReorderedRoute',
-  readAll: readRooms,
-  key: readRoomKey,
-  read: readRoom,
-  writeAt: writeRoom,
-  toParentMessage: toParentRoomMessage,
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotRoomMessage,
-    // @ts-expect-error A keyed native fold route preserves key, Message, and context order.
-    args: (_model, { message, roomId }) =>
-      Option.some([message, roomId, { roomId }]),
-  },
-})
-
-ParentDefinition.bindChild(RoomBlock, {
-  placement: 'roomWithExtraRouteArgument',
-  readAll: readRooms,
-  key: readRoomKey,
-  read: readRoom,
-  writeAt: writeRoom,
-  toParentMessage: toParentRoomMessage,
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotRoomMessage,
-    // @ts-expect-error A keyed native fold route rejects extra arguments.
-    args: (_model, { message, roomId }) =>
-      Option.some([roomId, message, { roomId }, 'extra']),
+  placement: 'roomWithWrongContext',
+  readAll: model => Option.toArray(model.maybeRoom),
+  key: room => room.id,
+  keySchema: RoomBlock.Model.fields.id,
+  read: room => room,
+  writeAt: (model, _roomId, nextRoom) =>
+    ParentModel.make({ ...model, maybeRoom: Option.some(nextRoom) }),
+  delivery: {
+    // @ts-expect-error The generated delivery context preserves the exact RoomDispatchContext fields.
+    toUpdateContext: (_model, roomId) => [{ sourceRoomId: roomId }],
   },
 })
 
@@ -232,7 +176,6 @@ ParentDefinition.bindChild(StatusBlock, {})
 // @ts-expect-error A valid Binding config cannot add an unknown field.
 ParentDefinition.bindChild(StatusBlock, {
   field: 'status',
-  parentMessage: ParentMessage.GotStatusMessage,
   unknownConfigField: true,
 })
 
@@ -240,11 +183,9 @@ ParentDefinition.bindChild(StatusBlock, {
   // @ts-expect-error A direct field Binding cannot also declare general keyed storage.
   field: 'status',
   readAll: model => [model.status],
-  // @ts-expect-error The invalid Binding config is uninhabitable.
-  parentMessage: ParentMessage.GotStatusMessage,
 })
 
-// @ts-expect-error A general keyed Binding requires its complete storage and Message mapping.
+// @ts-expect-error A general keyed Binding requires its complete storage and generated delivery contract.
 ParentDefinition.bindChild(RoomBlock, {
   readAll: model => Option.toArray(model.maybeRoom),
 })
@@ -253,25 +194,17 @@ ParentDefinition.bindChild(StatusBlock, {
   // @ts-expect-error A Binding init policy cannot add an unknown field.
   field: 'status',
   // @ts-expect-error The invalid Binding config is uninhabitable.
-  parentMessage: ParentMessage.GotStatusMessage,
-  // @ts-expect-error The invalid Binding config is uninhabitable.
-  init: { startupToArgs: () => [], unknownInitField: true },
+  init: { contextToArgs: () => [], unknownInitField: true },
 })
 
+// @ts-expect-error Authored incoming Message routes are no longer accepted by bindChild.
 ParentDefinition.bindChild(StatusBlock, {
-  // @ts-expect-error A fromParentMessage policy cannot add an unknown field.
   field: 'status',
-  // @ts-expect-error The invalid Binding config is uninhabitable.
-  parentMessage: ParentMessage.GotStatusMessage,
-  // @ts-expect-error The invalid Binding config is uninhabitable.
-  fromParentMessage: {
-    args: (_model, { message }) => Option.some([message]),
-    unknownRouteField: true,
-  },
+  fromParentMessage: false,
 })
 
 ParentDefinition.bindChild(StatusBlock, {
-  // @ts-expect-error An accessor init projection contributes exactly one parent Model field.
+  // @ts-expect-error An invalid accessor init projection prevents the overload.
   placement: 'statusWithMultipleProjectionFields',
   // @ts-expect-error The invalid Binding config is uninhabitable.
   read: model => Option.some(model.status),
@@ -279,16 +212,14 @@ ParentDefinition.bindChild(StatusBlock, {
   write: (model, nextStatus) =>
     ParentModel.make({ ...model, status: nextStatus }),
   // @ts-expect-error The invalid Binding config is uninhabitable.
-  parentMessage: ParentMessage.GotStatusMessage,
-  // @ts-expect-error The invalid Binding config is uninhabitable.
   init: {
-    startupToArgs: () => [],
-    model: status => ({ status, secondaryStatus: status }),
+    contextToArgs: () => [],
+    toParentFields: status => ({ status, secondaryStatus: status }),
   },
 })
 
 ParentDefinition.bindChild(StatusBlock, {
-  // @ts-expect-error An accessor init projection cannot contribute an undeclared field.
+  // @ts-expect-error An invalid accessor init projection prevents the overload.
   placement: 'statusWithUndeclaredProjectionField',
   // @ts-expect-error The invalid Binding config is uninhabitable.
   read: model => Option.some(model.status),
@@ -296,57 +227,20 @@ ParentDefinition.bindChild(StatusBlock, {
   write: (model, nextStatus) =>
     ParentModel.make({ ...model, status: nextStatus }),
   // @ts-expect-error The invalid Binding config is uninhabitable.
-  parentMessage: ParentMessage.GotStatusMessage,
-  // @ts-expect-error The invalid Binding config is uninhabitable.
   init: {
-    startupToArgs: () => [],
-    model: status => ({ status, undeclaredStatus: status }),
+    contextToArgs: () => [],
+    toParentFields: status => ({ status, undeclaredStatus: status }),
   },
 })
 
 const DuplicateStatusBinding = ParentDefinition.bindChild(StatusBlock, {
   field: 'status',
-  placement: 'duplicateStatus',
-  parentMessage: ParentMessage.GotStatusMessage,
+  placement: 'status',
 })
 
-// @ts-expect-error One parent Message variant cannot route to two Bindings.
+// @ts-expect-error Two generated child channels cannot use the same placement.
 ParentDefinition.makeComposition({
-  childBindings: [StatusBinding, DuplicateStatusBinding],
-})
-
-const ExactOutgoingStatusBinding = ParentDefinition.bindChild(StatusBlock, {
-  field: 'status',
-  placement: 'exactOutgoingStatus',
-  toParentMessage: message => ParentMessage.GotStatusMessage({ message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotStatusMessage,
-    args: (_model, { message }) => Option.some([message]),
-  },
-})
-
-// @ts-expect-error A Binding output cannot overlap another Binding's incoming route.
-ParentDefinition.makeComposition({
-  childBindings: [StatusBinding, ExactOutgoingStatusBinding],
-})
-
-const toWidenedParentMessage = (
-  message: typeof StatusBlock.Message.Type,
-): typeof ParentMessage.Type => ParentMessage.GotStatusMessage({ message })
-
-const WidenedOutgoingStatusBinding = ParentDefinition.bindChild(StatusBlock, {
-  field: 'status',
-  placement: 'widenedOutgoingStatus',
-  toParentMessage: toWidenedParentMessage,
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotStatusMessage,
-    args: (_model, { message }) => Option.some([message]),
-  },
-})
-
-// @ts-expect-error A widened custom mapper cannot hide overlap with an incoming route.
-ParentDefinition.makeComposition({
-  childBindings: [StatusBinding, WidenedOutgoingStatusBinding],
+  bindings: [StatusBinding, DuplicateStatusBinding],
 })
 
 // @ts-expect-error Initialized child Bindings require shared startup input.
@@ -359,55 +253,54 @@ ParentComposition.makeInit(() => ({
 }))
 
 // @ts-expect-error Initialized child fields are assembled by their Bindings.
-ParentComposition.makeInit((startup: ParentStartup) => ({
-  startup,
+ParentComposition.makeInit((childInitContext: ParentChildInitContext) => ({
+  childInitContext,
   model: {
-    settings: SettingsModel.make({ theme: startup.theme }),
-    currentUser: startup.currentUser,
-    route: startup.route,
+    settings: SettingsModel.make({ theme: childInitContext.theme }),
+    currentUser: childInitContext.currentUser,
+    route: childInitContext.route,
     maybeRoom: Option.none(),
   },
 }))
 
 // @ts-expect-error Initialization Steps cannot emit an OutMessage.
-ParentComposition.makeInit((startup: ParentStartup) => ({
-  startup,
+ParentComposition.makeInit((childInitContext: ParentChildInitContext) => ({
+  childInitContext,
   model: {
-    currentUser: startup.currentUser,
-    route: startup.route,
+    currentUser: childInitContext.currentUser,
+    route: childInitContext.route,
     maybeRoom: Option.none(),
   },
   steps: [
     (model: typeof ParentModel.Type) => ({
       model,
       outMessage: ParentOutMessage.SelectedSettingsTheme({
-        theme: startup.theme,
+        theme: childInitContext.theme,
       }),
     }),
   ],
 }))
 
 ParentComposition.makeUpdate((model, message) => {
-  // @ts-expect-error Routed child wrapper Messages are excluded from authored update input.
-  const routed: ReturnType<typeof ParentMessage.GotSettingsMessage> = message
+  // @ts-expect-error Generated child Messages are excluded from authored update input.
+  const routed: Readonly<{ _tag: 'GotSettingsMessage' }> = message
   void routed
 
   return { model }
 })
 
+// @ts-expect-error Parent update cannot emit a child OutMessage.
 ParentComposition.makeUpdate(model => ({
   model,
-  // @ts-expect-error Parent update cannot emit a child OutMessage.
   outMessage: SettingsOutMessage.SelectedTheme({ theme: model.settings.theme }),
 }))
 
 const UnregisteredStatusBinding = ParentDefinition.bindChild(StatusBlock, {
   field: 'status',
   placement: 'unregisteredAlternativeStatus',
-  parentMessage: ParentMessage.GotStatusMessage,
 })
 const UnregisteredComposition = ParentDefinition.makeComposition({
-  childBindings: [
+  bindings: [
     SettingsBinding,
     UnregisteredStatusBinding,
     ProjectedStatusBinding,
@@ -416,16 +309,16 @@ const UnregisteredComposition = ParentDefinition.makeComposition({
 })
 const unregisteredInit = UnregisteredComposition.makeInit(
   // @ts-expect-error Initialization Steps cannot use an unregistered child Binding.
-  (startup: ParentStartup) => ({
+  (childInitContext: ParentChildInitContext) => ({
     model: ParentModel.make({
-      settings: SettingsModel.make({ theme: startup.theme }),
+      settings: SettingsModel.make({ theme: childInitContext.theme }),
       status: StatusModel.make({ count: 0 }),
       secondaryStatus: StatusModel.make({ count: 0 }),
-      currentUser: startup.currentUser,
-      route: startup.route,
+      currentUser: childInitContext.currentUser,
+      route: childInitContext.route,
       maybeRoom: Option.none(),
     }),
-    steps: [SettingsBinding.refresh(startup.currentUser)],
+    steps: [SettingsBinding.refresh(childInitContext.currentUser)],
   }),
 )
 
@@ -433,41 +326,27 @@ void unregisteredInit
 void parentInit
 void parentUpdate
 
-// @ts-expect-error Two Bindings cannot own the same parent wrapper.
-ParentDefinition.makeComposition({
-  childBindings: [
-    SettingsBinding,
-    ProjectedStatusBinding,
-    RoomBinding,
-    FirstStatusBinding,
-    SecondStatusBinding,
-  ],
-})
-
 // @ts-expect-error An exposed operation with a possible forwarded OutMessage cannot be silently consumed by init.
-ParentComposition.makeInit((startup: ParentStartup) => ({
-  startup,
+ParentComposition.makeInit((childInitContext: ParentChildInitContext) => ({
+  childInitContext,
   model: {
-    currentUser: startup.currentUser,
-    route: startup.route,
+    currentUser: childInitContext.currentUser,
+    route: childInitContext.route,
     maybeRoom: Option.none(),
   },
-  steps: [SettingsBinding.refresh(startup.currentUser)],
+  steps: [SettingsBinding.refresh(childInitContext.currentUser)],
 }))
 
 type RefreshStep = ReturnType<typeof SettingsBinding.refresh>
 type DirectRefreshRequirements = Update.RequirementsOf<RefreshStep>
-type SettingsRegistration = Block.BindingRequirement<
-  'settings',
-  typeof SettingsBlock
->
+type SettingsRegistration = Block.RequirementOfBinding<typeof SettingsBinding>
 
 // @ts-expect-error A raw recipe cannot erase its deferred OutMessage policy obligation while retaining only the direct registration.
 const erasedRefresh: (
   model: Parameters<RefreshStep>[0],
 ) => Update.ResultRecipe<
   typeof ParentModel.Type,
-  typeof ParentMessage.Type,
+  typeof ParentComposition.Message.Type,
   never,
   DirectRefreshRequirements,
   SettingsRegistration
@@ -477,7 +356,7 @@ const widenedRefresh: (
   model: Parameters<RefreshStep>[0],
 ) => Update.ResultRecipe<
   typeof ParentModel.Type,
-  typeof ParentMessage.Type,
+  typeof ParentComposition.Message.Type,
   never,
   DirectRefreshRequirements,
   unknown
@@ -492,7 +371,7 @@ const erasedAnyRefresh: (
   model: Parameters<RefreshStep>[0],
 ) => Update.ResultRecipe<
   typeof ParentModel.Type,
-  typeof ParentMessage.Type,
+  typeof ParentComposition.Message.Type,
   never,
   DirectRefreshRequirements,
   // oxlint-disable-next-line typescript/no-explicit-any -- This fixture verifies that an erased policy obligation cannot bypass Composition validation.
@@ -500,22 +379,22 @@ const erasedAnyRefresh: (
 > = SettingsBinding.refresh(CurrentUser.make({ accountId: 'any-erasure' }))
 
 // @ts-expect-error Init rejects a Step whose policy obligation was widened away.
-ParentComposition.makeInit((startup: ParentStartup) => ({
-  startup,
+ParentComposition.makeInit((childInitContext: ParentChildInitContext) => ({
+  childInitContext,
   model: {
-    currentUser: startup.currentUser,
-    route: startup.route,
+    currentUser: childInitContext.currentUser,
+    route: childInitContext.route,
     maybeRoom: Option.none(),
   },
   steps: [widenedRefresh],
 }))
 
 // @ts-expect-error Combining Steps cannot erase their policy obligations.
-ParentComposition.makeInit((startup: ParentStartup) => ({
-  startup,
+ParentComposition.makeInit((childInitContext: ParentChildInitContext) => ({
+  childInitContext,
   model: {
-    currentUser: startup.currentUser,
-    route: startup.route,
+    currentUser: childInitContext.currentUser,
+    route: childInitContext.route,
     maybeRoom: Option.none(),
   },
   steps: [combinedWidenedRefresh],

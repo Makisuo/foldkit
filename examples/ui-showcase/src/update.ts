@@ -1,6 +1,5 @@
 import { Update } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
-import { modifyFields } from 'foldkit/struct'
 import { Url, toString as urlToString } from 'foldkit/url'
 
 import { LoadExternal, NavigateInternal } from './command'
@@ -10,10 +9,8 @@ import { Message } from './message'
 import { urlToApplicationRoute } from './route'
 
 const stepRoute = (url: Url) =>
-  ApplicationDefinition.step(model => ({
-    model: modifyFields(model, {
-      route: () => urlToApplicationRoute(url),
-    }),
+  ApplicationDefinition.stepFields(() => ({
+    route: () => urlToApplicationRoute(url),
   }))
 
 export const update = ApplicationComposition.makeUpdate((model, message) =>

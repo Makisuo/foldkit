@@ -1,13 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import { UiComposition } from './composition'
+import { DialogPageContent } from './content'
 import * as Dialog from './demo/dialog'
-import raw from './dialogPage.md'
 
-const { tableOfContents, view: renderPage } = slotDocPage<
-  'dialog' | 'animated' | 'overlay' | 'nested'
->(raw, 'ui/dialog')
+const { tableOfContents, view: renderPage } = DialogPageContent
 
 export { tableOfContents }
 

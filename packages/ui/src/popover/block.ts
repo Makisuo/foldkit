@@ -31,7 +31,7 @@ export const Model = Schema.Struct({
   isAnimated: Schema.Boolean,
   isModal: Schema.Boolean,
   contentFocus: Schema.Boolean,
-  animation: Animation.Model,
+  animation: Animation.AnimationBlock.Model,
   maybeLastButtonPointerType: Schema.Option(Schema.String),
 })
 
@@ -59,7 +59,6 @@ export const Message = defineMessageUnion({
   CompletedAnchorPopover: {},
   CompletedPortalPopoverBackdrop: {},
   CompletedDetectPopoverMovementOrAnimationEnd: { generation: Schema.Number },
-  GotAnimationMessage: { message: Animation.Message },
 })
 
 export type RequestedOpen = typeof Message.RequestedOpen.Type
@@ -84,7 +83,7 @@ export type OutMessage = typeof OutMessage.Type
 export type Opened = typeof OutMessage.Opened.Type
 export type Closed = typeof OutMessage.Closed.Type
 
-const PopoverDefinition = Block.define('Popover', {
+const PopoverDefinition = Block.makeDefinition('Popover', {
   Model,
   Message,
   OutMessage,
@@ -102,14 +101,13 @@ export type InitConfig = Readonly<{
   contentFocus?: boolean
 }>
 
-/** Creates an initial popover model from a config. Defaults to closed. */
-export const init = (config: InitConfig): Model => ({
+const makeInitialModel = (config: InitConfig): Model => ({
   id: config.id,
   isOpen: false,
   isAnimated: config.isAnimated ?? false,
   isModal: config.isModal ?? false,
   contentFocus: config.contentFocus ?? false,
-  animation: Animation.init({ id: `${config.id}-panel` }),
+  animation: Animation.AnimationBlock.init({ id: `${config.id}-panel` }).model,
   maybeLastButtonPointerType: Option.none(),
 })
 
@@ -321,28 +319,29 @@ type AnimationOutMessageStep = ReturnType<
 >
 
 const foldAnimationOutMessage =
-  Animation.OutMessage.match<AnimationOutMessageStep>({
+  Animation.AnimationBlock.OutMessage.match<AnimationOutMessageStep>({
     StartedLeaveAnimating: ({ generation }) =>
       detectPopoverMovementOrAnimationEnd(generation),
-    TransitionedOut: () => PopoverDefinition.step(model => ({ model })),
+    TransitionedOut: () => PopoverDefinition.stepNoop(),
   })
 
-const AnimationBinding = PopoverDefinition.bindChild(Animation.block, {
+const AnimationBinding = PopoverDefinition.bindChild(Animation.AnimationBlock, {
   field: 'animation',
-  parentMessage: Message.GotAnimationMessage,
   init: false,
   outMessage: { fold: foldAnimationOutMessage },
 })
 
 const PopoverComposition = PopoverDefinition.makeComposition({
   mounts,
-  childBindings: [AnimationBinding],
+  bindings: [AnimationBinding],
 })
 
-type AuthoredMessage = Exclude<
-  Message,
-  ReturnType<typeof Message.GotAnimationMessage>
->
+/** Creates an initial Popover Model and Commands from a config. Defaults to closed. */
+export const init = PopoverComposition.makeInit((config: InitConfig) => ({
+  model: makeInitialModel(config),
+}))
+
+type AuthoredMessage = Message
 
 const internalUpdate = (model: Model, message: AuthoredMessage) => {
   const openCommands = Array.filter(
@@ -718,9 +717,7 @@ export const view = PopoverComposition.makeView.withInputs<ViewInputs>(
 )
 
 const implementation = {
-  init: PopoverComposition.makeInit((config: InitConfig) => ({
-    model: init(config),
-  })),
+  init,
   update,
   view,
   operations: {
@@ -730,14 +727,8 @@ const implementation = {
   EffectsLayer,
 }
 
-/**
- * A completed Popover Block with its exact child, Mount, Layer, OutMessage,
- * operation, and default view contracts.
- */
-export interface Completed extends Block.CompletedWithViewAndOutMessage<
+/** Complete Popover Block definition. */
+export const PopoverBlock: Block.CompletedWithViewAndOutMessage<
   typeof PopoverComposition,
   typeof implementation
-> {}
-
-/** Complete Popover Block definition. */
-export const block: Completed = PopoverComposition.makeBlock(implementation)
+> = PopoverComposition.assembleBlock(implementation)

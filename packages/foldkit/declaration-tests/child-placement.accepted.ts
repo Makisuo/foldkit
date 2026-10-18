@@ -4,22 +4,21 @@ import { Block, Struct } from 'foldkit'
 export const ChildModel = Schema.Struct({ value: Schema.String })
 export const ChildMessage = Schema.Never
 
-const DeclarationChildPlacementChildDefinition = Block.define(
+const DeclarationChildPlacementChildComposition = Block.makeDefinition(
   'DeclarationChildPlacementChild',
   {
     Model: ChildModel,
     Message: ChildMessage,
   },
-)
-const DeclarationChildPlacementChildComposition =
-  DeclarationChildPlacementChildDefinition.makeComposition()
+).makeComposition()
 
-export const ChildBlock = DeclarationChildPlacementChildComposition.makeBlock({
-  init: DeclarationChildPlacementChildComposition.makeInit(() => ({
-    model: ChildModel.make({ value: '' }),
-  })),
-  update: DeclarationChildPlacementChildComposition.makeUpdate(),
-})
+export const ChildBlock =
+  DeclarationChildPlacementChildComposition.assembleBlock({
+    init: DeclarationChildPlacementChildComposition.makeInit(() => ({
+      model: ChildModel.make({ value: '' }),
+    })),
+    update: DeclarationChildPlacementChildComposition.makeUpdate(),
+  })
 
 const Entry = Schema.Struct({
   id: Schema.String,
@@ -33,7 +32,7 @@ export const ParentModel = Schema.Struct({
   entries: Schema.Array(Entry),
 })
 
-export const DeclarationChildPlacementParentDefinition = Block.define(
+export const DeclarationChildPlacementParentDefinition = Block.makeDefinition(
   'DeclarationChildPlacementParent',
   {
     Model: ParentModel,
@@ -100,7 +99,7 @@ export const EntriesByIdLengthBinding =
 
 export const DeclarationChildPlacementParentComposition =
   DeclarationChildPlacementParentDefinition.makeComposition({
-    childBindings: [
+    bindings: [
       PrimaryBinding,
       SecondaryBinding,
       OptionalBinding,
@@ -111,7 +110,7 @@ export const DeclarationChildPlacementParentComposition =
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This second graph tests default placements under the same parent identity.
 export const DefaultPlacementComposition =
   DeclarationChildPlacementParentDefinition.makeComposition({
-    childBindings: [
+    bindings: [
       DefaultAccessorBinding,
       EntriesByIdBinding,
       EntriesByIdLengthBinding,
@@ -119,6 +118,5 @@ export const DefaultPlacementComposition =
   })
 
 export const composeDynamicChildren = (
-  childBindings: ReadonlyArray<typeof PrimaryBinding>,
-) =>
-  DeclarationChildPlacementParentDefinition.makeComposition({ childBindings })
+  bindings: ReadonlyArray<typeof PrimaryBinding>,
+) => DeclarationChildPlacementParentDefinition.makeComposition({ bindings })

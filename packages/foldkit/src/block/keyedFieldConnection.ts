@@ -191,7 +191,7 @@ export type KeyedFieldConfig<
      * preserve the supplied key; the parent owns collection membership. */
     key: KeyField & RequiredKeyField<BlockValue['Model']['Type']>
     /** Identifies this Binding within the parent's composition graph. It
-     * defaults to `field`. */
+     * defaults to the child Block ID. */
     placement?: Placement
     /** Maps a child Message with the originating occurrence key into the parent
      * Message type. */
@@ -226,7 +226,7 @@ export type WrappedKeyedFieldConfig<
   Placement extends string,
 > = Readonly<{
   /** Selects the required parent Struct field containing the declared array of
-   * closed Struct wrappers. This field is also the default placement. */
+   * closed Struct wrappers. */
   field: SingularField<Field> &
     ValidateWrappedArrayField<ParentModelSchema, Field>
   /** Selects the required stable string or finite-number key on each wrapper. The
@@ -246,7 +246,8 @@ export type WrappedKeyedFieldConfig<
       BlockValue['Model']['Type']
     > &
     Exclude<ChildField, KeyField>
-  /** Identifies this occurrence within its parent's graph; defaults to field. */
+  /** Identifies this occurrence within its parent's graph; defaults to the
+   * child Block ID. */
   placement?: Placement
   /** Gates child Subscriptions without disabling updates or other occurrence
    * lifecycle work. Unspecified named Subscriptions remain enabled. */
@@ -446,7 +447,10 @@ const isInstanceKeyAst = (
   )
 }
 
-const isInstanceKeySchema = (schema: unknown): boolean =>
+/** @internal Checks that a Schema decodes only supported Binding keys. */
+export const isInstanceKeySchema = (
+  schema: unknown,
+): schema is Schema.Top & Schema.Schema<InstanceKey> =>
   Schema.isSchema(schema) &&
   isInstanceKeyAst(SchemaAST.toType(schema.ast), new Set())
 
@@ -728,23 +732,23 @@ export const wrappedKeyedInitialPolicyOf = (
   const init = Reflect.get(config, 'init')
   if (!Predicate.isObject(init)) {
     throw new Error(
-      `[foldkit] Keyed Binding field "${field}" init must be an object with occurrences and toItem functions.`,
+      `[foldkit] Keyed Binding field "${field}" init must be an object with instances and toItem functions.`,
     )
   }
 
   for (const policyField of Reflect.ownKeys(init)) {
-    if (policyField !== 'occurrences' && policyField !== 'toItem') {
+    if (policyField !== 'instances' && policyField !== 'toItem') {
       throw new Error(
         `[foldkit] Keyed Binding field "${field}" init does not support the policy field "${globalThis.String(policyField)}".`,
       )
     }
   }
 
-  const occurrences = Reflect.get(init, 'occurrences')
+  const instances = Reflect.get(init, 'instances')
   const toItem = Reflect.get(init, 'toItem')
-  if (!Predicate.isFunction(occurrences) || !Predicate.isFunction(toItem)) {
+  if (!Predicate.isFunction(instances) || !Predicate.isFunction(toItem)) {
     throw new Error(
-      `[foldkit] Keyed Binding field "${field}" init must supply occurrences and toItem functions.`,
+      `[foldkit] Keyed Binding field "${field}" init must supply instances and toItem functions.`,
     )
   }
 
@@ -761,10 +765,10 @@ export const wrappedKeyedInitialPolicyOf = (
     kind: 'WrappedKeyed',
     field,
     resolveOccurrences: context => {
-      const values = Reflect.apply(occurrences, undefined, [context])
+      const values = Reflect.apply(instances, undefined, [context])
       if (!globalThis.Array.isArray(values)) {
         throw new Error(
-          `[foldkit] Keyed Binding field "${field}" init.occurrences must return an array.`,
+          `[foldkit] Keyed Binding field "${field}" init.instances must return an array.`,
         )
       }
 
@@ -796,7 +800,7 @@ export const wrappedKeyedInitialPolicyOf = (
 
           if (keys.has(key)) {
             throw new Error(
-              `[foldkit] Keyed Binding field "${field}" init.occurrences contains duplicate key "${globalThis.String(key)}".`,
+              `[foldkit] Keyed Binding field "${field}" init.instances contains duplicate key "${globalThis.String(key)}".`,
             )
           }
           keys.add(key)

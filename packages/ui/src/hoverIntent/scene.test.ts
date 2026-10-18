@@ -1,38 +1,34 @@
-import { Option } from 'effect'
+import { Option, Schema } from 'effect'
 import { Block } from 'foldkit'
-import { defineMessageUnion } from 'foldkit/message'
 import * as Scene from 'foldkit/scene'
 import * as Update from 'foldkit/update'
 
 import { describe, it } from '@effect/vitest'
 
-import { Message, Model, OutMessage, block, init } from './index.js'
+import { HoverIntentBlock, Model } from './block.js'
+import { Message, OutMessage } from './message.js'
 
-const HoverIntentSceneMessage = defineMessageUnion({
-  GotHoverIntentMessage: { message: Message },
-})
-
-const HoverIntentSceneDefinition = Block.define('HoverIntentScene', {
+const HoverIntentSceneDefinition = Block.makeDefinition('HoverIntentScene', {
   Model,
-  Message: HoverIntentSceneMessage,
+  Message: Schema.Never,
 })
 
-const foldHoverIntentOutMessage = OutMessage.match<
-  Update.Step<Model, typeof HoverIntentSceneMessage.Type>
->({
+const foldHoverIntentOutMessage = OutMessage.match<Update.Step<Model, never>>({
   Opened: () => HoverIntentSceneDefinition.step(model => ({ model })),
   Closed: () => HoverIntentSceneDefinition.step(model => ({ model })),
 })
 
-const HoverIntentBinding = HoverIntentSceneDefinition.bindChild(block, {
-  read: model => Option.some(model),
-  write: (_model, nextHoverIntent) => nextHoverIntent,
-  parentMessage: HoverIntentSceneMessage.GotHoverIntentMessage,
-  outMessage: { fold: foldHoverIntentOutMessage },
-})
+const HoverIntentBinding = HoverIntentSceneDefinition.bindChild(
+  HoverIntentBlock,
+  {
+    read: model => Option.some(model),
+    write: (_model, nextHoverIntent) => nextHoverIntent,
+    outMessage: { fold: foldHoverIntentOutMessage },
+  },
+)
 
 const HoverIntentSceneComposition = HoverIntentSceneDefinition.makeComposition({
-  childBindings: [HoverIntentBinding],
+  bindings: [HoverIntentBinding],
 })
 
 const update = HoverIntentSceneComposition.makeUpdate()
@@ -61,10 +57,13 @@ const sceneView = HoverIntentSceneComposition.makeView((model, h) =>
 const trigger = Scene.selector('#trigger')
 const panel = Scene.selector('#panel')
 
-const hiddenModel = init()
+const hiddenModel = HoverIntentBlock.init().model
 const focusedUpdate = update(
   hiddenModel,
-  HoverIntentSceneMessage.GotHoverIntentMessage({
+  Schema.decodeSync(HoverIntentSceneComposition.Message)({
+    _tag: 'GotHoverIntentMessage',
+    placement: 'HoverIntent',
+    generation: 0,
     message: Message.FocusedTrigger(),
   }),
 )

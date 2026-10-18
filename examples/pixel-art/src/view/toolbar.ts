@@ -2,9 +2,15 @@ import clsx from 'clsx'
 import { Array, Option } from 'effect'
 import { type Html, childAttributes } from 'foldkit/html'
 
-import { Button, Listbox, RadioGroup, Switch } from '@foldkit/ui'
+import { Button, Switch } from '@foldkit/ui'
 import type { AnchorConfig } from '@foldkit/ui/listbox'
 
+import {
+  GridSizeRadioGroupBlock,
+  PaletteRadioGroupBlock,
+  ThemeListboxBlock,
+  ToolRadioGroupBlock,
+} from '../components'
 import {
   type ApplicationViewBuilder,
   GridSizeRadioGroupBinding as GridSizeRadioGroupBinding,
@@ -96,10 +102,10 @@ export const toolPanelView = (
   isCanvasEmpty: boolean,
   theme: PaletteTheme,
   paletteThemeIndex: number,
-  themeListbox: typeof Listbox.Model.Type,
-  toolRadioGroup: typeof RadioGroup.Model.Type,
-  gridSizeRadioGroup: typeof RadioGroup.Model.Type,
-  paletteRadioGroup: typeof RadioGroup.Model.Type,
+  themeListbox: typeof ThemeListboxBlock.Model.Type,
+  toolRadioGroup: typeof ToolRadioGroupBlock.Model.Type,
+  gridSizeRadioGroup: typeof GridSizeRadioGroupBlock.Model.Type,
+  paletteRadioGroup: typeof PaletteRadioGroupBlock.Model.Type,
   h: ApplicationViewBuilder,
 ): Html =>
   h.div(
@@ -122,7 +128,7 @@ export const toolPanelView = (
 
 const toolSectionView = (
   selectedTool: Tool,
-  toolRadioGroup: typeof RadioGroup.Model.Type,
+  toolRadioGroup: typeof ToolRadioGroupBlock.Model.Type,
   h: ApplicationViewBuilder,
 ): Html =>
   h.div(
@@ -260,7 +266,7 @@ const mirrorSectionView = (
 
 const sizeSectionView = (
   gridSize: number,
-  gridSizeRadioGroup: typeof RadioGroup.Model.Type,
+  gridSizeRadioGroup: typeof GridSizeRadioGroupBlock.Model.Type,
   h: ApplicationViewBuilder,
 ): Html =>
   h.div(
@@ -308,8 +314,8 @@ const paletteSectionView = (
   selectedColorIndex: PaletteIndex,
   theme: PaletteTheme,
   paletteThemeIndex: number,
-  themeListbox: typeof Listbox.Model.Type,
-  paletteRadioGroup: typeof RadioGroup.Model.Type,
+  themeListbox: typeof ThemeListboxBlock.Model.Type,
+  paletteRadioGroup: typeof PaletteRadioGroupBlock.Model.Type,
   h: ApplicationViewBuilder,
 ): Html => {
   const paletteIndexStrings = theme.colors.map((_, index) => index.toString())
@@ -367,7 +373,7 @@ const paletteSectionView = (
 }
 
 const themeListboxView = (
-  themeListbox: typeof Listbox.Model.Type,
+  themeListbox: typeof ThemeListboxBlock.Model.Type,
   theme: PaletteTheme,
   paletteThemeIndex: number,
   h: ApplicationViewBuilder,

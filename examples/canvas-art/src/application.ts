@@ -9,7 +9,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { Canvas, Dom, defineApplication } from 'foldkit'
+import { Canvas, Dom, makeApplicationDefinition } from 'foldkit'
 import type { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -72,7 +72,10 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const ApplicationDefinition = makeApplicationDefinition({
+  Model,
+  Message,
+})
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 type ApplicationViewBuilder = Block.ViewBuilderFor<

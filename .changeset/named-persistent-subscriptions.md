@@ -50,7 +50,7 @@ const subscriptions = FeatureDefinition.subscriptions(entry => ({
 const EffectsLayer = subscriptions.layer
 const FeatureComposition = FeatureDefinition.makeComposition()
 
-export const block = FeatureComposition.makeBlock({
+export const FeatureBlock = FeatureComposition.assembleBlock({
   init,
   update,
   view,
@@ -95,7 +95,7 @@ const subscriptions = FeatureDefinition.subscriptions(entry => ({
 const EffectsLayer = subscriptions.layer
 const FeatureComposition = FeatureDefinition.makeComposition()
 
-export const block = FeatureComposition.makeBlock({
+export const FeatureBlock = FeatureComposition.assembleBlock({
   init,
   update,
   view,

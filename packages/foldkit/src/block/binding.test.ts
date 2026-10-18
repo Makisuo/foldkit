@@ -4,28 +4,28 @@ import { expect, expectTypeOf } from 'vitest'
 import { describe, it } from '@effect/vitest'
 
 import * as Command from '../command/index.js'
-import type { BoundBlockConfig, BoundBlockView } from '../html/block.js'
 import * as ManagedResource from '../managedResource/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import * as Subscription from '../subscription/subscription.js'
 import * as Update from '../update/index.js'
-import type { BindingRequirement } from './binding.js'
+import type { RequirementOfBinding } from './binding.js'
 import { aggregateChildren, inspectBinding } from './binding.js'
-import type { DeferredBindingPolicy } from './deferredPolicy.js'
-import { define } from './define.js'
+import { makeDefinition, makeNamespace } from './define.js'
 import { LocalMountsTypeId } from './definition.js'
 import type { Owner } from './owner.js'
 import type { Qualify, Scoped } from './scope.js'
 
 type CommandMessageOfReturn<Value> =
-  Value extends Readonly<{
-    commands?: Update.Commands<infer Message, any> | undefined
-  }>
+  Value extends Update.ResultRecipe<any, infer Message, any, any, any>
     ? Message
-    : never
+    : Value extends Readonly<{
+          commands?: Update.Commands<infer Message, any> | undefined
+        }>
+      ? Message
+      : never
 
-const ChildOwner = define('BindingChild')
+const ChildNamespace = makeNamespace('BindingChild')
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 type ChildModel = typeof ChildModel.Type
@@ -51,11 +51,11 @@ const ChildOutMessage = defineMessageUnion({
 })
 type ChildOutMessage = typeof ChildOutMessage.Type
 
-const Save = ChildOwner.command('Save', {
+const Save = ChildNamespace.command('Save', {
   messages: [ChildMessage.CompletedSave],
 })
 
-const ChildChannelsDefinition = ChildOwner.define({
+const ChildChannelsDefinition = ChildNamespace.makeDefinition({
   Model: ChildModel,
   Message: ChildMessage,
   OutMessage: ChildOutMessage,
@@ -72,7 +72,7 @@ const childSubscriptions = ChildChannelsDefinition.subscriptions(entry => ({
   ),
 }))
 
-const Session = ChildOwner.resource<string>()('Session')
+const Session = ChildNamespace.resource<string>()('Session')
 
 const childManagedResources = ChildChannelsDefinition.managedResources(
   entry => ({
@@ -87,11 +87,11 @@ const childManagedResources = ChildChannelsDefinition.managedResources(
   }),
 )
 
-const Measure = ChildOwner.mount('Measure', {
+const Measure = ChildNamespace.mount('Measure', {
   messages: [ChildMessage.CompletedMeasure],
 })
 
-const ChildBaseDefinition = ChildOwner.define({
+const ChildBaseDefinition = ChildNamespace.makeDefinition({
   Model: ChildModel,
   Message: ChildMessage,
   OutMessage: ChildOutMessage,
@@ -155,7 +155,7 @@ const childUpdate = ChildComposition.makeUpdate(
     }),
 )
 
-const Child = ChildComposition.makeBlock({
+const Child = ChildComposition.assembleBlock({
   view: childView,
   init: (count: number) => ({ model: ChildModel.make({ count }) }),
   update: childUpdate,
@@ -185,7 +185,6 @@ const ParentModel = Schema.Struct({
 type ParentModel = typeof ParentModel.Type
 
 const ParentMessage = defineMessageUnion({
-  GotChildMessage: { message: ChildMessage, roomId: Schema.String },
   RecordedReport: {},
   RequestedResetHome: {},
   RequestedAddHomeForRoom: { amount: Schema.Number, roomId: Schema.String },
@@ -199,14 +198,11 @@ const ParentOutMessage = defineMessageUnion({
 })
 type ParentOutMessage = typeof ParentOutMessage.Type
 
-const Parent = define('BindingParent', {
+const Parent = makeDefinition('BindingParent', {
   Model: ParentModel,
   Message: ParentMessage,
   OutMessage: ParentOutMessage,
 })
-
-const toParentMessage = (message: ChildMessage): ParentMessage =>
-  ParentMessage.GotChildMessage({ message, roomId: 'room' })
 
 const foldChildOutMessage = ChildOutMessage.match<
   Update.StepWithOutMessage<ParentModel, ParentMessage, ParentOutMessage>
@@ -237,11 +233,6 @@ const HomeBinding = Parent.bindChild(Child, {
   placement: 'home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
-  toParentMessage,
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotChildMessage,
-    args: (_model, { message, roomId }) => Option.some([message, { roomId }]),
-  },
   outMessage: {
     fold: foldChildOutMessage,
     forward: forwardChildOutMessage,
@@ -250,6 +241,9 @@ const HomeBinding = Parent.bindChild(Child, {
     when: {
       ticks: (model: ParentModel) => model.isListening,
     },
+  },
+  delivery: {
+    toUpdateContext: () => [{ roomId: 'room' }],
   },
 })
 const foldChildOutMessageWithCommand = (
@@ -278,27 +272,24 @@ const CommandHomeBinding = Parent.bindChild(Child, {
   placement: 'command-home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
-  toParentMessage,
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotChildMessage,
-    args: (_model, { message, roomId }) => Option.some([message, { roomId }]),
-  },
   outMessage: { fold: foldChildOutMessageWithCommand },
+  delivery: {
+    toUpdateContext: () => [{ roomId: 'room' }],
+  },
 })
 
 const PolicyMessage = defineMessageUnion({
-  GotChildMessage: { message: ChildMessage, roomId: Schema.String },
   CompletedPolicyWork: {},
   RequestedResetHome: {},
   RequestedReportHome: {},
 })
 type PolicyMessage = typeof PolicyMessage.Type
 
-const ParentPolicyOwner = define('BindingParentPolicy')
-const RunPolicyWork = ParentPolicyOwner.command('RunPolicyWork', {
+const ParentPolicyNamespace = makeNamespace('BindingParentPolicy')
+const RunPolicyWork = ParentPolicyNamespace.command('RunPolicyWork', {
   messages: [PolicyMessage.CompletedPolicyWork],
 })
-const ParentPolicyDefinition = ParentPolicyOwner.define({
+const ParentPolicyDefinition = ParentPolicyNamespace.makeDefinition({
   Model: ParentModel,
   Message: PolicyMessage,
   OutMessage: ParentOutMessage,
@@ -325,25 +316,20 @@ const ParentCommandHomeBinding = ParentPolicyDefinition.bindChild(Child, {
   placement: 'parent-command-home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
-  toParentMessage: message =>
-    PolicyMessage.GotChildMessage({ message, roomId: 'room' }),
-  fromParentMessage: {
-    parentMessage: PolicyMessage.GotChildMessage,
-    args: (_model, { message, roomId }) => Option.some([message, { roomId }]),
-  },
   outMessage: { fold: foldChildOutMessageWithParentCommand },
+  delivery: {
+    toUpdateContext: () => [{ roomId: 'room' }],
+  },
 })
 
 const ForwardOnlyHomeBinding = Parent.bindChild(Child, {
   placement: 'forward-only-home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
-  toParentMessage,
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotChildMessage,
-    args: (_model, { message, roomId }) => Option.some([message, { roomId }]),
-  },
   outMessage: { forward: forwardChildOutMessage },
+  delivery: {
+    toUpdateContext: () => [{ roomId: 'room' }],
+  },
 })
 
 const bindWithoutOutMessagePolicy = () =>
@@ -354,8 +340,6 @@ const bindWithoutOutMessagePolicy = () =>
     read: (model: ParentModel) => model.maybeChild,
     // @ts-expect-error This invalid Binding configuration has no matching overload.
     write: writeChild,
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    parentMessage: ParentMessage.GotChildMessage,
   })
 void bindWithoutOutMessagePolicy
 
@@ -367,8 +351,6 @@ const bindWithUnknownForward = () =>
     read: (model: ParentModel) => model.maybeChild,
     // @ts-expect-error This invalid Binding configuration has no matching overload.
     write: writeChild,
-    // @ts-expect-error This invalid Binding configuration has no matching overload.
-    parentMessage: ParentMessage.GotChildMessage,
     // eslint-disable-next-line foldkit/no-empty-to-parent-out-message
     // @ts-expect-error This invalid Binding configuration has no matching overload.
     outMessage: { forward: (): unknown => undefined },
@@ -379,12 +361,10 @@ const LocallyHandledWithoutForwardingBinding = Parent.bindChild(Child, {
   placement: 'locally-handled',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
-  toParentMessage,
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotChildMessage,
-    args: (_model, { message, roomId }) => Option.some([message, { roomId }]),
-  },
   outMessage: { fold: foldChildOutMessage },
+  delivery: {
+    toUpdateContext: () => [{ roomId: 'room' }],
+  },
 })
 void LocallyHandledWithoutForwardingBinding
 
@@ -395,22 +375,25 @@ const initialParent: ParentModel = {
 }
 
 const ParentComposition = Parent.makeComposition({
-  childBindings: [HomeBinding],
+  bindings: [HomeBinding],
 })
 const foldHome = ParentComposition.makeUpdate(model => ({ model }))
 const foldCommandHome = Parent.makeComposition({
-  childBindings: [CommandHomeBinding],
+  bindings: [CommandHomeBinding],
 }).makeUpdate(model => ({ model }))
-const foldForwardOnlyHome = Parent.makeComposition({
-  childBindings: [ForwardOnlyHomeBinding],
-}).makeUpdate(model => ({ model }))
+const ForwardOnlyComposition = Parent.makeComposition({
+  bindings: [ForwardOnlyHomeBinding],
+})
+const foldForwardOnlyHome = ForwardOnlyComposition.makeUpdate(model => ({
+  model,
+}))
 const resetHome = Parent.step(_model => HomeBinding.reset())
 const addHomeForRoom = Parent.step(
   (_model, amount: number, context: Readonly<{ roomId: string }>) =>
     HomeBinding.addForRoom(amount, context),
 )
 const reportHome = Parent.step(_model => HomeBinding.report())
-const ParentRuntime = ParentComposition.makeBlock({
+const ParentRuntime = ParentComposition.assembleBlock({
   init: () => ({ model: initialParent }),
   update: ParentComposition.makeUpdate((model, message) =>
     ParentMessage.match(message, {
@@ -436,7 +419,7 @@ const ParentRuntime = ParentComposition.makeBlock({
 })
 
 const ParentPolicyComposition = ParentPolicyDefinition.makeComposition({
-  childBindings: [ParentCommandHomeBinding],
+  bindings: [ParentCommandHomeBinding],
 })
 const resetParentCommandHome = ParentPolicyDefinition.step(_model =>
   ParentCommandHomeBinding.reset(),
@@ -451,7 +434,7 @@ const foldParentPolicy = ParentPolicyComposition.makeUpdate((model, message) =>
     CompletedPolicyWork: () => ({ model }),
   }),
 )
-const ParentPolicyRuntime = ParentPolicyComposition.makeBlock({
+const ParentPolicyRuntime = ParentPolicyComposition.assembleBlock({
   init: () => ({ model: initialParent }),
   update: foldParentPolicy,
   operations: {
@@ -492,10 +475,6 @@ const ArityMessage = defineMessageUnion({
 type ArityMessage = typeof ArityMessage.Type
 
 const ArityParentMessage = defineMessageUnion({
-  GotWrappedMessage: { message: ArityMessage, amount: Schema.Number },
-  GotIgnoredMessage: { message: ArityMessage },
-  GotDefaultMessage: { message: ArityMessage },
-  GotOptionalMessage: { message: ArityMessage },
   RequestedDefaultIncrement: { amount: Schema.optionalKey(Schema.Number) },
   RequestedAddMany: { amounts: Schema.Array(Schema.Number) },
   RequestedReset: {},
@@ -514,8 +493,8 @@ const writeArityChild = (
   model: ArityParent,
   child: ArityModel,
 ): ArityParent => ({ ...model, child })
-const WrappedArityOwner = define('BindingWrappedArity')
-const WrappedArityDefinition = WrappedArityOwner.define({
+const WrappedArityNamespace = makeNamespace('BindingWrappedArity')
+const WrappedArityDefinition = WrappedArityNamespace.makeDefinition({
   Model: ArityModel,
   Message: ArityMessage,
 })
@@ -571,7 +550,7 @@ const wrappedArityUpdate = WrappedArityComposition.makeUpdate(
       }),
     }),
 )
-const WrappedArityBlock = WrappedArityComposition.makeBlock({
+const WrappedArityBlock = WrappedArityComposition.assembleBlock({
   init: () => ({ model: ArityModel.make({ count: 0 }) }),
   update: wrappedArityUpdate,
   operations: {
@@ -608,7 +587,7 @@ const WrappedArityBlock = WrappedArityComposition.makeBlock({
   },
   EffectsLayer: Layer.empty,
 })
-const WrappedArityParent = define('BindingWrappedArityParent', {
+const WrappedArityParent = makeDefinition('BindingWrappedArityParent', {
   Model: ArityParent,
   Message: ArityParentMessage,
 })
@@ -616,11 +595,8 @@ const WrappedArityBinding = WrappedArityParent.bindChild(WrappedArityBlock, {
   placement: 'wrapped-arity',
   read: readArityChild,
   write: writeArityChild,
-  toParentMessage: message =>
-    ArityParentMessage.GotWrappedMessage({ message, amount: 1 }),
-  fromParentMessage: {
-    parentMessage: ArityParentMessage.GotWrappedMessage,
-    args: (_model, { message, amount }) => Option.some([message, { amount }]),
+  delivery: {
+    toUpdateContext: () => [{ amount: 2 }],
   },
 })
 
@@ -644,7 +620,7 @@ const makeArityBlock = <
   Message: ArityMessage,
   mounts: [],
   [LocalMountsTypeId]: [],
-  childBindings: [],
+  bindings: [],
   init: (): Update.Return<ArityModel, ArityMessage> => ({
     model: ArityModel.make({ count: 0 }),
   }),
@@ -656,10 +632,12 @@ const makeArityBlock = <
   hostHandlers: [],
 })
 
-const IgnoredMessageOwner = define('BindingIgnoredMessage')
+const IgnoredMessageNamespace = makeNamespace('BindingIgnoredMessage')
 const IgnoredMessage = makeArityBlock(
-  IgnoredMessageOwner.define({ Model: ArityModel, Message: ArityMessage })
-    .owner,
+  IgnoredMessageNamespace.makeDefinition({
+    Model: ArityModel,
+    Message: ArityMessage,
+  }).owner,
   (model: ArityModel): Update.Return<ArityModel, ArityMessage> => ({
     model: modifyFields(model, { count: count => count + 1 }),
   }),
@@ -668,17 +646,14 @@ const IgnoredMessageBinding = WrappedArityParent.bindChild(IgnoredMessage, {
   placement: 'ignored-message',
   read: readArityChild,
   write: writeArityChild,
-  toParentMessage: message => ArityParentMessage.GotIgnoredMessage({ message }),
-  fromParentMessage: {
-    parentMessage: ArityParentMessage.GotIgnoredMessage,
-    args: (_model, { message }) => Option.some([message]),
-  },
 })
 
-const DefaultContextOwner = define('BindingDefaultContext')
+const DefaultContextNamespace = makeNamespace('BindingDefaultContext')
 const DefaultContext = makeArityBlock(
-  DefaultContextOwner.define({ Model: ArityModel, Message: ArityMessage })
-    .owner,
+  DefaultContextNamespace.makeDefinition({
+    Model: ArityModel,
+    Message: ArityMessage,
+  }).owner,
   (
     model: ArityModel,
     _message: ArityMessage,
@@ -693,17 +668,17 @@ const DefaultContextBinding = WrappedArityParent.bindChild(DefaultContext, {
   placement: 'default-context',
   read: readArityChild,
   write: writeArityChild,
-  toParentMessage: message => ArityParentMessage.GotDefaultMessage({ message }),
-  fromParentMessage: {
-    parentMessage: ArityParentMessage.GotDefaultMessage,
-    args: (_model, { message }) => Option.some([message]),
+  delivery: {
+    toUpdateContext: () => [{ amount: 2 }],
   },
 })
 
-const OptionalContextOwner = define('BindingOptionalContext')
+const OptionalContextNamespace = makeNamespace('BindingOptionalContext')
 const OptionalContext = makeArityBlock(
-  OptionalContextOwner.define({ Model: ArityModel, Message: ArityMessage })
-    .owner,
+  OptionalContextNamespace.makeDefinition({
+    Model: ArityModel,
+    Message: ArityMessage,
+  }).owner,
   (
     model: ArityModel,
     _message: ArityMessage,
@@ -718,16 +693,13 @@ const OptionalContextBinding = WrappedArityParent.bindChild(OptionalContext, {
   placement: 'optional-context',
   read: readArityChild,
   write: writeArityChild,
-  toParentMessage: message =>
-    ArityParentMessage.GotOptionalMessage({ message }),
-  fromParentMessage: {
-    parentMessage: ArityParentMessage.GotOptionalMessage,
-    args: (_model, { message }) => Option.some([message]),
+  delivery: {
+    toUpdateContext: () => [{ amount: 1 }],
   },
 })
 
 const WrappedArityParentComposition = WrappedArityParent.makeComposition({
-  childBindings: [
+  bindings: [
     WrappedArityBinding,
     IgnoredMessageBinding,
     DefaultContextBinding,
@@ -753,7 +725,7 @@ const runAddMany = WrappedArityParent.step(
 const runResetArity = WrappedArityParent.step(_model =>
   WrappedArityBinding.resetArity(),
 )
-const WrappedArityRuntime = WrappedArityParentComposition.makeBlock({
+const WrappedArityRuntime = WrappedArityParentComposition.assembleBlock({
   init: () => ({ model: initialArityParent }),
   update: WrappedArityParentComposition.makeUpdate((model, message) =>
     ArityParentMessage.match(message, {
@@ -789,13 +761,12 @@ const foldOptionalContext = WrappedArityParentComposition.makeUpdate(model => ({
 
 describe('Block binding', () => {
   it('preserves contextual update arguments without a deferred update member', () => {
-    const result = foldHome(
-      initialParent,
-      ParentMessage.GotChildMessage({
-        message: ChildMessage.ChangedCount({ amount: 3 }),
-        roomId: 'room',
-      }),
-    )
+    const result = foldHome(initialParent, {
+      _tag: 'GotHomeMessage',
+      placement: 'home',
+      generation: 0,
+      message: ChildMessage.ChangedCount({ amount: 3 }),
+    })
 
     expect(Option.getOrThrow(result.model.maybeChild).count).toBe(9)
     expect(HomeBinding).not.toHaveProperty('step')
@@ -807,11 +778,11 @@ describe('Block binding', () => {
       Update.WithRegistrationEvidence<
         Update.ReturnWithOutMessage<
           ParentModel,
-          ParentMessage,
+          typeof ParentComposition.Message.Type,
           ParentOutMessage,
           Scoped<'home', Command.HandlerOf<typeof Save>>
         >,
-        BindingRequirement<'home', typeof Child>
+        RequirementOfBinding<typeof HomeBinding>
       >
     >()
   })
@@ -821,13 +792,12 @@ describe('Block binding', () => {
       ...initialParent,
       maybeChild: Option.none(),
     }
-    const result = foldHome(
-      parentWithoutChild,
-      ParentMessage.GotChildMessage({
-        message: ChildMessage.ChangedCount({ amount: 3 }),
-        roomId: 'room',
-      }),
-    )
+    const result = foldHome(parentWithoutChild, {
+      _tag: 'GotHomeMessage',
+      placement: 'home',
+      generation: 0,
+      message: ChildMessage.ChangedCount({ amount: 3 }),
+    })
 
     expect(result).toEqual({ model: parentWithoutChild })
   })
@@ -853,13 +823,12 @@ describe('Block binding', () => {
   })
 
   it('handles OutMessages locally and gives a derived result precedence over forwarding', () => {
-    const result = foldHome(
-      initialParent,
-      ParentMessage.GotChildMessage({
-        message: ChildMessage.ReportedCount(),
-        roomId: 'room',
-      }),
-    )
+    const result = foldHome(initialParent, {
+      _tag: 'GotHomeMessage',
+      placement: 'home',
+      generation: 0,
+      message: ChildMessage.ReportedCount(),
+    })
     const stepResult = ParentRuntime.operations.reportHome(initialParent)
 
     expect(result.model.reports).toEqual([2])
@@ -877,16 +846,15 @@ describe('Block binding', () => {
       inspectBinding(HomeBinding).subscriptions.ticks.modelToDependencies(
         gatedParent,
       )
-    const updateResult = foldHome(
-      gatedParent,
-      ParentMessage.GotChildMessage({
-        message: ChildMessage.ChangedCount({ amount: 1 }),
-        roomId: 'x',
-      }),
-    )
+    const updateResult = foldHome(gatedParent, {
+      _tag: 'GotHomeMessage',
+      placement: 'home',
+      generation: 0,
+      message: ChildMessage.ChangedCount({ amount: 1 }),
+    })
 
     expect(Option.isNone(dependencies.maybeDependencies)).toBe(true)
-    expect(Option.getOrThrow(updateResult.model.maybeChild).count).toBe(4)
+    expect(Option.getOrThrow(updateResult.model.maybeChild).count).toBe(7)
   })
 
   it('applies one Subscription gate across every child entry', () => {
@@ -894,15 +862,12 @@ describe('Block binding', () => {
       placement: 'gated-home',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
-      toParentMessage,
-      fromParentMessage: {
-        parentMessage: ParentMessage.GotChildMessage,
-        args: (_model, { message, roomId }) =>
-          Option.some([message, { roomId }]),
-      },
       outMessage: { fold: foldChildOutMessage },
       subscriptions: {
         when: (model: ParentModel) => model.isListening,
+      },
+      delivery: {
+        toUpdateContext: () => [{ roomId: 'room' }],
       },
     })
     const dependencies = inspectBinding(
@@ -916,13 +881,12 @@ describe('Block binding', () => {
   })
 
   it('preserves FoldContext Command lifting and exact requirements', () => {
-    const result = foldCommandHome(
-      initialParent,
-      ParentMessage.GotChildMessage({
-        message: ChildMessage.ReportedCount(),
-        roomId: 'room',
-      }),
-    )
+    const result = foldCommandHome(initialParent, {
+      _tag: 'GotCommandHomeMessage',
+      placement: 'command-home',
+      generation: 0,
+      message: ChildMessage.ReportedCount(),
+    })
 
     expect(result.commands).toHaveLength(1)
     expectTypeOf<
@@ -934,13 +898,12 @@ describe('Block binding', () => {
   })
 
   it('keeps forward-only policy requirements separate from child producers', () => {
-    const result = foldForwardOnlyHome(
-      initialParent,
-      ParentMessage.GotChildMessage({
-        message: ChildMessage.ReportedCount(),
-        roomId: 'room',
-      }),
-    )
+    const result = foldForwardOnlyHome(initialParent, {
+      _tag: 'GotForwardOnlyHomeMessage',
+      placement: 'forward-only-home',
+      generation: 0,
+      message: ChildMessage.ReportedCount(),
+    })
 
     expect(result.outMessage).toEqual(
       ParentOutMessage.ForwardedReport({ value: 2 }),
@@ -949,11 +912,11 @@ describe('Block binding', () => {
       Update.WithRegistrationEvidence<
         Update.ReturnWithOutMessage<
           ParentModel,
-          ParentMessage,
+          typeof ForwardOnlyComposition.Message.Type,
           ParentOutMessage,
           Scoped<'forward-only-home', Command.HandlerOf<typeof Save>>
         >,
-        BindingRequirement<'forward-only-home', typeof Child>
+        RequirementOfBinding<typeof ForwardOnlyHomeBinding>
       >
     >()
     expectTypeOf<
@@ -977,34 +940,6 @@ describe('Block binding', () => {
     expect(reset.commands).toEqual([])
     expect(report.commands).toHaveLength(1)
     expectTypeOf<
-      ReturnType<ReturnType<typeof ParentCommandHomeBinding.reset>>
-    >().toEqualTypeOf<
-      Update.ResultRecipe<
-        ParentModel,
-        PolicyMessage,
-        never,
-        Scoped<'parent-command-home', Command.HandlerOf<typeof Save>>,
-        | BindingRequirement<'parent-command-home', typeof Child>
-        | Update.DeferredResultEvidence<
-            DeferredBindingPolicy<'parent-command-home', 'BindingChild'>
-          >
-      >
-    >()
-    expectTypeOf<
-      ReturnType<ReturnType<typeof ParentCommandHomeBinding.report>>
-    >().toEqualTypeOf<
-      Update.ResultRecipe<
-        ParentModel,
-        PolicyMessage,
-        never,
-        Scoped<'parent-command-home', Command.HandlerOf<typeof Save>>,
-        | BindingRequirement<'parent-command-home', typeof Child>
-        | Update.DeferredResultEvidence<
-            DeferredBindingPolicy<'parent-command-home', 'BindingChild'>
-          >
-      >
-    >()
-    expectTypeOf<
       Update.RequirementsOf<ReturnType<typeof ParentCommandHomeBinding.reset>>
     >().toEqualTypeOf<
       Scoped<'parent-command-home', Command.HandlerOf<typeof Save>>
@@ -1022,10 +957,10 @@ describe('Block binding', () => {
     >()
     expectTypeOf<
       Update.RegistrationEvidenceOf<ReturnType<typeof foldParentPolicy>>
-    >().toEqualTypeOf<BindingRequirement<'parent-command-home', typeof Child>>()
+    >().toEqualTypeOf<RequirementOfBinding<typeof ParentCommandHomeBinding>>()
     expectTypeOf<
       CommandMessageOfReturn<ReturnType<typeof foldParentPolicy>>
-    >().toEqualTypeOf<PolicyMessage>()
+    >().toEqualTypeOf<typeof ParentPolicyComposition.Message.Type>()
     expectTypeOf(reset.outMessage).toEqualTypeOf<ParentOutMessage | undefined>()
     expectTypeOf(report.outMessage).toEqualTypeOf<
       ParentOutMessage | undefined
@@ -1063,7 +998,7 @@ describe('Block binding', () => {
   })
 
   it('preserves lifecycle contracts from a named child array', () => {
-    const pulseChild = ChildComposition.makeBlock({
+    const pulseChild = ChildComposition.assembleBlock({
       init: Child.init,
       update: Child.update,
       subscriptions: { pulses: childSubscriptions.ticks },
@@ -1075,10 +1010,7 @@ describe('Block binding', () => {
       reports: Schema.Array(Schema.Number),
       isListening: Schema.Boolean,
     })
-    const NamedParentMessage = defineMessageUnion({
-      GotHomeMessage: { message: ChildMessage, roomId: Schema.String },
-      GotRoomMessage: { message: ChildMessage, roomId: Schema.String },
-    })
+    const NamedParentMessage = Schema.Never
     type NamedParentMessage = typeof NamedParentMessage.Type
     const foldNamedChildOutMessage = ChildOutMessage.match<
       Update.StepWithOutMessage<
@@ -1096,7 +1028,9 @@ describe('Block binding', () => {
           outMessage: ParentOutMessage.DerivedReport({ value }),
         }),
     })
-    const ParentBaseDefinition = define('BindingNamedChildren').define({
+    const ParentBaseDefinition = makeNamespace(
+      'BindingNamedChildren',
+    ).makeDefinition({
       Model: ParentSchema,
       Message: NamedParentMessage,
       OutMessage: ParentOutMessage,
@@ -1105,34 +1039,26 @@ describe('Block binding', () => {
       placement: 'home',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
-      toParentMessage: message =>
-        NamedParentMessage.GotHomeMessage({ message, roomId: 'room' }),
-      fromParentMessage: {
-        parentMessage: NamedParentMessage.GotHomeMessage,
-        args: (_model, { message, roomId }) =>
-          Option.some([message, { roomId }]),
-      },
       outMessage: { fold: foldNamedChildOutMessage },
+      delivery: {
+        toUpdateContext: () => [{ roomId: 'room' }],
+      },
     })
     const RoomBinding = ParentBaseDefinition.bindChild(pulseChild, {
       placement: 'room',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
-      toParentMessage: message =>
-        NamedParentMessage.GotRoomMessage({ message, roomId: 'room' }),
-      fromParentMessage: {
-        parentMessage: NamedParentMessage.GotRoomMessage,
-        args: (_model, { message, roomId }) =>
-          Option.some([message, { roomId }]),
-      },
       outMessage: { fold: foldNamedChildOutMessage },
+      delivery: {
+        toUpdateContext: () => [{ roomId: 'room' }],
+      },
     })
     const namedHomeInspection = inspectBinding(NamedHomeBinding)
-    const childBindings = [NamedHomeBinding, RoomBinding]
+    const bindings = [NamedHomeBinding, RoomBinding]
     const parentContract = ParentBaseDefinition.makeComposition({
-      childBindings,
+      bindings,
     })
-    const parent = parentContract.makeBlock({
+    const parent = parentContract.assembleBlock({
       init: () => ({ model: initialParent }),
       update: (model, _message) => ({ model }),
       EffectsLayer: Layer.empty,
@@ -1196,31 +1122,15 @@ describe('Block binding', () => {
     expect(mobile.view).toBe(childView)
     expect(detailed.view).toBe(detailedChildView)
     expect(detailed.viewInputs).toEqual({ prefix: 'Detailed count' })
-    expect(desktop.toParentMessage(ChildMessage.ObservedTick())).toEqual(
-      toParentMessage(ChildMessage.ObservedTick()),
-    )
-    expectTypeOf(desktop).toEqualTypeOf<
-      BoundBlockConfig<
-        BoundBlockView<
-          typeof childView,
-          BindingRequirement<'home', typeof Child>
-        >,
-        ParentMessage
-      >
-    >()
-    expectTypeOf(detailed).toEqualTypeOf<
-      BoundBlockConfig<
-        BoundBlockView<
-          typeof detailedChildView,
-          BindingRequirement<'home', typeof Child>
-        >,
-        ParentMessage
-      >
-    >()
+    expect(desktop.toParentMessage(ChildMessage.ObservedTick())).toEqual({
+      _tag: 'GotHomeMessage',
+      placement: 'home',
+      generation: 0,
+      message: ChildMessage.ObservedTick(),
+    })
     expectTypeOf<
-      keyof BindingRequirement<
-        'home',
-        typeof Child
+      keyof RequirementOfBinding<
+        typeof HomeBinding
       >['__blockBindingRequirement']['block']
     >().toEqualTypeOf<'owner' | 'mountRequirements'>()
   })
@@ -1228,29 +1138,37 @@ describe('Block binding', () => {
 
 describe('Block binding arity', () => {
   it('executes a rest tuple wrapped update without runtime arity checks', () => {
-    const message = ArityParentMessage.GotWrappedMessage({
+    const message = {
+      _tag: 'GotWrappedArityMessage',
+      placement: 'wrapped-arity',
+      generation: 0,
       message: ArityMessage.IncreasedCount(),
-      amount: 2,
-    })
+    } satisfies typeof WrappedArityParentComposition.Message.Type
     const folded = foldWrappedArity(initialArityParent, message)
 
     expect(WrappedArityBlock.update.length).toBe(2)
     expect(folded.model.child.count).toBe(2)
     expectTypeOf(folded).toEqualTypeOf<
       Update.WithRegistrationEvidence<
-        Update.Return<ArityParent, typeof ArityParentMessage.Type>,
-        | BindingRequirement<'wrapped-arity', typeof WrappedArityBlock>
-        | BindingRequirement<'ignored-message', typeof IgnoredMessage>
-        | BindingRequirement<'default-context', typeof DefaultContext>
-        | BindingRequirement<'optional-context', typeof OptionalContext>
+        Update.Return<
+          ArityParent,
+          typeof WrappedArityParentComposition.Message.Type
+        >,
+        | RequirementOfBinding<typeof WrappedArityBinding>
+        | RequirementOfBinding<typeof IgnoredMessageBinding>
+        | RequirementOfBinding<typeof DefaultContextBinding>
+        | RequirementOfBinding<typeof OptionalContextBinding>
       >
     >()
   })
 
   it('supplies the declared Message when the update implementation ignores it', () => {
-    const message = ArityParentMessage.GotIgnoredMessage({
+    const message = {
+      _tag: 'GotIgnoredMessageMessage',
+      placement: 'ignored-message',
+      generation: 0,
       message: ArityMessage.IncreasedCount(),
-    })
+    } satisfies typeof WrappedArityParentComposition.Message.Type
     const folded = foldIgnoredMessage(initialArityParent, message)
 
     expect(IgnoredMessage.update.length).toBe(1)
@@ -1258,12 +1176,18 @@ describe('Block binding arity', () => {
   })
 
   it('preserves default and optional update context', () => {
-    const defaultMessage = ArityParentMessage.GotDefaultMessage({
+    const defaultMessage = {
+      _tag: 'GotDefaultContextMessage',
+      placement: 'default-context',
+      generation: 0,
       message: ArityMessage.IncreasedCount(),
-    })
-    const optionalMessage = ArityParentMessage.GotOptionalMessage({
+    } satisfies typeof WrappedArityParentComposition.Message.Type
+    const optionalMessage = {
+      _tag: 'GotOptionalContextMessage',
+      placement: 'optional-context',
+      generation: 0,
       message: ArityMessage.IncreasedCount(),
-    })
+    } satisfies typeof WrappedArityParentComposition.Message.Type
     const defaultFold = foldDefaultContext(initialArityParent, defaultMessage)
     const optionalFold = foldOptionalContext(
       initialArityParent,
@@ -1378,13 +1302,10 @@ describe('Block child registration composition', () => {
       placement: 'sidebar',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
-      toParentMessage,
-      fromParentMessage: {
-        parentMessage: ParentMessage.GotChildMessage,
-        args: (_model, { message, roomId }) =>
-          Option.some([message, { roomId }]),
-      },
       outMessage: { fold: foldChildOutMessage },
+      delivery: {
+        toUpdateContext: () => [{ roomId: 'room' }],
+      },
     })
 
     const aggregated = aggregateChildren([HomeBinding, SidebarBinding])
@@ -1406,24 +1327,24 @@ describe('Block child registration composition', () => {
       ) {}
 
       let buildCount = 0
-      const RepeatedOwner = define('BindingRepeated')
+      const RepeatedNamespace = makeNamespace('BindingRepeated')
       const RepeatedMessage = defineMessageUnion({ CompletedMount: {} })
       type RepeatedMessage = typeof RepeatedMessage.Type
-      const RepeatedMount = RepeatedOwner.mount('Mount', {
+      const RepeatedMount = RepeatedNamespace.mount('Mount', {
         messages: [RepeatedMessage.CompletedMount],
       })
-      const RepeatedBaseDefinition = RepeatedOwner.define({
+
+      const RepeatedComposition = RepeatedNamespace.makeDefinition({
         Model: ChildModel,
         Message: RepeatedMessage,
-      })
-      const RepeatedComposition = RepeatedBaseDefinition.makeComposition({
+      }).makeComposition({
         mounts: [RepeatedMount],
       })
       const EffectsLayer = Layer.sync(BuildMarker, () => {
         buildCount += 1
         return {}
       })
-      const Repeated = RepeatedComposition.makeBlock({
+      const Repeated = RepeatedComposition.assembleBlock({
         init: () => ({ model: ChildModel.make({ count: 0 }) }),
         update: model => ({ model }),
         EffectsLayer,
@@ -1431,10 +1352,8 @@ describe('Block child registration composition', () => {
       })
       const RepeatedParentModel = Schema.Struct({ child: ChildModel })
       type RepeatedParentModel = typeof RepeatedParentModel.Type
-      const RepeatedParentMessage = defineMessageUnion({
-        GotChildMessage: { message: RepeatedMessage },
-      })
-      const RepeatedParent = define('BindingRepeatedParent', {
+      const RepeatedParentMessage = Schema.Never
+      const RepeatedParent = makeDefinition('BindingRepeatedParent', {
         Model: RepeatedParentModel,
         Message: RepeatedParentMessage,
       })
@@ -1443,7 +1362,6 @@ describe('Block child registration composition', () => {
           placement,
           read: (model: RepeatedParentModel) => Option.some(model.child),
           write: (model, child) => ({ ...model, child }),
-          parentMessage: RepeatedParentMessage.GotChildMessage,
         })
       const aggregated = aggregateChildren([
         bindRepeated('first'),
@@ -1459,9 +1377,9 @@ describe('Block child registration composition', () => {
 })
 
 describe('generic block refinement', () => {
-  const GenericOwner = define('BindingChoice')
+  const GenericNamespace = makeNamespace('BindingChoice')
   const CompletedChoiceWork = Schema.TaggedStruct('CompletedChoiceWork', {})
-  const FinishChoice = GenericOwner.command('FinishChoice', {
+  const FinishChoice = GenericNamespace.command('FinishChoice', {
     messages: [CompletedChoiceWork],
   })
 
@@ -1477,7 +1395,11 @@ describe('generic block refinement', () => {
     type Message = typeof Message.Type
     const OutMessage = Schema.TaggedStruct('SelectedValue', { value: Value })
     type OutMessage = typeof OutMessage.Type
-    const ChoiceDefinition = GenericOwner.define({ Model, Message, OutMessage })
+    const ChoiceDefinition = GenericNamespace.makeDefinition({
+      Model,
+      Message,
+      OutMessage,
+    })
     const Composition = ChoiceDefinition.makeComposition()
     const finish = ChoiceDefinition.step(model => ({
       model,
@@ -1495,7 +1417,7 @@ describe('generic block refinement', () => {
         return { model }
       }
     })
-    return Composition.makeBlock({
+    return Composition.assembleBlock({
       init: (value: Value) => ({ model: Model.make({ value }) }),
       update,
       operations: {
@@ -1513,9 +1435,7 @@ describe('generic block refinement', () => {
     type ChoiceOutMessage = typeof Choice.OutMessage.Type
     const ChoiceParentModel = Schema.Struct({ choice: Choice.Model })
     type ChoiceParentModel = typeof ChoiceParentModel.Type
-    const ChoiceParentMessage = defineMessageUnion({
-      GotChoiceMessage: { message: Choice.Message },
-    })
+    const ChoiceParentMessage = Schema.Never
     type DeclaredOutMessage =
       typeof Choice extends Readonly<{
         OutMessage: Readonly<{ Type: infer OutMessage }>
@@ -1523,7 +1443,7 @@ describe('generic block refinement', () => {
         ? OutMessage
         : never
     expectTypeOf<DeclaredOutMessage>().toEqualTypeOf<ChoiceOutMessage>()
-    const ChoiceParent = define('BindingChoiceParent', {
+    const ChoiceParent = makeDefinition('BindingChoiceParent', {
       Model: ChoiceParentModel,
       Message: ChoiceParentMessage,
       OutMessage: Choice.OutMessage,
@@ -1538,13 +1458,10 @@ describe('generic block refinement', () => {
       placement: 'direct-choice',
       read: (model: ChoiceParentModel) => Option.some(model.choice),
       write: (model, choice) => ({ ...model, choice }),
-      toParentMessage: message =>
-        ChoiceParentMessage.GotChoiceMessage({ message }),
-      fromParentMessage: {
-        parentMessage: ChoiceParentMessage.GotChoiceMessage,
-        args: (_model, { message }) => Option.some([message]),
-      },
       outMessage: directChoicePolicy,
+    })
+    const DirectComposition = ChoiceParent.makeComposition({
+      bindings: [DirectBinding],
     })
     const Binding = ChoiceParent.bindChild(Choice, {
       placement: 'choice',
@@ -1553,7 +1470,6 @@ describe('generic block refinement', () => {
         ...model,
         choice,
       }),
-      parentMessage: ChoiceParentMessage.GotChoiceMessage,
       outMessage: {
         fold: (outMessage: ChoiceOutMessage) => (model: ChoiceParentModel) => ({
           model,
@@ -1561,30 +1477,25 @@ describe('generic block refinement', () => {
         }),
       },
     })
-    const foldChoice = ChoiceParent.makeComposition({
-      childBindings: [Binding],
-    }).makeUpdate()
+    const ChoiceComposition = ChoiceParent.makeComposition({
+      bindings: [Binding],
+    })
+    const foldChoice = ChoiceComposition.makeUpdate()
 
     const result = foldChoice(
       { choice: Choice.Model.make({ value: 'One' }) },
-      ChoiceParentMessage.GotChoiceMessage({
+      {
+        _tag: 'GotChoiceMessage',
+        placement: 'choice',
+        generation: 0,
         message: { _tag: 'SelectedValue', value: 'Two' },
-      }),
+      },
     )
 
     expect(result.outMessage).toEqual({ _tag: 'SelectedValue', value: 'Two' })
-    expectTypeOf<ReturnType<typeof DirectBinding.fold>>().toEqualTypeOf<
-      Update.ResultRecipe<
-        ChoiceParentModel,
-        typeof ChoiceParentMessage.Type,
-        never,
-        Scoped<'direct-choice', Command.HandlerOf<typeof FinishChoice>>,
-        | BindingRequirement<'direct-choice', typeof Choice>
-        | Update.DeferredResultEvidence<
-            DeferredBindingPolicy<'direct-choice', 'BindingChoice'>
-          >
-      >
-    >()
+    expectTypeOf<
+      CommandMessageOfReturn<ReturnType<typeof DirectBinding.fold>>
+    >().toEqualTypeOf<typeof DirectComposition.Message.Type>()
     expectTypeOf(result.outMessage).toEqualTypeOf<
       ChoiceOutMessage | undefined
     >()

@@ -10,55 +10,54 @@ import type { RenderInfo as PopoverRenderInfo } from '@foldkit/ui/popover'
 
 // Add one Popover Block field for each level:
 const Model = Schema.Struct({
-  accountPopover: Popover.Model,
-  accountDetailsPopover: Popover.Model,
+  accountPopover: Popover.PopoverBlock.Model,
+  accountDetailsPopover: Popover.PopoverBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
 
-// Embed each Popover Message in your parent Message:
-const Message = defineMessageUnion({
-  GotAccountPopoverMessage: { message: Popover.Message },
-  GotAccountDetailsPopoverMessage: { message: Popover.Message },
-})
+// This excerpt has no parent-owned facts. Each Binding derives distinct
+// generated Popover delivery.
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const foldPopoverOutMessage = Popover.OutMessage.match<
+const foldPopoverOutMessage = Popover.PopoverBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
-  Opened: () => model => ({ model }),
-  Closed: () => model => ({ model }),
+  Opened: () => AccountMenuDefinition.stepNoop(),
+  Closed: () => AccountMenuDefinition.stepNoop(),
 })
 
-const AccountMenuDefinition = Block.define('AccountMenu', {
+const AccountMenuDefinition = Block.makeDefinition('AccountMenu', {
   Model,
   Message,
 })
 
-const AccountPopoverBinding = AccountMenuDefinition.bindChild(Popover.block, {
-  field: 'accountPopover',
-  parentMessage: Message.GotAccountPopoverMessage,
-  init: {
-    startupToArgs: () =>
-      Tuple.make({ id: 'account-popover', contentFocus: true }),
+const AccountPopoverBinding = AccountMenuDefinition.bindChild(
+  Popover.PopoverBlock,
+  {
+    field: 'accountPopover',
+    init: {
+      contextToArgs: () =>
+        Tuple.make({ id: 'account-popover', contentFocus: true }),
+    },
+    outMessage: { fold: foldPopoverOutMessage },
   },
-  outMessage: { fold: foldPopoverOutMessage },
-})
+)
 
 const AccountDetailsPopoverBinding = AccountMenuDefinition.bindChild(
-  Popover.block,
+  Popover.PopoverBlock,
   {
     field: 'accountDetailsPopover',
-    parentMessage: Message.GotAccountDetailsPopoverMessage,
     init: {
-      startupToArgs: () => Tuple.make({ id: 'account-details-popover' }),
+      contextToArgs: () => Tuple.make({ id: 'account-details-popover' }),
     },
     outMessage: { fold: foldPopoverOutMessage },
   },
 )
 
 const AccountMenuComposition = AccountMenuDefinition.makeComposition({
-  childBindings: [AccountPopoverBinding, AccountDetailsPopoverBinding],
+  bindings: [AccountPopoverBinding, AccountDetailsPopoverBinding],
 })
 
 // The parent uses contentFocus so focus can move into its nested trigger

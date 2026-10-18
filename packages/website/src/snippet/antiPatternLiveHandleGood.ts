@@ -6,7 +6,7 @@ import { Block } from 'foldkit'
 import { Message } from './message'
 import { Model } from './model'
 
-const ChatDefinition = Block.define('Chat', { Model, Message })
+const ChatDefinition = Block.makeDefinition('Chat', { Model, Message })
 const ChatSocket = ChatDefinition.resource<WebSocket>()('ChatSocket')
 
 const RoomRequirements = Schema.Struct({ roomId: Schema.String })

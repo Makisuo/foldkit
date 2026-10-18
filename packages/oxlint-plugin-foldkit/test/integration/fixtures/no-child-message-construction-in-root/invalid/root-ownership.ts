@@ -11,14 +11,14 @@ type RootHtmlBuilder = Parameters<
 const childViewHelper = (h: RootHtmlBuilder) =>
   h.button([h.OnClick(Child.Message.ClickedFromRootViewHelper())])
 
-export const page = RootApplicationComposition.makeApplication({
+export const page = RootApplicationComposition.assembleApplication({
   routing: {
     onUrlRequest: () => RootApplicationComposition.Message.ClickedOwnLink(),
     onUrlChange: () => Child.Message.ClickedFromRootCompletion(),
   },
 })
 
-export const element = RootApplicationComposition.makeElement({
+export const element = RootApplicationComposition.assembleElement({
   view: (_model, h) =>
     h.div(
       [h.OnClick(Child.Message.ClickedFromElementCompletion())],

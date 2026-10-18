@@ -31,7 +31,7 @@ import {
   keyToIndex,
 } from '../keyboard.js'
 import { resolveTypeaheadMatch } from '../typeahead.js'
-import { MenuDefinition as SharedMenu } from './definition.js'
+import { MenuNamespace } from './definition.js'
 
 // MODEL
 
@@ -51,7 +51,7 @@ export const Model = Schema.Struct({
   isOpen: Schema.Boolean,
   isAnimated: Schema.Boolean,
   isModal: Schema.Boolean,
-  animation: Animation.Model,
+  animation: Animation.AnimationBlock.Model,
   maybeActiveItemIndex: Schema.Option(Schema.Number),
   activationTrigger: ActivationTrigger,
   searchQuery: Schema.String,
@@ -102,7 +102,6 @@ export const Message = defineMessageUnion({
   CompletedAnchorMenu: {},
   CompletedPortalMenuBackdrop: {},
   CompletedDetectMenuMovementOrAnimationEnd: { generation: Schema.Number },
-  GotAnimationMessage: { message: Animation.Message },
   PressedPointerOnButton: {
     pointerType: Schema.String,
     button: Schema.Number,
@@ -128,6 +127,7 @@ export type RequestedSelectItem = typeof Message.RequestedSelectItem.Type
  *  them through the Menu connection's OutMessage fold. */
 export const OutMessage = defineMessageUnion({
   Selected: { value: Schema.String, index: Schema.Number },
+  Closed: {},
 })
 
 /** The OutMessage union interface on a completed Menu, refined to its Item
@@ -151,8 +151,11 @@ export type Selected<Value extends string = string> = Readonly<{
 
 /** Generic over `Value extends string` so consumers using the typed
  *  `Menu.create<MyUnion>()` factory receive `value: MyUnion` in the
- *  `Selected` OutMessage. Defaults to `string`. */
-export type OutMessage<Value extends string = string> = Selected<Value>
+ *  `Selected` OutMessage. `Closed` reports a non-selection transition from
+ *  open to closed. Defaults to `string`. */
+export type OutMessage<Value extends string = string> =
+  | Selected<Value>
+  | typeof OutMessage.Closed.Type
 
 export type Opened = typeof Message.Opened.Type
 export type Closed = typeof Message.Closed.Type
@@ -170,7 +173,7 @@ export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
 export type ReleasedPointerOnItems = typeof Message.ReleasedPointerOnItems.Type
 
-const MenuDefinition = SharedMenu.define({
+const MenuDefinition = MenuNamespace.makeDefinition({
   Model,
   Message,
   OutMessage,
@@ -190,13 +193,12 @@ export type InitConfig = Readonly<{
   isModal?: boolean
 }>
 
-/** Creates an initial menu model from a config. Defaults to closed with no active item. */
-export const init = (config: InitConfig): Model => ({
+const makeInitialModel = (config: InitConfig): Model => ({
   id: config.id,
   isOpen: false,
   isAnimated: config.isAnimated ?? false,
   isModal: config.isModal ?? false,
-  animation: Animation.init({ id: `${config.id}-items` }),
+  animation: Animation.AnimationBlock.init({ id: `${config.id}-items` }).model,
   maybeActiveItemIndex: Option.none(),
   activationTrigger: 'Keyboard',
   searchQuery: '',
@@ -231,7 +233,7 @@ const itemSelector = (id: string, index: number): string =>
   idSelector(`${id}-item-${index}`)
 
 /** Prevents page scrolling while the menu is open. */
-export const LockMenuScroll = SharedMenu.command('LockMenuScroll', {
+export const LockMenuScroll = MenuNamespace.command('LockMenuScroll', {
   messages: [Message.CompletedLockMenuScroll],
   handler: function* () {
     return () =>
@@ -239,7 +241,7 @@ export const LockMenuScroll = SharedMenu.command('LockMenuScroll', {
   },
 })
 /** Re-enables page scrolling after the menu closes. */
-export const UnlockMenuScroll = SharedMenu.command('UnlockMenuScroll', {
+export const UnlockMenuScroll = MenuNamespace.command('UnlockMenuScroll', {
   messages: [Message.CompletedUnlockMenuScroll],
   handler: function* () {
     return () =>
@@ -247,7 +249,7 @@ export const UnlockMenuScroll = SharedMenu.command('UnlockMenuScroll', {
   },
 })
 /** Marks all elements outside the menu as inert for modal behavior. */
-export const InertMenuOthers = SharedMenu.command('InertMenuOthers', {
+export const InertMenuOthers = MenuNamespace.command('InertMenuOthers', {
   args: { id: Schema.String },
   messages: [Message.CompletedInertMenuOthers],
   handler: function* () {
@@ -258,7 +260,7 @@ export const InertMenuOthers = SharedMenu.command('InertMenuOthers', {
   },
 })
 /** Removes the inert attribute from elements outside the Menu. */
-export const RestoreMenuInert = SharedMenu.command('RestoreMenuInert', {
+export const RestoreMenuInert = MenuNamespace.command('RestoreMenuInert', {
   args: { id: Schema.String },
   messages: [Message.CompletedRestoreMenuInert],
   handler: function* () {
@@ -267,7 +269,7 @@ export const RestoreMenuInert = SharedMenu.command('RestoreMenuInert', {
   },
 })
 /** Moves focus to the menu items container after opening. */
-export const FocusMenuItems = SharedMenu.command('FocusMenuItems', {
+export const FocusMenuItems = MenuNamespace.command('FocusMenuItems', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusMenuItems],
   handler: function* () {
@@ -279,7 +281,7 @@ export const FocusMenuItems = SharedMenu.command('FocusMenuItems', {
   },
 })
 /** Moves focus back to the menu button after closing. */
-export const FocusMenuButton = SharedMenu.command('FocusMenuButton', {
+export const FocusMenuButton = MenuNamespace.command('FocusMenuButton', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusMenuButton],
   handler: function* () {
@@ -291,7 +293,7 @@ export const FocusMenuButton = SharedMenu.command('FocusMenuButton', {
   },
 })
 /** Scrolls the active menu item into view after keyboard navigation. */
-export const ScrollMenuItemIntoView = SharedMenu.command(
+export const ScrollMenuItemIntoView = MenuNamespace.command(
   'ScrollMenuItemIntoView',
   {
     args: { id: Schema.String, index: Schema.Number },
@@ -306,7 +308,7 @@ export const ScrollMenuItemIntoView = SharedMenu.command(
   },
 )
 /** Programmatically clicks the active menu item's DOM element. */
-export const ClickMenuItem = SharedMenu.command('ClickMenuItem', {
+export const ClickMenuItem = MenuNamespace.command('ClickMenuItem', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedClickMenuItem],
   handler: function* () {
@@ -318,18 +320,21 @@ export const ClickMenuItem = SharedMenu.command('ClickMenuItem', {
   },
 })
 /** Waits for the typeahead search debounce period before clearing the query. */
-export const DelayClearMenuSearch = SharedMenu.command('DelayClearMenuSearch', {
-  args: { version: Schema.Number },
-  messages: [Message.CompletedDelayClearMenuSearch],
-  handler: function* () {
-    return ({ version }) =>
-      Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
-        Effect.as(Message.CompletedDelayClearMenuSearch({ version })),
-      )
+export const DelayClearMenuSearch = MenuNamespace.command(
+  'DelayClearMenuSearch',
+  {
+    args: { version: Schema.Number },
+    messages: [Message.CompletedDelayClearMenuSearch],
+    handler: function* () {
+      return ({ version }) =>
+        Effect.sleep(SEARCH_DEBOUNCE_MILLISECONDS).pipe(
+          Effect.as(Message.CompletedDelayClearMenuSearch({ version })),
+        )
+    },
   },
-})
+)
 /** Detects whether the menu button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation block that leave is complete. */
-export const DetectMenuMovementOrAnimationEnd = SharedMenu.command(
+export const DetectMenuMovementOrAnimationEnd = MenuNamespace.command(
   'DetectMenuMovementOrAnimationEnd',
   {
     args: { id: Schema.String, generation: Schema.Number },
@@ -363,25 +368,21 @@ type AnimationOutMessageStep = ReturnType<
 >
 
 const foldAnimationOutMessage =
-  Animation.OutMessage.match<AnimationOutMessageStep>({
+  Animation.AnimationBlock.OutMessage.match<AnimationOutMessageStep>({
     StartedLeaveAnimating: ({ generation }) =>
       detectMenuMovementOrAnimationEnd(generation),
-    TransitionedOut: () => MenuDefinition.step(model => ({ model })),
+    TransitionedOut: () => MenuDefinition.stepNoop(),
   })
 
-const AnimationBinding = MenuDefinition.bindChild(Animation.block, {
+const AnimationBinding = MenuDefinition.bindChild(Animation.AnimationBlock, {
   field: 'animation',
-  parentMessage: Message.GotAnimationMessage,
   init: false,
   outMessage: { fold: foldAnimationOutMessage },
 })
 
 const internalUpdate =
   (animationBinding: typeof AnimationBinding) =>
-  (
-    model: Model,
-    message: Exclude<Message, typeof Message.GotAnimationMessage.Type>,
-  ) => {
+  (model: Model, message: Message) => {
     const modalOpenCommands = Array.filter(
       [LockMenuScroll(), InertMenuOthers({ id: model.id })],
       () => model.isModal,
@@ -429,6 +430,7 @@ const internalUpdate =
       }
 
       const closed = closedModel(baseModel)
+      const closeOutMessage = outMessage ?? OutMessage.Closed()
 
       if (model.isAnimated) {
         return MenuDefinition.step(() =>
@@ -437,12 +439,12 @@ const internalUpdate =
               () => ({ model: closed, commands }),
               animationBinding.requestHide(),
             ]),
-            Update.withOutMessage(outMessage),
+            Update.withOutMessage(closeOutMessage),
           ),
         )
       }
 
-      return Update.withOutMessage({ model: closed, commands }, outMessage)
+      return Update.withOutMessage({ model: closed, commands }, closeOutMessage)
     }
 
     const openWithActiveItem = (maybeActiveItemIndex: Option.Option<number>) =>
@@ -595,13 +597,22 @@ const internalUpdate =
           })
 
           if (model.isAnimated) {
-            return Update.combine([
-              () => ({ model: closed, commands: closeWithFocusCommands }),
-              animationBinding.requestHide(),
-            ])
+            return MenuDefinition.step(() =>
+              Function.compose(
+                Update.combine([
+                  () => ({ model: closed, commands: closeWithFocusCommands }),
+                  animationBinding.requestHide(),
+                ]),
+                Update.withOutMessage(OutMessage.Closed()),
+              ),
+            )
           }
 
-          return { model: closed, commands: closeWithFocusCommands }
+          return {
+            model: closed,
+            commands: closeWithFocusCommands,
+            outMessage: OutMessage.Closed(),
+          }
         }
 
         return openMenu(
@@ -682,7 +693,7 @@ const internalUpdate =
  *  Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu())`.
  */
-export const AnchorMenu = SharedMenu.mount('AnchorMenu', {
+export const AnchorMenu = MenuNamespace.mount('AnchorMenu', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorMenu],
   handler: function* () {
@@ -706,7 +717,7 @@ export const AnchorMenu = SharedMenu.mount('AnchorMenu', {
 /** The backdrop-portaling Mount this Menu renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalMenuBackdrop, Message.CompletedPortalMenuBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalMenuBackdrop = SharedMenu.mount('PortalMenuBackdrop', {
+export const PortalMenuBackdrop = MenuNamespace.mount('PortalMenuBackdrop', {
   messages: [Message.CompletedPortalMenuBackdrop],
   handler: function* () {
     return ({ element }) =>
@@ -727,8 +738,12 @@ type MountRequirements = Mount.RequirementsOf<typeof mounts>
 
 const MenuComposition = MenuDefinition.makeComposition({
   mounts,
-  childBindings: [AnimationBinding],
+  bindings: [AnimationBinding],
 })
+/** Creates an initial menu Model and Commands from a config. Defaults to closed with no active item. */
+export const init = MenuComposition.makeInit((config: InitConfig) => ({
+  model: makeInitialModel(config),
+}))
 type MenuViewBuilder = Block.ViewBuilderFor<typeof MenuComposition>
 const defaultUpdate = internalUpdate(AnimationBinding)
 const authoredUpdate = MenuDefinition.step(
@@ -773,9 +788,11 @@ export type GroupHeading = Readonly<{
 
 /** Per-render view inputs passed to the Menu connection's `embedView` method.
  *
- *  The Menu emits an `OutMessage.Selected({ value, index })` OutMessage on commit.
- *  The menu has already closed by the time this fires. Handle it in the
- *  Menu connection's OutMessage fold. */
+ *  The Menu emits `OutMessage.Selected({ value, index })` on commit and
+ *  `OutMessage.Closed()` when an open Menu closes without selection. `Closed`
+ *  is emitted by the update that closes the Menu, before any animation or
+ *  cleanup Commands complete. Handle each variant in the Menu connection's
+ *  OutMessage fold. */
 export type ViewInputs<Item extends string> = Readonly<{
   items: ReadonlyArray<Item>
   itemToConfig: (
@@ -1300,10 +1317,8 @@ type RefineOutMessage<Return, OutMessage> =
         : never
 
 /** Complete default Menu Block definition. */
-export const block = MenuComposition.makeBlock({
-  init: MenuComposition.makeInit((config: InitConfig) => ({
-    model: init(config),
-  })),
+export const block = MenuComposition.assembleBlock({
+  init,
   update,
   view,
   operations,
@@ -1323,17 +1338,19 @@ const makeBlockParts = <Item extends string>() => {
   const RefinedOutMessage =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     OutMessage as unknown as OutMessageSchema<Item>
-  const MenuDefinition = SharedMenu.define({
+  const MenuDefinition = MenuNamespace.makeDefinition({
     Model,
     Message,
     OutMessage: RefinedOutMessage,
   })
-  const ItemAnimationBinding = MenuDefinition.bindChild(Animation.block, {
-    field: 'animation',
-    parentMessage: Message.GotAnimationMessage,
-    init: false,
-    outMessage: { fold: foldAnimationOutMessage },
-  })
+  const ItemAnimationBinding = MenuDefinition.bindChild(
+    Animation.AnimationBlock,
+    {
+      field: 'animation',
+      init: false,
+      outMessage: { fold: foldAnimationOutMessage },
+    },
+  )
   const itemUpdate = internalUpdate(ItemAnimationBinding)
   type GenericReturn = RefineOutMessage<
     ReturnType<typeof itemUpdate>,
@@ -1345,8 +1362,11 @@ const makeBlockParts = <Item extends string>() => {
     result as unknown as GenericReturn
   const MenuComposition = MenuDefinition.makeComposition({
     mounts,
-    childBindings: [ItemAnimationBinding],
+    bindings: [ItemAnimationBinding],
   })
+  const init = MenuComposition.makeInit((config: InitConfig) => ({
+    model: makeInitialModel(config),
+  }))
   const authoredUpdate = MenuDefinition.step(
     (model, message: Parameters<typeof itemUpdate>[1]) =>
       castReturn(itemUpdate(model, message)),
@@ -1371,9 +1391,7 @@ const makeBlockParts = <Item extends string>() => {
   return {
     composition: MenuComposition,
     implementation: {
-      init: MenuComposition.makeInit((config: InitConfig) => ({
-        model: init(config),
-      })),
+      init,
       update: refinedUpdate,
       view,
       operations: { requestOpen, requestClose, requestSelectItem },
@@ -1395,7 +1413,7 @@ export interface Completed<
 const makeBlock = <Item extends string>(): Completed<Item> => {
   const { composition, implementation } = makeBlockParts<Item>()
 
-  return composition.makeBlock(implementation)
+  return composition.assembleBlock(implementation)
 }
 
 /**

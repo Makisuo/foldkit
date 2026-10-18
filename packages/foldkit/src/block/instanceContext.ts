@@ -122,7 +122,7 @@ export const enterHistoricalInstanceTree = (
 type AnyDispatch = (message: any, isCurrent?: () => boolean) => void
 const guardedDispatches = new WeakMap<
   ActiveInstance,
-  Map<AnyDispatch, AnyDispatch>
+  WeakMap<AnyDispatch, AnyDispatch>
 >()
 
 /** @internal Keeps stale view dispatches out of both immediate and buffered updates. */
@@ -136,7 +136,7 @@ export const guardInstanceDispatch = <Message>(
   }
   const { node } = cursor
   const dispatches =
-    guardedDispatches.get(node) ?? new Map<AnyDispatch, AnyDispatch>()
+    guardedDispatches.get(node) ?? new WeakMap<AnyDispatch, AnyDispatch>()
   const existing = dispatches.get(dispatch)
   if (existing !== undefined) {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */

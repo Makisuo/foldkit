@@ -22,7 +22,7 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-export const SettingsDefinition = Block.define('Settings', {
+export const SettingsDefinition = Block.makeDefinition('Settings', {
   Model,
   Message,
   OutMessage,

@@ -32,7 +32,7 @@ export const update = SettingsComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const block = SettingsComposition.makeBlock({
+export const block = SettingsComposition.assembleBlock({
   init,
   update,
   operations: { requestRestore },

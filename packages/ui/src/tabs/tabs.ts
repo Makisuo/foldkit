@@ -17,7 +17,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { idSelector } from '../internal/selectors.js'
 import { keyToIndex } from '../keyboard.js'
-import { TabsDefinition as SharedTabs } from './definition.js'
+import { TabsNamespace } from './definition.js'
 
 export { wrapIndex, findFirstEnabledIndex, keyToIndex } from '../keyboard.js'
 
@@ -104,10 +104,7 @@ export type InitConfig = Readonly<{
   activationMode?: ActivationMode
 }>
 
-/** Creates an initial tabs model from a config. Focus follows the selected
- *  tab until the user navigates in `Manual` mode, so `maybeFocusedIndex`
- *  starts `None`. Defaults to automatic activation. */
-export const init = (config: InitConfig): Model => ({
+const makeInitialModel = (config: InitConfig): Model => ({
   id: config.id,
   maybeFocusedIndex: Option.none(),
   activationMode: config.activationMode ?? 'Automatic',
@@ -119,13 +116,20 @@ const tabId = (id: string, index: number): string => `${id}-tab-${index}`
 
 const tabPanelId = (id: string, index: number): string => `${id}-panel-${index}`
 
-const TabsDefinition = SharedTabs.define({
+const TabsDefinition = TabsNamespace.makeDefinition({
   Model,
   Message,
   OutMessage,
 })
 
 const TabsComposition = TabsDefinition.makeComposition()
+
+/** Creates an initial Tabs Model and Commands from a config. Focus follows the selected
+ *  tab until the user navigates in `Manual` mode, so `maybeFocusedIndex`
+ *  starts `None`. Defaults to automatic activation. */
+export const init = TabsComposition.makeInit((config: InitConfig) => ({
+  model: makeInitialModel(config),
+}))
 
 /** Moves focus to the tab at the given index. */
 export const FocusTab = TabsDefinition.command('FocusTab', {
@@ -384,10 +388,8 @@ const internalView = TabsComposition.makeView.withInputs<ViewInputs>(
 )
 
 /** Complete Tabs Block definition. */
-export const block = TabsComposition.makeBlock({
-  init: TabsComposition.makeInit((config: InitConfig) => ({
-    model: init(config),
-  })),
+export const block = TabsComposition.assembleBlock({
+  init,
   update,
   view: internalView,
   EffectsLayer,
@@ -407,11 +409,14 @@ const makeBlockParts = <Value extends string>() => {
   const RefinedOutMessage =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     OutMessage as unknown as OutMessageSchema<Value>
-  const TabsDefinition = SharedTabs.define({
+  const TabsComposition = TabsNamespace.makeDefinition({
     Model,
     Message,
     OutMessage: RefinedOutMessage,
-  })
+  }).makeComposition()
+  const init = TabsComposition.makeInit((config: InitConfig) => ({
+    model: makeInitialModel(config),
+  }))
   const refinedView =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     internalView as unknown as (
@@ -419,7 +424,6 @@ const makeBlockParts = <Value extends string>() => {
       viewInputs: ViewInputs<Value>,
       h: Parameters<typeof internalView>[2],
     ) => Html
-  const TabsComposition = TabsDefinition.makeComposition()
   const refinedUpdate = TabsComposition.makeUpdate((model, message) =>
     castReturn(update(model, message)),
   )
@@ -429,9 +433,7 @@ const makeBlockParts = <Value extends string>() => {
   return {
     composition: TabsComposition,
     implementation: {
-      init: TabsComposition.makeInit((config: InitConfig) => ({
-        model: init(config),
-      })),
+      init,
       update: refinedUpdate,
       view,
       EffectsLayer,
@@ -452,7 +454,7 @@ export interface Completed<
 const makeBlock = <Value extends string>(): Completed<Value> => {
   const { composition, implementation } = makeBlockParts<Value>()
 
-  return composition.makeBlock(implementation)
+  return composition.assembleBlock(implementation)
 }
 
 /**

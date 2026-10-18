@@ -1,5 +1,5 @@
 import { Match, Option, Schema } from 'effect'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import { Machine } from 'foldkit/experimental'
 import { modifyFields } from 'foldkit/struct'
 
@@ -10,9 +10,10 @@ export const Model = Schema.Struct({
   isHelpOpen: Schema.Boolean,
 })
 export type Model = typeof Model.Type
-
-const ApplicationDefinition = defineApplication({ Model, Message })
-const ApplicationComposition = ApplicationDefinition.makeComposition()
+const ApplicationComposition = makeApplicationDefinition({
+  Model,
+  Message,
+}).makeComposition()
 
 export const initialModel = Model.make({
   checkout: checkoutMachine.initial,

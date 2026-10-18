@@ -6,12 +6,11 @@ import type * as Command from 'foldkit/command'
 import * as Dom from 'foldkit/dom'
 
 import { Animation } from '@foldkit/ui'
-import type {
-  Message as AnimationMessage,
-  OutMessage as AnimationOutMessage,
-} from '@foldkit/ui/animation'
 
-const AnimationExampleDefinition = Block.define('AnimationExample', {
+type AnimationMessage = typeof Animation.AnimationBlock.Message.Type
+type AnimationOutMessage = typeof Animation.AnimationBlock.OutMessage.Type
+
+const AnimationExampleDefinition = Block.makeDefinition('AnimationExample', {
   Model,
   Message,
 })
@@ -25,11 +24,13 @@ const WaitForPanelSettled = AnimationExampleDefinition.command(
   'WaitForPanelSettled',
   {
     args: { generation: Schema.Number },
-    messages: [Animation.Message.EndedAnimation],
+    messages: [Animation.AnimationBlock.Message.EndedAnimation],
     handler: function* () {
       return ({ generation }) =>
         Dom.waitForAnimationSettled('#drawer-panel').pipe(
-          Effect.as(Animation.Message.EndedAnimation({ generation })),
+          Effect.as(
+            Animation.AnimationBlock.Message.EndedAnimation({ generation }),
+          ),
         )
     },
   },
@@ -40,7 +41,7 @@ const foldAnimationOutMessage = (
   outMessage: AnimationOutMessage,
   { liftCommand }: Update.FoldContext<AnimationMessage, Message>,
 ) =>
-  Animation.OutMessage.match<
+  Animation.AnimationBlock.OutMessage.match<
     Update.Step<Model, Message, Command.HandlerOf<typeof WaitForPanelSettled>>
   >(outMessage, {
     StartedLeaveAnimating: ({ generation }) =>
@@ -48,5 +49,5 @@ const foldAnimationOutMessage = (
         model,
         commands: [liftCommand(WaitForPanelSettled({ generation }))],
       })),
-    TransitionedOut: () => model => ({ model }),
+    TransitionedOut: () => AnimationExampleDefinition.stepNoop(),
   })

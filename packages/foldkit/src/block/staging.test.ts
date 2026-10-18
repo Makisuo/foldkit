@@ -3,7 +3,7 @@ import { expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
-import { define } from './define.js'
+import { makeDefinition, makeNamespace } from './define.js'
 
 class ObserveDependency extends Context.Service<ObserveDependency, object>()(
   'BlockStaging/ObserveDependency',
@@ -12,7 +12,7 @@ class ObserveDependency extends Context.Service<ObserveDependency, object>()(
 const unavailable: Effect.Effect<void, 'ObserveUnavailable'> =
   Effect.fail('ObserveUnavailable')
 
-const ChildOwner = define('StagedChild')
+const ChildNamespace = makeNamespace('StagedChild')
 const ChildModel = Schema.Struct({ value: Schema.String })
 type ChildModel = typeof ChildModel.Type
 const ChildMessage = defineMessageUnion({
@@ -21,7 +21,7 @@ const ChildMessage = defineMessageUnion({
 })
 type ChildMessage = typeof ChildMessage.Type
 
-const Observe = ChildOwner.mount('Observe', {
+const Observe = ChildNamespace.mount('Observe', {
   messages: [ChildMessage.CompletedObserve],
   handler: function* () {
     yield* ObserveDependency
@@ -31,11 +31,11 @@ const Observe = ChildOwner.mount('Observe', {
   },
 })
 
-const Measure = ChildOwner.mount('Measure', {
+const Measure = ChildNamespace.mount('Measure', {
   messages: [ChildMessage.CompletedMeasure],
 })
 
-const ChildBaseDefinition = ChildOwner.define({
+const ChildBaseDefinition = ChildNamespace.makeDefinition({
   Model: ChildModel,
   Message: ChildMessage,
 })
@@ -57,7 +57,7 @@ const defaultView = observeComposition.makeView.withInputs<
   h.div([h.OnMount(Observe())], [`${label}: ${model.value}`]),
 )
 
-const Child = observeComposition.makeBlock({
+const Child = observeComposition.assembleBlock({
   init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
   update: observeComposition.makeUpdate(model => ({ model })),
   view: defaultView,
@@ -66,24 +66,18 @@ const Child = observeComposition.makeBlock({
 
 const ParentModel = Schema.Struct({ child: ChildModel })
 type ParentModel = typeof ParentModel.Type
-const ParentMessage = defineMessageUnion({
-  GotChildMessage: { message: ChildMessage },
-})
-type ParentMessage = typeof ParentMessage.Type
-const Parent = define('StagedParent', {
+const Parent = makeDefinition('StagedParent', {
   Model: ParentModel,
-  Message: ParentMessage,
+  Message: Schema.Never,
 })
 
 const DirectChildBinding = Parent.bindChild(Child, {
   field: 'child',
-  parentMessage: ParentMessage.GotChildMessage,
 })
 
 const ExplicitChildBinding = Parent.bindChild(Child, {
   read: model => Option.some(model.child),
   write: (_model, child) => ParentModel.make({ child }),
-  parentMessage: ParentMessage.GotChildMessage,
 })
 
 const alternateView = Child.makeView.withInputs<Readonly<{ prefix: string }>>(
@@ -117,7 +111,7 @@ if (false) {
     ]),
   )
 
-  graphlessComposition.makeBlock({
+  graphlessComposition.assembleBlock({
     init: Child.init,
     update: Child.update,
     // @ts-expect-error A graphless Composition cannot complete a Mount-capable view.
@@ -148,26 +142,18 @@ if (false) {
   })
 
   const ForeignModel = Schema.Struct({ unrelated: Schema.String })
-  const ForeignModelBaseDefinition = define('StagedForeignModelParent').define({
-    Model: ForeignModel,
-    Message: ParentMessage,
-  })
-  // @ts-expect-error A child Binding must use the Composition's parent Model.
-  ForeignModelBaseDefinition.makeComposition({
-    childBindings: [DirectChildBinding],
-  })
 
-  const ForeignMessage = defineMessageUnion({ ReceivedForeign: {} })
-  const ForeignMessageBaseDefinition = define(
-    'StagedForeignMessageParent',
-  ).define({
-    Model: ParentModel,
-    Message: ForeignMessage,
-  })
-  // @ts-expect-error A child Binding must use the Composition's parent Message.
-  ForeignMessageBaseDefinition.makeComposition({
-    childBindings: [DirectChildBinding],
-  })
+  makeNamespace('StagedForeignModelParent')
+    .makeDefinition({
+      Model: ForeignModel,
+      Message: Schema.Never,
+    })
+    .makeComposition(
+      // @ts-expect-error A child Binding must use the Composition's parent Model.
+      {
+        bindings: [DirectChildBinding],
+      },
+    )
 }
 
 it('creates independent immutable graphs from one typed Base', () => {
@@ -199,18 +185,26 @@ it('preserves completed view capabilities and default ViewInputs', () => {
 
 it('matches required-field and explicit Binding behavior', () => {
   const DirectComposition = Parent.makeComposition({
-    childBindings: [DirectChildBinding],
+    bindings: [DirectChildBinding],
   })
   const ExplicitComposition = Parent.makeComposition({
-    childBindings: [ExplicitChildBinding],
+    bindings: [ExplicitChildBinding],
   })
   const updateDirect = DirectComposition.makeUpdate()
   const updateExplicit = ExplicitComposition.makeUpdate()
-  const message = ParentMessage.GotChildMessage({
-    message: ChildMessage.CompletedObserve(),
+  const childMessage = ChildMessage.CompletedObserve()
+  const directUpdate = updateDirect(initialParent, {
+    _tag: 'GotChildMessage',
+    placement: 'child',
+    generation: 0,
+    message: childMessage,
   })
-  const directUpdate = updateDirect(initialParent, message)
-  const explicitUpdate = updateExplicit(initialParent, message)
+  const explicitUpdate = updateExplicit(initialParent, {
+    _tag: 'GotStagedChildMessage',
+    placement: 'StagedChild',
+    generation: 0,
+    message: childMessage,
+  })
 
   expect(directUpdate.model).toEqual(explicitUpdate.model)
 })

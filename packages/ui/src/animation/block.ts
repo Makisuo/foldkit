@@ -1,20 +1,15 @@
-import { Match, Tuple } from 'effect'
+import { Layer, Match, Tuple } from 'effect'
 import type { ChildAttribute, Html, TagName } from 'foldkit/html'
+import type * as Update from 'foldkit/update'
 
-import {
-  type InitConfig,
-  Message,
-  Model,
-  OutMessage,
-  TransitionState,
-  init,
-} from './schema.js'
+import { Message, Model, OutMessage, TransitionState } from './schema.js'
 import {
   AnimationComposition,
   EffectsLayer,
   WaitForAnimationSettled,
   WaitForPaint,
   defaultLeaveCommand,
+  init,
   update,
 } from './update.js'
 
@@ -150,11 +145,17 @@ export const view = AnimationComposition.makeView.withInputs<ViewInputs>(
 )
 
 /** Complete Animation Block definition for connecting to a parent. */
-export const block = AnimationComposition.makeBlock({
-  init: AnimationComposition.makeInit((config: InitConfig) => ({
-    model: init(config),
-  })),
-  update,
+export const AnimationBlock = AnimationComposition.assembleBlock({
+  init,
+  update: (
+    model: Model,
+    message: Message,
+  ): Update.ReturnWithOutMessage<
+    Model,
+    Message,
+    OutMessage,
+    Layer.Success<typeof EffectsLayer>
+  > => update(model, message),
   view,
   operations: {
     requestShow: Message.RequestedShow,
@@ -163,21 +164,22 @@ export const block = AnimationComposition.makeBlock({
       Tuple.make(Message.RequestedFinish({ generation })),
     requestToggle: Message.RequestedToggle,
     requestResume: Message.RequestedResume,
+    requestImmediateReset: Message.RequestedImmediateReset,
   },
   EffectsLayer,
 })
 
 /** Programmatically starts the enter lifecycle through Animation update. */
-export const show = block.operations.requestShow
+export const show = AnimationBlock.operations.requestShow
 
 /** Programmatically starts the leave lifecycle through Animation update. */
-export const hide = block.operations.requestHide
+export const hide = AnimationBlock.operations.requestHide
 
 /** Completes the current transition generation through Animation update. */
-export const finish = block.operations.requestFinish
+export const finish = AnimationBlock.operations.requestFinish
 
 /** Toggles between the shown and hidden states through Animation update. */
-export const toggle = block.operations.requestToggle
+export const toggle = AnimationBlock.operations.requestToggle
 
 /** Resumes the pending transition lifecycle through Animation update. */
-export const resume = block.operations.requestResume
+export const resume = AnimationBlock.operations.requestResume

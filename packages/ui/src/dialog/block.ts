@@ -18,7 +18,7 @@ export const Model = Schema.Struct({
   id: Schema.String,
   isOpen: Schema.Boolean,
   isAnimated: Schema.Boolean,
-  animation: Animation.Model,
+  animation: Animation.AnimationBlock.Model,
   maybeFocusSelector: Schema.Option(Schema.String),
 })
 
@@ -37,7 +37,6 @@ export const Message = defineMessageUnion({
   CompletedCloseDialog: {},
   Unmounted: {},
   CompletedReleaseDialogResources: {},
-  GotAnimationMessage: { message: Animation.Message },
 })
 
 export type RequestedOpen = typeof Message.RequestedOpen.Type
@@ -68,7 +67,11 @@ export type Closed = typeof OutMessage.Closed.Type
 export type CompletedClose = typeof OutMessage.CompletedClose.Type
 export type OutMessage = typeof OutMessage.Type
 
-const DialogDefinition = Block.define('Dialog', { Model, Message, OutMessage })
+const DialogDefinition = Block.makeDefinition('Dialog', {
+  Model,
+  Message,
+  OutMessage,
+})
 
 // INIT
 
@@ -92,14 +95,13 @@ export type InitConfig = Readonly<{
   focusSelector?: string
 }>
 
-/** Creates a closed dialog model from a config. */
-export const init = (config: InitConfig): Model => ({
+const makeInitialModel = (config: InitConfig): Model => ({
   id: config.id,
   isOpen: false,
   isAnimated: config.isAnimated ?? false,
-  animation: Animation.init({
+  animation: Animation.AnimationBlock.init({
     id: `${config.id}-panel`,
-  }),
+  }).model,
   maybeFocusSelector: Option.fromNullishOr(config.focusSelector),
 })
 
@@ -258,20 +260,11 @@ const isLeaving = (model: Model): boolean =>
 const isOpenOrAnimating = (model: Model): boolean =>
   model.isOpen || model.animation.transitionState !== 'Idle'
 
-const resetAnimationToClosed = (animation: Animation.Model): Animation.Model =>
-  modifyFields(animation, {
-    isShowing: () => false,
-    transitionState: () => 'Idle',
-  })
-
-const resetToClosed = (model: Model): Model =>
-  modifyFields(model, {
-    isOpen: () => false,
-    animation: resetAnimationToClosed,
-  })
+type AnimationMessage = typeof Animation.AnimationBlock.Message.Type
+type AnimationOutMessage = typeof Animation.AnimationBlock.OutMessage.Type
 
 const foldStartedLeaveAnimating = (
-  liftCommand: Update.FoldContext<Animation.Message, Message>['liftCommand'],
+  liftCommand: Update.FoldContext<AnimationMessage, Message>['liftCommand'],
 ) =>
   DialogDefinition.step(model => ({
     model,
@@ -288,27 +281,39 @@ type FoldAnimationStep =
   | typeof foldTransitionedOut
 
 const foldAnimationOutMessage = (
-  outMessage: Animation.OutMessage,
-  { liftCommand }: Update.FoldContext<Animation.Message, Message>,
+  outMessage: AnimationOutMessage,
+  { liftCommand }: Update.FoldContext<AnimationMessage, Message>,
 ): FoldAnimationStep =>
-  Animation.OutMessage.match<FoldAnimationStep>(outMessage, {
+  Animation.AnimationBlock.OutMessage.match<FoldAnimationStep>(outMessage, {
     StartedLeaveAnimating: () => foldStartedLeaveAnimating(liftCommand),
     TransitionedOut: () => foldTransitionedOut,
   })
 
-const AnimationBinding = DialogDefinition.bindChild(Animation.block, {
+const AnimationBinding = DialogDefinition.bindChild(Animation.AnimationBlock, {
   field: 'animation',
-  parentMessage: Message.GotAnimationMessage,
   init: false,
   outMessage: { fold: foldAnimationOutMessage },
 })
 
 const resumeAnimationAfterAcquisition = AnimationBinding.requestResume()
+const resetAnimationImmediately = AnimationBinding.requestImmediateReset()
+const closeDialogModel = DialogDefinition.stepFields(() => ({
+  isOpen: () => false,
+}))
+const resetToClosed = Update.combine([
+  closeDialogModel,
+  resetAnimationImmediately,
+])
 
 const DialogComposition = DialogDefinition.makeComposition({
   mounts,
-  childBindings: [AnimationBinding],
+  bindings: [AnimationBinding],
 })
+
+/** Creates a closed Dialog Model and its Commands from a config. */
+export const init = DialogComposition.makeInit((config: InitConfig) => ({
+  model: makeInitialModel(config),
+}))
 
 /** Processes a Dialog Message and returns the next Model and optional Commands. */
 export const update = DialogComposition.makeUpdate((model, message) =>
@@ -376,10 +381,13 @@ export const update = DialogComposition.makeUpdate((model, message) =>
 
     Unmounted: () => {
       if (isOpenOrAnimating(model)) {
-        return {
-          model: resetToClosed(model),
-          commands: [ReleaseDialogResources({ id: model.id })],
-        }
+        return Update.combine(model, [
+          resetToClosed,
+          stepModel => ({
+            model: stepModel,
+            commands: [ReleaseDialogResources({ id: stepModel.id })],
+          }),
+        ])
       } else {
         return { model }
       }
@@ -395,7 +403,7 @@ export const update = DialogComposition.makeUpdate((model, message) =>
 
     FailedShowDialog: () => {
       if (isOpenOrAnimating(model)) {
-        return { model: resetToClosed(model) }
+        return resetToClosed(model)
       } else {
         return { model }
       }
@@ -411,7 +419,7 @@ export const update = DialogComposition.makeUpdate((model, message) =>
 
     FailedAcquireResources: () => {
       if (isOpenOrAnimating(model)) {
-        return { model: resetToClosed(model) }
+        return resetToClosed(model)
       } else {
         return { model }
       }
@@ -621,9 +629,7 @@ export const view = DialogComposition.makeView.withInputs<ViewInputs>(
 )
 
 const implementation = {
-  init: DialogComposition.makeInit((config: InitConfig) => ({
-    model: init(config),
-  })),
+  init,
   update,
   view,
   operations: {
@@ -633,14 +639,8 @@ const implementation = {
   EffectsLayer,
 }
 
-/**
- * A completed Dialog Block with its exact child, Mount, Layer, OutMessage,
- * operation, and default view contracts.
- */
-export interface Completed extends Block.CompletedWithViewAndOutMessage<
+/** Complete Dialog Block definition. */
+export const DialogBlock: Block.CompletedWithViewAndOutMessage<
   typeof DialogComposition,
   typeof implementation
-> {}
-
-/** Complete Dialog Block definition. */
-export const block: Completed = DialogComposition.makeBlock(implementation)
+> = DialogComposition.assembleBlock(implementation)

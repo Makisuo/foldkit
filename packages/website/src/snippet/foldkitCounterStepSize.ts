@@ -20,7 +20,7 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const CounterDefinition = Block.define('Counter', { Model, Message })
+const CounterDefinition = Block.makeDefinition('Counter', { Model, Message })
 const CounterComposition = CounterDefinition.makeComposition()
 
 const subscriptions = CounterDefinition.subscriptions(entry => ({

@@ -6,9 +6,7 @@ import {
   parentUpdate,
 } from './strict-routing.accepted.js'
 
-const message = ParentMessage.GotChildMessage({
-  message: { _tag: 'ChangedCount', amount: 2 },
-})
+const message = ParentMessage.ClickedReset()
 const direct = parentUpdate(parentModel, message)
 const curried = parentUpdate(message)(parentModel)
 const raw = RawCompletionBlock.update(parentModel, message)

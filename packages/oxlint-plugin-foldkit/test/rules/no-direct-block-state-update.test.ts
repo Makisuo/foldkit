@@ -818,7 +818,6 @@ describe('completed Block bindings', () => {
       objectExpression([
         property('read', readSettings),
         property('write', writeSettings),
-        property('toParentMessage', Testing.arrowFn(Testing.id('message'))),
       ]),
     ],
   })
@@ -835,10 +834,6 @@ describe('completed Block bindings', () => {
       Testing.id('Settings'),
       objectExpression([
         property('field', { type: 'Literal', value: 'settings' }),
-        property(
-          'parentMessage',
-          Testing.memberExpr('Message', 'GotSettingsMessage'),
-        ),
       ]),
     ],
   })
@@ -857,7 +852,6 @@ describe('completed Block bindings', () => {
         objectExpression([
           property('field', Testing.strLiteral('entries')),
           property(keyPropertyName, Testing.strLiteral('id')),
-          property('toParentMessage', Testing.arrowFn(Testing.id('message'))),
         ]),
       ],
     })
@@ -876,7 +870,39 @@ describe('completed Block bindings', () => {
         property('field', Testing.strLiteral('entries')),
         property('key', Testing.strLiteral('id')),
         property('childField', Testing.strLiteral('counter')),
-        property('toParentMessage', Testing.arrowFn(Testing.id('message'))),
+      ]),
+    ],
+  })
+
+  const generalSettingsBinding = Testing.varDecl('const', 'keyedSettings', {
+    type: 'CallExpression',
+    callee: {
+      type: 'MemberExpression',
+      object: Testing.id('Application'),
+      property: Testing.id('bindChild'),
+      computed: false,
+    },
+    arguments: [
+      Testing.id('Settings'),
+      objectExpression([
+        property(
+          'readAll',
+          Testing.arrowFn(Testing.memberExpr('model', 'settings'), [
+            Testing.id('model'),
+          ]),
+        ),
+        property(
+          'key',
+          Testing.arrowFn(Testing.memberExpr('settings', 'id'), [
+            Testing.id('settings'),
+          ]),
+        ),
+        property('keySchema', Testing.memberExpr('Schema', 'String')),
+        property(
+          'read',
+          Testing.arrowFn(Testing.id('settings'), [Testing.id('settings')]),
+        ),
+        property('writeAt', writeSettingsAt),
       ]),
     ],
   })
@@ -900,6 +926,31 @@ describe('completed Block bindings', () => {
               ),
               [Testing.id('entry')],
             ),
+          ]),
+        ),
+      ]),
+    )
+
+  const applyChildTransform = (
+    field: string,
+    namespace: string,
+    helper: string,
+  ) =>
+    modifyFields(
+      'model',
+      objectExpression([
+        property(field, Testing.memberExpr(namespace, helper)),
+      ]),
+    )
+
+  const mapChildTransform = (namespace: string, helper: string) =>
+    modifyFields(
+      'model',
+      objectExpression([
+        property(
+          'entries',
+          Testing.callOfMember('Array', 'map', [
+            Testing.memberExpr(namespace, helper),
           ]),
         ),
       ]),
@@ -942,7 +993,7 @@ describe('completed Block bindings', () => {
   const applicationComposition = (
     name: string,
     definition: unknown,
-    childBindings: ReadonlyArray<unknown>,
+    bindings: ReadonlyArray<unknown>,
   ) =>
     Testing.varDecl('const', name, {
       type: 'CallExpression',
@@ -954,9 +1005,9 @@ describe('completed Block bindings', () => {
       },
       arguments: [
         objectExpression([
-          property('childBindings', {
+          property('bindings', {
             type: 'ArrayExpression',
-            elements: childBindings,
+            elements: bindings,
           }),
         ]),
       ],
@@ -971,6 +1022,11 @@ describe('completed Block bindings', () => {
         Testing.id('model'),
         Testing.id('message'),
       ]),
+    ])
+
+  const stepFields = (definition: string, updates: unknown) =>
+    Testing.callOfMember(definition, 'stepFields', [
+      Testing.arrowFn(updates, [Testing.id('model')]),
     ])
 
   it('tracks a parent Model dispatched through binding.fold', () => {
@@ -1015,6 +1071,32 @@ describe('completed Block bindings', () => {
     expect(result).toHaveLength(1)
   })
 
+  it('flags a child-owned transform passed as a direct function reference', () => {
+    const result = runRule([
+      directSettingsBinding,
+      Testing.callOfMember('settings', 'fold', [
+        Testing.id('model'),
+        Testing.id('message'),
+      ]),
+      applyChildTransform('settings', 'Settings', 'revealErrors'),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('allows a foreign domain transform passed as a function reference', () => {
+    const result = runRule([
+      directSettingsBinding,
+      Testing.callOfMember('settings', 'fold', [
+        Testing.id('model'),
+        Testing.id('message'),
+      ]),
+      applyChildTransform('settings', 'Preferences', 'revealErrors'),
+    ])
+
+    expect(result).toHaveLength(0)
+  })
+
   it('tracks direct keyed fields through named Binding operations', () => {
     const result = runRule([
       directEntriesBinding(),
@@ -1034,6 +1116,129 @@ describe('completed Block bindings', () => {
     ])
 
     expect(result).toHaveLength(1)
+  })
+
+  it('flags a keyed child transform passed point-free to Array.map', () => {
+    const result = runRule([
+      directEntriesBinding(),
+      Testing.callOfMember('entries', 'fold', [
+        Testing.id('model'),
+        Testing.strLiteral('first'),
+        Testing.id('message'),
+      ]),
+      mapChildTransform('Entry', 'revealErrors'),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('allows a foreign transform passed point-free to Array.map', () => {
+    const result = runRule([
+      directEntriesBinding(),
+      Testing.callOfMember('entries', 'fold', [
+        Testing.id('model'),
+        Testing.strLiteral('first'),
+        Testing.id('message'),
+      ]),
+      mapChildTransform('DomainEntry', 'revealErrors'),
+    ])
+
+    expect(result).toHaveLength(0)
+  })
+
+  it('flags a child-owned transform returned from Definition.stepFields', () => {
+    const result = runRule([
+      directSettingsBinding,
+      Testing.callOfMember('Update', 'combine', [
+        Testing.id('model'),
+        {
+          type: 'ArrayExpression',
+          elements: [
+            stepFields(
+              'Application',
+              objectExpression([
+                property(
+                  'settings',
+                  Testing.memberExpr('Settings', 'revealErrors'),
+                ),
+              ]),
+            ),
+            Testing.callOfMember('settings', 'clearSelection', []),
+          ],
+        },
+      ]),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('allows stepFields from another Definition owner', () => {
+    const result = runRule([
+      directSettingsBinding,
+      Testing.callOfMember('Update', 'combine', [
+        Testing.id('model'),
+        {
+          type: 'ArrayExpression',
+          elements: [
+            stepFields(
+              'OtherApplication',
+              objectExpression([
+                property(
+                  'settings',
+                  Testing.memberExpr('Settings', 'revealErrors'),
+                ),
+              ]),
+            ),
+            Testing.callOfMember('settings', 'clearSelection', []),
+          ],
+        },
+      ]),
+    ])
+
+    expect(result).toHaveLength(0)
+  })
+
+  it('flags a directly applied Definition.stepFields Step', () => {
+    const result = runRule([
+      directSettingsBinding,
+      Testing.callOfMember('settings', 'fold', [
+        Testing.id('model'),
+        Testing.id('message'),
+      ]),
+      {
+        type: 'CallExpression',
+        callee: stepFields(
+          'Application',
+          objectExpression([
+            property(
+              'settings',
+              Testing.memberExpr('Settings', 'revealErrors'),
+            ),
+          ]),
+        ),
+        arguments: [Testing.id('model')],
+      },
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('allows Definition.stepNoop because it has no field transform record', () => {
+    const result = runRule([
+      directSettingsBinding,
+      Testing.callOfMember('Update', 'combine', [
+        Testing.id('model'),
+        {
+          type: 'ArrayExpression',
+          elements: [
+            Testing.callOfMember('Application', 'stepNoop', []),
+            Testing.callOfMember('settings', 'clearSelection', []),
+          ],
+        },
+      ]),
+    ])
+
+    expect(result).toHaveLength(0)
   })
 
   it('flags replacing a wrapped child Model through binding.fold', () => {
@@ -1151,13 +1356,7 @@ describe('completed Block bindings', () => {
       },
       arguments: [
         Testing.id('Settings'),
-        objectExpression([
-          property('field', Testing.strLiteral('settings')),
-          property(
-            'parentMessage',
-            Testing.memberExpr('Message', 'GotSettingsMessage'),
-          ),
-        ]),
+        objectExpression([property('field', Testing.strLiteral('settings'))]),
       ],
     })
     const result = runRule([
@@ -1202,7 +1401,24 @@ describe('completed Block bindings', () => {
     expect(result).toHaveLength(1)
   })
 
-  it('does not track a Binding omitted from childBindings', () => {
+  it('tracks a generated general keyed Binding', () => {
+    const result = runRule([
+      generalSettingsBinding,
+      applicationComposition(
+        'ApplicationComposition',
+        Testing.id('Application'),
+        [Testing.id('keyedSettings')],
+      ),
+      compositionUpdate(
+        'ApplicationComposition',
+        directSettingsUpdate('model'),
+      ),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('does not track a Binding omitted from bindings', () => {
     const result = runRule([
       directSettingsBinding,
       applicationComposition(
@@ -1246,13 +1462,7 @@ describe('completed Block bindings', () => {
       },
       arguments: [
         Testing.id('Settings'),
-        objectExpression([
-          property('field', Testing.strLiteral('settings')),
-          property(
-            'parentMessage',
-            Testing.memberExpr('Message', 'GotSettingsMessage'),
-          ),
-        ]),
+        objectExpression([property('field', Testing.strLiteral('settings'))]),
       ],
     })
     const result = runRule([

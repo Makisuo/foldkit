@@ -1,11 +1,11 @@
 import { Array, Option, Schema, pipe } from 'effect'
-import { type Html, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
+import { type Html, inertHtml as ih } from 'foldkit/html'
 import type { Url } from 'foldkit/url'
 
 import { Nav } from '@foldkit/ui'
 
 import { Icon } from '../../../icon'
-import type { Message } from '../message'
+import type { UiViewBuilder } from '../composition'
 
 // DEMO CONTENT
 
@@ -72,7 +72,7 @@ const urlBar = (currentSection: NavDemoSection): Html =>
     ],
   )
 
-export const basicDemo = (url: Url, h: HtmlBuilder<Message>) => {
+export const basicDemo = (url: Url, h: UiViewBuilder) => {
   const currentSection = sectionFromUrl(url)
 
   return [

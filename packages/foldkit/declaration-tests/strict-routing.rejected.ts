@@ -1,6 +1,3 @@
-import { Option } from 'effect'
-import type * as Block from 'foldkit/block'
-
 import {
   CanonicalBinding,
   ChildBlock,
@@ -9,62 +6,44 @@ import {
   KeyedBinding,
   ParentComposition,
   ParentDefinition,
-  ParentMessage,
-  ParentModel,
   SilentBinding,
   SilentParentDefinition,
 } from './strict-routing.accepted.js'
 
-ParentDefinition.bindChild(ChildBlock, {
-  // @ts-expect-error A messageful custom mapper must declare its incoming route.
+ParentDefinition.bindChild(ContextChildBlock, {
+  // @ts-expect-error The missing context selector makes the contextual config ineligible.
   field: 'contextualChild',
-  toParentMessage: message => ParentMessage.GotContextEvent({ event: message }),
-})
-
-ParentDefinition.bindChild(ChildBlock, {
-  // @ts-expect-error The manual routing escape is removed.
-  field: 'contextualChild',
-  toParentMessage: message => ParentMessage.GotContextEvent({ event: message }),
-  // @ts-expect-error The manual routing escape is removed.
-  fromParentMessage: false,
+  // @ts-expect-error A contextual child requires generated delivery context.
+  delivery: {},
 })
 
 ParentDefinition.bindChild(ContextChildBlock, {
-  // @ts-expect-error A contextual canonical wrapper needs explicit native fold arguments.
+  // @ts-expect-error The incomplete delivery makes the contextual config ineligible.
   field: 'contextualChild',
-  // @ts-expect-error A contextual canonical wrapper needs explicit native fold arguments.
-  parentMessage: ParentMessage.GotChildMessage,
-})
-
-const wrongContextArgs: Block.FromParentMessageArgs<
-  typeof ParentModel.Type,
-  typeof ParentMessage.GotContextEvent,
-  typeof ContextBinding.fold
-  // @ts-expect-error The contextual native fold tuple includes DispatchContext.
-> = (_model, { event }) => Option.some([event])
-
-void wrongContextArgs
-
-// @ts-expect-error Every inhabitable Got* variant needs an owning Binding.
-ParentDefinition.makeComposition()
-
-// @ts-expect-error Registering only one owner leaves other Got* variants unowned.
-ParentDefinition.makeComposition({
-  childBindings: [CanonicalBinding],
-})
-
-const ConflictingBinding = ParentDefinition.bindChild(ChildBlock, {
-  field: 'contextualChild',
-  toParentMessage: message => ParentMessage.GotChildMessage({ message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotChildMessage,
-    args: (_model, { message }) => Option.some([message]),
+  // @ts-expect-error Generated delivery must supply the complete update context tuple.
+  delivery: {
+    toUpdateContext: () => [],
   },
 })
 
-// @ts-expect-error One Got* variant cannot have two owning Bindings.
+ParentDefinition.bindChild(ChildBlock, {
+  // @ts-expect-error A context-free child cannot declare generated update context.
+  field: 'child',
+  // @ts-expect-error A context-free child cannot declare generated update context.
+  delivery: { toUpdateContext: () => [] },
+})
+
+const ConflictingBinding = ParentDefinition.bindChild(ContextChildBlock, {
+  field: 'contextualChild',
+  placement: 'child',
+  delivery: {
+    toUpdateContext: model => [{ multiplier: model.multiplier }],
+  },
+})
+
+// @ts-expect-error Generated child placements must be unique among sibling Bindings.
 ParentDefinition.makeComposition({
-  childBindings: [
+  bindings: [
     CanonicalBinding,
     ContextBinding,
     KeyedBinding,
@@ -72,9 +51,13 @@ ParentDefinition.makeComposition({
   ],
 })
 
+type GeneratedChildMessage = Extract<
+  typeof ParentComposition.Message.Type,
+  Readonly<{ placement: 'child' }>
+>
 ParentComposition.makeUpdate(
-  // @ts-expect-error An authored callback cannot narrow itself to a child wrapper.
-  (model, _message: typeof ParentMessage.GotChildMessage.Type) => ({ model }),
+  // @ts-expect-error An authored callback receives local Messages, not generated child envelopes.
+  (model, _message: GeneratedChildMessage) => ({ model }),
 )
 
 const omittedSilentInitialization = SilentParentDefinition.step(model =>
@@ -83,7 +66,7 @@ const omittedSilentInitialization = SilentParentDefinition.step(model =>
 const OmittedSilentComposition = SilentParentDefinition.makeComposition()
 
 // @ts-expect-error Connected initialization requires its storage-only Binding to be registered.
-OmittedSilentComposition.makeBlock({
+OmittedSilentComposition.assembleBlock({
   init: OmittedSilentComposition.makeInit(() => ({
     model: { silent: { ready: false } },
   })),

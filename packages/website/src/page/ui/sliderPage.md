@@ -28,9 +28,9 @@ Pass `orientation: 'Vertical'` to map pointer movement along the Y axis, with `m
 
 ## Subscriptions
 
-Pointer drag needs document-level `pointermove` / `pointerup` tracking because the cursor can leave the slider element. Slider owns that tracking and an Escape-key Subscription that cancels an in-progress drag. Bind `Slider.block` and include the Binding in the owning Composition's `childBindings`; composition carries both Subscriptions into the application.
+Pointer drag needs document-level `pointermove` / `pointerup` tracking because the cursor can leave the slider element. Slider owns that tracking and an Escape-key Subscription that cancels an in-progress drag. Bind `SliderBlock` and include the Binding in the owning Composition's `bindings`; composition carries both Subscriptions into the application.
 
-The default `Slider` uses `document` to resolve its drag target. For a Slider inside a Shadow DOM, call `Slider.forRoot(getTrackRoot)` and bind the completed Block returned by that factory. Including the Binding in the owner's `childBindings` carries the named instance's Subscriptions and handler recipes automatically. Pass the same `getTrackRoot` resolver in the bound view's `viewInputs` so track presses and click-to-jump resolve the track inside that Shadow DOM too. The returned `subscriptions` registry remains available for focused Scene tests.
+The default `Slider` uses `document` to resolve its drag target. For a Slider inside a Shadow DOM, call `Slider.forRoot(getTrackRoot)` and bind the completed Block returned by that factory. Including the Binding in the owner's `bindings` carries the named instance's Subscriptions and handler recipes automatically. Pass the same `getTrackRoot` resolver in the bound view's `viewInputs` so track presses and click-to-jump resolve the track inside that Shadow DOM too. The returned `subscriptions` registry remains available for focused Scene tests.
 
 ## Styling
 

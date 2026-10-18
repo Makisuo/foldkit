@@ -1,5 +1,1 @@
-export { Model, Message } from './definition'
-export { init } from './init'
-export { hasErrors, isComplete, revealErrors } from './update'
-export * as Entry from './entry'
-export { block } from './block'
+export { SkillsBlock } from './block'

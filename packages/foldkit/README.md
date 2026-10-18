@@ -39,12 +39,12 @@ npx create-foldkit-app@latest
 
 ## Counter
 
-A complete Foldkit program. State lives in a single Model, events become Messages, and a pure function handles every transition. `application.ts` exports `Application`, `ApplicationComposition`, and its implementation. `entry.ts` supplies the browser container and boots the Runtime, so importing the application from a test has no startup side effect.
+A complete Foldkit program. State lives in a single Model, events become Messages, and a pure function handles every transition. `application.ts` exports `ApplicationDefinition`, `ApplicationComposition`, and its implementation. `entry.ts` supplies the browser container and boots the Runtime, so importing the application from a test has no startup side effect.
 
 ```ts
 // src/application.ts
 import { Schema } from 'effect'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -58,9 +58,10 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
-
-export const ApplicationComposition = Application.makeComposition()
+export const ApplicationComposition = makeApplicationDefinition({
+  Model,
+  Message,
+}).makeComposition()
 
 export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
@@ -98,7 +99,7 @@ import { Runtime } from 'foldkit'
 
 import { ApplicationComposition, init, update, view } from './application'
 
-const application = ApplicationComposition.makeApplication({
+const application = ApplicationComposition.assembleApplication({
   init,
   update,
   view,
@@ -108,9 +109,9 @@ const application = ApplicationComposition.makeApplication({
 Runtime.run(application)
 ```
 
-`defineApplication` creates the root Definition, which owns effect constructors, Steps, lifecycle definitions, and child Bindings. Every application names the result of `Application.makeComposition({ childBindings, mounts })` as `ApplicationComposition`, using `Application.makeComposition()` for an empty graph. Author init, update, and the primary view through that Composition, then complete it with `makeApplication` or `makeElement`. Pass root-owned handler recipes during completion as `EffectsLayer`.
+`makeApplicationDefinition` creates the root Definition, which owns effect constructors, Steps, lifecycle definitions, and child Bindings. Retain that result as `ApplicationDefinition` when those authoring methods use it. This graphless application chains the top-level factory directly into `makeComposition()` and names the result `ApplicationComposition`. Author init, update, and the primary view through that Composition, then assemble it with `assembleApplication` or `assembleElement`. Pass root-owned handler recipes during assembly as `EffectsLayer`.
 
-A feature follows the same staged flow. Define its contracts as `Feature` with `Block.define('Feature', { Model, Message, OutMessage })` and author effects and Steps through that Definition. Name `FeatureComposition = Feature.makeComposition({ childBindings, mounts })`, using `Feature.makeComposition()` for an empty graph, then author init, update, and the primary view and export the completed Block through that same Composition. A parent imports the `Feature` namespace, creates a Binding with `const FeatureBinding = Parent.bindChild(Feature.block, config)`, and includes that Binding in its Composition's child graph.
+A feature follows the same passive Definition → Composition → assembly sequence. Create `FeatureDefinition` with `Block.makeDefinition('Feature', { Model, Message, OutMessage })` and author effects and Steps through that Definition. Name `FeatureComposition = FeatureDefinition.makeComposition({ bindings, mounts })`, using `FeatureDefinition.makeComposition()` for an empty graph, then author init, update, and the primary view and assemble the completed Block through that Composition. A parent imports the `Feature` namespace, creates a Binding with `const FeatureBinding = Parent.bindChild(Feature.block, config)`, and includes that Binding in its Composition's child graph. Only the Runtime starts the assembled program.
 
 When local view helpers need the Composition's exact builder capabilities, declare `type FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` immediately after the Composition and export it only for cross-file use. The owner prefix identifies that specific Composition; structural contracts keep the standard `Model`, `Message`, and `OutMessage` names and normally travel through the feature namespace.
 

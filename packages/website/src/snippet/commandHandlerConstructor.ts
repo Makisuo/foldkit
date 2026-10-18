@@ -1,9 +1,9 @@
 import { HttpClient } from 'effect/http'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 
 import { Message, Model, fetchCount } from './counterHttpCommand'
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
 
 export const FetchCount = ApplicationDefinition.command('FetchCount', {
   messages: [Message.SucceededFetchCount, Message.FailedFetchCount],

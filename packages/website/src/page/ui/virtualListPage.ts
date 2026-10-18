@@ -1,13 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import { UiComposition } from './composition'
+import { VirtualListPageContent } from './content'
 import * as VirtualList from './demo/virtualList'
-import raw from './virtualListPage.md'
 
-const { tableOfContents, view: renderPage } = slotDocPage<
-  'fixed' | 'variable' | 'chat'
->(raw, 'ui/virtual-list')
+const { tableOfContents, view: renderPage } = VirtualListPageContent
 
 export { tableOfContents }
 

@@ -14,9 +14,14 @@ import {
 } from 'effect'
 import { dual } from 'effect/Function'
 
-import type { BindingRequirement } from '../block/binding.js'
+import {
+  type AggregatedChildren,
+  type BindingRequirement,
+  aggregateChildren,
+} from '../block/binding.js'
 import { identityOf } from '../block/identity.js'
 import { isScopedEntry } from '../block/scope.js'
+import type { Scoped } from '../block/scope.js'
 import { kebabToPascal } from '../customElement/index.js'
 import type { CustomElementSpec, EventSchema } from '../customElement/index.js'
 import { serializedStylePropertyName } from '../domReflection.js'
@@ -42,12 +47,20 @@ import type {
   LayeredMountDefinition,
   MountDefinition,
 } from '../mount/index.js'
+import {
+  type AnyComposition,
+  type ChildrenOf,
+  type MessageSchemaOf,
+  type ModelSchemaOf,
+  definitionOf,
+} from '../runtime/applicationAuthoring.js'
 import { Dispatch } from '../runtime/dispatch.js'
 import {
   type Registrations as RuntimeRegistrations,
   type RegistryEntries as RuntimeRegistryEntries,
   type Subscription as RuntimeSubscription,
   type MessageDeclaration as SubscriptionMessageDeclaration,
+  aggregate as aggregateSubscriptions,
   __messageDeclarations as subscriptionMessageDeclarations,
   __messageMappers as subscriptionMessageMappers,
 } from '../subscription/subscription.js'
@@ -233,15 +246,57 @@ type RegisteredSubscriptions<Model, Message> = RuntimeRegistrations<
   any
 >
 
+type ChildSubscriptions<CompositionValue extends AnyComposition> =
+  AggregatedChildren<ChildrenOf<CompositionValue>>['subscriptions']
+
+/**
+ * Collects an Application Composition's registered child Subscriptions for
+ * Scene emission steps. Local declarations may be supplied as the second
+ * argument. The result retains placement-qualified keys, exact Message
+ * declarations, and the same lift paths used by the Runtime.
+ *
+ * This only prepares test configuration. It does not initialize Models,
+ * construct handler Layers, or start Streams. Completed feature Blocks already
+ * expose their aggregated `subscriptions` directly.
+ *
+ * @param composition - The Application Composition whose child graph is tested.
+ * @param localSubscriptions - Optional Subscriptions declared by that Application.
+ * Duplicate registration keys are rejected rather than overwritten.
+ */
+export function subscriptions<const CompositionValue extends AnyComposition>(
+  composition: CompositionValue,
+): ChildSubscriptions<CompositionValue>
+export function subscriptions<
+  const CompositionValue extends AnyComposition,
+  const LocalSubscriptions extends RegisteredSubscriptions<
+    ModelSchemaOf<NoInfer<CompositionValue>>['Type'],
+    MessageSchemaOf<NoInfer<CompositionValue>>['Type']
+  >,
+>(
+  composition: CompositionValue,
+  localSubscriptions: LocalSubscriptions,
+): RuntimeRegistryEntries<LocalSubscriptions> &
+  ChildSubscriptions<CompositionValue>
+export function subscriptions(
+  composition: AnyComposition,
+  localSubscriptions: AnySubscriptions = {},
+): AnySubscriptions {
+  const children = aggregateChildren(definitionOf(composition).bindings)
+  return aggregateSubscriptions(localSubscriptions, children.subscriptions)
+}
+
 type TestBindingDefinition = Readonly<{
   mounts: ReadonlyArray<LayeredMountDefinition>
 }>
 
 type TestMountRequirements =
   | AnyMountHandler
-  | BindingRequirement<string, TestBindingDefinition>
+  | BindingRequirement<string, TestBindingDefinition, Schema.Top>
 
 type TestHtmlBuilder<Message> = HtmlBuilder<Message, TestMountRequirements>
+
+type UnscopedSubscriptionRequirements<Requirements> =
+  Requirements extends Scoped<any, infer Contract> ? Contract : Requirements
 
 type SubscriptionEmissionSource<Entry> =
   Entry extends Readonly<{
@@ -249,7 +304,14 @@ type SubscriptionEmissionSource<Entry> =
       ...args: ReadonlyArray<any>
     ) => Stream.Stream<any, never, infer Requirements>
   }>
-    ? RuntimeSubscription<any, any, any, Requirements>
+    ?
+        | RuntimeSubscription<any, any, any, Requirements>
+        | RuntimeSubscription<
+            any,
+            any,
+            any,
+            UnscopedSubscriptionRequirements<Requirements>
+          >
     : never
 
 /** A single step in a scene: a `given` step, typed Message or OutMessage step,
@@ -604,7 +666,7 @@ const renderView = <Model, Message>(
     }),
   )
 
-  setHtmlRuntime(dispatch.dispatchSync, sceneContext)
+  setHtmlRuntime(dispatch.dispatchSync, sceneContext, undefined, 'Replay')
   let result: Html | Document
   try {
     result = viewFn(model, htmlBuilderFor<Message, TestMountRequirements>())

@@ -1,5 +1,5 @@
 import { Effect, Layer, Schema } from 'effect'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import * as CustomElement from 'foldkit/customElement'
 import { Server } from 'foldkit/experimental'
 import { type Html, type HtmlBuilder } from 'foldkit/html'
@@ -15,18 +15,17 @@ import {
   reflectedAttributeName,
 } from '../packages/foldkit/dist/domReflection.js'
 
-const ApplicationDefinition = defineApplication({
+const ApplicationComposition = makeApplicationDefinition({
   Model: Schema.Null,
   Message: Schema.Never,
-})
-const ApplicationComposition = ApplicationDefinition.makeComposition()
+}).makeComposition()
 const makeParityImplementation = (
   view: (
     model: null,
     h: HtmlBuilder<never>,
   ) => Readonly<{ title: string; body: Html }>,
 ) => ({
-  init: () => ({ model: null }),
+  init: ApplicationComposition.makeInit(() => ({ model: null })),
   update: ApplicationComposition.makeUpdate(),
   view: ApplicationComposition.makeView(view),
   EffectsLayer: Layer.empty,

@@ -7,7 +7,7 @@ import { ApplicationLayer } from './services'
 import { update } from './update'
 import { view } from './view'
 
-const application = ApplicationComposition.makeApplication({
+const application = ApplicationComposition.assembleApplication({
   init,
   update,
   view,

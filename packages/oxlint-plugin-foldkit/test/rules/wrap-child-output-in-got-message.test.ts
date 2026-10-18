@@ -302,6 +302,30 @@ it('allows a Got parentMessage constructor in a direct connection', () => {
   expect(result).toHaveLength(0)
 })
 
+it('allows a generated-delivery Binding without a parent wrapper', () => {
+  const node = callWithCallee(
+    {
+      type: 'MemberExpression',
+      object: Testing.id('Application'),
+      property: Testing.id('bindChild'),
+      computed: false,
+    },
+    [
+      Testing.id('ChatBlock'),
+      Testing.objectExpr([
+        { key: 'field', value: { type: 'Literal', value: 'chat' } },
+      ]),
+    ],
+  )
+  const result = Testing.runRule(
+    wrapChildOutputInGotMessage,
+    'CallExpression',
+    node,
+  )
+
+  expect(result).toHaveLength(0)
+})
+
 it('checks the parentMessage constructor in a direct connection', () => {
   const result = Testing.runRule(
     wrapChildOutputInGotMessage,

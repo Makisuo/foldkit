@@ -4,9 +4,9 @@ import { modifyFields } from 'foldkit/struct'
 
 import { ApiReferenceComposition } from './composition'
 import { ApiReferenceDefinition } from './definition'
-import { ParsedApiReference } from './domain'
+import { type ApiData, ApiDataAsyncData, ParsedApiReference } from './domain'
 import { Message } from './message'
-import { type ApiData, ApiDataAsyncData, disclosuresForApiData } from './model'
+import { disclosuresForApiData } from './model'
 
 /** Loads the complete reference, including modules omitted from hydration data. */
 export const LoadApiData = ApiReferenceDefinition.command('LoadApiData', {

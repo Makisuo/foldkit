@@ -1,30 +1,23 @@
-import { Array, Option } from 'effect'
-import { defineApplication } from 'foldkit'
+import { Array } from 'effect'
+import { makeApplicationDefinition } from 'foldkit'
 
 import { Applicant } from './applicant'
 import { Message } from './message'
 import { Model } from './model'
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
 
 export const ApplicantsBinding = ApplicationDefinition.bindChild(
-  Applicant.block,
+  Applicant.ApplicantBlock,
   {
     field: 'applicants',
     key: 'id',
     childField: 'entry',
-    toParentMessage: (applicantId, message) =>
-      Message.GotApplicantMessage({ applicantId, message }),
-    fromParentMessage: {
-      parentMessage: Message.GotApplicantMessage,
-      args: (_model, { applicantId, message }) =>
-        Option.some([applicantId, message]),
-    },
   },
 )
 
 const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [ApplicantsBinding],
+  bindings: [ApplicantsBinding],
 })
 
 export const update = ApplicationComposition.makeUpdate()

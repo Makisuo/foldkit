@@ -8,13 +8,13 @@ import { ApplicationLayer } from './services'
 import { update } from './update'
 import { view } from './view'
 
-const application = ApplicationComposition.makeApplication({
+const application = ApplicationComposition.assembleApplication({
   init,
   update,
   view,
   EffectsLayer,
   container: document.getElementById('root'),
-  devTools: { Message, mode: 'TimeTravel' },
+  devTools: { Message: ApplicationComposition.Message, mode: 'TimeTravel' },
   routing: {
     onUrlRequest: request => Message.ClickedLink({ request }),
     onUrlChange: url => Message.ChangedUrl({ url }),

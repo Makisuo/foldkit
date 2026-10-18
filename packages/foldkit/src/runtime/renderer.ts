@@ -167,7 +167,7 @@ export const makeRenderer = <Model, Message>({
   mounts: ReadonlyArray<LayeredMountDefinition>
   runtimeContext: Context.Context<never>
   readLiveModel: () => Model
-  messageQueue: MessageQueue<Message>
+  messageQueue: MessageQueue<Message, unknown>
   devToolsIntegration: DevToolsIntegration<Model, Message>
 }>): Effect.Effect<Renderer<Model, Message>, never, Scope.Scope> =>
   Effect.gen(function* () {
@@ -334,6 +334,7 @@ export const makeRenderer = <Model, Message>({
           return
         }
         status.isCrashed = true
+        messageQueue.drainPendingMessages()
         // NOTE: the crash view should appear at once, not animate in from
         // a snapshot of the state that crashed.
         skipPendingViewTransition()

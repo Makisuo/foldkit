@@ -2,22 +2,24 @@
 import { Dialog, Menu } from '@foldkit/ui'
 
 import { ApplicationDefinition } from './definition'
-import { Message } from './message'
 
-export const DialogBinding = ApplicationDefinition.bindChild(Dialog.block, {
-  field: 'dialog',
-  parentMessage: Message.GotDialogMessage,
-  outMessage: { fold: foldDialogOutMessage },
-})
+export const DialogBinding = ApplicationDefinition.bindChild(
+  Dialog.DialogBlock,
+  {
+    field: 'dialog',
+    outMessage: { fold: foldDialogOutMessage },
+  },
+)
 
-export const MenuBinding = ApplicationDefinition.bindChild(Menu.block, {
+export const ApplicationMenu = Menu.create<string>()
+
+export const MenuBinding = ApplicationDefinition.bindChild(ApplicationMenu, {
   field: 'menu',
-  parentMessage: Message.GotMenuMessage,
   outMessage: { fold: foldMenuOutMessage },
 })
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [DialogBinding, MenuBinding],
+  bindings: [DialogBinding, MenuBinding],
 })
 
 // update.ts
@@ -60,16 +62,15 @@ import { Runtime } from 'foldkit'
 
 import { ApplicationComposition } from './composition'
 import { init } from './init'
-import { Message } from './message'
 import { update } from './update'
 import { view } from './view'
 
-const application = ApplicationComposition.makeApplication({
+const application = ApplicationComposition.assembleApplication({
   init,
   update,
   view,
   container: document.getElementById('root'),
-  devTools: { Message },
+  devTools: { Message: ApplicationComposition.Message },
 })
 
 Runtime.run(application)

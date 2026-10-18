@@ -10,7 +10,7 @@ import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
 // Add a field to your Model for the Dialog Block:
 const Model = Schema.Struct({
-  dialog: Dialog.Model,
+  dialog: Dialog.DialogBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
@@ -19,34 +19,32 @@ type Model = typeof Model.Type
 // Message for the block delegation:
 const Message = defineMessageUnion({
   ClickedOpenDialog: {},
-  GotDialogMessage: { message: Dialog.Message },
 })
 type Message = typeof Message.Type
 
 // One boundary handles Dialog Messages, Commands, and OutMessages. Replace
 // either no-op arm with the parent transition that should follow that event.
-const foldDialogOutMessage = Dialog.OutMessage.match<
+const foldDialogOutMessage = Dialog.DialogBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
-  Opened: () => model => ({ model }),
-  Closed: () => model => ({ model }),
-  CompletedClose: () => model => ({ model }),
+  Opened: () => DialogExampleDefinition.stepNoop(),
+  Closed: () => DialogExampleDefinition.stepNoop(),
+  CompletedClose: () => DialogExampleDefinition.stepNoop(),
 })
 
-const DialogExampleDefinition = Block.define('DialogExample', {
+const DialogExampleDefinition = Block.makeDefinition('DialogExample', {
   Model,
   Message,
 })
 
-const DialogBinding = DialogExampleDefinition.bindChild(Dialog.block, {
+const DialogBinding = DialogExampleDefinition.bindChild(Dialog.DialogBlock, {
   field: 'dialog',
-  parentMessage: Message.GotDialogMessage,
-  init: { startupToArgs: () => Tuple.make({ id: 'confirm' }) },
+  init: { contextToArgs: () => Tuple.make({ id: 'confirm' }) },
   outMessage: { fold: foldDialogOutMessage },
 })
 
 const DialogExampleComposition = DialogExampleDefinition.makeComposition({
-  childBindings: [DialogBinding],
+  bindings: [DialogBinding],
 })
 
 // In your init function, initialize the Dialog Block with a unique id:

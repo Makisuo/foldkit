@@ -1,8 +1,8 @@
 import { clsx } from 'clsx'
 import { Array, Option } from 'effect'
-import type { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
-import { Button, RadioGroup } from '@foldkit/ui'
+import { Button } from '@foldkit/ui'
 import type { OptionInfo } from '@foldkit/ui/radioGroup'
 
 import {
@@ -11,7 +11,12 @@ import {
 } from '../composition'
 import * as Icon from '../icon'
 import { Message } from '../message'
-import { CheckoutState, EDITIONS, editionName } from '../model'
+import {
+  CheckoutState,
+  EDITIONS,
+  EditionRadioGroupBlock,
+  editionName,
+} from '../model'
 import { bookCoverView } from './header'
 import {
   cancelButtonClassName,
@@ -23,7 +28,7 @@ import {
 
 export const editionOptionView = (
   option: OptionInfo,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ): Html => {
   const selectionBadgeClassName =
     'mt-2 inline-flex text-xs font-bold uppercase tracking-wider'
@@ -94,7 +99,7 @@ export const editionOptionView = (
   )
 }
 
-export const cancelCheckoutButton = (h: HtmlBuilder<Message>): Html =>
+export const cancelCheckoutButton = (h: ApplicationViewBuilder): Html =>
   Button.view(
     {
       onClick: Message.ClickedCancel(),
@@ -109,7 +114,7 @@ export const cancelCheckoutButton = (h: HtmlBuilder<Message>): Html =>
 
 export const cartView = (
   state: typeof CheckoutState.Cart.Type,
-  editionRadioGroupModel: typeof RadioGroup.Model.Type,
+  editionRadioGroupModel: typeof EditionRadioGroupBlock.Model.Type,
   h: ApplicationViewBuilder,
 ): Html => {
   const continueLabel = state.isShippingRequired

@@ -4,7 +4,7 @@ import { expect, expectTypeOf, it } from 'vitest'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import { runtimeBindingOf } from './composition.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 import type { InitialEvidenceOfBinding } from './initialization.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
@@ -14,13 +14,11 @@ const ChildMessage = defineMessageUnion({
   UpdatedCount: { count: Schema.Number },
 })
 
-const Child = define('BindingInitChild', {
+const ChildComposition = makeDefinition('BindingInitChild', {
   Model: ChildModel,
   Message: ChildMessage,
-})
-
-const ChildComposition = Child.makeComposition()
-const ChildBlock = ChildComposition.makeBlock({
+}).makeComposition()
+const ChildBlock = ChildComposition.assembleBlock({
   init: ChildComposition.makeInit((config: Readonly<{ count: number }>) => ({
     model: ChildModel.make({ count: config.count }),
   })),
@@ -41,23 +39,18 @@ const ParentModel = Schema.Struct({
   label: Schema.String,
 })
 
-const ParentMessage = defineMessageUnion({
-  GotChildMessage: { message: ChildMessage },
-})
-
-const Parent = define('BindingInitParent', {
+const Parent = makeDefinition('BindingInitParent', {
   Model: ParentModel,
-  Message: ParentMessage,
+  Message: Schema.Never,
 })
 
 const AccessorBinding = Parent.bindChild(ChildBlock, {
   placement: 'accessor',
   read: model => Option.some(model.first),
   write: (model, nextChild) => modifyFields(model, { first: () => nextChild }),
-  parentMessage: ParentMessage.GotChildMessage,
   init: {
-    startupToArgs: () => [{ count: 2 }],
-    model: childModel => {
+    contextToArgs: () => [{ count: 2 }],
+    toParentFields: childModel => {
       expectTypeOf(childModel).toEqualTypeOf<ChildModel>()
       return { second: childModel }
     },
@@ -68,19 +61,19 @@ type AccessorInitialEvidence = InitialEvidenceOfBinding<typeof AccessorBinding>
 
 expectTypeOf<AccessorInitialEvidence['field']>().toEqualTypeOf<'second'>()
 expectTypeOf<AccessorInitialEvidence['value']>().toEqualTypeOf<ChildModel>()
-expectTypeOf<AccessorInitialEvidence['startup']>().toEqualTypeOf<never>()
+expectTypeOf<
+  AccessorInitialEvidence['childInitContext']
+>().toEqualTypeOf<never>()
 
 Parent.bindChild(ChildBlock, {
   field: 'first',
-  parentMessage: ParentMessage.GotChildMessage,
-  init: { startupToArgs: () => [{ count: 3 }] },
+  init: { contextToArgs: () => [{ count: 3 }] },
 })
 
 Parent.bindChild(ChildBlock, {
   field: 'maybeChild',
-  parentMessage: ParentMessage.GotChildMessage,
   init: {
-    startupToArgs: (context: Readonly<{ count: number }>) =>
+    contextToArgs: (context: Readonly<{ count: number }>) =>
       Option.some([{ count: context.count }]),
   },
 })
@@ -90,12 +83,10 @@ Parent.bindChild(ChildBlock, {
   read: model => Option.some(model.first),
   // @ts-expect-error The invalid projection makes this accessor config ineligible.
   write: (model, nextChild) => modifyFields(model, { first: () => nextChild }),
-  // @ts-expect-error The invalid projection makes this accessor config ineligible.
-  parentMessage: ParentMessage.GotChildMessage,
   // @ts-expect-error A projected init field must have the exact child Model type.
   init: {
-    startupToArgs: () => [{ count: 1 }],
-    model: childModel => ({ label: childModel }),
+    contextToArgs: () => [{ count: 1 }],
+    toParentFields: childModel => ({ label: childModel }),
   },
 })
 
@@ -104,12 +95,10 @@ Parent.bindChild(ChildBlock, {
   read: model => Option.some(model.first),
   // @ts-expect-error The invalid projection makes this accessor config ineligible.
   write: (model, nextChild) => modifyFields(model, { first: () => nextChild }),
-  // @ts-expect-error The invalid projection makes this accessor config ineligible.
-  parentMessage: ParentMessage.GotChildMessage,
   // @ts-expect-error Option storage is not one exact required child Model field.
   init: {
-    startupToArgs: () => [{ count: 1 }],
-    model: childModel => ({ maybeChild: Option.some(childModel) }),
+    contextToArgs: () => [{ count: 1 }],
+    toParentFields: childModel => ({ maybeChild: Option.some(childModel) }),
   },
 })
 
@@ -118,12 +107,10 @@ Parent.bindChild(ChildBlock, {
   read: model => Option.some(model.first),
   // @ts-expect-error The invalid projection makes this accessor config ineligible.
   write: (model, nextChild) => modifyFields(model, { first: () => nextChild }),
-  // @ts-expect-error The invalid projection makes this accessor config ineligible.
-  parentMessage: ParentMessage.GotChildMessage,
   // @ts-expect-error Optional storage is not one exact required child Model field.
   init: {
-    startupToArgs: () => [{ count: 1 }],
-    model: childModel => ({ optionalChild: childModel }),
+    contextToArgs: () => [{ count: 1 }],
+    toParentFields: childModel => ({ optionalChild: childModel }),
   },
 })
 
@@ -132,12 +119,10 @@ Parent.bindChild(ChildBlock, {
   read: model => Option.some(model.first),
   // @ts-expect-error The invalid projection makes this accessor config ineligible.
   write: (model, nextChild) => modifyFields(model, { first: () => nextChild }),
-  // @ts-expect-error The invalid projection makes this accessor config ineligible.
-  parentMessage: ParentMessage.GotChildMessage,
   // @ts-expect-error A projected init contributes exactly one parent Model field.
   init: {
-    startupToArgs: () => [{ count: 1 }],
-    model: childModel => ({
+    contextToArgs: () => [{ count: 1 }],
+    toParentFields: childModel => ({
       first: childModel,
       second: childModel,
     }),
@@ -149,19 +134,19 @@ Parent.bindChild(ChildBlock, {
   read: model => Option.some(model.first),
   // @ts-expect-error The invalid projection makes this accessor config ineligible.
   write: (model, nextChild) => modifyFields(model, { first: () => nextChild }),
-  // @ts-expect-error The invalid projection makes this accessor config ineligible.
-  parentMessage: ParentMessage.GotChildMessage,
   // @ts-expect-error A projected init cannot contribute an undeclared field.
   init: {
-    startupToArgs: () => [{ count: 1 }],
-    model: childModel => ({
+    contextToArgs: () => [{ count: 1 }],
+    toParentFields: childModel => ({
       first: childModel,
       undeclared: childModel,
     }),
   },
 })
 
-const runtimeAccessorBinding = (model: (childModel: ChildModel) => unknown) =>
+const runtimeAccessorBinding = (
+  toParentFields: (childModel: ChildModel) => unknown,
+) =>
   Reflect.apply(Parent.bindChild, undefined, [
     ChildBlock,
     {
@@ -170,8 +155,7 @@ const runtimeAccessorBinding = (model: (childModel: ChildModel) => unknown) =>
         Option.some(parentModel.first),
       write: (parentModel: typeof ParentModel.Type, nextChild: ChildModel) =>
         modifyFields(parentModel, { first: () => nextChild }),
-      parentMessage: ParentMessage.GotChildMessage,
-      init: { startupToArgs: () => [{ count: 1 }], model },
+      init: { contextToArgs: () => [{ count: 1 }], toParentFields },
     },
   ])
 
@@ -203,15 +187,15 @@ it('keeps the accessor read and write policy after projected initialization', ()
   })
 
   const Composition = Parent.makeComposition({
-    childBindings: [AccessorBinding],
+    bindings: [AccessorBinding],
   })
   const update = Composition.makeUpdate()
-  const updated = update(
-    parent,
-    ParentMessage.GotChildMessage({
-      message: ChildMessage.UpdatedCount({ count: 3 }),
-    }),
-  )
+  const updated = update(parent, {
+    _tag: 'GotAccessorMessage',
+    placement: 'accessor',
+    generation: 0,
+    message: ChildMessage.UpdatedCount({ count: 3 }),
+  })
 
   expect(updated.model.first).toEqual(ChildModel.make({ count: 3 }))
   expect(updated.model.second).toEqual(second)
@@ -244,7 +228,6 @@ it('rejects the removed initial configuration field at runtime', () => {
       ChildBlock,
       {
         field: 'first',
-        parentMessage: ParentMessage.GotChildMessage,
         initial: true,
       },
     ]),

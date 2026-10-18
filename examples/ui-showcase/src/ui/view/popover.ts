@@ -1,6 +1,6 @@
 import type { Html } from 'foldkit/html'
 
-import { Popover } from '@foldkit/ui'
+import { PopoverBlock } from '@foldkit/ui'
 import { type RenderInfo, buttonId } from '@foldkit/ui/popover'
 
 import {
@@ -78,7 +78,7 @@ const NESTED_POPOVER_ANCHOR = {
 const nestedChildButtonSelector = '#popover-nested-child-demo-button'
 
 const nestedChildPopover = (
-  childPopoverModel: typeof Popover.Model.Type,
+  childPopoverModel: typeof PopoverBlock.Model.Type,
   h: UiViewBuilder,
 ) => {
   const childPopoverView = ({
@@ -131,8 +131,8 @@ const nestedChildPopover = (
 }
 
 const nestedDemo = (
-  parentPopoverModel: typeof Popover.Model.Type,
-  childPopoverModel: typeof Popover.Model.Type,
+  parentPopoverModel: typeof PopoverBlock.Model.Type,
+  childPopoverModel: typeof PopoverBlock.Model.Type,
   h: UiViewBuilder,
 ): Html => {
   const parentPopoverView = ({

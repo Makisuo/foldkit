@@ -1,23 +1,13 @@
 export {
-  init,
   create,
-  Model,
-  Message,
-  OutMessage,
-  type Selected,
-  type SelectedTab,
-  type FocusedTab,
-  FocusTab,
-  block,
   Orientation,
-  PanelMount,
+  ActivationMode,
+  type InitConfig,
+  type ViewInputs,
+  type RenderInfo,
+  type TabInfo,
+  type Completed,
 } from './index.js'
 
-export type {
-  ActivationMode,
-  InitConfig,
-  ViewInputs,
-  RenderInfo,
-  TabInfo,
-  Completed,
-} from './index.js'
+/** Original Tabs Command Definitions for Story and Scene test resolution. */
+export * as test from './test.js'

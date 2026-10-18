@@ -1,6 +1,6 @@
 import { type Html, inertHtml as ih } from 'foldkit/html'
 
-import { Popover } from '@foldkit/ui'
+import { PopoverBlock } from '@foldkit/ui'
 import { type AnchorConfig, buttonId } from '@foldkit/ui/popover'
 
 import type { UiViewBuilder } from '../composition'
@@ -134,7 +134,7 @@ const popoverViewInputs = (
 }
 
 const labeledPopoverDemo = (
-  popoverModel: typeof Popover.Model.Type,
+  popoverModel: typeof PopoverBlock.Model.Type,
   content: Html,
   h: UiViewBuilder,
 ): Array<Html> => [
@@ -151,7 +151,7 @@ const labeledPopoverDemo = (
 ]
 
 export const basicDemo = (
-  popoverModel: typeof Popover.Model.Type,
+  popoverModel: typeof PopoverBlock.Model.Type,
   h: UiViewBuilder,
 ): Array<Html> =>
   labeledPopoverDemo(
@@ -167,7 +167,7 @@ export const basicDemo = (
   )
 
 export const animatedDemo = (
-  popoverModel: typeof Popover.Model.Type,
+  popoverModel: typeof PopoverBlock.Model.Type,
   h: UiViewBuilder,
 ): Array<Html> =>
   labeledPopoverDemo(
@@ -183,7 +183,7 @@ export const animatedDemo = (
   )
 
 export const arrowDemo = (
-  popoverModel: typeof Popover.Model.Type,
+  popoverModel: typeof PopoverBlock.Model.Type,
   h: UiViewBuilder,
 ): Array<Html> =>
   labeledPopoverDemo(
@@ -199,7 +199,7 @@ export const arrowDemo = (
   )
 
 const nestedChildPopover = (
-  childPopoverModel: typeof Popover.Model.Type,
+  childPopoverModel: typeof PopoverBlock.Model.Type,
   h: UiViewBuilder,
 ): Html =>
   h.block(
@@ -248,8 +248,8 @@ const nestedChildPopover = (
   )
 
 export const nestedDemo = (
-  parentPopoverModel: typeof Popover.Model.Type,
-  childPopoverModel: typeof Popover.Model.Type,
+  parentPopoverModel: typeof PopoverBlock.Model.Type,
+  childPopoverModel: typeof PopoverBlock.Model.Type,
   h: UiViewBuilder,
 ) => {
   return [

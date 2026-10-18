@@ -4,7 +4,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest'
 import { defineMessageUnion } from '../message/index.js'
 import * as Subscription from '../subscription/subscription.js'
 import * as Scene from '../test/scene.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 
 class Clock extends Context.Service<Clock, Readonly<{ now: number }>>()(
   'SubscriptionRegistryClock',
@@ -16,7 +16,10 @@ class Logger extends Context.Service<Logger, Readonly<{ write: () => void }>>()(
 
 const Model = Schema.Struct({ count: Schema.Number })
 const Message = defineMessageUnion({ Ticked: {}, Logged: {} })
-const RegistryDefinition = define('SubscriptionRegistry', { Model, Message })
+const RegistryDefinition = makeDefinition('SubscriptionRegistry', {
+  Model,
+  Message,
+})
 
 const subscriptions = RegistryDefinition.subscriptions(entry => ({
   clock: entry('Clock', {
@@ -38,7 +41,7 @@ const subscriptions = RegistryDefinition.subscriptions(entry => ({
 }))
 
 const RegistryComposition = RegistryDefinition.makeComposition()
-const block = RegistryComposition.makeBlock({
+const block = RegistryComposition.assembleBlock({
   init: RegistryComposition.makeInit(() => ({
     model: Model.make({ count: 0 }),
   })),

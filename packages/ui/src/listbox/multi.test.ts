@@ -5,7 +5,7 @@ import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import * as Animation from '../animation/index.js'
+import * as Animation from '../animation/block.js'
 import { init, update } from './multi.js'
 import type { Model, ViewInputs } from './multi.js'
 import {
@@ -32,7 +32,7 @@ const acknowledgeBackdrop = Scene.Mount.resolve(
   Message.CompletedPortalListboxBackdrop(),
 )
 
-const givenClosed = Story.given(init({ id: 'test' }))
+const givenClosed = Story.given(init({ id: 'test' }).model)
 
 const givenOpenMulti = Story.steps(
   givenClosed,
@@ -46,13 +46,13 @@ const givenOpenMulti = Story.steps(
 describe('Listbox.Multi', () => {
   describe('init', () => {
     it('defaults to closed with no active item', () => {
-      expect(init({ id: 'test' })).toStrictEqual({
+      expect(init({ id: 'test' }).model).toStrictEqual({
         id: 'test',
         isOpen: false,
         isAnimated: false,
         isModal: false,
         orientation: 'Vertical',
-        animation: Animation.init({ id: 'test-listbox' }),
+        animation: Animation.init({ id: 'test-listbox' }).model,
         maybeActiveItemIndex: Option.none(),
         activationTrigger: 'Keyboard',
         searchQuery: '',
@@ -128,7 +128,7 @@ describe('Listbox.Multi', () => {
   })
 
   describe('view', () => {
-    const closedModel = () => init({ id: 'test' })
+    const closedModel = () => init({ id: 'test' }).model
 
     const openMultiModel = (): Model => {
       let model!: Model

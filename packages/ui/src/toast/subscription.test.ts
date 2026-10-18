@@ -4,8 +4,8 @@ import { expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import * as Animation from '../animation/index.js'
-import { Message, SwipeState } from './index.js'
+import * as Animation from '../animation/block.js'
+import { Message, SwipeState } from './toast.js'
 import { makeFixture } from './toast.js'
 
 const TestPayload = Schema.Struct({ body: Schema.String })
@@ -27,7 +27,7 @@ const makeDraggingEntry = (
 ): Entry => ({
   id,
   variant: 'Info',
-  animation: Animation.init({ id, isShowing: true }),
+  animation: Animation.init({ id, isShowing: true }).model,
   maybeDuration: Option.some(Duration.seconds(4)),
   pendingDismissVersion: 0,
   isHovered: false,
@@ -37,7 +37,7 @@ const makeDraggingEntry = (
 })
 
 const withDraggingEntries = (entries: ReadonlyArray<Entry>): Model =>
-  modifyFields(toastInit({ id: 'test', swipeToDismiss: {} }), {
+  modifyFields(toastInit({ id: 'test', swipeToDismiss: {} }).model, {
     entries: () => entries,
     nextEntryKey: () => entries.length,
   })

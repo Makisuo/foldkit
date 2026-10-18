@@ -46,7 +46,7 @@ With no `args`, `Query.define` returns a Query that retains one value. In this d
 - The `handler` generator constructs the fetch function. The completed Query carries its handler recipe in `EffectsLayer`.
 - `name: 'Posts'` names the Query Block. Its local `Fetch` Command is qualified by the Block and its parent placement.
 
-Bind the completed Query through the parent Definition and include the Binding in the parent's Composition `childBindings`. The Binding carries the Query's handler recipe automatically; do not add it to the parent's local `EffectsLayer`. The entry supplies ordinary service providers through `ApplicationLayer`. The handler generator captures stable services when the Runtime builds its Layer, and the fetch function uses those services for each request.
+Bind the completed Query through the parent Definition and include the Binding in the parent's Composition `bindings`. The Binding carries the Query's handler recipe automatically; do not add it to the parent's local `EffectsLayer`. The entry supplies ordinary service providers through `ApplicationLayer`. The handler generator captures stable services when the Runtime builds its Layer, and the fetch function uses those services for each request.
 
 Omit `handler` when an external host supplies the fetch implementation. Complete that Query with `query.provideHandlers(query.toLayer(constructor))` before binding it into a runnable application. `toLayer` accepts an Effect constructor and can also provide an alternative to an attached handler. For direct `query.run` outside application composition, provide `query.EffectsLayer` to the Effect. Ordinary execution tests retain the handler and replace its underlying services.
 
@@ -58,13 +58,13 @@ The returned `postsQuery` is a completed viewless Block with a Model Schema, a M
 
 ### Bind the Query to Its Parent
 
-The parent wraps the Query's Message, and the Composition routes that wrapper back through its Binding. `bindChild` also projects the loading operations so they read and write the Query field inside the parent Model:
+Composition derives delivery for the Query's Messages from its registered Binding. `bindChild` also projects the loading operations so they read and write the Query field inside the parent Model:
 
 ::Snippet{name="queryLift" label="Binding Query to its parent"}
 
 #### Binding Configuration
 
-The `field` form tells `bindChild` which exact field contains the Query Model or `Option<QueryModel>`. `parentMessage` supplies the parent's `Got*Message` constructor, which wraps the result Message produced by the Query's fetch Command. The Binding returns the child fold and Query operations expressed in the parent Model and Message types. Its projected operations return connected Steps whose Model input requires the registering Composition's graph. Apply them inside `makeUpdate`, include them in `makeInit` startup, or preserve them through a Definition-owned Step. Return or compose their opaque results intact; the Composition consumes them during checked execution. They do not perform Effects.
+The `field` form tells `bindChild` which exact field contains the Query Model or `Option<QueryModel>`. Composition derives a `Got*Message` envelope carrying the Binding's placement and originating instance generation; parents do not declare a wrapper or supply a Message mapper. The Binding returns the child fold and Query operations expressed in the parent Model and Message types. Its projected operations return connected Steps whose Model input requires the registering Composition's graph. Apply them inside `makeUpdate`, include them in `makeInit` startup, or preserve them through a Definition-owned Step. Return or compose their opaque results intact; the Composition consumes them during checked execution. They do not perform Effects.
 
 #### Bound Operations
 
@@ -106,7 +106,7 @@ The no-change cases return no Command. Calling the same operation again while it
 
 #### Accepted Completions
 
-When the Command finishes, the Runtime dispatches Query's `CompletedFetch` Message through `toParentMessage`. The Composition recognizes the registered wrapper and invokes the Binding fold. Query then settles the pending value:
+When the Command finishes, the Runtime dispatches Query's `CompletedFetch` Message through the registered Binding's generated envelope. The envelope retains the originating occurrence, and Composition invokes the Binding fold only while that occurrence remains current. Query then settles the pending value:
 
 - A successful first load becomes `Success`.
 - A failed first load becomes `Failure`.

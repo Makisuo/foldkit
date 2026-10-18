@@ -3,12 +3,24 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
 import { GenerateSkillsEntryId } from './command'
+import { EntriesBinding } from './composition'
 import { Message } from './definition'
-import * as Entry from './entry'
+import { SkillsEntryBlock } from './entry'
 import { init } from './init'
 import { update } from './update'
 
-const givenInitial = given(init('skills-entry-1'))
+const givenInitial = given(init('skills-entry-1').model)
+
+const entryMessage = (
+  entryId: string,
+  model: typeof SkillsEntryBlock.Model.Type,
+  message: typeof SkillsEntryBlock.Message.Type,
+) =>
+  EntriesBinding.embedView({
+    key: entryId,
+    slotId: entryId,
+    model,
+  }).toParentMessage(message)
 
 describe('skills', () => {
   test('ClickedAddEntry generates an id and appends an entry', () => {
@@ -34,24 +46,25 @@ describe('skills', () => {
       message(Message.FailedGenerateSkillsEntryId()),
       Command.expectNone(),
       model(model => {
-        expect(model).toEqual(init('skills-entry-1'))
+        expect(model).toEqual(init('skills-entry-1').model)
       }),
     )
   })
 
   test('an entry OutMessage.Removed removes that entry', () => {
     const firstEntry = Option.getOrThrow(
-      Array.head(init('skills-entry-1').entries),
+      Array.head(init('skills-entry-1').model.entries),
     )
 
     story(
       update,
       givenInitial,
       message(
-        Message.GotEntryMessage({
-          entryId: firstEntry.id,
-          message: Entry.Message.ClickedRemoveSelf(),
-        }),
+        entryMessage(
+          firstEntry.id,
+          firstEntry,
+          SkillsEntryBlock.Message.ClickedRemoveSelf(),
+        ),
       ),
       model(model => {
         expect(model.entries).toHaveLength(0)
@@ -59,19 +72,20 @@ describe('skills', () => {
     )
   })
 
-  test('GotEntryMessage folds a name update into the matching entry', () => {
+  test('a generated entry Message updates the matching entry', () => {
     const firstEntry = Option.getOrThrow(
-      Array.head(init('skills-entry-1').entries),
+      Array.head(init('skills-entry-1').model.entries),
     )
 
     story(
       update,
       givenInitial,
       message(
-        Message.GotEntryMessage({
-          entryId: firstEntry.id,
-          message: Entry.Message.UpdatedName({ value: 'TypeScript' }),
-        }),
+        entryMessage(
+          firstEntry.id,
+          firstEntry,
+          SkillsEntryBlock.Message.UpdatedName({ value: 'TypeScript' }),
+        ),
       ),
       model(model => {
         expect(

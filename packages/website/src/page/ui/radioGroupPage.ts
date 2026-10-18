@@ -1,13 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import { UiComposition } from './composition'
+import { RadioGroupPageContent } from './content'
 import * as RadioGroup from './demo/radioGroup'
-import raw from './radioGroupPage.md'
 
-const { tableOfContents, view: renderPage } = slotDocPage<
-  'vertical' | 'horizontal'
->(raw, 'ui/radio-group')
+const { tableOfContents, view: renderPage } = RadioGroupPageContent
 
 export { tableOfContents }
 

@@ -3,5 +3,5 @@ import { LoggedInBinding } from './loggedIn'
 import { LoggedOutBinding } from './loggedOut'
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [LoggedOutBinding, LoggedInBinding],
+  bindings: [LoggedOutBinding, LoggedInBinding],
 })

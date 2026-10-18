@@ -1,6 +1,13 @@
 import { Option, Schema } from 'effect'
 
-import { Dialog, Listbox, RadioGroup } from '@foldkit/ui'
+import { DialogBlock } from '@foldkit/ui'
+
+import {
+  GridSizeRadioGroupBlock,
+  PaletteRadioGroupBlock,
+  ThemeListboxBlock,
+  ToolRadioGroupBlock,
+} from './components'
 
 // CONSTANT
 
@@ -60,15 +67,15 @@ export const Model = Schema.Struct({
   mirrorMode: MirrorMode,
   isDrawing: Schema.Boolean,
   maybeHoveredCell: Schema.Option(Position),
-  errorDialog: Dialog.Model,
+  errorDialog: DialogBlock.Model,
   maybeExportError: Schema.Option(Schema.String),
   paletteThemeIndex: Schema.Number,
-  gridSizeConfirmDialog: Dialog.Model,
+  gridSizeConfirmDialog: DialogBlock.Model,
   maybePendingGridSize: Schema.Option(Schema.Number),
-  themeListbox: Listbox.Model,
-  toolRadioGroup: RadioGroup.Model,
-  gridSizeRadioGroup: RadioGroup.Model,
-  paletteRadioGroup: RadioGroup.Model,
+  themeListbox: ThemeListboxBlock.Model,
+  toolRadioGroup: ToolRadioGroupBlock.Model,
+  gridSizeRadioGroup: GridSizeRadioGroupBlock.Model,
+  paletteRadioGroup: PaletteRadioGroupBlock.Model,
 })
 export type Model = typeof Model.Type
 

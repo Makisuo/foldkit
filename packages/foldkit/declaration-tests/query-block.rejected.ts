@@ -12,11 +12,9 @@ const Notes = Query.define({
 // @ts-expect-error A Query host requires its exact Fetch handler contract.
 Notes.provideHandlers(Layer.empty)
 
-const ParentModel = Schema.Struct({ label: Schema.String })
-const ParentMessage = Message.defineMessageUnion({
-  GotNotesMessage: { message: Notes.Message },
-})
-const RejectedDeclarationQueryParentDefinition = Block.define(
+const ParentModel = Schema.Struct({ label: Schema.String, notes: Notes.Model })
+const ParentMessage = Message.defineMessageUnion({ ClickedParent: {} })
+const RejectedDeclarationQueryParentDefinition = Block.makeDefinition(
   'RejectedDeclarationQueryParent',
   {
     Model: ParentModel,
@@ -24,11 +22,23 @@ const RejectedDeclarationQueryParentDefinition = Block.define(
   },
 )
 
+// @ts-expect-error The direct parent field must contain the Query Model.
+RejectedDeclarationQueryParentDefinition.bindChild(Notes, { field: 'label' })
+
+// @ts-expect-error Authored parent Message constructors are no longer Binding configuration.
 RejectedDeclarationQueryParentDefinition.bindChild(Notes, {
-  // @ts-expect-error The direct parent field must contain the Query Model.
-  field: 'label',
-  // @ts-expect-error This invalid Binding configuration has no matching overload.
-  parentMessage: ParentMessage.GotNotesMessage,
+  field: 'notes',
+  parentMessage: ParentMessage.ClickedParent,
+})
+// @ts-expect-error Authored child-to-parent Message mappers are no longer Binding configuration.
+RejectedDeclarationQueryParentDefinition.bindChild(Notes, {
+  field: 'notes',
+  toParentMessage: () => ParentMessage.ClickedParent(),
+})
+// @ts-expect-error Authored parent-to-child Message routes are no longer Binding configuration.
+RejectedDeclarationQueryParentDefinition.bindChild(Notes, {
+  field: 'notes',
+  fromParentMessage: false,
 })
 
 Query.define({

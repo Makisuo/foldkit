@@ -4,18 +4,21 @@ import type { Block } from 'foldkit'
 import { Child } from '../child'
 import { Message as ExtensionMessage } from './definition.ts'
 import { Message as RedundantPathMessage } from '././definition'
-import { Message as ProfileMessage, Profile } from './definition'
+import {
+  Message as ProfileMessage,
+  ProfileDefinition,
+} from './definition'
 
 const Message = ProfileMessage
 
-export const SaveProfile = Profile.command('SaveProfile', {
+export const SaveProfile = ProfileDefinition.command('SaveProfile', {
   messages: [Message.CompletedSave],
   handler: function* () {
     return () => Effect.succeed(Message.CompletedSave())
   },
 })
 
-export const SaveProfileWithExtensionImport = Profile.command(
+export const SaveProfileWithExtensionImport = ProfileDefinition.command(
   'SaveProfileWithExtensionImport',
   {
     messages: [ExtensionMessage.CompletedSaveFromExtensionImport],
@@ -26,7 +29,7 @@ export const SaveProfileWithExtensionImport = Profile.command(
   },
 )
 
-export const SaveProfileWithRedundantLocalPath = Profile.command(
+export const SaveProfileWithRedundantLocalPath = ProfileDefinition.command(
   'SaveProfileWithRedundantLocalPath',
   {
     messages: [RedundantPathMessage.CompletedSaveFromRedundantLocalPath],
@@ -39,13 +42,13 @@ export const SaveProfileWithRedundantLocalPath = Profile.command(
   },
 )
 
-export const ChildBinding = Profile.bindChild(Child.block, {
+export const ChildBinding = ProfileDefinition.bindChild(Child.block, {
   field: 'child',
   toParentMessage: message => Message.GotChildMessage({ message }),
 })
 
-export const ProfileComposition = Profile.makeComposition({
-  childBindings: [ChildBinding],
+export const ProfileComposition = ProfileDefinition.makeComposition({
+  bindings: [ChildBinding],
 })
 export type ProfileViewBuilder = Block.ViewBuilderFor<typeof ProfileComposition>
 

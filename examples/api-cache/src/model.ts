@@ -33,10 +33,10 @@ export type StatsData = typeof StatsData.schema.Type
 export const Tab = Schema.Literals(['Posts', 'Stats'])
 export type Tab = typeof Tab.Type
 
-export const ApplicationTabs = Tabs.create<Tab>()
+export const ApplicationTabsBlock = Tabs.create<Tab>()
 
 export const Model = Schema.Struct({
-  tabs: ApplicationTabs.Model,
+  tabs: ApplicationTabsBlock.Model,
   activeTab: Tab,
   posts: PostsData.schema,
   postDetailById: Schema.HashMap(Schema.String, PostDetailData.schema),

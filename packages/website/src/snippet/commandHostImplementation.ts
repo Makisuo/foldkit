@@ -1,22 +1,24 @@
-import { Effect } from 'effect'
+import { Array, Effect } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
 
 import { BrowserKeyValueStore } from '@effect/platform-browser'
 
-import * as Editor from './commandHostContract'
+import { EditorBlock } from './commandHostContract'
 
 const DOCUMENT_STORAGE_KEY = 'editor-document'
 
-const SaveDocumentLayer = Editor.SaveDocument.toLayer(
+const SaveDocument = Array.headNonEmpty(EditorBlock.hostHandlers)
+
+const SaveDocumentLayer = SaveDocument.toLayer(
   Effect.gen(function* () {
     const store = yield* KeyValueStore.KeyValueStore
 
     return ({ contents }) =>
       store.set(DOCUMENT_STORAGE_KEY, contents).pipe(
-        Effect.as(Editor.Message.SucceededSaveDocument()),
+        Effect.as(EditorBlock.Message.SucceededSaveDocument()),
         Effect.catch(() =>
           Effect.succeed(
-            Editor.Message.FailedSaveDocument({
+            EditorBlock.Message.FailedSaveDocument({
               reason: 'The document could not be saved.',
             }),
           ),
@@ -25,7 +27,7 @@ const SaveDocumentLayer = Editor.SaveDocument.toLayer(
   }),
 )
 
-export const editor = Editor.block.provideHandlers(SaveDocumentLayer)
+export const editor = EditorBlock.provideHandlers(SaveDocumentLayer)
 
 const ServicesLayer = BrowserKeyValueStore.layerLocalStorage
 

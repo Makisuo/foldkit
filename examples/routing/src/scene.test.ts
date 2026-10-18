@@ -3,13 +3,14 @@ import { expect, given, role, scene, text } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
 import { Model } from './model'
-import { People, SearchResults, searchPeople } from './page'
+import { PeopleBlock } from './page'
+import { SearchResults, searchPeople } from './page/people/model'
 import { ApplicationRoute } from './route'
 import { update } from './update'
 import { view } from './view'
 
 const peoplePageWith = (searchInput: string) =>
-  People.Model.make({
+  PeopleBlock.Model.make({
     searchInput,
     searchHistory: Array.liftPredicate(String.isNonEmpty)(searchInput),
     results: SearchResults.Loaded({

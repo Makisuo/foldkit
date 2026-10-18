@@ -3,7 +3,8 @@ import {
   HorizontalRadioGroupDemoBinding,
   VerticalRadioGroupDemoBinding,
 } from '../composition'
-import { type Model, type Plan } from '../model'
+import { type Plan } from '../domain/domain'
+import { type Model } from '../model'
 
 // DEMO CONTENT
 

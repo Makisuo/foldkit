@@ -1,6 +1,5 @@
 import { clsx } from 'clsx'
 import { Match, Option, String } from 'effect'
-import { AsyncData } from 'foldkit'
 import { Html, createLazy, inertHtml as ih } from 'foldkit/html'
 
 import { type CodeBlock, Shared } from '../component'
@@ -24,10 +23,9 @@ import {
   AiMcp,
   AiOverview,
   AiSkills,
-  ApiReference,
+  ApiReferenceBlock,
   AsyncData as AsyncDataPage,
   BestPractices,
-  ComingFromReact,
   ComingFromTanStackQuery,
   Contact,
   ContentApi,
@@ -50,13 +48,18 @@ import {
   TestingStory,
   ToolingLinting,
   TypingTerminal,
-  Ui,
   WhyFoldkit,
 } from '../page'
+import * as ApiReference from '../page/apiReference/domain'
+import * as ComingFromReact from '../page/comingFromReact/domain'
+import * as CoreBlockMetadata from '../page/core/blockPage/domain'
+import * as UiDocumentation from '../page/ui/domain'
 import * as Prose from '../prose'
 import { ApplicationRoute, type DocsRoute, homeRouter } from '../route'
-import * as SnippetCopy from '../snippetCopy'
-import * as SnippetDisclosure from '../snippetDisclosure'
+import { SnippetCopyBlock } from '../snippetCopy'
+import * as SnippetCopyRenderer from '../snippetCopyRenderer'
+import { SnippetDisclosureBlock } from '../snippetDisclosure'
+import * as SnippetDisclosureRenderer from '../snippetDisclosureRenderer'
 import { type TableOfContentsEntry } from '../tableOfContentsEntry'
 import {
   HeaderNav,
@@ -348,18 +351,16 @@ const withoutTableOfContents = (content: Html): DocsPageView => ({
 })
 
 const renderApiReference = (
-  apiReferenceModel: typeof ApiReference.Model.Type,
-  module: ApiReference.ApiModule,
-  highlights: ApiReference.ApiData['highlights'],
+  apiReferenceModel: typeof ApiReferenceBlock.Model.Type,
+  moduleSlug: string,
   h: ApplicationViewBuilder,
 ): Html =>
   h.block(
     ApiReferenceBinding.embedView({
-      slotId: `api-reference-${module.name}`,
+      slotId: `api-reference-${moduleSlug}`,
       model: apiReferenceModel,
       viewInputs: {
-        module,
-        highlights,
+        moduleSlug,
         renderHeadingLink: Prose.renderHeadingLink(
           hash => Message.ClickedCopyLink({ hash }),
           h,
@@ -378,18 +379,20 @@ type ProseDocPageView = (renderHeadingLink: Prose.RenderHeadingLink) => Html
 
 const renderDocContent = (
   pageView: DocPageView,
-  snippetCopy: SnippetCopy.Model,
-  snippetDisclosure: SnippetDisclosure.Model,
+  snippetCopy: typeof SnippetCopyBlock.Model.Type,
+  snippetDisclosure: typeof SnippetDisclosureBlock.Model.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const renderCopyButton = SnippetCopy.renderer(snippetCopy, config =>
+  const renderCopyButton = SnippetCopyRenderer.renderer(snippetCopy, config =>
     h.block(SnippetCopyBinding.embedView(config)),
   )
 
   return pageView(
     renderCopyButton,
-    SnippetDisclosure.renderer(snippetDisclosure, renderCopyButton, config =>
-      h.block(SnippetDisclosureBinding.embedView(config)),
+    SnippetDisclosureRenderer.renderer(
+      snippetDisclosure,
+      renderCopyButton,
+      config => h.block(SnippetDisclosureBinding.embedView(config)),
     ),
     Prose.renderHeadingLink(hash => Message.ClickedCopyLink({ hash }), h),
   )
@@ -407,8 +410,8 @@ const memoizedDocContent = createLazy()
 const memoizedProseContent = createLazy()
 
 type DocContentArgs = readonly [
-  SnippetCopy.Model,
-  SnippetDisclosure.Model,
+  typeof SnippetCopyBlock.Model.Type,
+  typeof SnippetDisclosureBlock.Model.Type,
   ApplicationViewBuilder,
 ]
 
@@ -421,17 +424,17 @@ const lazyProseContent = (
 ): Html => memoizedProseContent(renderProseContent, [view, ...args])
 
 const lazyApiReference = createLazy()
-const lazyApiReferenceSkeleton = createLazy()
 
 export const view = (
   model: Model,
   docsRoute: DocsRoute,
   h: ApplicationViewBuilder,
 ) => {
-  const renderCopyButton = SnippetCopy.renderer(model.snippetCopy, config =>
-    h.block(SnippetCopyBinding.embedView(config)),
+  const renderCopyButton = SnippetCopyRenderer.renderer(
+    model.snippetCopy,
+    config => h.block(SnippetCopyBinding.embedView(config)),
   )
-  const renderSnippet = SnippetDisclosure.renderer(
+  const renderSnippet = SnippetDisclosureRenderer.renderer(
     model.snippetDisclosure,
     renderCopyButton,
     config => h.block(SnippetDisclosureBinding.embedView(config)),
@@ -584,36 +587,17 @@ export const view = (
           lazyDocsContent(ToolingLinting.view, docContentArgs),
           ToolingLinting.tableOfContents,
         ),
-      ApiModule: ({ moduleSlug }) =>
-        AsyncData.matchData(model.apiReference.apiData, {
-          onData: data =>
-            Option.match(
-              ApiReference.resolveModule(data.parsedApi, moduleSlug),
-              {
-                onSome: module => ({
-                  content: lazyApiReference(renderApiReference, [
-                    model.apiReference,
-                    module,
-                    data.highlights,
-                    h,
-                  ]),
-                  tableOfContents: Option.some(
-                    ApiReference.toModuleTableOfContents(module),
-                  ),
-                }),
-                onNone: () =>
-                  withoutTableOfContents(
-                    NotFound.view(moduleSlug, homeRouter()),
-                  ),
-              },
-            ),
-          onFailure: error =>
-            withoutTableOfContents(ApiReference.failureView(error)),
-          onEmpty: () =>
-            withoutTableOfContents(
-              lazyApiReferenceSkeleton(ApiReference.skeletonView, []),
-            ),
-        }),
+      ApiModule: ({ moduleSlug }) => ({
+        content: lazyApiReference(renderApiReference, [
+          model.apiReference,
+          moduleSlug,
+          h,
+        ]),
+        tableOfContents: ApiReference.tableOfContentsFor(
+          model.apiReference,
+          moduleSlug,
+        ),
+      }),
       CoreArchitecture: () =>
         withTableOfContents(
           Core.Architecture.view(renderHeadingLink),
@@ -762,7 +746,7 @@ export const view = (
               },
             }),
           ),
-          Core.BlockPage.tableOfContents,
+          CoreBlockMetadata.tableOfContents,
         ),
       CoreMachine: () =>
         withTableOfContents(
@@ -804,18 +788,54 @@ export const view = (
         ),
       UiOverview: () =>
         withTableOfContents(
-          lazyDocsContent(Ui.OverviewPage.view, docContentArgs),
-          Ui.OverviewPage.tableOfContents,
+          h.block(
+            UiPagesBinding.embedView({
+              slotId: 'ui-Overview',
+              model: model.uiPages,
+              viewInputs: {
+                page: 'Overview',
+                url: model.url,
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
+          UiDocumentation.tableOfContentsFor('Overview'),
         ),
       UiSelectionBlocks: () =>
         withTableOfContents(
-          lazyDocsContent(Ui.SelectionBlocksPage.view, docContentArgs),
-          Ui.SelectionBlocksPage.tableOfContents,
+          h.block(
+            UiPagesBinding.embedView({
+              slotId: 'ui-SelectionBlocks',
+              model: model.uiPages,
+              viewInputs: {
+                page: 'SelectionBlocks',
+                url: model.url,
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
+          UiDocumentation.tableOfContentsFor('SelectionBlocks'),
         ),
       UiAnchor: () =>
         withTableOfContents(
-          lazyDocsContent(Ui.AnchorPage.view, docContentArgs),
-          Ui.AnchorPage.tableOfContents,
+          h.block(
+            UiPagesBinding.embedView({
+              slotId: 'ui-Anchor',
+              model: model.uiPages,
+              viewInputs: {
+                page: 'Anchor',
+                url: model.url,
+                renderCopyButton,
+                renderSnippet,
+                renderHeadingLink,
+              },
+            }),
+          ),
+          UiDocumentation.tableOfContentsFor('Anchor'),
         ),
       UiHoverIntent: () =>
         withTableOfContents(
@@ -823,15 +843,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-HoverIntent',
               model: model.uiPages,
-              view: Ui.HoverIntentPage.view,
               viewInputs: {
+                page: 'HoverIntent',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.HoverIntentPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('HoverIntent'),
         ),
       UiButton: () =>
         withTableOfContents(
@@ -839,15 +860,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Button',
               model: model.uiPages,
-              view: Ui.ButtonPage.view,
               viewInputs: {
+                page: 'Button',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.ButtonPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Button'),
         ),
       UiTabs: () =>
         withTableOfContents(
@@ -855,15 +877,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Tabs',
               model: model.uiPages,
-              view: Ui.TabsPage.view,
               viewInputs: {
+                page: 'Tabs',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.TabsPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Tabs'),
         ),
       UiNav: () =>
         withTableOfContents(
@@ -871,16 +894,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Nav',
               model: model.uiPages,
-              view: Ui.NavPage.view,
               viewInputs: {
+                page: 'Nav',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
-                url: model.url,
               },
             }),
           ),
-          Ui.NavPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Nav'),
         ),
       UiDisclosure: () =>
         withTableOfContents(
@@ -888,15 +911,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Disclosure',
               model: model.uiPages,
-              view: Ui.DisclosurePage.view,
               viewInputs: {
+                page: 'Disclosure',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.DisclosurePage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Disclosure'),
         ),
       UiDialog: () =>
         withTableOfContents(
@@ -904,15 +928,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Dialog',
               model: model.uiPages,
-              view: Ui.DialogPage.view,
               viewInputs: {
+                page: 'Dialog',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.DialogPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Dialog'),
         ),
       UiMenu: () =>
         withTableOfContents(
@@ -920,15 +945,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Menu',
               model: model.uiPages,
-              view: Ui.MenuPage.view,
               viewInputs: {
+                page: 'Menu',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.MenuPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Menu'),
         ),
       UiPopover: () =>
         withTableOfContents(
@@ -936,15 +962,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Popover',
               model: model.uiPages,
-              view: Ui.PopoverPage.view,
               viewInputs: {
+                page: 'Popover',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.PopoverPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Popover'),
         ),
       UiTooltip: () =>
         withTableOfContents(
@@ -952,15 +979,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Tooltip',
               model: model.uiPages,
-              view: Ui.TooltipPage.view,
               viewInputs: {
+                page: 'Tooltip',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.TooltipPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Tooltip'),
         ),
       UiToast: () =>
         withTableOfContents(
@@ -968,15 +996,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Toast',
               model: model.uiPages,
-              view: Ui.ToastPage.view,
               viewInputs: {
+                page: 'Toast',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.ToastPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Toast'),
         ),
       UiListbox: () =>
         withTableOfContents(
@@ -984,15 +1013,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Listbox',
               model: model.uiPages,
-              view: Ui.ListboxPage.view,
               viewInputs: {
+                page: 'Listbox',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.ListboxPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Listbox'),
         ),
       UiRadioGroup: () =>
         withTableOfContents(
@@ -1000,15 +1030,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-RadioGroup',
               model: model.uiPages,
-              view: Ui.RadioGroupPage.view,
               viewInputs: {
+                page: 'RadioGroup',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.RadioGroupPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('RadioGroup'),
         ),
       UiSlider: () =>
         withTableOfContents(
@@ -1016,15 +1047,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Slider',
               model: model.uiPages,
-              view: Ui.SliderPage.view,
               viewInputs: {
+                page: 'Slider',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.SliderPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Slider'),
         ),
       UiMeter: () =>
         withTableOfContents(
@@ -1032,15 +1064,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Meter',
               model: model.uiPages,
-              view: Ui.MeterPage.view,
               viewInputs: {
+                page: 'Meter',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.MeterPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Meter'),
         ),
       UiProgress: () =>
         withTableOfContents(
@@ -1048,15 +1081,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Progress',
               model: model.uiPages,
-              view: Ui.ProgressPage.view,
               viewInputs: {
+                page: 'Progress',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.ProgressPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Progress'),
         ),
       UiSwitch: () =>
         withTableOfContents(
@@ -1064,15 +1098,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Switch',
               model: model.uiPages,
-              view: Ui.SwitchPage.view,
               viewInputs: {
+                page: 'Switch',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.SwitchPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Switch'),
         ),
       UiCalendar: () =>
         withTableOfContents(
@@ -1080,15 +1115,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Calendar',
               model: model.uiPages,
-              view: Ui.CalendarPage.view,
               viewInputs: {
+                page: 'Calendar',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.CalendarPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Calendar'),
         ),
       UiDatePicker: () =>
         withTableOfContents(
@@ -1096,15 +1132,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-DatePicker',
               model: model.uiPages,
-              view: Ui.DatePickerPage.view,
               viewInputs: {
+                page: 'DatePicker',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.DatePickerPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('DatePicker'),
         ),
       UiCheckbox: () =>
         withTableOfContents(
@@ -1112,15 +1149,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Checkbox',
               model: model.uiPages,
-              view: Ui.CheckboxPage.view,
               viewInputs: {
+                page: 'Checkbox',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.CheckboxPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Checkbox'),
         ),
       UiCombobox: () =>
         withTableOfContents(
@@ -1128,15 +1166,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Combobox',
               model: model.uiPages,
-              view: Ui.ComboboxPage.view,
               viewInputs: {
+                page: 'Combobox',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.ComboboxPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Combobox'),
         ),
       UiInput: () =>
         withTableOfContents(
@@ -1144,15 +1183,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Input',
               model: model.uiPages,
-              view: Ui.InputPage.view,
               viewInputs: {
+                page: 'Input',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.InputPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Input'),
         ),
       UiTextarea: () =>
         withTableOfContents(
@@ -1160,15 +1200,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Textarea',
               model: model.uiPages,
-              view: Ui.TextareaPage.view,
               viewInputs: {
+                page: 'Textarea',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.TextareaPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Textarea'),
         ),
       UiFieldset: () =>
         withTableOfContents(
@@ -1176,15 +1217,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Fieldset',
               model: model.uiPages,
-              view: Ui.FieldsetPage.view,
               viewInputs: {
+                page: 'Fieldset',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.FieldsetPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Fieldset'),
         ),
       UiSelect: () =>
         withTableOfContents(
@@ -1192,15 +1234,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Select',
               model: model.uiPages,
-              view: Ui.SelectPage.view,
               viewInputs: {
+                page: 'Select',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.SelectPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Select'),
         ),
       UiDragAndDrop: () =>
         withTableOfContents(
@@ -1208,15 +1251,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-DragAndDrop',
               model: model.uiPages,
-              view: Ui.DragAndDropPage.view,
               viewInputs: {
+                page: 'DragAndDrop',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.DragAndDropPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('DragAndDrop'),
         ),
       UiFileDrop: () =>
         withTableOfContents(
@@ -1224,15 +1268,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-FileDrop',
               model: model.uiPages,
-              view: Ui.FileDropPage.view,
               viewInputs: {
+                page: 'FileDrop',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.FileDropPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('FileDrop'),
         ),
       UiAnimation: () =>
         withTableOfContents(
@@ -1240,15 +1285,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-Animation',
               model: model.uiPages,
-              view: Ui.AnimationPage.view,
               viewInputs: {
+                page: 'Animation',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.AnimationPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('Animation'),
         ),
       UiVirtualList: () =>
         withTableOfContents(
@@ -1256,15 +1302,16 @@ export const view = (
             UiPagesBinding.embedView({
               slotId: 'ui-VirtualList',
               model: model.uiPages,
-              view: Ui.VirtualListPage.view,
               viewInputs: {
+                page: 'VirtualList',
+                url: model.url,
                 renderCopyButton,
                 renderSnippet,
                 renderHeadingLink,
               },
             }),
           ),
-          Ui.VirtualListPage.tableOfContents,
+          UiDocumentation.tableOfContentsFor('VirtualList'),
         ),
       AiOverview: () =>
         withTableOfContents(

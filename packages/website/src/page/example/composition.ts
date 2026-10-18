@@ -3,17 +3,15 @@ import type { Block } from 'foldkit'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import { Tabs } from '@foldkit/ui'
-
 import { ExampleDetailDefinition } from './definition'
+import { SourceFileTabsBlock } from './fileTabs'
 import { Message } from './message'
 import { Model } from './model'
 import { ObserveExampleUrlMessages } from './mount'
 
-export const SourceFileTabs = Tabs.create()
 export const SOURCE_FILE_TABS_ID = 'source-file-tabs'
 
-const foldSourceFileTabsOutMessage = Tabs.OutMessage.match<
+const foldSourceFileTabsOutMessage = SourceFileTabsBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   Selected:
@@ -26,12 +24,11 @@ const foldSourceFileTabsOutMessage = Tabs.OutMessage.match<
 })
 
 export const SourceFileTabsBinding = ExampleDetailDefinition.bindChild(
-  SourceFileTabs,
+  SourceFileTabsBlock,
   {
     field: 'sourceFileTabs',
-    parentMessage: Message.GotSourceFileTabsMessage,
     outMessage: { fold: foldSourceFileTabsOutMessage },
-    init: { startupToArgs: () => Tuple.make({ id: SOURCE_FILE_TABS_ID }) },
+    init: { contextToArgs: () => Tuple.make({ id: SOURCE_FILE_TABS_ID }) },
   },
 )
 
@@ -39,7 +36,7 @@ export const mounts = [ObserveExampleUrlMessages]
 
 export const ExampleDetailComposition = ExampleDetailDefinition.makeComposition(
   {
-    childBindings: [SourceFileTabsBinding],
+    bindings: [SourceFileTabsBinding],
     mounts,
   },
 )

@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Option, Schema, Tuple } from 'effect'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import type {
   Element as ElementProgram,
   PendingApplication,
@@ -145,7 +145,7 @@ export const SettingsOutMessage = defineMessageUnion({
 })
 export type SettingsOutMessage = typeof SettingsOutMessage.Type
 
-const SettingsDefinition = Block.define('Settings', {
+const SettingsDefinition = Block.makeDefinition('Settings', {
   Model: SettingsModel,
   Message: SettingsMessage,
   OutMessage: SettingsOutMessage,
@@ -168,7 +168,7 @@ export const SyncSettings = SettingsDefinition.command('SyncSettings', {
 export const SettingsComposition = SettingsDefinition.makeComposition()
 export const settingsInit = SettingsComposition.makeInit((theme: string) => ({
   model: SettingsModel.make({ theme }),
-  commands: [SyncSettings({ accountId: 'startup', theme })],
+  commands: [SyncSettings({ accountId: 'childInitContext', theme })],
 }))
 export const settingsUpdate = SettingsComposition.makeUpdate(
   (model, message, currentUser: CurrentUser) =>
@@ -194,7 +194,7 @@ export const refreshSettings = SettingsDefinition.step(
 )
 
 export const SettingsEffectsLayer = SyncSettings.layer
-export const SettingsBlock = SettingsComposition.makeBlock({
+export const SettingsBlock = SettingsComposition.assembleBlock({
   init: settingsInit,
   update: settingsUpdate,
   operations: {
@@ -239,12 +239,11 @@ export type StatusModel = typeof StatusModel.Type
 export const StatusMessage = defineMessageUnion({ Incremented: {} })
 export type StatusMessage = typeof StatusMessage.Type
 
-const StatusDefinition = Block.define('Status', {
+const StatusComposition = Block.makeDefinition('Status', {
   Model: StatusModel,
   Message: StatusMessage,
-})
-const StatusComposition = StatusDefinition.makeComposition()
-export const StatusBlock = StatusComposition.makeBlock({
+}).makeComposition()
+export const StatusBlock = StatusComposition.assembleBlock({
   init: StatusComposition.makeInit(() => ({
     model: StatusModel.make({ count: 0 }),
   })),
@@ -267,12 +266,11 @@ export const RoomMessage = defineMessageUnion({
 })
 export type RoomMessage = typeof RoomMessage.Type
 
-const RoomDefinition = Block.define('Room', {
+const RoomComposition = Block.makeDefinition('Room', {
   Model: RoomModel,
   Message: RoomMessage,
-})
-const RoomComposition = RoomDefinition.makeComposition()
-export const RoomBlock = RoomComposition.makeBlock({
+}).makeComposition()
+export const RoomBlock = RoomComposition.assembleBlock({
   init: RoomComposition.makeInit((id: string, name: string) => ({
     model: RoomModel.make({ id, name }),
   })),
@@ -302,10 +300,6 @@ export const ParentModel = Schema.Struct({
 export type ParentModel = typeof ParentModel.Type
 
 export const ParentMessage = defineMessageUnion({
-  GotSettingsMessage: { message: SettingsBlock.Message },
-  GotStatusMessage: { message: StatusBlock.Message },
-  GotProjectedStatusMessage: { message: StatusBlock.Message },
-  GotRoomMessage: { roomId: Schema.String, message: RoomBlock.Message },
   OpenedDashboard: {},
 })
 export type ParentMessage = typeof ParentMessage.Type
@@ -324,23 +318,11 @@ declare const expectNotAnyOrUnknown: <Actual>(
 ) => void
 declare const expectExactParentStartup: <Actual>(
   value: Actual,
-  ...proof: ExactArgumentProof<Actual, ParentStartup>
-) => void
-declare const expectExactSettingsMessage: <Actual>(
-  value: Actual,
-  ...proof: ExactArgumentProof<Actual, SettingsMessage>
+  ...proof: ExactArgumentProof<Actual, ParentChildInitContext>
 ) => void
 declare const expectExactStatusModel: <Actual>(
   value: Actual,
   ...proof: ExactArgumentProof<Actual, StatusModel>
-) => void
-declare const expectExactRoomKey: <Actual>(
-  value: Actual,
-  ...proof: ExactArgumentProof<Actual, string>
-) => void
-declare const expectExactRoomMessage: <Actual>(
-  value: Actual,
-  ...proof: ExactArgumentProof<Actual, RoomMessage>
 ) => void
 
 export const ParentOutMessage = defineMessageUnion({
@@ -348,7 +330,7 @@ export const ParentOutMessage = defineMessageUnion({
 })
 export type ParentOutMessage = typeof ParentOutMessage.Type
 
-export const ParentDefinition = Block.define('Parent', {
+export const ParentDefinition = Block.makeDefinition('Parent', {
   Model: ParentModel,
   Message: ParentMessage,
   OutMessage: ParentOutMessage,
@@ -356,25 +338,17 @@ export const ParentDefinition = Block.define('Parent', {
 
 export const SettingsBinding = ParentDefinition.bindChild(SettingsBlock, {
   field: 'settings',
-  parentMessage: ParentMessage.GotSettingsMessage,
-  fromParentMessage: {
-    args: (model, { message }) => {
+  delivery: {
+    toUpdateContext: model => {
       expectNotAnyOrUnknown(model)
-      type ParentModelContextIsExact = Expect<
-        MutuallyAssignable<typeof model, ParentModel>
-      >
-      const parentModelContextIsExact: ParentModelContextIsExact = true
-      void parentModelContextIsExact
-      expectExactSettingsMessage(message)
-
-      return Option.some([message, model.currentUser])
+      return [model.currentUser]
     },
   },
   init: {
-    startupToArgs: (startup: ParentStartup) => {
-      expectExactParentStartup(startup)
+    contextToArgs: (childInitContext: ParentChildInitContext) => {
+      expectExactParentStartup(childInitContext)
 
-      return [startup.theme]
+      return [childInitContext.theme]
     },
   },
   outMessage: {
@@ -388,7 +362,6 @@ export const SettingsBinding = ParentDefinition.bindChild(SettingsBlock, {
 
 export const StatusBinding = ParentDefinition.bindChild(StatusBlock, {
   field: 'status',
-  parentMessage: ParentMessage.GotStatusMessage,
   init: true,
 })
 
@@ -397,15 +370,9 @@ export const ProjectedStatusBinding = ParentDefinition.bindChild(StatusBlock, {
   read: model => Option.some(model.secondaryStatus),
   write: (model, nextStatus) =>
     Struct.modifyFields(model, { secondaryStatus: () => nextStatus }),
-  toParentMessage: message =>
-    ParentMessage.GotProjectedStatusMessage({ message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotProjectedStatusMessage,
-    args: (_model, { message }) => Option.some([message]),
-  },
   init: {
-    startupToArgs: () => [],
-    model: status => {
+    contextToArgs: () => [],
+    toParentFields: status => {
       expectExactStatusModel(status)
 
       return { secondaryStatus: status }
@@ -417,37 +384,18 @@ export const RoomBinding = ParentDefinition.bindChild(RoomBlock, {
   placement: 'room',
   readAll: model => Option.toArray(model.maybeRoom),
   key: room => room.id,
+  keySchema: RoomModel.fields.id,
   read: room => room,
   writeAt: (model, _roomId, nextRoom) =>
     Struct.modifyFields(model, { maybeRoom: () => Option.some(nextRoom) }),
-  toParentMessage: (roomId, message) => {
-    expectExactRoomKey(roomId)
-    expectExactRoomMessage(message)
-
-    return ParentMessage.GotRoomMessage({ roomId, message })
-  },
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotRoomMessage,
-    args: (model, { roomId, message }) => {
-      expectNotAnyOrUnknown(model)
-      type ParentModelContextIsExact = Expect<
-        MutuallyAssignable<typeof model, ParentModel>
-      >
-      const parentModelContextIsExact: ParentModelContextIsExact = true
-      void parentModelContextIsExact
-      expectExactRoomKey(roomId)
-      expectExactRoomMessage(message)
-
-      return ApplicationRoute.matchOrElse(
+  delivery: {
+    when: (model, roomId) =>
+      ApplicationRoute.matchOrElse(
         model.route,
-        {
-          Room: route => route.roomId === roomId,
-        },
+        { Room: route => route.roomId === roomId },
         () => false,
-      )
-        ? Option.some([roomId, message, { roomId }])
-        : Option.none()
-    },
+      ),
+    toUpdateContext: (_model, roomId) => [{ roomId }],
   },
   subscriptions: {
     when: (model, roomId) =>
@@ -458,27 +406,23 @@ export const RoomBinding = ParentDefinition.bindChild(RoomBlock, {
 export const FirstStatusBinding = ParentDefinition.bindChild(StatusBlock, {
   field: 'status',
   placement: 'firstStatus',
-  parentMessage: ParentMessage.GotStatusMessage,
-
   init: false,
 })
 
 export const SecondStatusBinding = ParentDefinition.bindChild(StatusBlock, {
   field: 'status',
   placement: 'secondStatus',
-  parentMessage: ParentMessage.GotStatusMessage,
-
   init: false,
 })
 
-export type ParentStartup = Readonly<{
+export type ParentChildInitContext = Readonly<{
   theme: string
   currentUser: CurrentUser
   route: ApplicationRoute
 }>
 
 export const ParentComposition = ParentDefinition.makeComposition({
-  childBindings: [
+  bindings: [
     SettingsBinding,
     StatusBinding,
     ProjectedStatusBinding,
@@ -487,11 +431,11 @@ export const ParentComposition = ParentDefinition.makeComposition({
 })
 
 export const parentInit = ParentComposition.makeInit(
-  (startup: ParentStartup) => ({
-    startup,
+  (childInitContext: ParentChildInitContext) => ({
+    childInitContext,
     model: {
-      currentUser: startup.currentUser,
-      route: startup.route,
+      currentUser: childInitContext.currentUser,
+      route: childInitContext.route,
       maybeRoom: Option.none(),
     },
     steps: [StatusBinding.increment()],
@@ -533,13 +477,13 @@ export const foldRoom = ParentComposition.makeUpdate(
   ) => RoomBinding.fold(model, roomId, childMessage, context),
 )
 
-export const ParentBlock = ParentComposition.makeBlock({
+export const ParentBlock = ParentComposition.assembleBlock({
   init: parentInit,
   update: parentUpdate,
   EffectsLayer: Layer.empty,
 })
 
-export const ParentRefreshBlock = ParentComposition.makeBlock({
+export const ParentRefreshBlock = ParentComposition.assembleBlock({
   init: parentInit,
   update: parentRefreshUpdate,
   operations: {
@@ -549,7 +493,10 @@ export const ParentRefreshBlock = ParentComposition.makeBlock({
 })
 
 type ParentInitParametersAreExact = Expect<
-  Equal<Parameters<typeof parentInit>, [startup: ParentStartup]>
+  Equal<
+    Parameters<typeof parentInit>,
+    [childInitContext: ParentChildInitContext]
+  >
 >
 type ParentInitModelIsExact = Expect<
   Equal<ReturnType<typeof parentInit>['model'], ParentModel>
@@ -563,15 +510,15 @@ type ParentInitRequirementsAreExact = Expect<
 type ParentInitRegistrationIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<typeof parentInit>>,
-    | Block.BindingRequirement<'settings', typeof SettingsBlock>
-    | Block.BindingRequirement<'status', typeof StatusBlock>
-    | Block.BindingRequirement<'secondaryStatus', typeof StatusBlock>
+    | Block.RequirementOfBinding<typeof SettingsBinding>
+    | Block.RequirementOfBinding<typeof StatusBinding>
+    | Block.RequirementOfBinding<typeof ProjectedStatusBinding>
   >
 >
 type ParentUpdateParametersAreExact = Expect<
   Equal<
     Parameters<typeof parentUpdate>,
-    [model: ParentModel, message: ParentMessage]
+    [model: ParentModel, message: typeof ParentComposition.Message.Type]
   >
 >
 type ParentUpdateOutMessageIsExact = Expect<
@@ -583,7 +530,7 @@ type DirectRefreshOutMessageIsOpaque = Expect<
 type ParentRefreshMessageIsExact = Expect<
   Equal<
     ReturnCommandMessage<ReturnType<typeof parentRefreshUpdate>>,
-    ParentMessage
+    typeof ParentComposition.Message.Type
   >
 >
 type ParentRefreshRequirementsAreExact = Expect<
@@ -612,46 +559,57 @@ type ExposedRefreshOutMessageIsResolved = Expect<
     ParentOutMessage
   >
 >
+type GeneratedMessageOf<BindingValue> =
+  // oxlint-disable-next-line typescript/no-explicit-any -- This fixture rejects erased generated delivery channels below.
+  BindingValue extends Block.BindingDeliveryEvidence<any, any, infer Schema>
+    ? Schema extends import('effect').Schema.Top
+      ? Schema['Type']
+      : never
+    : never
+type SettingsDeliveryMessage = GeneratedMessageOf<typeof SettingsBinding>
+type StatusDeliveryMessage = GeneratedMessageOf<typeof StatusBinding>
+type RoomDeliveryMessage = GeneratedMessageOf<typeof RoomBinding>
+type FirstStatusDeliveryMessage = GeneratedMessageOf<typeof FirstStatusBinding>
+type SecondStatusDeliveryMessage = GeneratedMessageOf<
+  typeof SecondStatusBinding
+>
+type ProjectedStatusDeliveryMessage = GeneratedMessageOf<
+  typeof ProjectedStatusBinding
+>
 type SettingsDeliveryIsExact = Expect<
-  DeliveryIsExact<
-    typeof SettingsBinding,
-    ReturnType<typeof ParentMessage.GotSettingsMessage>,
-    ReturnType<typeof ParentMessage.GotSettingsMessage>
+  ExactWithoutAnyOrUnknown<
+    GeneratedMessageOf<typeof SettingsBinding>,
+    SettingsDeliveryMessage
   >
 >
 type StatusDeliveryIsExact = Expect<
-  DeliveryIsExact<
-    typeof StatusBinding,
-    ReturnType<typeof ParentMessage.GotStatusMessage>,
-    ReturnType<typeof ParentMessage.GotStatusMessage>
+  ExactWithoutAnyOrUnknown<
+    GeneratedMessageOf<typeof StatusBinding>,
+    StatusDeliveryMessage
   >
 >
 type RoomDeliveryIsExact = Expect<
-  DeliveryIsExact<
-    typeof RoomBinding,
-    ReturnType<typeof ParentMessage.GotRoomMessage>,
-    ReturnType<typeof ParentMessage.GotRoomMessage>
+  ExactWithoutAnyOrUnknown<
+    GeneratedMessageOf<typeof RoomBinding>,
+    RoomDeliveryMessage
   >
 >
 type FirstStatusDeliveryIsExact = Expect<
-  DeliveryIsExact<
-    typeof FirstStatusBinding,
-    ReturnType<typeof ParentMessage.GotStatusMessage>,
-    ReturnType<typeof ParentMessage.GotStatusMessage>
+  ExactWithoutAnyOrUnknown<
+    GeneratedMessageOf<typeof FirstStatusBinding>,
+    FirstStatusDeliveryMessage
   >
 >
 type SecondStatusDeliveryIsExact = Expect<
-  DeliveryIsExact<
-    typeof SecondStatusBinding,
-    ReturnType<typeof ParentMessage.GotStatusMessage>,
-    ReturnType<typeof ParentMessage.GotStatusMessage>
+  ExactWithoutAnyOrUnknown<
+    GeneratedMessageOf<typeof SecondStatusBinding>,
+    SecondStatusDeliveryMessage
   >
 >
 type ProjectedStatusDeliveryIsExact = Expect<
-  DeliveryIsExact<
-    typeof ProjectedStatusBinding,
-    ReturnType<typeof ParentMessage.GotProjectedStatusMessage>,
-    ReturnType<typeof ParentMessage.GotProjectedStatusMessage>
+  ExactWithoutAnyOrUnknown<
+    GeneratedMessageOf<typeof ProjectedStatusBinding>,
+    ProjectedStatusDeliveryMessage
   >
 >
 type DeliveryComparatorRejectsAnyOutgoing = Expect<
@@ -660,10 +618,10 @@ type DeliveryComparatorRejectsAnyOutgoing = Expect<
       Block.BindingDeliveryEvidence<
         // oxlint-disable-next-line typescript/no-explicit-any
         any,
-        ReturnType<typeof ParentMessage.GotRoomMessage>
+        RoomDeliveryMessage
       >,
-      ReturnType<typeof ParentMessage.GotRoomMessage>,
-      ReturnType<typeof ParentMessage.GotRoomMessage>
+      RoomDeliveryMessage,
+      RoomDeliveryMessage
     >,
     false
   >
@@ -672,12 +630,12 @@ type DeliveryComparatorRejectsAnyIncoming = Expect<
   Equal<
     DeliveryIsExact<
       Block.BindingDeliveryEvidence<
-        ReturnType<typeof ParentMessage.GotRoomMessage>,
+        RoomDeliveryMessage,
         // oxlint-disable-next-line typescript/no-explicit-any
         any
       >,
-      ReturnType<typeof ParentMessage.GotRoomMessage>,
-      ReturnType<typeof ParentMessage.GotRoomMessage>
+      RoomDeliveryMessage,
+      RoomDeliveryMessage
     >,
     false
   >
@@ -685,12 +643,9 @@ type DeliveryComparatorRejectsAnyIncoming = Expect<
 type DeliveryComparatorRejectsUnknownOutgoing = Expect<
   Equal<
     DeliveryIsExact<
-      Block.BindingDeliveryEvidence<
-        unknown,
-        ReturnType<typeof ParentMessage.GotRoomMessage>
-      >,
-      ReturnType<typeof ParentMessage.GotRoomMessage>,
-      ReturnType<typeof ParentMessage.GotRoomMessage>
+      Block.BindingDeliveryEvidence<unknown, RoomDeliveryMessage>,
+      RoomDeliveryMessage,
+      RoomDeliveryMessage
     >,
     false
   >
@@ -699,13 +654,13 @@ type DeliveryComparatorRejectsNestedAny = Expect<
   Equal<
     DeliveryIsExact<
       Block.BindingDeliveryEvidence<
-        Omit<ReturnType<typeof ParentMessage.GotRoomMessage>, 'message'> &
+        Omit<RoomDeliveryMessage, 'message'> &
           // oxlint-disable-next-line typescript/no-explicit-any
           Readonly<{ message: any }>,
-        ReturnType<typeof ParentMessage.GotRoomMessage>
+        RoomDeliveryMessage
       >,
-      ReturnType<typeof ParentMessage.GotRoomMessage>,
-      ReturnType<typeof ParentMessage.GotRoomMessage>
+      RoomDeliveryMessage,
+      RoomDeliveryMessage
     >,
     false
   >
@@ -714,12 +669,11 @@ type DeliveryComparatorRejectsNestedUnknown = Expect<
   Equal<
     DeliveryIsExact<
       Block.BindingDeliveryEvidence<
-        Omit<ReturnType<typeof ParentMessage.GotRoomMessage>, 'roomId'> &
-          Readonly<{ roomId: unknown }>,
-        ReturnType<typeof ParentMessage.GotRoomMessage>
+        Omit<RoomDeliveryMessage, 'roomId'> & Readonly<{ roomId: unknown }>,
+        RoomDeliveryMessage
       >,
-      ReturnType<typeof ParentMessage.GotRoomMessage>,
-      ReturnType<typeof ParentMessage.GotRoomMessage>
+      RoomDeliveryMessage,
+      RoomDeliveryMessage
     >,
     false
   >
@@ -727,12 +681,9 @@ type DeliveryComparatorRejectsNestedUnknown = Expect<
 type DeliveryComparatorRejectsBroadOutgoing = Expect<
   Equal<
     DeliveryIsExact<
-      Block.BindingDeliveryEvidence<
-        ParentMessage,
-        ReturnType<typeof ParentMessage.GotRoomMessage>
-      >,
-      ReturnType<typeof ParentMessage.GotRoomMessage>,
-      ReturnType<typeof ParentMessage.GotRoomMessage>
+      Block.BindingDeliveryEvidence<ParentMessage, RoomDeliveryMessage>,
+      RoomDeliveryMessage,
+      RoomDeliveryMessage
     >,
     false
   >
@@ -740,23 +691,20 @@ type DeliveryComparatorRejectsBroadOutgoing = Expect<
 type DeliveryComparatorRejectsBroadIncoming = Expect<
   Equal<
     DeliveryIsExact<
-      Block.BindingDeliveryEvidence<
-        ReturnType<typeof ParentMessage.GotRoomMessage>,
-        ParentMessage
-      >,
-      ReturnType<typeof ParentMessage.GotRoomMessage>,
-      ReturnType<typeof ParentMessage.GotRoomMessage>
+      Block.BindingDeliveryEvidence<RoomDeliveryMessage, ParentMessage>,
+      RoomDeliveryMessage,
+      RoomDeliveryMessage
     >,
     false
   >
 >
-type RoomOutgoingMessage = DeliveryOf<typeof RoomBinding>[0]
-type RoomIncomingMessage = DeliveryOf<typeof RoomBinding>[1]
+type RoomOutgoingMessage = RoomDeliveryMessage
+type RoomIncomingMessage = RoomDeliveryMessage
 type RoomOutgoingTagIsExact = Expect<
   ExactWithoutAnyOrUnknown<RoomOutgoingMessage['_tag'], 'GotRoomMessage'>
 >
 type RoomOutgoingKeyIsExact = Expect<
-  ExactWithoutAnyOrUnknown<RoomOutgoingMessage['roomId'], string>
+  ExactWithoutAnyOrUnknown<RoomOutgoingMessage['key'], string>
 >
 type RoomOutgoingPayloadIsExact = Expect<
   ExactWithoutAnyOrUnknown<
@@ -768,7 +716,7 @@ type RoomIncomingTagIsExact = Expect<
   ExactWithoutAnyOrUnknown<RoomIncomingMessage['_tag'], 'GotRoomMessage'>
 >
 type RoomIncomingKeyIsExact = Expect<
-  ExactWithoutAnyOrUnknown<RoomIncomingMessage['roomId'], string>
+  ExactWithoutAnyOrUnknown<RoomIncomingMessage['key'], string>
 >
 type RoomIncomingPayloadIsExact = Expect<
   ExactWithoutAnyOrUnknown<
@@ -782,7 +730,7 @@ type ProjectedStatusInitialEvidenceIsExact = Expect<
     StatusModel,
     never,
     never,
-    Block.BindingRequirement<'secondaryStatus', typeof StatusBlock>
+    Block.RequirementOfBinding<typeof ProjectedStatusBinding>
   >
     ? true
     : false
@@ -828,12 +776,10 @@ export type ApplicationModel = typeof ApplicationModel.Type
 export const ApplicationMessage = defineMessageUnion({ Incremented: {} })
 export type ApplicationMessage = typeof ApplicationMessage.Type
 
-const ApplicationDefinition = defineApplication({
+export const ApplicationComposition = makeApplicationDefinition({
   Model: ApplicationModel,
   Message: ApplicationMessage,
-})
-
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
+}).makeComposition()
 export const applicationInit = ApplicationComposition.makeInit(() => ({
   model: ApplicationModel.make({ count: 0 }),
 }))
@@ -852,7 +798,7 @@ export const applicationUpdate = ApplicationComposition.makeUpdate(model => ({
 export const applicationView = ApplicationComposition.makeView((model, h) =>
   h.main([], [globalThis.String(model.count)]),
 )
-export const ApplicationElement = ApplicationComposition.makeElement({
+export const ApplicationElement = ApplicationComposition.assembleElement({
   container: null,
   init: applicationInit,
   update: applicationUpdate,
@@ -901,7 +847,7 @@ export const ServiceApplicationMessage = defineMessageUnion({
 })
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable
-const ServiceApplicationDefinition = defineApplication({
+const ServiceApplicationDefinition = makeApplicationDefinition({
   Model: ServiceApplicationModel,
   Message: ServiceApplicationMessage,
 })
@@ -942,7 +888,7 @@ export const serviceApplicationView = ServiceApplicationComposition.makeView(
 )
 
 export const PendingServiceApplicationElement =
-  ServiceApplicationComposition.makeElement({
+  ServiceApplicationComposition.assembleElement({
     container: null,
     init: serviceApplicationInit,
     update: serviceApplicationUpdate,
@@ -987,25 +933,28 @@ export type ServiceApplicationAssertions = [
 ]
 
 export const NoStartupModel = Schema.Struct({ status: StatusModel })
-export const NoStartupMessage = defineMessageUnion({
-  GotStatusMessage: { message: StatusBlock.Message },
-})
-const NoStartupDefinition = Block.define('NoStartup', {
+const NoStartupDefinition = Block.makeDefinition('NoStartup', {
   Model: NoStartupModel,
-  Message: NoStartupMessage,
+  Message: Schema.Never,
 })
 const NoStartupStatusBinding = NoStartupDefinition.bindChild(StatusBlock, {
   field: 'status',
-  parentMessage: NoStartupMessage.GotStatusMessage,
   init: true,
 })
 export const NoStartupComposition = NoStartupDefinition.makeComposition({
-  childBindings: [NoStartupStatusBinding],
+  bindings: [NoStartupStatusBinding],
 })
 export const noStartupInit = NoStartupComposition.makeInit(() => ({
   model: {},
 }))
-export const NoStartupBlock = NoStartupComposition.makeBlock({
+
+const InitializationMetadata = Symbol('InitializationMetadata')
+export const symbolMetadataInit = NoStartupComposition.makeInit(() => ({
+  model: {},
+  childInitContext: { source: 'declaration-test' },
+  [InitializationMetadata]: true,
+}))
+export const NoStartupBlock = NoStartupComposition.assembleBlock({
   init: noStartupInit,
   update: NoStartupComposition.makeUpdate(),
 })

@@ -3,7 +3,7 @@ import { describe, expect, expectTypeOf, it, vi } from 'vitest'
 
 import { defineMessageUnion } from '../schema/index.js'
 import { modifyFields } from '../struct/index.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 import {
   makeCompositionUpdate,
   registerBindingDelivery,
@@ -32,12 +32,12 @@ describe('Composition update delivery', () => {
     const ContextualChildMessage = defineMessageUnion({
       ChangedCount: { amount: Schema.Number },
     })
-    const ContextualChild = define('DeliveryContextualChild', {
+
+    const contextualComposition = makeDefinition('DeliveryContextualChild', {
       Model: ContextualChildModel,
       Message: ContextualChildMessage,
-    })
-    const contextualComposition = ContextualChild.makeComposition()
-    const contextualBlock = contextualComposition.makeBlock({
+    }).makeComposition()
+    const contextualBlock = contextualComposition.assembleBlock({
       init: contextualComposition.makeInit(() => ({
         model: ContextualChildModel.make({ count: 0 }),
       })),
@@ -50,12 +50,9 @@ describe('Composition update delivery', () => {
     const ContextualParentModel = Schema.Struct({
       child: ContextualChildModel,
     })
-    const ContextualParentMessage = defineMessageUnion({
-      GotChildMessage: { message: ContextualChildMessage },
-    })
-    const ContextualParent = define('DeliveryContextualParent', {
+    const ContextualParent = makeDefinition('DeliveryContextualParent', {
       Model: ContextualParentModel,
-      Message: ContextualParentMessage,
+      Message: Schema.Never,
     })
 
     expect(contextualBlock.update.length).toBe(2)
@@ -64,12 +61,9 @@ describe('Composition update delivery', () => {
         contextualBlock,
         {
           field: 'child',
-          parentMessage: ContextualParentMessage.GotChildMessage,
         },
       ]),
-    ).toThrow(
-      'A contextual canonical Binding must supply fromParentMessage.args',
-    )
+    ).toThrow('A contextual child update requires delivery.toUpdateContext')
   })
 
   it('routes one parent Message through the Binding native fold', () => {
@@ -104,12 +98,12 @@ describe('Composition update delivery', () => {
 
   it('routes native keyed tuples through the real fold and ignores stale keys', () => {
     const CounterModel = Schema.Struct({ count: Schema.Number })
-    const Counter = define('DeliveryCounter', {
+
+    const CounterComposition = makeDefinition('DeliveryCounter', {
       Model: CounterModel,
       Message: ChildMessage,
-    })
-    const CounterComposition = Counter.makeComposition()
-    const counterBlock = CounterComposition.makeBlock({
+    }).makeComposition()
+    const counterBlock = CounterComposition.assembleBlock({
       init: CounterComposition.makeInit(() => ({
         model: CounterModel.make({ count: 0 }),
       })),
@@ -130,12 +124,9 @@ describe('Composition update delivery', () => {
       activeId: Schema.String,
       multiplier: Schema.Number,
     })
-    const ParentMessage = defineMessageUnion({
-      GotCounterMessage: { id: Schema.String, message: ChildMessage },
-    })
-    const Parent = define('DeliveryCounterParent', {
+    const Parent = makeDefinition('DeliveryCounterParent', {
       Model: ParentModel,
-      Message: ParentMessage,
+      Message: Schema.Never,
     })
     const CounterBinding = Parent.bindChild(counterBlock, {
       readAll: model => model.counters,
@@ -149,23 +140,18 @@ describe('Composition update delivery', () => {
               : instance,
           ),
         }),
-      toParentMessage: (id, message) =>
-        ParentMessage.GotCounterMessage({ id, message }),
-      fromParentMessage: {
-        parentMessage: ParentMessage.GotCounterMessage,
-        args: (model, { id, message }) => {
+      keySchema: Schema.String,
+      delivery: {
+        when: (model, id) => {
           expectTypeOf(model).toEqualTypeOf<typeof ParentModel.Type>()
           expectTypeOf(id).toEqualTypeOf<string>()
-          expectTypeOf(message).toEqualTypeOf<typeof ChildMessage.Type>()
-
           return id === model.activeId
-            ? Option.some([id, message, { multiplier: model.multiplier }])
-            : Option.none()
         },
+        toUpdateContext: model => [{ multiplier: model.multiplier }],
       },
     })
     const ParentComposition = Parent.makeComposition({
-      childBindings: [CounterBinding],
+      bindings: [CounterBinding],
     })
     const update = ParentComposition.makeUpdate()
     const model = ParentModel.make({
@@ -182,14 +168,20 @@ describe('Composition update delivery', () => {
       activeId: 'active',
       multiplier: 3,
     })
-    const activeUpdate = update(
-      model,
-      ParentMessage.GotCounterMessage({ id: 'active', message: changedCount }),
-    )
-    const staleUpdate = update(
-      model,
-      ParentMessage.GotCounterMessage({ id: 'stale', message: changedCount }),
-    )
+    const activeUpdate = update(model, {
+      _tag: 'GotDeliveryCounterMessage',
+      placement: 'DeliveryCounter',
+      generation: 0,
+      key: 'active',
+      message: changedCount,
+    })
+    const staleUpdate = update(model, {
+      _tag: 'GotDeliveryCounterMessage',
+      placement: 'DeliveryCounter',
+      generation: 0,
+      key: 'stale',
+      message: changedCount,
+    })
 
     expect(activeUpdate.model.counters).toEqual([
       CounterInstance.make({

@@ -3,11 +3,18 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { expect, test } from 'vitest'
 
-import * as Tabs from '@foldkit/ui/tabs'
+import { Tabs } from '@foldkit/ui'
 
 import { FetchPostDetail, FetchPosts, FetchStats } from './command'
+import { TabsBinding } from './composition'
 import { Message } from './message'
-import { type Model, PostDetailData, PostsData, StatsData } from './model'
+import {
+  ApplicationTabsBlock,
+  type Model,
+  PostDetailData,
+  PostsData,
+  StatsData,
+} from './model'
 import {
   FETCHED_AT,
   firstPostDetail,
@@ -24,17 +31,29 @@ const postDetailTag = (model: Model, postId: string): string =>
     Option.getOrElse(() => 'Missing'),
   )
 
-const selectedPostsTab = Message.GotTabsMessage({
-  message: Tabs.Message.SelectedTab({ index: 0, value: 'Posts' }),
-})
+const emptyApplicationTabsView = ApplicationTabsBlock.makeView(
+  (_model, h) => h.empty,
+)
 
-const selectedStatsTab = Message.GotTabsMessage({
-  message: Tabs.Message.SelectedTab({ index: 1, value: 'Stats' }),
-})
+const selectedPostsTab = TabsBinding.embedView({
+  slotId: 'tabs',
+  model: loadedPostsModel.tabs,
+  view: emptyApplicationTabsView,
+}).toParentMessage(
+  ApplicationTabsBlock.Message.SelectedTab({ index: 0, value: 'Posts' }),
+)
+
+const selectedStatsTab = TabsBinding.embedView({
+  slotId: 'tabs',
+  model: loadedStatsModel.tabs,
+  view: emptyApplicationTabsView,
+}).toParentMessage(
+  ApplicationTabsBlock.Message.SelectedTab({ index: 1, value: 'Stats' }),
+)
 
 const resolveFocusTab = Command.resolve(
-  Tabs.FocusTab,
-  Tabs.Message.CompletedFocusTab(),
+  Tabs.test.FocusTab,
+  ApplicationTabsBlock.Message.CompletedFocusTab(),
 )
 
 test('first visit to the Stats tab fetches stats', () => {

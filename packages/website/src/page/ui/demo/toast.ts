@@ -7,9 +7,9 @@ import { Icon } from '../../../icon'
 import type { UiViewBuilder } from '../composition'
 import { ToastDemoBinding } from '../composition'
 import { Message } from '../message'
-import { Toast } from './toastModule'
+import { ToastBlock } from './toastModule'
 
-type Model = typeof Toast.Model.Type
+type Model = typeof ToastBlock.Model.Type
 type Entry = Model['entries'][number]
 
 // DEMO CONTENT
@@ -46,7 +46,7 @@ const buttonClassName =
   'demo-neutral-button inline-flex items-center gap-1.5 text-sm'
 
 export const demo = (
-  toastModel: typeof Toast.Model.Type,
+  toastModel: typeof ToastBlock.Model.Type,
   maybeLastDismissedTitle: Option.Option<string>,
   h: UiViewBuilder,
 ): ReadonlyArray<Html> => {

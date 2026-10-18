@@ -1,13 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import { UiComposition } from './composition'
+import { MeterPageContent } from './content'
 import * as Meter from './demo/meter'
-import raw from './meterPage.md'
 
-const { tableOfContents, view: renderPage } = slotDocPage<
-  'basic' | 'thresholds'
->(raw, 'ui/meter')
+const { tableOfContents, view: renderPage } = MeterPageContent
 
 export { tableOfContents }
 

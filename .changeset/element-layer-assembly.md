@@ -2,7 +2,7 @@
 'foldkit': minor
 ---
 
-Add owned `ApplicationComposition.makeElement` for container-scoped applications. It captures the Composition's Model, Message, and included child Bindings. Completion infers requirements from Flags, init and update Commands, Subscriptions, Mounts, and ManagedResources. The completed Element's `provide` method satisfies ordinary Service requirements before `Runtime.run` or `Runtime.embed` starts it.
+Add owned `ApplicationComposition.assembleElement` for container-scoped applications. It captures the Composition's Model, Message, and included child Bindings. Completion infers requirements from Flags, init and update Commands, Subscriptions, Mounts, and ManagedResources. The completed Element's `provide` method satisfies ordinary Service requirements before `Runtime.run` or `Runtime.embed` starts it.
 
 **Before**
 
@@ -35,7 +35,7 @@ import { ports } from './port'
 import { update } from './update'
 import { view } from './view'
 
-const element = ApplicationComposition.makeElement({
+const element = ApplicationComposition.assembleElement({
   init,
   update,
   view,

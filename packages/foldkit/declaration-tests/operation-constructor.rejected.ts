@@ -10,7 +10,6 @@ import {
   OperationConstructorProofChildComposition,
   OperationConstructorProofChildDefinition,
   OperationConstructorProofParentComposition,
-  OperationConstructorProofParentDefinition,
   ParentBlock,
   ParentMessage,
   RecordValue,
@@ -73,7 +72,7 @@ Choice.operations.selectPositionally(
 
 const ForeignMessage = defineMessageUnion({ UpdatedForeignValue: {} })
 // @ts-expect-error Operations accept only constructors from the local Message Schema.
-OperationConstructorProofChildComposition.makeBlock({
+OperationConstructorProofChildComposition.assembleBlock({
   init: () => ({ model }),
   update,
   operations: {
@@ -83,7 +82,7 @@ OperationConstructorProofChildComposition.makeBlock({
   hostHandlers: [RecordValue],
 })
 
-OperationConstructorProofParentComposition.makeBlock({
+OperationConstructorProofParentComposition.assembleBlock({
   init: ParentBlock.init,
   update: ParentBlock.update,
   operations: {
@@ -97,7 +96,7 @@ const plainTaggedStruct = Schema.TaggedStruct('UpdatedValue', {
   value: Schema.String,
 })
 // @ts-expect-error Operations require a Foldkit callable Message constructor or tuple producer.
-OperationConstructorProofChildComposition.makeBlock({
+OperationConstructorProofChildComposition.assembleBlock({
   init: () => ({ model }),
   update,
   operations: {
@@ -108,7 +107,7 @@ OperationConstructorProofChildComposition.makeBlock({
 })
 
 // @ts-expect-error Operation names cannot collide with reserved Block or Binding members.
-OperationConstructorProofChildComposition.makeBlock({
+OperationConstructorProofChildComposition.assembleBlock({
   init: () => ({ model }),
   update,
   operations: { fold: updateValue },
@@ -124,8 +123,3 @@ OperationConstructorProofChildDefinition.makeOperation(Message.ResetValue)
 
 // @ts-expect-error Compositions do not expose the retired makeOperation helper.
 OperationConstructorProofChildComposition.makeOperation(Message.ResetValue)
-
-// @ts-expect-error A used child wrapper cannot lose its owning Binding registration.
-OperationConstructorProofParentDefinition.makeComposition({
-  childBindings: [EntryBinding],
-})

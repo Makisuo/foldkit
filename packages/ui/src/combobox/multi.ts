@@ -6,13 +6,13 @@ import {
   type BaseInitConfig,
   BaseModel,
   type BaseViewInputs,
+  ComboboxNamespace,
   EffectsLayer,
   type ItemSchema,
   Message,
   type MessageSchema,
   OutMessage,
   type OutMessageSchema,
-  ComboboxDefinition as SharedCombobox,
   baseInit,
   closedBaseModel,
   makeMessage,
@@ -31,7 +31,7 @@ export const Model = Schema.Struct({
 
 export type Model = typeof Model.Type
 
-const ComboboxDefinition = SharedCombobox.define({
+const ComboboxDefinition = ComboboxNamespace.makeDefinition({
   Model,
   Message,
   OutMessage,
@@ -41,9 +41,6 @@ const ComboboxDefinition = SharedCombobox.define({
 
 /** Configuration for creating a multi-select combobox model with `init`. `isAnimated` enables CSS transition coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). */
 export type InitConfig = BaseInitConfig
-
-/** Creates an initial multi-select combobox model from a config. Defaults to closed with no active item and an empty input. */
-export const init = (config: InitConfig): Model => baseInit(config)
 
 // UPDATE
 
@@ -56,7 +53,6 @@ export const init = (config: InitConfig): Model => baseInit(config)
 const defaultUpdate = makeUpdate(
   ComboboxDefinition.bindChild,
   ComboboxDefinition.step,
-  Message,
   'KeepOpen',
   {
     handleClose: model => ({
@@ -77,7 +73,7 @@ const defaultUpdate = makeUpdate(
 
 const ComboboxComposition = ComboboxDefinition.makeComposition({
   mounts,
-  childBindings: [defaultUpdate.AnimationBinding],
+  bindings: [defaultUpdate.AnimationBinding],
 })
 
 const authoredUpdate = ComboboxDefinition.step(
@@ -112,10 +108,13 @@ export const selectItem = (model: Model, item: string): UpdateReturn =>
 /** Per-render view inputs passed to the view via `h.block`'s `viewInputs` field. */
 export type ViewInputs<Item extends string> = BaseViewInputs<Item>
 
-const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
-  const ItemMessage: MessageSchema<Item> = makeMessage(Item)
-  const ItemOutMessage: OutMessageSchema<Item> = makeOutMessage(Item)
-  const ComboboxDefinition = SharedCombobox.define({
+const makeBlockParts = <Item extends string, ItemEncoded>(
+  Item: ItemSchema<Item, ItemEncoded>,
+) => {
+  const ItemMessage: MessageSchema<Item, ItemEncoded> = makeMessage(Item)
+  const ItemOutMessage: OutMessageSchema<Item, ItemEncoded> =
+    makeOutMessage(Item)
+  const ComboboxDefinition = ComboboxNamespace.makeDefinition({
     Model,
     Message: ItemMessage,
     OutMessage: ItemOutMessage,
@@ -123,7 +122,6 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
   const itemUpdate = makeUpdate(
     ComboboxDefinition.bindChild,
     ComboboxDefinition.step,
-    ItemMessage,
     'KeepOpen',
     {
       handleClose: model => ({
@@ -141,7 +139,7 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
   )
   const ComboboxComposition = ComboboxDefinition.makeComposition({
     mounts,
-    childBindings: [itemUpdate.AnimationBinding],
+    bindings: [itemUpdate.AnimationBinding],
   })
   const authoredUpdate = ComboboxDefinition.step(
     (model, message: Parameters<typeof itemUpdate.update>[1]) =>
@@ -150,8 +148,14 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
   const update = ComboboxComposition.makeUpdate((model, message) =>
     authoredUpdate(model, message),
   )
+  const init = ComboboxComposition.makeInit((config: InitConfig) => ({
+    model: baseInit(config),
+  }))
   const view = ComboboxComposition.makeView.withInputs<ViewInputs<Item>>(
-    makeView<Model, Item>({ ariaMultiSelectable: true }, ItemMessage),
+    makeView<Model, Item, typeof ComboboxComposition.Message.Type, ItemEncoded>(
+      { ariaMultiSelectable: true },
+      ItemMessage,
+    ),
   )
   const requestOpen = ItemMessage.RequestedOpen
   const requestClose = () =>
@@ -174,9 +178,7 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
     composition: ComboboxComposition,
     implementation: {
       view,
-      init: ComboboxComposition.makeInit((config: InitConfig) => ({
-        model: init(config),
-      })),
+      init,
       update,
       operations,
       EffectsLayer,
@@ -184,33 +186,39 @@ const makeBlockParts = <Item extends string>(Item: ItemSchema<Item>) => {
   }
 }
 
-type BlockParts<Item extends string> = ReturnType<typeof makeBlockParts<Item>>
+type BlockParts<Item extends string, ItemEncoded> = ReturnType<
+  typeof makeBlockParts<Item, ItemEncoded>
+>
 
 /** A completed multi-select Combobox Block refined to one Item Schema. */
 export interface Completed<
   Item extends string = string,
+  ItemEncoded = Item,
 > extends Block.CompletedWithViewAndOutMessage<
-  BlockParts<Item>['composition'],
-  BlockParts<Item>['implementation']
+  BlockParts<Item, ItemEncoded>['composition'],
+  BlockParts<Item, ItemEncoded>['implementation']
 > {}
 
-const makeBlock = <Item extends string>(
-  Item: ItemSchema<Item>,
-): Completed<Item> => {
+const makeBlock = <Item extends string, ItemEncoded>(
+  Item: ItemSchema<Item, ItemEncoded>,
+): Completed<Item, ItemEncoded> => {
   const { composition, implementation } = makeBlockParts(Item)
 
-  return composition.makeBlock(implementation)
+  return composition.assembleBlock(implementation)
 }
 
 /** Creates a checked multi-select Combobox Block. Pass an Item Schema to
  * retain its exact Message and OutMessage payloads. */
 export function create(): Completed<string>
-export function create<Item extends string>(
-  Item: ItemSchema<Item>,
-): Completed<Item>
-export function create(Item: ItemSchema<string> = Schema.String) {
+export function create<Item extends string, ItemEncoded>(
+  Item: ItemSchema<Item, ItemEncoded>,
+): Completed<Item, ItemEncoded>
+export function create(Item: ItemSchema<string, unknown> = Schema.String) {
   return makeBlock(Item)
 }
 
 /** Complete default multi-select Combobox Block definition. */
 export const block = makeBlock(Schema.String)
+
+/** Creates the initial multi-select Combobox Model and Commands. Defaults to closed with no active item and an empty input. */
+export const init = block.init

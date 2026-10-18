@@ -285,6 +285,9 @@ export const getCurrentFrame = (): Frame => {
   return frame
 }
 
+/** @internal Reads the current frame without requiring an active render. */
+export const currentFrame = (): Frame | undefined => stack[stack.length - 1]
+
 /** @internal Reads the composition path without requiring an active render. */
 export const currentEffectPath = (): ReadonlyArray<string> =>
   stack[stack.length - 1]?.effectPath ?? []

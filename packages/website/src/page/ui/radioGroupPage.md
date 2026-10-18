@@ -6,7 +6,7 @@ A single-selection component with roving tabindex keyboard navigation. Arrow key
 
 ### State Ownership and Completed Type
 
-`RadioGroup.block` and Blocks returned by `RadioGroup.create` keep their own keyboard-focus state, but the parent owns the selection. Store the selected value in your Model, pass it in as `selectedValue`, and fold the `Selected` OutMessage back into that field through the Binding’s `outMessage.fold` policy. Both vertical and horizontal orientation are supported.
+`RadioGroup.create()` and Blocks returned by `RadioGroup.create` keep their own keyboard-focus state, but the parent owns the selection. Store the selected value in your Model, pass it in as `selectedValue`, and fold the `Selected` OutMessage back into that field through the Binding’s `outMessage.fold` policy. Both vertical and horizontal orientation are supported.
 
 What `RadioGroup.create<Value>()` returns is typed [`Completed<Value>` from `@foldkit/ui/radioGroup`](/ui/selection-blocks#completed-type), for cases where a created Block has to be named.
 

@@ -2,13 +2,13 @@
 import { Effect, Layer, Option, Schema } from 'effect'
 import { describe, expect, it } from 'vitest'
 
-import { define } from '../../block/define.js'
+import { makeNamespace } from '../../block/define.js'
 import { defineMessageUnion } from '../../message/index.js'
-import { define as defineApplication } from '../../runtime/applicationPublic.js'
+import { makeDefinition as makeApplicationDefinition } from '../../runtime/applicationPublic.js'
 import type { Url } from '../../url/index.js'
 import { renderToString } from './server.js'
 
-const ChildDefinition = define('ServerChild')
+const ChildNamespace = makeNamespace('ServerChild')
 const ChildModel = Schema.Struct({ title: Schema.String })
 const ChildMessage = defineMessageUnion({
   ClickedPrepare: {},
@@ -17,7 +17,7 @@ const ChildMessage = defineMessageUnion({
 })
 let constructions = 0
 let executions = 0
-const Prepare = ChildDefinition.command('Prepare', {
+const Prepare = ChildNamespace.command('Prepare', {
   messages: [ChildMessage.CompletedPrepare],
   handler: function* () {
     yield* Effect.sync(() => {
@@ -31,7 +31,7 @@ const Prepare = ChildDefinition.command('Prepare', {
       })
   },
 })
-const Observe = ChildDefinition.mount('Observe', {
+const Observe = ChildNamespace.mount('Observe', {
   messages: [ChildMessage.CompletedObserve],
   handler: function* () {
     yield* Effect.sync(() => {
@@ -45,11 +45,11 @@ const Observe = ChildDefinition.mount('Observe', {
       })
   },
 })
-const ChildBaseDefinition = ChildDefinition.define({
+
+const child = ChildNamespace.makeDefinition({
   Model: ChildModel,
   Message: ChildMessage,
-})
-const child = ChildBaseDefinition.makeComposition({ mounts: [Observe] })
+}).makeComposition({ mounts: [Observe] })
 const childImplementation = {
   init: (title: string) => ({ model: { title }, commands: [Prepare()] }),
   update: child.makeUpdate(model => ({ model })),
@@ -61,23 +61,19 @@ const childImplementation = {
   ),
   EffectsLayer: Layer.merge(Prepare.layer, Observe.layer),
 }
-const childBlock = child.makeBlock(childImplementation)
+const childBlock = child.assembleBlock(childImplementation)
 const RootModel = Schema.Struct({ title: Schema.String })
-const RootMessage = defineMessageUnion({
-  GotChildMessage: { message: ChildMessage },
-})
-const RootApplicationDefinition = defineApplication({
+const RootApplicationDefinition = makeApplicationDefinition({
   Model: RootModel,
-  Message: RootMessage,
+  Message: Schema.Never,
 })
 const PlainMessage = Schema.Never
 const ChildBinding = RootApplicationDefinition.bindChild(childBlock, {
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
-  parentMessage: RootMessage.GotChildMessage,
 })
 const RegisteredApplication = RootApplicationDefinition.makeComposition({
-  childBindings: [ChildBinding],
+  bindings: [ChildBinding],
 })
 const rootImplementation = {
   init: RegisteredApplication.makeInit(() =>
@@ -100,11 +96,10 @@ const rootImplementation = {
 const ServerFlags = Schema.Struct({ title: Schema.String })
 type ServerFlags = typeof ServerFlags.Type
 
-const FlagsApplicationDefinition = defineApplication({
+const FlagsComposition = makeApplicationDefinition({
   Model: RootModel,
   Message: PlainMessage,
-})
-const FlagsComposition = FlagsApplicationDefinition.makeComposition()
+}).makeComposition()
 const flagsImplementation = {
   init: (flags: ServerFlags) => ({ model: { title: flags.title } }),
   update: FlagsComposition.makeUpdate(),
@@ -115,11 +110,10 @@ const flagsImplementation = {
   EffectsLayer: Layer.empty,
 }
 
-const RoutingApplicationDefinition = defineApplication({
+const RoutingComposition = makeApplicationDefinition({
   Model: RootModel,
   Message: PlainMessage,
-})
-const RoutingComposition = RoutingApplicationDefinition.makeComposition()
+}).makeComposition()
 const routingImplementation = {
   init: (url: Url) => ({ model: { title: url.pathname } }),
   update: RoutingComposition.makeUpdate(),
@@ -130,12 +124,10 @@ const routingImplementation = {
   EffectsLayer: Layer.empty,
 }
 
-const RoutingFlagsApplicationDefinition = defineApplication({
+const RoutingFlagsComposition = makeApplicationDefinition({
   Model: RootModel,
   Message: PlainMessage,
-})
-const RoutingFlagsComposition =
-  RoutingFlagsApplicationDefinition.makeComposition()
+}).makeComposition()
 const routingFlagsImplementation = {
   init: (flags: ServerFlags, url: Url) => ({
     model: { title: `${flags.title}${url.pathname}` },
@@ -148,22 +140,20 @@ const routingFlagsImplementation = {
   EffectsLayer: Layer.empty,
 }
 
-const DataApplicationDefinition = defineApplication({
+const DataComposition = makeApplicationDefinition({
   Model: RootModel,
   Message: PlainMessage,
-})
-const DataComposition = DataApplicationDefinition.makeComposition()
+}).makeComposition()
 const dataImplementation = {
   init: () => ({ model: { title: 'data' } }),
   update: DataComposition.makeUpdate(),
   EffectsLayer: Layer.empty,
 }
 
-const HtmlApplicationDefinition = defineApplication({
+const HtmlComposition = makeApplicationDefinition({
   Model: RootModel,
   Message: PlainMessage,
-})
-const HtmlComposition = HtmlApplicationDefinition.makeComposition()
+}).makeComposition()
 const htmlImplementation = {
   init: () => ({ model: { title: 'html' } }),
   update: HtmlComposition.makeUpdate(),

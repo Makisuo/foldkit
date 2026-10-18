@@ -1,14 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import { UiComposition } from './composition'
+import { TextareaPageContent } from './content'
 import * as Textarea from './demo/textarea'
-import raw from './textareaPage.md'
 
-const { tableOfContents, view: renderPage } = slotDocPage<'basic' | 'disabled'>(
-  raw,
-  'ui/textarea',
-)
+const { tableOfContents, view: renderPage } = TextareaPageContent
 
 export { tableOfContents }
 

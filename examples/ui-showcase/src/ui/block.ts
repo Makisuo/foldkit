@@ -3,7 +3,7 @@ import { init } from './init'
 import { Message } from './message'
 import { update } from './update'
 
-export const block = UiComposition.makeBlock({
+export const UiBlock = UiComposition.assembleBlock({
   init,
   update,
   operations: {

@@ -3,17 +3,17 @@ import type { Block } from 'foldkit'
 import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import * as AsyncCounterDemo from './asyncCounterDemo'
+import { AsyncCounterDemoBlock } from './asyncCounterDemo'
 import { HomeDefinition } from './definition'
 import * as DemoTab from './demoTab'
 import { Message, OutMessage } from './message'
 import { Model } from './model'
-import * as NotePlayerDemo from './notePlayerDemo'
-import { PlaygroundMenu } from './playgroundMenu'
+import { NotePlayerDemoBlock } from './notePlayerDemo'
+import { PlaygroundMenuBlock } from './playgroundMenu'
 
-const foldDemoTabsOutMessage = DemoTab.DemoTabs.OutMessage.match<
+const foldDemoTabsOutMessage = DemoTab.DemoTabsBlock.OutMessage.match<
   Update.Step<Model, Message>,
-  typeof DemoTab.DemoTabs.OutMessage.Type
+  typeof DemoTab.DemoTabsBlock.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -22,16 +22,15 @@ const foldDemoTabsOutMessage = DemoTab.DemoTabs.OutMessage.match<
     }),
 })
 
-export const DemoTabsBinding = HomeDefinition.bindChild(DemoTab.DemoTabs, {
+export const DemoTabsBinding = HomeDefinition.bindChild(DemoTab.DemoTabsBlock, {
   field: 'demoTabs',
-  parentMessage: Message.GotDemoTabsMessage,
   outMessage: { fold: foldDemoTabsOutMessage },
-  init: { startupToArgs: () => Tuple.make({ id: 'demo-tabs' }) },
+  init: { contextToArgs: () => Tuple.make({ id: 'demo-tabs' }) },
 })
 
-const foldPlaygroundMenuOutMessage = PlaygroundMenu.OutMessage.match<
+const foldPlaygroundMenuOutMessage = PlaygroundMenuBlock.OutMessage.match<
   Update.StepWithOutMessage<Model, Message, OutMessage>,
-  typeof PlaygroundMenu.OutMessage.Type
+  typeof PlaygroundMenuBlock.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -39,36 +38,37 @@ const foldPlaygroundMenuOutMessage = PlaygroundMenu.OutMessage.match<
       model,
       outMessage: OutMessage.SelectedPlaygroundExample({ exampleSlug: value }),
     }),
+  Closed: () => HomeDefinition.stepNoop(),
 })
 
-export const PlaygroundMenuBinding = HomeDefinition.bindChild(PlaygroundMenu, {
-  field: 'playgroundMenu',
-  parentMessage: Message.GotPlaygroundMenuMessage,
-  outMessage: { fold: foldPlaygroundMenuOutMessage },
-  init: {
-    startupToArgs: () =>
-      Tuple.make({ id: 'playground-menu', isAnimated: true }),
+export const PlaygroundMenuBinding = HomeDefinition.bindChild(
+  PlaygroundMenuBlock,
+  {
+    field: 'playgroundMenu',
+    outMessage: { fold: foldPlaygroundMenuOutMessage },
+    init: {
+      contextToArgs: () =>
+        Tuple.make({ id: 'playground-menu', isAnimated: true }),
+    },
   },
-})
+)
 
 export const AsyncCounterDemoBinding = HomeDefinition.bindChild(
-  AsyncCounterDemo.block,
+  AsyncCounterDemoBlock,
   {
     field: 'asyncCounterDemo',
-    parentMessage: Message.GotAsyncCounterDemoMessage,
   },
 )
 
 export const NotePlayerDemoBinding = HomeDefinition.bindChild(
-  NotePlayerDemo.block,
+  NotePlayerDemoBlock,
   {
     field: 'notePlayerDemo',
-    parentMessage: Message.GotNotePlayerDemoMessage,
   },
 )
 
 export const HomeComposition = HomeDefinition.makeComposition({
-  childBindings: [
+  bindings: [
     AsyncCounterDemoBinding,
     DemoTabsBinding,
     NotePlayerDemoBinding,

@@ -2,11 +2,11 @@ import type { Html } from 'foldkit/html'
 import * as Scene from 'foldkit/scene'
 import { describe, expect, it } from 'vitest'
 
-import * as Animation from './animation/index.js'
+import * as Animation from './animation/block.js'
 
 describe('view identity branding', () => {
   it('stamps a rendered vnode with the owning ui module identity', () => {
-    const model = Animation.init({ id: 'sanity', isShowing: true })
+    const model = Animation.init({ id: 'sanity', isShowing: true }).model
 
     let renderedVNode!: Html
     Scene.scene(

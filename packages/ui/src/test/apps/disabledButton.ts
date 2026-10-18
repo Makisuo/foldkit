@@ -11,7 +11,7 @@ import * as Dialog from '../../dialog/index.js'
 
 export const Model = Schema.Struct({
   isEnabled: Schema.Boolean,
-  dialog: Dialog.Model,
+  dialog: Dialog.DialogBlock.Model,
 })
 export type Model = typeof Model.Type
 
@@ -20,42 +20,46 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   ClickedToggle: {},
   ClickedSubmit: {},
-  GotDialogMessage: { message: Dialog.Message },
 })
 export type Message = typeof Message.Type
 
-const DisabledButtonTestDefinition = Block.define('DisabledButtonTest', {
-  Model,
-  Message,
-})
+const DisabledButtonTestDefinition = Block.makeDefinition(
+  'DisabledButtonTest',
+  {
+    Model,
+    Message,
+  },
+)
 
 // UPDATE
 
-const foldDialogOutMessage = Dialog.OutMessage.match<
+const foldDialogOutMessage = Dialog.DialogBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
-  Opened: () => model => ({ model }),
-  Closed: () => model => ({ model }),
-  CompletedClose: () => model => ({ model }),
+  Opened: () => DisabledButtonTestDefinition.stepNoop(),
+  Closed: () => DisabledButtonTestDefinition.stepNoop(),
+  CompletedClose: () => DisabledButtonTestDefinition.stepNoop(),
 })
 
-const DialogBinding = DisabledButtonTestDefinition.bindChild(Dialog.block, {
-  field: 'dialog',
-  parentMessage: Message.GotDialogMessage,
-  outMessage: { fold: foldDialogOutMessage },
-  init: { startupToArgs: () => [{ id: 'test-dialog' }] },
-})
+const DialogBinding = DisabledButtonTestDefinition.bindChild(
+  Dialog.DialogBlock,
+  {
+    field: 'dialog',
+    outMessage: { fold: foldDialogOutMessage },
+    init: { contextToArgs: () => [{ id: 'test-dialog' }] },
+  },
+)
 
 const DisabledButtonTestComposition =
   DisabledButtonTestDefinition.makeComposition({
-    childBindings: [DialogBinding],
+    bindings: [DialogBinding],
   })
 
 // INIT
 
 const makeInitialModel = (): Model => ({
   isEnabled: false,
-  dialog: Dialog.init({ id: 'test-dialog' }),
+  dialog: Dialog.DialogBlock.init({ id: 'test-dialog' }).model,
 })
 
 const init = DisabledButtonTestComposition.makeInit(() => ({
@@ -79,9 +83,9 @@ export const update = DisabledButtonTestComposition.makeUpdate(
 
 // VIEW
 
-const submitButton = <AllowedMountRequirements>(
+const submitButton = <ParentMessage, AllowedMountRequirements>(
   isEnabled: boolean,
-  h: HtmlBuilder<Message, AllowedMountRequirements>,
+  h: HtmlBuilder<Message | ParentMessage, AllowedMountRequirements>,
 ): Html =>
   h.button(
     [
@@ -134,7 +138,7 @@ export const viewWithDialog = DisabledButtonTestComposition.makeView(
   },
 )
 
-export const block = DisabledButtonTestComposition.makeBlock({
+export const block = DisabledButtonTestComposition.assembleBlock({
   init,
   update,
   view: viewWithDialog,

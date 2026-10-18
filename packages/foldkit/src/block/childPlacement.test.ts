@@ -2,17 +2,16 @@ import { Option, Schema } from 'effect'
 import { expect, it } from 'vitest'
 
 import { modifyFields } from '../struct/index.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 
 const ChildModel = Schema.Struct({ value: Schema.String })
 type ChildModel = typeof ChildModel.Type
 
-const Child = define('ChildPlacementChild', {
+const ChildComposition = makeDefinition('ChildPlacementChild', {
   Model: ChildModel,
   Message: Schema.Never,
-})
-const ChildComposition = Child.makeComposition()
-const ChildBlock = ChildComposition.makeBlock({
+}).makeComposition()
+const ChildBlock = ChildComposition.assembleBlock({
   init: () => ({ model: ChildModel.make({ value: '' }) }),
   update: ChildComposition.makeUpdate(),
 })
@@ -26,7 +25,7 @@ const ParentModel = Schema.Struct({
 })
 type ParentModel = typeof ParentModel.Type
 
-const Parent = define('ChildPlacementParent', {
+const Parent = makeDefinition('ChildPlacementParent', {
   Model: ParentModel,
   Message: Schema.Never,
 })
@@ -104,16 +103,11 @@ const EntriesByIdLengthBinding = Parent.bindChild(ChildBlock, {
 })
 
 const composition = Parent.makeComposition({
-  childBindings: [
-    PrimaryBinding,
-    SecondaryBinding,
-    OptionalBinding,
-    EntriesBinding,
-  ],
+  bindings: [PrimaryBinding, SecondaryBinding, OptionalBinding, EntriesBinding],
 })
 
 const defaultPlacementComposition = Parent.makeComposition({
-  childBindings: [
+  bindings: [
     DefaultAccessorBinding,
     EntriesByIdBinding,
     EntriesByIdLengthBinding,
@@ -135,50 +129,48 @@ const dynamicDefaultKeyedChildren: ReadonlyArray<
 if (false) {
   // @ts-expect-error Direct field defaults and explicit placements cannot resolve to the same sibling placement.
   Parent.makeComposition({
-    childBindings: [PrimaryBinding, SecondaryAtPrimaryBinding],
+    bindings: [PrimaryBinding, SecondaryAtPrimaryBinding],
   })
 
   // @ts-expect-error Static and keyed Bindings cannot resolve to the same sibling placement.
   Parent.makeComposition({
-    childBindings: [OptionalBinding, EntriesAtOptionalBinding],
+    bindings: [OptionalBinding, EntriesAtOptionalBinding],
   })
 
   // @ts-expect-error Default accessor and keyed Bindings of the same child Block resolve to the same placement.
   Parent.makeComposition({
-    childBindings: [DefaultAccessorBinding, DefaultEntriesByIdBinding],
+    bindings: [DefaultAccessorBinding, DefaultEntriesByIdBinding],
   })
 
   // @ts-expect-error Keyed occurrence keys do not distinguish sibling Binding placements.
   Parent.makeComposition({
-    childBindings: [DefaultEntriesByIdBinding, DefaultEntriesByIdLengthBinding],
+    bindings: [DefaultEntriesByIdBinding, DefaultEntriesByIdLengthBinding],
   })
 }
 
 it('accepts distinct resolved sibling placements', () => {
   expect(
-    composition.childBindings.map(childBinding => childBinding.placement),
+    composition.bindings.map(childBinding => childBinding.placement),
   ).toEqual(['primary', 'secondary', 'optional', 'entries'])
   expect(
-    defaultPlacementComposition.childBindings.map(
+    defaultPlacementComposition.bindings.map(
       childBinding => childBinding.placement,
     ),
   ).toEqual(['ChildPlacementChild', 'entriesById', 'entriesByIdLength'])
 })
 
 it('rejects duplicate placements in a widened child list before completion', () => {
-  expect(() =>
-    Parent.makeComposition({ childBindings: dynamicChildren }),
-  ).toThrow(
+  expect(() => Parent.makeComposition({ bindings: dynamicChildren })).toThrow(
     '[foldkit] Block "ChildPlacementParent" child Bindings at indexes 0 and 1 both resolve to placement "primary". Give each sibling Binding a unique placement.',
   )
 })
 
 it('rejects widened default placements before completion', () => {
-  for (const childBindings of [
+  for (const bindings of [
     dynamicDefaultMixedChildren,
     dynamicDefaultKeyedChildren,
   ]) {
-    expect(() => Parent.makeComposition({ childBindings })).toThrow(
+    expect(() => Parent.makeComposition({ bindings })).toThrow(
       '[foldkit] Block "ChildPlacementParent" child Bindings at indexes 0 and 1 both resolve to placement "ChildPlacementChild". Give each sibling Binding a unique placement.',
     )
   }

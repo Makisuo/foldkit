@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 
@@ -8,7 +8,7 @@ import { Message } from '../message'
 import { cancelCheckoutButton } from './cart'
 import { primaryButtonClassName, secondaryButtonClassName } from './shared'
 
-export const shippingView = (h: HtmlBuilder<Message>): Html =>
+export const shippingView = (h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('grid gap-7')],
     [
@@ -176,3 +176,4 @@ export const shippingView = (h: HtmlBuilder<Message>): Html =>
       ),
     ],
   )
+import type { ApplicationViewBuilder } from '../composition'

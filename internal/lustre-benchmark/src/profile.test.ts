@@ -1,12 +1,12 @@
 import { Runtime } from 'foldkit'
-import { define as defineApplication } from 'foldkit/application'
+import { makeDefinition } from 'foldkit/application'
 import { Document, type HtmlBuilder } from 'foldkit/html'
 import { describe, it } from 'vitest'
 
 // Internal API not on the public surface but needed by the profile harness
 // to capture the runtime's sync dispatcher.
 import { __requireDispatch } from '../../../packages/foldkit/src/html/index.js'
-import { Message, Model, update as baseUpdate, init } from './todo.js'
+import { Message, Model, update as baseUpdate, init as init_ } from './todo.js'
 import type { Todo } from './todo.js'
 import { view as naiveView } from './todo.js'
 import { view as optimisedView } from './view.optimised.js'
@@ -117,10 +117,12 @@ const runProfile = async (
     return wrappedView.fn(model, h)
   }
 
-  const ApplicationDefinition = defineApplication({ Model, Message })
-  const ApplicationComposition = ApplicationDefinition.makeComposition()
-  const application = ApplicationComposition.makeApplication({
-    init,
+  const ApplicationComposition = makeDefinition({
+    Model,
+    Message,
+  }).makeComposition()
+  const application = ApplicationComposition.assembleApplication({
+    init: ApplicationComposition.makeInit(init_),
     update: ApplicationComposition.makeUpdate(wrappedUpdate.fn),
     view: ApplicationComposition.makeView(captureView),
     container,

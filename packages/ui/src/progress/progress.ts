@@ -36,7 +36,7 @@ export const labelId = (id: string): string => `${id}-label`
 
 /** Renders an accessible progress indicator as a stateless controlled view. */
 export const view = <Message>(
-  config: ViewConfig<Message>,
+  config: ViewConfig<NoInfer<Message>>,
   h: HtmlBuilder<Message>,
 ): Html => {
   const min = config.min ?? 0

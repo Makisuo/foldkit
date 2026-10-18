@@ -11,7 +11,7 @@ import {
   formatFileSize,
 } from './fileTree'
 import { type Model } from './model'
-import { findPerson } from './page'
+import { findPerson } from './page/people/model'
 import {
   ApplicationRoute,
   filesIndexRouter,

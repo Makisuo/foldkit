@@ -3,7 +3,7 @@ import type { Html } from 'foldkit/html'
 import { Checkbox, Fieldset, Input, Textarea } from '@foldkit/ui'
 
 import { UiComposition } from '../composition'
-import type { UiViewBuilder } from '../composition'
+import type { UiMessage, UiViewBuilder } from '../composition'
 import { Message } from '../message'
 import type { Model } from '../model'
 
@@ -45,7 +45,7 @@ const checkmark = (h: UiViewBuilder) =>
   h.span([h.Class('text-white text-xs')], ['✓'])
 
 const nameInput = (value: string, h: UiViewBuilder) => {
-  const nameInputView = (attributes: Input.InputAttributes<Message>): Html =>
+  const nameInputView = (attributes: Input.InputAttributes<UiMessage>): Html =>
     h.div(
       [h.Class(fieldClassName)],
       [
@@ -74,7 +74,7 @@ const nameInput = (value: string, h: UiViewBuilder) => {
 
 const bioTextarea = (value: string, h: UiViewBuilder) => {
   const bioTextareaView = (
-    attributes: Textarea.TextareaAttributes<Message>,
+    attributes: Textarea.TextareaAttributes<UiMessage>,
   ): Html =>
     h.div(
       [h.Class(fieldClassName)],
@@ -105,7 +105,7 @@ const bioTextarea = (value: string, h: UiViewBuilder) => {
 
 const termsCheckbox = (isChecked: boolean, h: UiViewBuilder) => {
   const termsCheckboxView = (
-    attributes: Checkbox.CheckboxAttributes<Message>,
+    attributes: Checkbox.CheckboxAttributes<UiMessage>,
   ): Html =>
     h.div(
       [h.Class('flex flex-col gap-1')],
@@ -147,7 +147,7 @@ const termsCheckbox = (isChecked: boolean, h: UiViewBuilder) => {
 
 const disabledNameInput = (h: UiViewBuilder) => {
   const disabledNameInputView = (
-    attributes: Input.InputAttributes<Message>,
+    attributes: Input.InputAttributes<UiMessage>,
   ): Html =>
     h.div(
       [h.Class(fieldClassName)],
@@ -170,7 +170,7 @@ const disabledNameInput = (h: UiViewBuilder) => {
 
 const disabledBioTextarea = (h: UiViewBuilder) => {
   const disabledBioTextareaView = (
-    attributes: Textarea.TextareaAttributes<Message>,
+    attributes: Textarea.TextareaAttributes<UiMessage>,
   ): Html =>
     h.div(
       [h.Class(fieldClassName)],
@@ -195,7 +195,7 @@ const disabledBioTextarea = (h: UiViewBuilder) => {
 
 const disabledTermsCheckbox = (h: UiViewBuilder) => {
   const disabledTermsCheckboxView = (
-    attributes: Checkbox.CheckboxAttributes<Message>,
+    attributes: Checkbox.CheckboxAttributes<UiMessage>,
   ): Html =>
     h.div(
       [h.Class('flex items-center gap-2')],
@@ -227,7 +227,7 @@ const disabledTermsCheckbox = (h: UiViewBuilder) => {
 
 const basicDemo = (model: Model, h: UiViewBuilder) => {
   const basicFieldsetView = (
-    attributes: Fieldset.FieldsetAttributes<Message>,
+    attributes: Fieldset.FieldsetAttributes<UiMessage>,
   ): Html =>
     h.fieldset(
       [...attributes.fieldset, h.Class(fieldsetClassName)],
@@ -263,7 +263,7 @@ const basicDemo = (model: Model, h: UiViewBuilder) => {
 
 const disabledDemo = (h: UiViewBuilder) => {
   const disabledFieldsetView = (
-    attributes: Fieldset.FieldsetAttributes<Message>,
+    attributes: Fieldset.FieldsetAttributes<UiMessage>,
   ): Html =>
     h.fieldset(
       [...attributes.fieldset, h.Class(fieldsetClassName)],

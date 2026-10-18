@@ -1,5 +1,5 @@
-import { Array, Number, Option, Schema, Tuple } from 'effect'
-import { defineApplication } from 'foldkit'
+import { Array, Number, Schema, Tuple } from 'effect'
+import { makeApplicationDefinition } from 'foldkit'
 import type { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -7,13 +7,13 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
-import * as Counter from './counter'
+import { CounterBlock } from './counter'
 
 const INITIAL_COUNTER_COUNT = 3
 
 const CounterInstance = Schema.Struct({
   id: Schema.String,
-  counter: Counter.Model,
+  counter: CounterBlock.Model,
 })
 type CounterInstance = typeof CounterInstance.Type
 
@@ -25,25 +25,19 @@ export const Model = Schema.Struct({
 export const Message = defineMessageUnion({
   ClickedAddCounter: {},
   ClickedRemoveCounter: { id: Schema.String },
-  GotCounterMessage: {
-    id: Schema.String,
-    message: Counter.Message,
-  },
 })
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const ApplicationDefinition = makeApplicationDefinition({
+  Model,
+  Message,
+})
 
-const CountersBinding = ApplicationDefinition.bindChild(Counter.block, {
+export const CountersBinding = ApplicationDefinition.bindChild(CounterBlock, {
   field: 'counters',
   key: 'id',
   childField: 'counter',
-  toParentMessage: (id, message) => Message.GotCounterMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: Message.GotCounterMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
   init: {
-    occurrences: () =>
+    instances: () =>
       Array.makeBy(INITIAL_COUNTER_COUNT, counterId => ({
         key: `counter-${counterId}`,
         args: Tuple.make(),
@@ -53,7 +47,7 @@ const CountersBinding = ApplicationDefinition.bindChild(Counter.block, {
 })
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [CountersBinding],
+  bindings: [CountersBinding],
 })
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
@@ -137,7 +131,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
       h.p(
         [h.Class('text-sm text-gray-500 max-w-md text-center')],
         [
-          'Each instance is a Counter Block. The parent has no awareness of Counter internals; it just embeds the Block via h.block and routes dispatched messages back to the corresponding instance via the GotCounterMessage wrapper.',
+          'Each instance is a Counter Block. The parent embeds the completed Block and Foldkit routes its Messages to the matching instance.',
         ],
       ),
       h.div(

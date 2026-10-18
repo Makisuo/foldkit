@@ -1,4 +1,4 @@
 import * as Block from 'foldkit/block'
 
-/** @internal Shared Menu identity used by refined contracts. */
-export const MenuDefinition = Block.define('Menu')
+/** @internal Shared Menu namespace for refined definitions and effects. */
+export const MenuNamespace = Block.makeNamespace('Menu')

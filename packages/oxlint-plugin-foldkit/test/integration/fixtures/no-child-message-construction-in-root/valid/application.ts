@@ -26,8 +26,8 @@ export const update = (model: Model) => foldChildSave(model)
 const saveButton = (h: HtmlBuilder<Child.Message>) =>
   h.button([h.OnClick(Child.Message.ClickedSave())])
 
-const ChildView = Block.define('ChildView')
-const childView = ChildView.define({
+const ChildViewNamespace = Block.makeNamespace('ChildView')
+const childView = ChildViewNamespace.makeDefinition({
   Model: Child.Model,
   Message: Child.Message,
 })
@@ -35,8 +35,8 @@ const ChildViewComposition = childView.makeComposition()
 
 export const view = ChildViewComposition.makeView((_model, h) => saveButton(h))
 
-const DirectMessageView = Block.define('DirectMessageView')
-const directMessageDefinition = DirectMessageView.define({
+const DirectMessageViewNamespace = Block.makeNamespace('DirectMessageView')
+const directMessageDefinition = DirectMessageViewNamespace.makeDefinition({
   Model: Child.Model,
   Message: DirectChildMessage,
 })
@@ -46,8 +46,10 @@ export const directMessageView = DirectMessageComposition.makeView((_model, h) =
   h.button([h.OnClick(DirectChildMessage.ClickedSave())]),
 )
 
-const NestedMainMessageView = Block.define('NestedMainMessageView')
-const nestedMainMessageDefinition = NestedMainMessageView.define({
+const NestedMainMessageViewNamespace = Block.makeNamespace(
+  'NestedMainMessageView',
+)
+const nestedMainMessageDefinition = NestedMainMessageViewNamespace.makeDefinition({
   Model: Child.Model,
   Message: NestedMainMessage,
 })
@@ -57,11 +59,11 @@ export const nestedMainMessageView = NestedMainMessageComposition.makeView(
   (_model, h) => h.button([h.OnClick(NestedMainMessage.ClickedSave())]),
 )
 
-const TypedChildView = Block.define('TypedChildView', {
+const TypedChildViewDefinition = Block.makeDefinition('TypedChildView', {
   Model: Child.Model,
   Message: Child.Message,
 })
-const TypedChildViewComposition = TypedChildView.makeComposition()
+const TypedChildViewComposition = TypedChildViewDefinition.makeComposition()
 
 export const typedChildView = TypedChildViewComposition.makeView((_model, h) =>
   h.button([h.OnClick(Child.Message.ClickedTypedChildViewSave())]),

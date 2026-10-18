@@ -4,21 +4,20 @@ import {
   ApplicationComposition,
   EffectsLayer,
   Flags,
-  Message,
   init,
   update,
   view,
 } from './application'
 import './styles.css'
 
-const application = ApplicationComposition.makeApplication({
+const application = ApplicationComposition.assembleApplication({
   init,
   update,
   view,
   EffectsLayer,
   Flags,
   container: document.getElementById('root'),
-  devTools: { Message },
+  devTools: { Message: ApplicationComposition.Message },
 })
 
 Runtime.hydrate(application)

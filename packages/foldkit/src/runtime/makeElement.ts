@@ -93,7 +93,7 @@ export type ElementConfigWithFlags<
   Readonly<{
     /**
      * Resolves the Flags once at startup, before `init` runs. Define an
-     * Element with `ApplicationComposition.makeElement` to supply shared Flags services
+     * Element with `ApplicationComposition.assembleElement` to supply shared Flags services
      * through the completed Element's `provide` method. The error channel is
      * `never`, so this Effect handles its own failures with `Effect.catch`,
      * the same contract a Command's Effect has.
@@ -340,7 +340,7 @@ const toCrashConfig = <Model, Message>(
  * `makeApplication` when the app owns the page and should manage those tags, and
  * `makeElement` when it is one component among others on a page it does not
  * control. Embedded apps do not own the URL bar, so `makeElement` has no
- * `routing` config. Use `ApplicationComposition.makeElement` when Commands, Flags,
+ * `routing` config. Use `ApplicationComposition.assembleElement` when Commands, Flags,
  * Subscriptions, Mounts, or ManagedResources need services.
  */
 export function makeElement<

@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
 import { Button, Checkbox } from '@foldkit/ui'
 
@@ -11,7 +11,7 @@ import { primaryButtonClassName, secondaryButtonClassName } from './shared'
 
 export const paymentView = (
   state: typeof CheckoutState.Payment.Type,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ): Html =>
   h.div(
     [h.Class('grid gap-7')],
@@ -173,3 +173,4 @@ export const paymentView = (
       ),
     ],
   )
+import type { ApplicationViewBuilder } from '../composition'

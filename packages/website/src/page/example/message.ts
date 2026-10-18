@@ -1,12 +1,9 @@
 import { Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { Tabs } from '@foldkit/ui'
-
 import { ExampleSources } from './sources'
 
 export const Message = defineMessageUnion({
-  GotSourceFileTabsMessage: { message: Tabs.Message },
   RequestedLoadInitialSources: {
     maybeInitialSlug: Schema.Option(Schema.String),
     maybeExampleSources: Schema.Option(ExampleSources),

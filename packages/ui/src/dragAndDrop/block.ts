@@ -13,7 +13,14 @@ import {
 } from 'effect'
 import * as Block from 'foldkit/block'
 import * as Dom from 'foldkit/dom'
-import { type Attribute, type HtmlBuilder, inertHtml as ih } from 'foldkit/html'
+import {
+  type Attribute,
+  type ChildAttribute,
+  type Html,
+  type HtmlBuilder,
+  childAttributes,
+  inertHtml as ih,
+} from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
@@ -140,7 +147,7 @@ export const OutMessage = defineMessageUnion({
 })
 export type OutMessage = typeof OutMessage.Type
 
-const DragAndDropDefinition = Block.define('DragAndDrop', {
+const DragAndDropDefinition = Block.makeDefinition('DragAndDrop', {
   Model,
   Message,
   OutMessage,
@@ -159,14 +166,16 @@ export type InitConfig = Readonly<{
   activationThreshold?: number
 }>
 
-/** Creates an initial drag-and-drop model. Starts idle with Vertical orientation and a 5px activation threshold by default. */
-export const init = (config: InitConfig): Model => ({
-  id: config.id,
-  orientation: config.orientation ?? 'Vertical',
-  activationThreshold:
-    config.activationThreshold ?? DEFAULT_ACTIVATION_THRESHOLD_PIXELS,
-  dragState: DragState.Idle(),
-})
+/** Creates the initial DragAndDrop Model and Commands. Starts idle with Vertical orientation and a 5px activation threshold by default. */
+export const init = DragAndDropComposition.makeInit((config: InitConfig) => ({
+  model: {
+    id: config.id,
+    orientation: config.orientation ?? 'Vertical',
+    activationThreshold:
+      config.activationThreshold ?? DEFAULT_ACTIVATION_THRESHOLD_PIXELS,
+    dragState: DragState.Idle(),
+  },
+}))
 
 // COMMAND
 
@@ -771,51 +780,29 @@ const arrowKeyToDirection = (key: string): Option.Option<Direction> =>
     Match.option,
   )
 
-// NOTE: DragAndDrop has no `view` function and is not embedded via
-// `h.block`. It's a behavior Block with helpers: the consumer renders
-// their own elements (cards, columns) and attaches the attribute bundles
-// returned by `draggable`, `droppable`, and `sortable` below. Only
-// `draggable` carries Messages, so only it is parameterized over the
-// consumer's `ParentMessage`, and threading `toParentMessage` is the
-// consumer's responsibility. `droppable` and `sortable` are data attributes
-// with no handlers, so they return `Attribute<never>`, which flows into any
-// Message universe.
-
-/** Messages the draggable view helper can dispatch. */
-export type DraggableMessage =
-  | typeof Message.PressedDraggable.Type
-  | typeof Message.ActivatedKeyboardDrag.Type
-
-/** Configuration for creating draggable attributes with `draggable`. */
-export type DraggableConfig<ParentMessage> = Readonly<{
-  model: Model
-  toParentMessage: (message: DraggableMessage) => ParentMessage
+/** Identifies the draggable item and its current location. */
+export type DraggableAttributesInput = Readonly<{
   itemId: string
   containerId: string
   index: number
 }>
 
-/** Returns attributes the parent attaches to a draggable element. Handles pointer-down, keyboard activation, and ARIA. */
-export const draggable = <ParentMessage>(
-  config: DraggableConfig<ParentMessage>,
-  h: HtmlBuilder<ParentMessage>,
-): ReadonlyArray<Attribute<ParentMessage>> => {
+const draggable = (
+  model: Model,
+  input: DraggableAttributesInput,
+  h: HtmlBuilder<Message>,
+): ReadonlyArray<Attribute<Message>> => {
   const isKeyboardDragActivationKey = (key: string): boolean =>
     key === ' ' || key === 'Enter'
 
-  const handleKeyDown = (key: string): Option.Option<ParentMessage> => {
-    if (
-      isKeyboardDragActivationKey(key) &&
-      config.model.dragState._tag === 'Idle'
-    ) {
+  const handleKeyDown = (key: string): Option.Option<Message> => {
+    if (isKeyboardDragActivationKey(key) && model.dragState._tag === 'Idle') {
       return Option.some(
-        config.toParentMessage(
-          Message.ActivatedKeyboardDrag({
-            itemId: config.itemId,
-            containerId: config.containerId,
-            index: config.index,
-          }),
-        ),
+        Message.ActivatedKeyboardDrag({
+          itemId: input.itemId,
+          containerId: input.containerId,
+          index: input.index,
+        }),
       )
     }
 
@@ -823,8 +810,8 @@ export const draggable = <ParentMessage>(
   }
 
   return [
-    h.DataAttribute('draggable-id', config.itemId),
-    h.DataAttribute('sortable-id', config.itemId),
+    h.DataAttribute('draggable-id', input.itemId),
+    h.DataAttribute('sortable-id', input.itemId),
     h.Role('option'),
     h.AriaRoleDescription('draggable'),
     h.Tabindex(0),
@@ -833,15 +820,13 @@ export const draggable = <ParentMessage>(
         button,
         Option.liftPredicate(Equal.equals(LEFT_MOUSE_BUTTON)),
         Option.map(() =>
-          config.toParentMessage(
-            Message.PressedDraggable({
-              itemId: config.itemId,
-              containerId: config.containerId,
-              index: config.index,
-              screenX,
-              screenY,
-            }),
-          ),
+          Message.PressedDraggable({
+            itemId: input.itemId,
+            containerId: input.containerId,
+            index: input.index,
+            screenX,
+            screenY,
+          }),
         ),
       ),
     ),
@@ -873,6 +858,33 @@ export const droppable = (
 export const sortable = (itemId: string): ReadonlyArray<Attribute<never>> => [
   ih.DataAttribute('sortable-id', itemId),
 ]
+
+/** Attribute builders supplied to the consumer's `toView` callback. */
+export type RenderInfo = Readonly<{
+  draggable: (input: DraggableAttributesInput) => ReadonlyArray<ChildAttribute>
+  droppable: (
+    containerId: string,
+    label?: string,
+  ) => ReadonlyArray<ChildAttribute>
+  sortable: (itemId: string) => ReadonlyArray<ChildAttribute>
+}>
+
+/** Per-render inputs passed to the DragAndDrop connection's `embedView` method. */
+export type ViewInputs = Readonly<{
+  toView: (render: RenderInfo) => Html
+}>
+
+/** Publishes drag-and-drop attribute groups while the consumer retains full
+ * control over the rendered elements and content. */
+export const view = DragAndDropComposition.makeView.withInputs<ViewInputs>(
+  (model, { toView }, h) =>
+    toView({
+      draggable: input => childAttributes(draggable(model, input, h)),
+      droppable: (containerId, label) =>
+        childAttributes(droppable(containerId, label)),
+      sortable: itemId => childAttributes(sortable(itemId)),
+    }),
+)
 
 const ghostTransform = (clientX: number, clientY: number): string =>
   `translate3d(${String(clientX)}px, ${String(clientY)}px, 0)`
@@ -925,11 +937,10 @@ export const maybeDropTarget = (
   )
 
 /** Complete DragAndDrop Block definition for connecting to a parent. */
-export const block = DragAndDropComposition.makeBlock({
-  init: DragAndDropComposition.makeInit((config: InitConfig) => ({
-    model: init(config),
-  })),
+export const DragAndDropBlock = DragAndDropComposition.assembleBlock({
+  init,
   update,
+  view,
   subscriptions,
   EffectsLayer,
 })

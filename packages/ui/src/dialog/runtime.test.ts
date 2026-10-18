@@ -1,29 +1,23 @@
 import { Array, Effect, Fiber, Layer, Schema } from 'effect'
-import { defineApplication } from 'foldkit'
-import { defineMessageUnion } from 'foldkit/message'
+import { makeApplicationDefinition } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import * as Dialog from './index.js'
+import * as Dialog from './block.js'
 
 const dialogId = 'preserved-dialog'
-
-const RuntimeMessage = defineMessageUnion({
-  GotDialogMessage: { message: Dialog.Message },
-})
-type RuntimeMessage = typeof RuntimeMessage.Type
 
 const DialogEvent = Schema.Literals(['Opened', 'Closed'])
 
 const Model = Schema.Struct({
-  dialog: Dialog.Model,
+  dialog: Dialog.DialogBlock.Model,
   dialogEvents: Schema.Array(DialogEvent),
 })
 type Model = typeof Model.Type
 
-const ApplicationDefinition = defineApplication({
+const ApplicationDefinition = makeApplicationDefinition({
   Model,
-  Message: RuntimeMessage,
+  Message: Schema.Never,
 })
 
 const foldDialogOutMessage = (outMessage: typeof Dialog.OutMessage.Type) =>
@@ -43,15 +37,14 @@ const foldDialogOutMessage = (outMessage: typeof Dialog.OutMessage.Type) =>
     }),
   )
 
-const DialogBinding = ApplicationDefinition.bindChild(Dialog.block, {
+const DialogBinding = ApplicationDefinition.bindChild(Dialog.DialogBlock, {
   field: 'dialog',
-  parentMessage: RuntimeMessage.GotDialogMessage,
   outMessage: { fold: foldDialogOutMessage },
-  init: { startupToArgs: () => [{ id: dialogId }] },
+  init: { contextToArgs: () => [{ id: dialogId }] },
 })
 
 const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [DialogBinding],
+  bindings: [DialogBinding],
 })
 
 const update = ApplicationComposition.makeUpdate()
@@ -97,10 +90,10 @@ const preservedModel = (dialogModel: Dialog.Model): Model => ({
 })
 
 const preservedOpenModel = (config: Dialog.InitConfig): Dialog.Model =>
-  Dialog.update(Dialog.init(config), Dialog.Message.RequestedOpen()).model
+  Dialog.update(Dialog.init(config).model, Dialog.Message.RequestedOpen()).model
 
 const makeDialogProgram = (container: HTMLElement) =>
-  ApplicationComposition.makeElement({
+  ApplicationComposition.assembleElement({
     container,
     init,
     update,

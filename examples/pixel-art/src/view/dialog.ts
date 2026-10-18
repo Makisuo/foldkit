@@ -1,7 +1,7 @@
 import { Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { Button, Dialog } from '@foldkit/ui'
+import { Button, DialogBlock } from '@foldkit/ui'
 
 import {
   type ApplicationViewBuilder,
@@ -17,7 +17,7 @@ const panelClassName =
   'bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-sm relative shadow-xl'
 
 export const errorDialogView = (
-  errorDialog: typeof Dialog.Model.Type,
+  errorDialog: typeof DialogBlock.Model.Type,
   maybeExportError: Option.Option<string>,
   h: ApplicationViewBuilder,
 ): Html =>
@@ -80,7 +80,7 @@ export const errorDialogView = (
   )
 
 export const gridSizeConfirmDialogView = (
-  gridSizeConfirmDialog: typeof Dialog.Model.Type,
+  gridSizeConfirmDialog: typeof DialogBlock.Model.Type,
   maybePendingGridSize: Option.Option<number>,
   h: ApplicationViewBuilder,
 ): Html =>

@@ -1,14 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import { UiComposition } from './composition'
+import { MenuPageContent } from './content'
 import * as Menu from './demo/menu'
-import raw from './menuPage.md'
 
-const { tableOfContents, view: renderPage } = slotDocPage<'basic' | 'animated'>(
-  raw,
-  'ui/menu',
-)
+const { tableOfContents, view: renderPage } = MenuPageContent
 
 export { tableOfContents }
 

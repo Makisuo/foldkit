@@ -6,16 +6,29 @@ import * as Render from 'foldkit/render'
 import { modifyFields } from 'foldkit/struct'
 
 import { idSelector } from '../internal/selectors.js'
-import { type Hid, Message, Model, OutMessage, type Showed } from './schema.js'
+import {
+  type Hid,
+  type InitConfig,
+  Message,
+  Model,
+  OutMessage,
+  type Showed,
+  makeInitialModel,
+} from './schema.js'
 
 /** Authored Animation Block definition shared by its implementation modules. */
-export const AnimationDefinition = Block.define('Animation', {
+export const AnimationDefinition = Block.makeDefinition('Animation', {
   Model,
   Message,
   OutMessage,
 })
 
 export const AnimationComposition = AnimationDefinition.makeComposition()
+
+/** Creates the initial Animation Model and Commands. Defaults to hidden. */
+export const init = AnimationComposition.makeInit((config: InitConfig) => ({
+  model: makeInitialModel(config),
+}))
 
 // UPDATE
 
@@ -138,6 +151,13 @@ const resumeTransition = (model: Model) =>
     Match.exhaustive,
   )
 
+const resetImmediately = (model: Model) => ({
+  model: modifyFields(model, {
+    isShowing: () => false,
+    transitionState: () => 'Idle',
+  }),
+})
+
 /** Processes an Animation Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. `Showed` and `Hid` start a transition
  *  but cannot finish one, so direct calls with either Message return a plain
@@ -158,6 +178,8 @@ const updateInferred = AnimationComposition.makeUpdate((model, message) =>
     RequestedToggle: () => toggleTransition(model),
 
     RequestedResume: () => resumeTransition(model),
+
+    RequestedImmediateReset: () => resetImmediately(model),
 
     CompletedWaitForPaint: ({ generation }) => {
       if (generation !== model.transitionGeneration) {
@@ -209,9 +231,10 @@ export function update(model: Model, message: Message): UpdateReturn {
   return updateInferred(model, message)
 }
 
-/** Creates the standard leave Command for the Model's current transition. Use
- *  this when handling `StartedLeaveAnimating` unless the component needs its
- *  own settlement strategy. */
+/** Creates the standard leave Command for the Model's current transition
+ * without changing the Model. Use it when handling `StartedLeaveAnimating`
+ * and lift the returned child Command through that Animation Binding's
+ * `FoldContext`. The resulting Message is processed by Animation's update. */
 export const defaultLeaveCommand = (model: Model) =>
   WaitForAnimationSettled({
     id: model.id,

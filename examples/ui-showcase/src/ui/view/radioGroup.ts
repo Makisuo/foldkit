@@ -8,7 +8,7 @@ import {
   VerticalRadioGroupDemoBinding,
 } from '../composition'
 import type { UiViewBuilder } from '../composition'
-import type { Plan } from '../model'
+import type { Plan } from '../domain'
 
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 

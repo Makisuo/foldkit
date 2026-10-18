@@ -9,11 +9,13 @@ import {
   CanonicalNoteByIdTestLayer,
   CanonicalNotes,
   CanonicalNotesTestLayer,
+  DeclarationQueryParentComposition,
   ForeignCanonicalNoteByIdLayer,
   ForeignCanonicalNotesLayer,
   NoteById,
   Notes,
   NotesChildBinding,
+  ParentMessage,
   ProvidedNoteById,
   ProvidedNotes,
   QueryBuildFailure,
@@ -107,5 +109,17 @@ export type ChildOperationRequirements = Expect<
       ReturnType<typeof NotesChildBinding.requestLoadIfMissing>
     >,
     Block.Scoped<'notes', Command.HandlerOf<typeof Notes.Fetch>>
+  >
+>
+export type QueryParentDispatch = Expect<
+  Equal<
+    typeof DeclarationQueryParentComposition.Message.Type,
+    | typeof ParentMessage.Type
+    | Readonly<{
+        _tag: 'GotNotesMessage'
+        placement: 'notes'
+        generation: number
+        message: typeof Notes.Message.Type
+      }>
   >
 >

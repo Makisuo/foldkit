@@ -1,6 +1,5 @@
-import { Array, Option, pipe } from 'effect'
+import { Array, Option, Schema, pipe } from 'effect'
 import { Block, Scene, Story } from 'foldkit'
-import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import type * as Update from 'foldkit/update'
 import { expect } from 'vitest'
@@ -12,13 +11,13 @@ import {
   Message,
   Model,
   OutMessage,
-  block,
+  create,
   findFirstEnabledIndex,
   init,
   keyToIndex,
   update,
   wrapIndex,
-} from './index.js'
+} from './tabs.js'
 
 const noneDisabled = () => false
 
@@ -27,30 +26,25 @@ const disabledAt =
   (index: number) =>
     indices.includes(index)
 
-const TabsSceneMessage = defineMessageUnion({
-  GotTabsMessage: { message: Message },
-})
+const TestTabs = create()
 
-const TabsSceneDefinition = Block.define('TabsScene', {
+const TabsSceneDefinition = Block.makeDefinition('TabsScene', {
   Model,
-  Message: TabsSceneMessage,
+  Message: Schema.Never,
 })
 
-const foldTabsOutMessage = OutMessage.match<
-  Update.Step<Model, typeof TabsSceneMessage.Type>
->({
+const foldTabsOutMessage = OutMessage.match<Update.Step<Model, never>>({
   Selected: () => TabsSceneDefinition.step(model => ({ model })),
 })
 
-const TabsBinding = TabsSceneDefinition.bindChild(block, {
+const TabsBinding = TabsSceneDefinition.bindChild(TestTabs, {
   read: model => Option.some(model),
   write: (_model, nextTabs) => nextTabs,
-  parentMessage: TabsSceneMessage.GotTabsMessage,
   outMessage: { fold: foldTabsOutMessage },
 })
 
 const TabsSceneComposition = TabsSceneDefinition.makeComposition({
-  childBindings: [TabsBinding],
+  bindings: [TabsBinding],
 })
 const sceneUpdate = TabsSceneComposition.makeUpdate()
 
@@ -117,7 +111,7 @@ describe('Tabs', () => {
     it('only gives the mounted panel relationship to the active tab', () => {
       Scene.scene(
         { update: sceneUpdate, view: sceneView },
-        Scene.given(init({ id: 'test' })),
+        Scene.given(init({ id: 'test' }).model),
         Scene.expect(Scene.selector('#test-tab-0')).toHaveAttr(
           'aria-controls',
           'test-panel-0',
@@ -131,7 +125,7 @@ describe('Tabs', () => {
     it('keeps every panel relationship when all panels remain mounted', () => {
       Scene.scene(
         { update: sceneUpdate, view: allPanelsView },
-        Scene.given(init({ id: 'test' })),
+        Scene.given(init({ id: 'test' }).model),
         Scene.expect(Scene.selector('#test-tab-0')).toHaveAttr(
           'aria-controls',
           'test-panel-0',
@@ -147,7 +141,7 @@ describe('Tabs', () => {
 
   describe('init', () => {
     it('defaults to automatic activation with focus following the selection', () => {
-      expect(init({ id: 'test' })).toStrictEqual({
+      expect(init({ id: 'test' }).model).toStrictEqual({
         id: 'test',
         maybeFocusedIndex: Option.none(),
         activationMode: 'Automatic',
@@ -155,7 +149,9 @@ describe('Tabs', () => {
     })
 
     it('accepts a custom activationMode', () => {
-      expect(init({ id: 'test', activationMode: 'Manual' })).toStrictEqual({
+      expect(
+        init({ id: 'test', activationMode: 'Manual' }).model,
+      ).toStrictEqual({
         id: 'test',
         maybeFocusedIndex: Option.none(),
         activationMode: 'Manual',
@@ -167,7 +163,7 @@ describe('Tabs', () => {
     it('clears focus divergence on SelectedTab and emits Selected', () => {
       Story.story(
         update,
-        Story.given(init({ id: 'test' })),
+        Story.given(init({ id: 'test' }).model),
         Story.message(Message.SelectedTab({ index: 3, value: 'tab-3' })),
         Story.expectOutMessage(
           OutMessage.Selected({ value: 'tab-3', index: 3 }),
@@ -183,7 +179,7 @@ describe('Tabs', () => {
       Story.story(
         update,
         Story.given(
-          modifyFields(init({ id: 'test' }), {
+          modifyFields(init({ id: 'test' }).model, {
             maybeFocusedIndex: () => Option.some(1),
           }),
         ),
@@ -201,7 +197,7 @@ describe('Tabs', () => {
     it('sets focus divergence on FocusedTab without an OutMessage', () => {
       Story.story(
         update,
-        Story.given(init({ id: 'test', activationMode: 'Manual' })),
+        Story.given(init({ id: 'test', activationMode: 'Manual' }).model),
         Story.message(Message.FocusedTab({ index: 2 })),
         Story.Command.resolve(FocusTab, Message.CompletedFocusTab()),
         Story.model(model => {
@@ -214,7 +210,7 @@ describe('Tabs', () => {
       Story.story(
         update,
         Story.given(
-          modifyFields(init({ id: 'test', activationMode: 'Manual' }), {
+          modifyFields(init({ id: 'test', activationMode: 'Manual' }).model, {
             maybeFocusedIndex: () => Option.some(2),
           }),
         ),

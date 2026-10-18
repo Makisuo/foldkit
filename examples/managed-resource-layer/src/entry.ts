@@ -3,7 +3,6 @@ import { Runtime } from 'foldkit'
 import {
   ApplicationComposition,
   EffectsLayer,
-  Message,
   init,
   managedResources,
   update,
@@ -11,14 +10,14 @@ import {
 } from './application'
 import { ApplicationLayer } from './services'
 
-const application = ApplicationComposition.makeApplication({
+const application = ApplicationComposition.assembleApplication({
   init,
   update,
   view,
   managedResources,
   EffectsLayer,
   container: document.getElementById('root'),
-  devTools: { Message },
+  devTools: { Message: ApplicationComposition.Message },
 })
 
 Runtime.run(application.provide(ApplicationLayer))

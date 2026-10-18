@@ -1,5 +1,5 @@
 import { Layer, Schema } from 'effect'
-import { CustomElement, defineApplication } from 'foldkit'
+import { CustomElement, makeApplicationDefinition } from 'foldkit'
 import { type Document } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -22,13 +22,14 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const ApplicationComposition = makeApplicationDefinition({
+  Model,
+  Message,
+}).makeComposition()
 
-export const ApplicationComposition = ApplicationDefinition.makeComposition()
-
-export const init = (flags: Flags) => ({
+export const init = ApplicationComposition.makeInit((flags: Flags) => ({
   model: Model.make({ count: flags.start, formState: 'Controlled' }),
-})
+}))
 
 export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {

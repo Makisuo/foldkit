@@ -9,9 +9,10 @@ const Model = Schema.Struct({ articles: Schema.Array(Article) })
 type Model = typeof Model.Type
 
 const Message = defineMessageUnion({ ClickedArticle: { id: Schema.String } })
-
-const ArticlesDefinition = Block.define('Articles', { Model, Message })
-const ArticlesComposition = ArticlesDefinition.makeComposition()
+const ArticlesComposition = Block.makeDefinition('Articles', {
+  Model,
+  Message,
+}).makeComposition()
 type ArticlesViewBuilder = Block.ViewBuilderFor<typeof ArticlesComposition>
 
 const headerView = (h: ArticlesViewBuilder) => h.h2([], ['ArticlesDefinition'])

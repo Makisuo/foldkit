@@ -64,8 +64,8 @@ export const update = (model: Model) => {
   }
 }
 
-const ParentView = Block.define('ParentView')
-const parentView = ParentView.define({
+const ParentViewNamespace = Block.makeNamespace('ParentView')
+const parentView = ParentViewNamespace.makeDefinition({
   Model,
   Message: ParentMessage,
 })
@@ -81,11 +81,11 @@ export const importedParentView = ImportedParentViewComposition.makeView((_model
   h.button([h.OnClick(Child.Message.ClickedImportedParentViewSave())]),
 )
 
-const TypedParentView = Block.define('TypedParentView', {
+const TypedParentViewDefinition = Block.makeDefinition('TypedParentView', {
   Model,
   Message: ParentMessage,
 })
-const TypedParentViewComposition = TypedParentView.makeComposition()
+const TypedParentViewComposition = TypedParentViewDefinition.makeComposition()
 
 export const typedParentView = TypedParentViewComposition.makeView((_model, h) =>
   h.button([h.OnClick(Child.Message.ClickedTypedParentViewSave())]),
@@ -96,8 +96,8 @@ export const parentStep = parentView.step(model => ({
   message: Child.Message.ClickedParentStepSave(),
 }))
 
-const ServerChildView = Block.define('ServerChildView')
-const serverChildViewDefinition = ServerChildView.define({
+const ServerChildViewNamespace = Block.makeNamespace('ServerChildView')
+const serverChildViewDefinition = ServerChildViewNamespace.makeDefinition({
   Model: Child.Model,
   Message: Child.Message,
 })

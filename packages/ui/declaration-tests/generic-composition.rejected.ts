@@ -5,6 +5,7 @@ import * as Tooltip from '@foldkit/ui/tooltip'
 import {
   ApplicationDefinition,
   DialogBinding,
+  MenuPicker,
   Picker,
   PickerBinding,
   RootSlider,
@@ -21,6 +22,20 @@ Picker.Message.SelectedItem({
   displayText: 'Banana',
   wasSelected: false,
 })
+
+MenuPicker.OutMessage.match({
+  Selected: ({ value }) => {
+    // @ts-expect-error The Menu OutMessage matcher preserves its item refinement.
+    const banana: 'Banana' = value
+    return banana
+  },
+  Closed: () => 'Closed',
+})
+
+MenuPicker.OutMessage.match<string>(
+  // @ts-expect-error The Menu OutMessage matcher requires the Closed variant.
+  { Selected: () => '' },
+)
 
 // @ts-expect-error The connected operation preserves the item Schema.
 PickerBinding.requestSelectItem('Banana', 'Banana')
@@ -42,26 +57,31 @@ ToastBlock.operations.requestShow(
     duration: false,
   },
 )
-Slider.block.operations.informRangeChanged(
-  Slider.init({ id: 'invalid-range', min: 0, max: 100, step: 1 }),
+Slider.SliderBlock.operations.informRangeChanged(
+  Slider.SliderBlock.init({ id: 'invalid-range', min: 0, max: 100, step: 1 })
+    .model,
   // @ts-expect-error The Slider range requires both numeric bounds.
   { min: 10 },
 )
 RootSlider.operations.informRangeChanged(
-  Slider.init({ id: 'invalid-root-range', min: 0, max: 100, step: 1 }),
+  Slider.SliderBlock.init({
+    id: 'invalid-root-range',
+    min: 0,
+    max: 100,
+    step: 1,
+  }).model,
   {
     // @ts-expect-error A custom-root Slider retains numeric range arguments.
     min: 'zero',
     max: 100,
   },
 )
-Tooltip.block.operations.informShowDelayChanged(
-  Tooltip.init({ id: 'invalid-delay' }),
+Tooltip.TooltipBlock.operations.informShowDelayChanged(
+  Tooltip.TooltipBlock.init({ id: 'invalid-delay' }).model,
   // @ts-expect-error Tooltip delay accepts Effect Duration inputs only.
   false,
 )
 
-// @ts-expect-error Parent wrapper Messages require their registered child Bindings.
 const Missing = ApplicationDefinition.makeComposition()
 Missing.makeView((model, h) => {
   // @ts-expect-error The helper requires both registered child Bindings.
@@ -69,7 +89,7 @@ Missing.makeView((model, h) => {
 
   h.OnMount(
     // @ts-expect-error The direct Popover Mount is unavailable.
-    Popover.AnchorPopover({
+    Popover.PopoverBlock.mounts.AnchorPopover({
       buttonId: 'missing',
       anchor: { placement: 'bottom' },
     }),

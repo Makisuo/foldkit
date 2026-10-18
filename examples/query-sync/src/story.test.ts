@@ -5,11 +5,11 @@ import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
 import { Listbox } from '@foldkit/ui'
-import { FocusListboxButton, FocusListboxItems } from '@foldkit/ui/listbox'
 
 import { ReplaceFilters } from './command'
+import { DietListboxBinding } from './composition'
 import { Message } from './message'
-import { type Model } from './model'
+import { DietListboxBlock, type Model, PeriodListboxBlock } from './model'
 import { ApplicationRoute, Sorting, browseRouter } from './route'
 import { update } from './update'
 
@@ -20,9 +20,18 @@ const browseModel: Model = {
     diet: Option.none(),
     period: Option.none(),
   }),
-  dietListbox: Listbox.init({ id: 'diet-filter' }),
-  periodListbox: Listbox.init({ id: 'period-filter' }),
+  dietListbox: DietListboxBlock.init({ id: 'diet-filter' }).model,
+  periodListbox: PeriodListboxBlock.init({ id: 'period-filter' }).model,
 }
+
+const emptyDietListboxView = DietListboxBlock.makeView((_model, h) => h.empty)
+
+const dietMessage = (message: typeof DietListboxBlock.Message.Type) =>
+  DietListboxBinding.embedView({
+    slotId: 'dietListbox',
+    model: browseModel.dietListbox,
+    view: emptyDietListboxView,
+  }).toParentMessage(message)
 
 const urlOrThrow = (raw: string) =>
   Option.getOrThrowWith(
@@ -136,24 +145,24 @@ describe('update', () => {
         update,
         given(browseModel),
         message(
-          Message.GotDietListboxMessage({
-            message: Listbox.Message.Opened({
+          dietMessage(
+            DietListboxBlock.Message.Opened({
               maybeActiveItemIndex: Option.none(),
             }),
-          }),
+          ),
         ),
         Command.resolve(
-          FocusListboxItems,
-          Listbox.Message.CompletedFocusListboxItems(),
+          Listbox.test.FocusListboxItems,
+          DietListboxBlock.Message.CompletedFocusListboxItems(),
         ),
         message(
-          Message.GotDietListboxMessage({
-            message: Listbox.Message.SelectedItem({ item: 'Carnivore' }),
-          }),
+          dietMessage(
+            DietListboxBlock.Message.SelectedItem({ item: 'Carnivore' }),
+          ),
         ),
         Command.resolve(
-          FocusListboxButton,
-          Listbox.Message.CompletedFocusListboxButton(),
+          Listbox.test.FocusListboxButton,
+          DietListboxBlock.Message.CompletedFocusListboxButton(),
         ),
         Command.expectHas(ReplaceFilters),
         Command.resolve(ReplaceFilters, Message.CompletedReplaceFilters()),

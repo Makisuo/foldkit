@@ -196,7 +196,7 @@ export const OutMessage = defineMessageUnion({
 
 export type OutMessage = typeof OutMessage.Type
 
-const VirtualListDefinition = Block.define('VirtualList', {
+const VirtualListDefinition = Block.makeDefinition('VirtualList', {
   Model,
   Message,
   OutMessage,
@@ -238,9 +238,7 @@ const initialScrollFromConfig = (
   return InitialScroll.Applied()
 }
 
-/** Creates an initial virtual list model from a config. The container starts
- *  in `Unmeasured` state until its Mount reports the first measurement. */
-export const init = (config: InitConfig): Model => {
+const makeInitialModel = (config: InitConfig): Model => {
   const initialScroll = initialScrollFromConfig(config)
 
   return {
@@ -660,15 +658,13 @@ const measureContainer = (
     Unmeasured: () => false,
     Measured: measurement => measurement.containerWidth !== containerWidth,
   })
-  const recordContainerMeasurement = VirtualListDefinition.step(stepModel => ({
-    model: modifyFields(stepModel, {
-      measurement: () =>
-        Measurement.Measured({ containerWidth, containerHeight }),
-      measuredRowHeights: measuredRowHeights =>
-        didWidthChange ? Record.empty() : measuredRowHeights,
-      layoutVersion: layoutVersion =>
-        didWidthChange ? Number.increment(layoutVersion) : layoutVersion,
-    }),
+  const recordContainerMeasurement = VirtualListDefinition.stepFields(() => ({
+    measurement: () =>
+      Measurement.Measured({ containerWidth, containerHeight }),
+    measuredRowHeights: measuredRowHeights =>
+      didWidthChange ? Record.empty() : measuredRowHeights,
+    layoutVersion: layoutVersion =>
+      didWidthChange ? Number.increment(layoutVersion) : layoutVersion,
   }))
 
   const { initialScroll } = model
@@ -1312,6 +1308,12 @@ const VirtualListComposition = VirtualListDefinition.makeComposition({
   mounts,
 })
 
+/** Creates an initial VirtualList Model and Commands from a config. The container starts
+ *  in `Unmeasured` state until its Mount reports the first measurement. */
+export const init = VirtualListComposition.makeInit((config: InitConfig) => ({
+  model: makeInitialModel(config),
+}))
+
 export const update = VirtualListComposition.makeUpdate(updateImpl)
 
 /** Provides VirtualList's Command and Mount handlers. */
@@ -1541,10 +1543,8 @@ const operations = {
 }
 
 /** Complete VirtualList Block definition using an unknown item type. */
-export const block = VirtualListComposition.makeBlock({
-  init: VirtualListComposition.makeInit((config: InitConfig) => ({
-    model: init(config),
-  })),
+export const block = VirtualListComposition.assembleBlock({
+  init,
   update,
   view: viewImpl,
   operations,
@@ -1570,20 +1570,30 @@ export const scrollToOffset = block.operations.requestScrollToOffset
 /** Programmatically scrolls to the end of the list. */
 export const scrollToEnd = block.operations.requestScrollToEnd
 
-/** Creates a completed VirtualList Block refined to one item type. */
-export const create = <Item>() => {
+const makeBlockParts = <Item>() => {
   const refinedView = view<Item>()
 
-  return VirtualListComposition.makeBlock({
-    init: VirtualListComposition.makeInit((config: InitConfig) => ({
-      model: init(config),
-    })),
-    update,
-    view: refinedView,
-    operations,
-    EffectsLayer,
-  })
+  return {
+    composition: VirtualListComposition,
+    implementation: {
+      init,
+      update,
+      view: refinedView,
+      operations,
+      EffectsLayer,
+    },
+  }
 }
 
 /** A completed VirtualList Block refined to one item type. */
-export type Completed<Item> = ReturnType<typeof create<Item>>
+export interface Completed<Item> extends Block.CompletedWithViewAndOutMessage<
+  ReturnType<typeof makeBlockParts<Item>>['composition'],
+  ReturnType<typeof makeBlockParts<Item>>['implementation']
+> {}
+
+/** Creates a completed VirtualList Block refined to one item type. */
+export const create = <Item>(): Completed<Item> => {
+  const { composition, implementation } = makeBlockParts<Item>()
+
+  return composition.assembleBlock(implementation)
+}

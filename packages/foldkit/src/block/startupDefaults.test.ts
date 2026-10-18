@@ -3,11 +3,11 @@ import { expect, expectTypeOf, it } from 'vitest'
 
 import * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
-import { define as defineApplication } from '../runtime/applicationPublic.js'
+import { makeDefinition as makeApplicationDefinition } from '../runtime/applicationPublic.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
 import type { RequirementOfBinding } from './binding.js'
-import { define } from './define.js'
+import { makeDefinition, makeNamespace } from './define.js'
 import type { Scoped } from './scope.js'
 
 class StartupClient extends Context.Service<
@@ -22,7 +22,7 @@ const ChildMessage = defineMessageUnion({
   CompletedInitialization: { count: Schema.Number },
 })
 
-const Child = define('StartupDefaultsChild', {
+const Child = makeDefinition('StartupDefaultsChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
@@ -54,7 +54,7 @@ const FailChildConstructionLayer = FailChildConstruction.toLayer<
 )
 const childInitCalls: globalThis.Array<number> = []
 const ChildComposition = Child.makeComposition()
-const ChildBlock = ChildComposition.makeBlock({
+const ChildBlock = ChildComposition.assembleBlock({
   init: ChildComposition.makeInit(() => {
     childInitCalls.push(0)
     return {
@@ -71,36 +71,40 @@ const ChildBlock = ChildComposition.makeBlock({
   ),
 })
 
-const DefaultChild = define('StartupDefaultsDefaultChild', {
+const DefaultChildComposition = makeDefinition('StartupDefaultsDefaultChild', {
   Model: ChildModel,
   Message: ChildMessage,
-})
-const DefaultChildComposition = DefaultChild.makeComposition()
-const DefaultChildBlock = DefaultChildComposition.makeBlock({
+}).makeComposition()
+const DefaultChildBlock = DefaultChildComposition.assembleBlock({
   init: DefaultChildComposition.makeInit((count = 1) => ({
     model: ChildModel.make({ count }),
   })),
   update: DefaultChildComposition.makeUpdate(model => ({ model })),
 })
 
-const OptionalArgumentChild = define('StartupDefaultsOptionalArgumentChild', {
-  Model: ChildModel,
-  Message: ChildMessage,
-})
-const OptionalArgumentChildComposition = OptionalArgumentChild.makeComposition()
-const OptionalArgumentChildBlock = OptionalArgumentChildComposition.makeBlock({
-  init: OptionalArgumentChildComposition.makeInit((count?: number) => ({
-    model: ChildModel.make({ count: count ?? 2 }),
-  })),
-  update: OptionalArgumentChildComposition.makeUpdate(model => ({ model })),
-})
+const OptionalArgumentChildComposition = makeDefinition(
+  'StartupDefaultsOptionalArgumentChild',
+  {
+    Model: ChildModel,
+    Message: ChildMessage,
+  },
+).makeComposition()
+const OptionalArgumentChildBlock =
+  OptionalArgumentChildComposition.assembleBlock({
+    init: OptionalArgumentChildComposition.makeInit((count?: number) => ({
+      model: ChildModel.make({ count: count ?? 2 }),
+    })),
+    update: OptionalArgumentChildComposition.makeUpdate(model => ({ model })),
+  })
 
-const RequiredRestChild = define('StartupDefaultsRequiredRestChild', {
-  Model: ChildModel,
-  Message: ChildMessage,
-})
-const RequiredRestChildComposition = RequiredRestChild.makeComposition()
-const RequiredRestChildBlock = RequiredRestChildComposition.makeBlock({
+const RequiredRestChildComposition = makeDefinition(
+  'StartupDefaultsRequiredRestChild',
+  {
+    Model: ChildModel,
+    Message: ChildMessage,
+  },
+).makeComposition()
+const RequiredRestChildBlock = RequiredRestChildComposition.assembleBlock({
   init: RequiredRestChildComposition.makeInit(
     (...counts: [first: number, ...rest: Array<number>]) => ({
       model: ChildModel.make({
@@ -111,12 +115,14 @@ const RequiredRestChildBlock = RequiredRestChildComposition.makeBlock({
   update: RequiredRestChildComposition.makeUpdate(model => ({ model })),
 })
 
-const RequiredChild = define('StartupDefaultsRequiredChild', {
-  Model: ChildModel,
-  Message: ChildMessage,
-})
-const RequiredChildComposition = RequiredChild.makeComposition()
-const RequiredChildBlock = RequiredChildComposition.makeBlock({
+const RequiredChildComposition = makeDefinition(
+  'StartupDefaultsRequiredChild',
+  {
+    Model: ChildModel,
+    Message: ChildMessage,
+  },
+).makeComposition()
+const RequiredChildBlock = RequiredChildComposition.assembleBlock({
   init: RequiredChildComposition.makeInit((count: number) => ({
     model: ChildModel.make({ count }),
   })),
@@ -124,12 +130,12 @@ const RequiredChildBlock = RequiredChildComposition.makeBlock({
 })
 
 const Entry = Schema.Struct({ id: Schema.String, child: ChildModel })
-const Startup = Schema.Struct({
+const ChildInitContext = Schema.Struct({
   count: Schema.Number,
   includeOptional: Schema.Boolean,
   entryIds: Schema.Array(Schema.String),
 })
-type Startup = typeof Startup.Type
+type ChildInitContext = typeof ChildInitContext.Type
 const ParentModel = Schema.Struct({
   automatic: ChildModel,
   defaultArgument: ChildModel,
@@ -144,22 +150,13 @@ const ParentModel = Schema.Struct({
 })
 type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
-  GotAutomaticMessage: { message: ChildMessage },
-  GotDefaultArgumentMessage: { message: ChildMessage },
-  GotOptionalArgumentMessage: { message: ChildMessage },
-  GotRequiredRestMessage: { message: ChildMessage },
-  GotOptedOutMessage: { message: ChildMessage },
-  GotPassiveOptionalMessage: { message: ChildMessage },
-  GotAutomaticOptionalMessage: { message: ChildMessage },
-  GotPassiveEntryMessage: { id: Schema.String, message: ChildMessage },
-  GotAutomaticEntryMessage: { id: Schema.String, message: ChildMessage },
   CompletedParentInitialization: {},
   CompletedParentStep: {},
 })
-const Parent = define('StartupDefaultsParent', {
+const Parent = makeDefinition('StartupDefaultsParent', {
   Model: ParentModel,
   Message: ParentMessage,
-  Startup,
+  ChildInitContext,
 })
 const FinishParentInitialization = Parent.command('FinishInitialization', {
   messages: [ParentMessage.CompletedParentInitialization],
@@ -176,66 +173,50 @@ const FinishParentStep = Parent.command('FinishStep', {
 
 const AutomaticBinding = Parent.bindChild(ChildBlock, {
   field: 'automatic',
-  parentMessage: ParentMessage.GotAutomaticMessage,
 })
 const DefaultArgumentBinding = Parent.bindChild(DefaultChildBlock, {
   field: 'defaultArgument',
-  parentMessage: ParentMessage.GotDefaultArgumentMessage,
 })
 const OptionalArgumentBinding = Parent.bindChild(OptionalArgumentChildBlock, {
   field: 'optionalArgument',
-  parentMessage: ParentMessage.GotOptionalArgumentMessage,
 })
 const RequiredRestBinding = Parent.bindChild(RequiredRestChildBlock, {
   field: 'requiredRest',
-  parentMessage: ParentMessage.GotRequiredRestMessage,
-  init: { startupToArgs: startup => [startup.count] },
+  init: { contextToArgs: childInitContext => [childInitContext.count] },
 })
 const OptedOutBinding = Parent.bindChild(ChildBlock, {
   field: 'optedOut',
-  parentMessage: ParentMessage.GotOptedOutMessage,
   init: false,
 })
 const PassiveOptionalBinding = Parent.bindChild(ChildBlock, {
   field: 'maybePassive',
-  parentMessage: ParentMessage.GotPassiveOptionalMessage,
 })
 const AutomaticOptionalBinding = Parent.bindChild(ChildBlock, {
   field: 'maybeAutomatic',
-  parentMessage: ParentMessage.GotAutomaticOptionalMessage,
   init: {
-    startupToArgs: startup =>
-      startup.includeOptional ? Option.some([]) : Option.none(),
+    contextToArgs: childInitContext =>
+      childInitContext.includeOptional ? Option.some([]) : Option.none(),
   },
 })
 const PassiveEntriesBinding = Parent.bindChild(ChildBlock, {
+  placement: 'passiveEntries',
   field: 'passiveEntries',
   key: 'id',
   childField: 'child',
-  toParentMessage: (id, message) =>
-    ParentMessage.GotPassiveEntryMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotPassiveEntryMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
 })
 const AutomaticEntriesBinding = Parent.bindChild(ChildBlock, {
+  placement: 'automaticEntries',
   field: 'automaticEntries',
   key: 'id',
   childField: 'child',
-  toParentMessage: (id, message) =>
-    ParentMessage.GotAutomaticEntryMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotAutomaticEntryMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
   init: {
-    occurrences: startup => startup.entryIds.map(id => ({ key: id, args: [] })),
+    instances: childInitContext =>
+      childInitContext.entryIds.map(id => ({ key: id, args: [] })),
     toItem: ({ key }, child) => ({ id: key, child }),
   },
 })
 
-expectTypeOf(Parent.Startup).toEqualTypeOf(Startup)
+expectTypeOf(Parent.ChildInitContext).toEqualTypeOf(ChildInitContext)
 expectTypeOf(RequiredRestBinding.placement).toEqualTypeOf<'requiredRest'>()
 expectTypeOf<Parameters<typeof DefaultChildBlock.init>>().toEqualTypeOf<
   [count?: number | undefined]
@@ -248,7 +229,7 @@ expectTypeOf<Parameters<typeof RequiredRestChildBlock.init>>().toEqualTypeOf<
 >()
 
 const ParentComposition = Parent.makeComposition({
-  childBindings: [
+  bindings: [
     AutomaticBinding,
     DefaultArgumentBinding,
     OptionalArgumentBinding,
@@ -264,18 +245,20 @@ const applyParentStep = Parent.step(model => ({
   model: modifyFields(model, { status: () => 'Stepped' }),
   commands: [FinishParentStep()],
 }))
-const initialize = ParentComposition.makeInit((startup: Startup) => ({
-  startup,
-  model: {
-    optedOut: ChildModel.make({ count: 9 }),
-    maybePassive: Option.none(),
-    passiveEntries: [],
-    status: 'Ready',
-  },
-  commands: [FinishParentInitialization()],
-  steps: [applyParentStep],
-}))
-const ParentBlock = ParentComposition.makeBlock({
+const initialize = ParentComposition.makeInit(
+  (childInitContext: ChildInitContext) => ({
+    childInitContext,
+    model: {
+      optedOut: ChildModel.make({ count: 9 }),
+      maybePassive: Option.none(),
+      passiveEntries: [],
+      status: 'Ready',
+    },
+    commands: [FinishParentInitialization()],
+    steps: [applyParentStep],
+  }),
+)
+const ParentBlock = ParentComposition.assembleBlock({
   init: initialize,
   update: ParentComposition.makeUpdate(model => ({ model })),
   EffectsLayer: Layer.merge(
@@ -285,8 +268,8 @@ const ParentBlock = ParentComposition.makeBlock({
 })
 
 // @ts-expect-error An opted-out required child remains a mandatory parent-owned field.
-ParentComposition.makeInit((startup: Startup) => ({
-  startup,
+ParentComposition.makeInit((childInitContext: ChildInitContext) => ({
+  childInitContext,
   model: {
     maybePassive: Option.none(),
     passiveEntries: [],
@@ -315,7 +298,7 @@ type InitialRequirements =
     >
 
 expectTypeOf<Parameters<typeof initialize>>().toEqualTypeOf<
-  [startup: Startup]
+  [childInitContext: ChildInitContext]
 >()
 expectTypeOf<
   ReturnType<typeof initialize>['model']
@@ -334,58 +317,53 @@ expectTypeOf<
 >().toEqualTypeOf<'StartupUnavailable'>()
 
 if (false) {
-  // @ts-expect-error The startup selector is named startupToArgs.
+  // @ts-expect-error The startup selector is named contextToArgs.
   // oxfmt-ignore
-  Parent.bindChild(ChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotAutomaticMessage, init: { args: () => [] } })
-  // @ts-expect-error The removed args key cannot accompany startupToArgs.
+  Parent.bindChild(ChildBlock, { field: 'automatic', init: { args: () => [] } })
+  // @ts-expect-error The removed args key cannot accompany contextToArgs.
   // oxfmt-ignore
-  Parent.bindChild(ChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotAutomaticMessage, init: { startupToArgs: () => [], args: () => [] } })
-  // @ts-expect-error A required-argument child needs init.startupToArgs or init: false.
+  Parent.bindChild(ChildBlock, { field: 'automatic', init: { contextToArgs: () => [], args: () => [] } })
+  // @ts-expect-error A required-argument child needs init.contextToArgs or init: false.
   // oxfmt-ignore
-  Parent.bindChild(RequiredChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotAutomaticMessage })
+  Parent.bindChild(RequiredChildBlock, { field: 'automatic' })
   // @ts-expect-error Child init arguments retain their exact tuple.
   // oxfmt-ignore
-  Parent.bindChild(RequiredChildBlock, { field: 'automatic', parentMessage: ParentMessage.GotAutomaticMessage, init: { startupToArgs: () => ['wrong'] } })
-  // @ts-expect-error A selector must accept every value allowed by Startup.
+  Parent.bindChild(RequiredChildBlock, { field: 'automatic', init: { contextToArgs: () => ['wrong'] } })
+  // @ts-expect-error A selector must accept every value allowed by ChildInitContext.
   // oxfmt-ignore
-  Parent.bindChild(ChildBlock, { field: 'automatic', placement: 'narrowStartup', parentMessage: ParentMessage.GotAutomaticMessage, init: { startupToArgs: (_startup: Readonly<{ count: 1 }>) => [] } })
+  Parent.bindChild(ChildBlock, { field: 'automatic', placement: 'narrowStartup', init: { contextToArgs: (_childInitContext: Readonly<{ count: 1 }>) => [] } })
   Parent.bindChild(ChildBlock, {
     field: 'automatic',
     placement: 'readonlyStartup',
-    parentMessage: ParentMessage.GotAutomaticMessage,
     init: {
-      startupToArgs: startup => {
-        // @ts-expect-error Startup Schema fields remain readonly.
-        startup.count = 2
+      contextToArgs: childInitContext => {
+        // @ts-expect-error ChildInitContext Schema fields remain readonly.
+        childInitContext.count = 2
         return []
       },
     },
   })
   // @ts-expect-error Optional child initialization requires an explicit presence selector.
   // oxfmt-ignore
-  Parent.bindChild(ChildBlock, { field: 'maybePassive', parentMessage: ParentMessage.GotPassiveOptionalMessage, init: true })
+  Parent.bindChild(ChildBlock, { field: 'maybePassive', init: true })
   // @ts-expect-error Keyed init false cannot replace an occurrence policy.
   // oxfmt-ignore
-  Parent.bindChild(ChildBlock, { field: 'passiveEntries', key: 'id', childField: 'child', toParentMessage: (id, message) => ParentMessage.GotPassiveEntryMessage({ id, message }), fromParentMessage: { parentMessage: ParentMessage.GotPassiveEntryMessage, args: (_model, { id, message }) => Option.some([id, message]) }, init: false })
+  Parent.bindChild(ChildBlock, { field: 'passiveEntries', key: 'id', childField: 'child', init: false })
 
   const optionalInitConfig: Readonly<{
     field: 'automatic'
-    parentMessage: typeof ParentMessage.GotAutomaticMessage
     init?: false
   }> = {
     field: 'automatic',
-    parentMessage: ParentMessage.GotAutomaticMessage,
   }
   // @ts-expect-error An optional init policy cannot ambiguously change default startup.
   Parent.bindChild(ChildBlock, optionalInitConfig)
 
   const unionInitConfig: Readonly<{
     field: 'automatic'
-    parentMessage: typeof ParentMessage.GotAutomaticMessage
     init: true | false
   }> = {
     field: 'automatic',
-    parentMessage: ParentMessage.GotAutomaticMessage,
     init: true,
   }
   // @ts-expect-error A union init policy does not establish one concrete startup policy.
@@ -393,26 +371,22 @@ if (false) {
 }
 
 const ExactStartupModel = Schema.Struct({ child: ChildModel })
-const ExactStartupMessage = defineMessageUnion({
-  GotChildMessage: { message: ChildMessage },
-})
-const ExactStartupOwner = define('StartupDefaultsExact')
-const ExactStartupDefinition = ExactStartupOwner.define({
+const ExactStartupNamespace = makeNamespace('StartupDefaultsExact')
+const ExactStartupDefinition = ExactStartupNamespace.makeDefinition({
   Model: ExactStartupModel,
-  Message: ExactStartupMessage,
-  Startup,
+  Message: Schema.Never,
+  ChildInitContext,
 })
 const WiderStartupBinding = ExactStartupDefinition.bindChild(ChildBlock, {
   field: 'child',
-  parentMessage: ExactStartupMessage.GotChildMessage,
-  init: { startupToArgs: (_startup: object) => [] },
+  init: { contextToArgs: (_childInitContext: object) => [] },
 })
 const ExactStartupComposition = ExactStartupDefinition.makeComposition({
-  childBindings: [WiderStartupBinding],
+  bindings: [WiderStartupBinding],
 })
 ExactStartupComposition.makeInit(() => ({
-  // @ts-expect-error A wider selector annotation cannot widen declared Startup evidence.
-  startup: {},
+  // @ts-expect-error A wider selector annotation cannot widen declared ChildInitContext evidence.
+  childInitContext: {},
   model: {},
 }))
 
@@ -420,56 +394,52 @@ const ZeroParameterStartupBinding = ExactStartupDefinition.bindChild(
   ChildBlock,
   {
     field: 'child',
-    parentMessage: ExactStartupMessage.GotChildMessage,
-    init: { startupToArgs: () => [] },
+    init: { contextToArgs: () => [] },
   },
 )
 const ZeroParameterStartupComposition = ExactStartupDefinition.makeComposition({
-  childBindings: [ZeroParameterStartupBinding],
+  bindings: [ZeroParameterStartupBinding],
 })
 ZeroParameterStartupComposition.makeInit(() => ({ model: {} }))
 
-const ForeignStartup = Schema.Struct({ token: Schema.String })
-const ForeignStartupDefinition = ExactStartupOwner.define({
+const ForeignChildInitContext = Schema.Struct({ token: Schema.String })
+const ForeignStartupDefinition = ExactStartupNamespace.makeDefinition({
   Model: ExactStartupModel,
-  Message: ExactStartupMessage,
-  Startup: ForeignStartup,
+  Message: Schema.Never,
+  ChildInitContext: ForeignChildInitContext,
 })
 const ForeignStartupBinding = ForeignStartupDefinition.bindChild(ChildBlock, {
   field: 'child',
-  parentMessage: ExactStartupMessage.GotChildMessage,
-  init: { startupToArgs: _startup => [] },
+  init: { contextToArgs: _childInitContext => [] },
 })
 if (false) {
-  // @ts-expect-error A Binding cannot change another Definition's Startup contract.
+  // @ts-expect-error A Binding cannot change another Definition's ChildInitContext contract.
   ExactStartupDefinition.makeComposition({
-    childBindings: [ForeignStartupBinding],
+    bindings: [ForeignStartupBinding],
   })
 }
 
-const ApplicationDefinition = defineApplication({
+const ApplicationDefinition = makeApplicationDefinition({
   Model: ExactStartupModel,
-  Message: ExactStartupMessage,
-  Startup,
+  Message: Schema.Never,
+  ChildInitContext,
 })
 ApplicationDefinition.bindChild(ChildBlock, {
   field: 'child',
-  parentMessage: ExactStartupMessage.GotChildMessage,
   init: {
-    startupToArgs: startup => {
-      expectTypeOf(startup).toEqualTypeOf<Startup>()
+    contextToArgs: childInitContext => {
+      expectTypeOf(childInitContext).toEqualTypeOf<ChildInitContext>()
       return []
     },
   },
 })
 
-const Ordinary = define('StartupDefaultsOrdinary', {
+const Ordinary = makeDefinition('StartupDefaultsOrdinary', {
   Model: ExactStartupModel,
-  Message: ExactStartupMessage,
+  Message: Schema.Never,
 })
 Ordinary.bindChild(ChildBlock, {
   field: 'child',
-  parentMessage: ExactStartupMessage.GotChildMessage,
 })
 
 it('initializes required direct fields by default and leaves opt-out storage parent-owned', () => {
@@ -510,10 +480,10 @@ it('initializes required direct fields by default and leaves opt-out storage par
   expect(effects).toEqual({ constructorBuilds: 0, commandExecutions: 0 })
 })
 
-it('rejects an erased Binding from an incompatible Startup contract', () => {
+it('rejects an erased Binding from an incompatible ChildInitContext contract', () => {
   expect(() =>
     Reflect.apply(ExactStartupDefinition.makeComposition, undefined, [
-      { childBindings: [ForeignStartupBinding] },
+      { bindings: [ForeignStartupBinding] },
     ]),
   ).toThrow('belongs to a different parent Definition contract')
 })
@@ -525,16 +495,15 @@ it('rejects the removed init.args startup selector at runtime', () => {
       {
         field: 'automatic',
         placement: 'erasedStartupPolicy',
-        parentMessage: ParentMessage.GotAutomaticMessage,
         init,
       },
     ])
 
   expect(() => bindWithInit({ args: () => [] })).toThrow(
-    'object with a startupToArgs function',
+    'object with a contextToArgs function',
   )
   expect(() =>
-    bindWithInit({ startupToArgs: () => [], args: () => [] }),
+    bindWithInit({ contextToArgs: () => [], args: () => [] }),
   ).toThrow('does not support the policy field "args"')
 })
 

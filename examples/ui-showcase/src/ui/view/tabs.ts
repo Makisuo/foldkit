@@ -9,7 +9,7 @@ import {
   VerticalTabsDemoBinding,
 } from '../composition'
 import type { UiViewBuilder } from '../composition'
-import type { DemoTab } from '../model'
+import type { DemoTab } from '../domain'
 
 const demoTabs: ReadonlyArray<DemoTab> = ['Foldkit', 'React', 'Elm']
 

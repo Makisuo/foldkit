@@ -12,12 +12,14 @@ import { Docs } from '../layout'
 import { docPage } from '../markdown'
 import { Message } from '../message'
 import { type Model } from '../model'
-import { Blog, NotFound, Ui } from '../page'
+import { Blog, NotFound, UiBlock } from '../page'
 import * as Release0167 from '../page/blog/post/foldkit-0-167-0'
 import * as Prose from '../prose'
 import { type BlogPostRoute, type BlogRoute, homeRouter } from '../route'
-import * as SnippetCopy from '../snippetCopy'
-import * as SnippetDisclosure from '../snippetDisclosure'
+import { SnippetCopyBlock } from '../snippetCopy'
+import * as SnippetCopyRenderer from '../snippetCopyRenderer'
+import { SnippetDisclosureBlock } from '../snippetDisclosure'
+import * as SnippetDisclosureRenderer from '../snippetDisclosureRenderer'
 import * as Search from './search'
 import * as Sidebar from './sidebar'
 
@@ -26,16 +28,16 @@ const PagefindIgnore = ih.DataAttribute('pagefind-ignore', '')
 
 const postView = (
   post: Blog.BlogPost,
-  snippetCopy: SnippetCopy.Model,
-  snippetDisclosure: SnippetDisclosure.Model,
-  uiPages: typeof Ui.Model.Type,
+  snippetCopy: typeof SnippetCopyBlock.Model.Type,
+  snippetDisclosure: typeof SnippetDisclosureBlock.Model.Type,
+  uiPages: typeof UiBlock.Model.Type,
   h: ApplicationViewBuilder,
 ): Html => {
-  const renderCopyButton = SnippetCopy.renderer(snippetCopy, config =>
+  const renderCopyButton = SnippetCopyRenderer.renderer(snippetCopy, config =>
     h.block(SnippetCopyBinding.embedView(config)),
   )
 
-  const renderSnippet = SnippetDisclosure.renderer(
+  const renderSnippet = SnippetDisclosureRenderer.renderer(
     snippetDisclosure,
     renderCopyButton,
     config => h.block(SnippetDisclosureBinding.embedView(config)),

@@ -1,5 +1,5 @@
 import { Layer, Option } from 'effect'
-import { Block, Command as ChildCommand, defineApplication } from 'foldkit'
+import { Block, Command as ChildCommand, makeApplicationDefinition } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { Child } from './child'
 import { ForwardedChildMessage } from './message'
@@ -7,19 +7,19 @@ import { Model } from './model'
 
 const GotLocallyShadowedMessage = (input: { message: Child.Message }) => input
 
-const InlineChild = Block.define('InlineChild', {
+const InlineChildDefinition = Block.makeDefinition('InlineChild', {
   Model: Child.Model,
   Message: Child.Message,
 })
   .makeComposition({})
-  .makeBlock({
+  .assembleBlock({
     init: Child.init,
     update: Child.update,
     EffectsLayer: Layer.empty,
   })
 
-const Application = defineApplication({ Model, Message })
-export const InlineChildBinding = Application.bindChild(InlineChild, {read: (model: Model) => Option.some(model.child),
+const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+export const InlineChildBinding = ApplicationDefinition.bindChild(InlineChildDefinition, {read: (model: Model) => Option.some(model.child),
 write: (model, child) => modifyFields(model, { child: () => child }),
 toParentMessage: message => ForwardedChildMessage({ message })})
 

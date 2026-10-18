@@ -7,9 +7,9 @@ import { ApplicationDefinition } from './definition'
 import { Cart } from './domain'
 import { Message } from './message'
 import type { Model } from './model'
-import { Products } from './page'
+import { ProductsBlock } from './page'
 
-const foldProductsOutMessage = Products.OutMessage.match<
+const foldProductsOutMessage = ProductsBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   AddedToCart:
@@ -30,17 +30,16 @@ const foldProductsOutMessage = Products.OutMessage.match<
 })
 
 export const ProductsPageBinding = ApplicationDefinition.bindChild(
-  Products.block,
+  ProductsBlock,
   {
     field: 'productsPage',
-    parentMessage: Message.GotProductsMessage,
-    init: { startupToArgs: () => [products] },
+    init: { contextToArgs: () => [products] },
     outMessage: { fold: foldProductsOutMessage },
   },
 )
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [ProductsPageBinding],
+  bindings: [ProductsPageBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition

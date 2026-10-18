@@ -1,4 +1,4 @@
-import { Animation } from '@foldkit/ui'
+import { AnimationBlock } from '@foldkit/ui'
 
 import type { UiViewBuilder } from '../composition'
 import { AnimationDemoBinding } from '../composition'
@@ -12,7 +12,7 @@ const contentClassName =
   'mt-4 rounded-lg bg-accent-100 dark:bg-accent-900/30 border border-accent-300 dark:border-accent-700 p-4 transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:scale-95 data-[closed]:-translate-y-2'
 
 export const view = (
-  animationModel: typeof Animation.Model.Type,
+  animationModel: typeof AnimationBlock.Model.Type,
   h: UiViewBuilder,
 ) => [
   h.div(

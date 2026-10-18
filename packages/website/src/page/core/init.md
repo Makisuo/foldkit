@@ -6,13 +6,13 @@ Initialization turns startup input into the first complete Model and a collectio
 
 Three inputs have different jobs:
 
-| Input   | Where it comes from                | What it does                                                    |
-| ------- | ---------------------------------- | --------------------------------------------------------------- |
-| Flags   | A client Effect or a server render | Carries external startup data into root init                    |
-| Startup | The parent init callback           | Shares a decoded value with registered child startup selectors  |
-| Steps   | The Composition init plan          | Applies ordered parent transitions after child Models are ready |
+| Input            | Where it comes from                | What it does                                                     |
+| ---------------- | ---------------------------------- | ---------------------------------------------------------------- |
+| Flags            | A client Effect or a server render | Carries external startup data into root init                     |
+| ChildInitContext | The parent init callback           | Shares decoded context with registered direct child initializers |
+| Steps            | The Composition init plan          | Applies ordered parent transitions after child Models are ready  |
 
-`Startup` does not add another Runtime phase or another data source. Root init may pass Flags, the current URL, or a value derived from either into `startup`. Composition uses that value while assembling registered children.
+`ChildInitContext` does not add another Runtime phase or another data source. Root init may derive it from Flags, the current URL, or both and return it as `childInitContext`. Composition uses that value only to prepare arguments for the parent's direct child initializers.
 
 On a fresh client start, the Runtime builds the supplied application Layer once, resolves the Flags Effect, calls init, renders the initial Model, starts occurrence lifecycles, and then performs init Commands. A Command result always returns later as a Message. Server rendering receives Flags as a value and runs init and view without building browser handler Layers.
 
@@ -24,7 +24,7 @@ The counter starts at zero and has no startup work:
 
 ::Snippet{name="initSimple" label="Using init"}
 
-A non-routing application or element calls `init` with no arguments. A routing application passes the current URL, so its first Model can reflect the route. When the application declares Flags, they become the first argument in either form. `ApplicationComposition.makeApplication` or `makeElement` receives `init` explicitly and checks its arguments against the completion's Flags and routing configuration, along with the registered child and handler graph.
+A non-routing application or element calls `init` with no arguments. A routing application passes the current URL, so its first Model can reflect the route. When the application declares Flags, they become the first argument in either form. `ApplicationComposition.assembleApplication` or `assembleElement` receives `init` explicitly and checks its arguments against the completion's Flags and routing configuration, along with the registered child and handler graph.
 
 Give `ApplicationComposition.makeInit` one concrete function signature. Optional, default, and rest parameters are supported. Wrap an overloaded domain helper or callable object in a concretely typed callback. A generic Block factory closes over its type parameters and keeps the initializer itself concrete.
 
@@ -35,20 +35,20 @@ A completed Block already carries its initializer. The parent Binding decides wh
 For a child stored in an exact required direct field:
 
 - Omit `init` when the child's initializer takes no arguments. Composition initializes it automatically.
-- Use `init: { startupToArgs }` when the child needs startup arguments.
+- Use `init: { contextToArgs }` when the child needs arguments from the parent's child init context.
 - Use `init: false` when the parent supplies that field in the init plan's `model`.
 
-When several Bindings read the same startup input, add a `Startup` Schema to the parent Definition. That Schema contextually types each `init.startupToArgs` selector. Put its decoded value in the Composition init plan's `startup` field.
+When several Bindings read the same child init context, add a `ChildInitContext` Schema to the parent Definition. That Schema contextually types each `init.contextToArgs` selector. Put its decoded value in the Composition init plan's `childInitContext` field.
 
-`startupToArgs` maps those startup inputs to the child's initializer arguments. The separate `Binding.init({ args, toParentModel })` operation takes a concrete argument tuple for one initialization. Keyed `init.occurrences` also keeps each occurrence's concrete `args` tuple.
+`contextToArgs` maps that context to the child's initializer arguments. It does not describe the current Block's own init arguments. The separate `Binding.init({ args, toParentModel })` operation takes a concrete argument tuple for one initialization. Keyed `init.instances` also keeps each occurrence's concrete `args` tuple.
 
-The following Profile contains a ThemePicker whose initializer requires a Theme. The Binding selects that child input from `startup`, while the init plan supplies only the parent-owned username:
+The following Profile contains a ThemePicker whose initializer requires a Theme. The Binding selects that child input from `childInitContext`, while the init plan supplies only the parent-owned username:
 
 ::Snippet{name="blockFoldChildInit" label="Assembling an initial child Model"}
 
-Here, the Binding owns the rule that ThemePicker receives `savedTheme`. Profile init supplies `startup` and its parent-owned `username`. It does not call `themePickerInit`, place `themePicker`, or merge child Commands by hand.
+Here, the Binding owns the rule that ThemePicker receives `savedTheme`. Profile init supplies `childInitContext` and its parent-owned `username`. It does not call `themePickerInit`, place `themePicker`, or merge child Commands by hand.
 
-`Composition.makeInit` calls the selected child initializers once, in `childBindings` order. Foldkit adds the child-owned fields before constructing the complete Model. Use `commands` for parent Commands and `steps` for parent Steps applied after that Model exists.
+`Composition.makeInit` calls the selected child initializers once, in `bindings` order. Foldkit adds the child-owned fields before constructing the complete Model. Use `commands` for parent Commands and `steps` for parent Steps applied after that Model exists.
 
 Parent Commands appear first in the returned collection, followed by retained child init Commands and Step Commands. The Runtime executes Commands independently, so collection order does not sequence their completion.
 
@@ -56,7 +56,7 @@ These calls assemble values only. They do not construct Services, build handler 
 
 ### Optional and custom child storage
 
-For an exact `Option` field, omitting `init` leaves presence with the parent. Return `Option.none()` from `init.startupToArgs` for absence or `Option.some(args)` for presence. Keyed and accessor Bindings also remain parent-owned when `init` is omitted; use `init.occurrences` or `init.startupToArgs` when Composition should initialize them.
+For an exact `Option` field, omitting `init` leaves presence with the parent. Return `Option.none()` from `init.contextToArgs` for absence or `Option.some(args)` for presence. Keyed and accessor Bindings also remain parent-owned when `init` is omitted; use `init.instances` or `init.contextToArgs` when Composition should initialize them.
 
 The final parent Model determines which initialized occurrences are active. Init Commands for absent or `presentWhen`-inactive children are omitted. A `subscriptions.when` policy only gates Subscription Streams; it does not suppress child init Commands. Initial Steps may change the child Model without discarding its init Commands.
 
@@ -68,7 +68,7 @@ During checked execution, runtime validation verifies the active composition fra
 
 ### Keyed Initial Instances
 
-A keyed-array Binding can declare `init.occurrences` and `init.toItem`. The first callback selects the ordered keys and exact child init argument tuples. The second builds each stored item from its occurrence and initialized child Model. For a direct child array, it returns that exact child Model with the planned key. For a wrapped array, it returns the parent-owned wrapper containing that exact child Model and key. The parent keeps occurrence IDs and any wrapper metadata outside the child Model.
+A keyed-array Binding can declare `init.instances` and `init.toItem`. The first callback selects the ordered keys and exact child init argument tuples. The second builds each stored item from its occurrence and initialized child Model. For a direct child array, it returns that exact child Model with the planned key. For a wrapped array, it returns the parent-owned wrapper containing that exact child Model and key. The parent keeps occurrence IDs and any wrapper metadata outside the child Model.
 
 Return each wrapper as a plain record so its child field keeps the exact initialized object. A wrapper Schema constructor may reconstruct that child and fail the identity check. Composition constructs the full parent Model through its Schema after collecting these records.
 
@@ -110,7 +110,7 @@ Define the boundary with a Flags Schema. For a fresh client start, also define a
 
 ### Fresh Client Start
 
-This compact Counter keeps the graphless root in `application.ts` with its Model, Message, init, update, and view. It creates `ApplicationComposition` with `ApplicationDefinition.makeComposition()`. The entry imports that Composition and passes the Schema to its owned `makeApplication` method as `Flags`.
+This compact Counter keeps the graphless root in `application.ts` with its Model, Message, init, update, and view. Because the Definition has no other use, it creates `ApplicationComposition` with a top-level `makeApplicationDefinition(...).makeComposition()` chain. The entry imports that Composition and passes the Schema to its owned `assembleApplication` method as `Flags`.
 
 ::Snippet{name="counterApplicationWithFlags" label="Application configuration with Flags"}
 

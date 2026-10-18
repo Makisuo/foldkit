@@ -13,7 +13,7 @@ export class Logger extends Context.Service<
 
 export const Model = Schema.Struct({ count: Schema.Number })
 export const Message = defineMessageUnion({ Ticked: {}, Logged: {} })
-export const DeclarationSubscriptionRegistryDefinition = Block.define(
+export const DeclarationSubscriptionRegistryDefinition = Block.makeDefinition(
   'DeclarationSubscriptionRegistry',
   {
     Model,
@@ -43,7 +43,7 @@ export const subscriptions =
 export const DeclarationSubscriptionRegistryComposition =
   DeclarationSubscriptionRegistryDefinition.makeComposition()
 export const registryBlock =
-  DeclarationSubscriptionRegistryComposition.makeBlock({
+  DeclarationSubscriptionRegistryComposition.assembleBlock({
     init: DeclarationSubscriptionRegistryComposition.makeInit(() => ({
       model: Model.make({ count: 0 }),
     })),

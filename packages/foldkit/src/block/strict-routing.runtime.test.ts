@@ -1,9 +1,9 @@
-import { Array, Option, Schema } from 'effect'
+import { Array, Schema } from 'effect'
 import { expect, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 import { makeCompositionUpdate } from './delivery.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
@@ -11,24 +11,25 @@ const ChildMessage = defineMessageUnion({
   ChangedCount: { amount: Schema.Number },
 })
 
-const Child = define('StrictRoutingRuntimeChild', {
+const ChildComposition = makeDefinition('StrictRoutingRuntimeChild', {
   Model: ChildModel,
   Message: ChildMessage,
-})
-const ChildComposition = Child.makeComposition()
-const ChildBlock = ChildComposition.makeBlock({
+}).makeComposition()
+const ChildBlock = ChildComposition.assembleBlock({
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
   update: ChildComposition.makeUpdate((model, { amount }) => ({
     model: modifyFields(model, { count: count => count + amount }),
   })),
 })
 
-const ContextChild = define('StrictRoutingRuntimeContextChild', {
-  Model: ChildModel,
-  Message: ChildMessage,
-})
-const ContextChildComposition = ContextChild.makeComposition()
-const ContextChildBlock = ContextChildComposition.makeBlock({
+const ContextChildComposition = makeDefinition(
+  'StrictRoutingRuntimeContextChild',
+  {
+    Model: ChildModel,
+    Message: ChildMessage,
+  },
+).makeComposition()
+const ContextChildBlock = ContextChildComposition.assembleBlock({
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
   update: ContextChildComposition.makeUpdate(
     (model, { amount }, context: Readonly<{ multiplier: number }>) => ({
@@ -48,27 +49,20 @@ const ParentModel = Schema.Struct({
   resets: Schema.Number,
 })
 const ParentMessage = defineMessageUnion({
-  GotChildMessage: { message: ChildMessage },
-  GotContextMessage: { message: ChildMessage },
-  GotEntryMessage: { id: Schema.String, message: ChildMessage },
   ClickedReset: {},
 })
-const Parent = define('StrictRoutingRuntimeParent', {
+const Parent = makeDefinition('StrictRoutingRuntimeParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
 
 const ChildBinding = Parent.bindChild(ChildBlock, {
   field: 'child',
-  parentMessage: ParentMessage.GotChildMessage,
 })
 const ContextBinding = Parent.bindChild(ContextChildBlock, {
   field: 'contextualChild',
-  toParentMessage: message => ParentMessage.GotContextMessage({ message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotContextMessage,
-    args: (model, { message }) =>
-      Option.some([message, { multiplier: model.multiplier }]),
+  delivery: {
+    toUpdateContext: model => [{ multiplier: model.multiplier }],
   },
 })
 const EntryBinding = Parent.bindChild(ChildBlock, {
@@ -83,17 +77,14 @@ const EntryBinding = Parent.bindChild(ChildBlock, {
           : entry,
       ),
     }),
-  toParentMessage: (id, message) =>
-    ParentMessage.GotEntryMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotEntryMessage,
-    args: (_model, { id, message }) =>
-      id === 'active' ? Option.some([id, message]) : Option.none(),
+  keySchema: Schema.String,
+  delivery: {
+    when: (_model, id) => id === 'active',
   },
 })
 
 const ParentComposition = Parent.makeComposition({
-  childBindings: [ChildBinding, ContextBinding, EntryBinding],
+  bindings: [ChildBinding, ContextBinding, EntryBinding],
 })
 const parentUpdate = ParentComposition.makeUpdate(model => ({
   model: modifyFields(model, { resets: resets => resets + 1 }),
@@ -108,49 +99,49 @@ const parentModel = ParentModel.make({
 
 const rawFullMessageUpdate = (
   model: typeof ParentModel.Type,
-  message: typeof ParentMessage.Type,
+  message: Parameters<typeof parentUpdate>[1],
 ) => ({
   model: modifyFields(model, {
     resets: resets =>
       message._tag === 'GotChildMessage' ? resets + 100 : resets + 1,
   }),
 })
-const RawCompletionBlock = ParentComposition.makeBlock({
+const RawCompletionBlock = ParentComposition.assembleBlock({
   init: () => ({ model: parentModel }),
   update: rawFullMessageUpdate,
 })
-const GeneratedCompletionBlock = ParentComposition.makeBlock({
+const GeneratedCompletionBlock = ParentComposition.assembleBlock({
   init: () => ({ model: parentModel }),
   update: parentUpdate,
 })
 
 it('routes canonical, contextual, and keyed Messages before authored facts', () => {
-  const canonical = parentUpdate(
-    parentModel,
-    ParentMessage.GotChildMessage({
-      message: ChildMessage.ChangedCount({ amount: 2 }),
-    }),
-  )
-  const contextual = parentUpdate(
-    parentModel,
-    ParentMessage.GotContextMessage({
-      message: ChildMessage.ChangedCount({ amount: 2 }),
-    }),
-  )
-  const keyed = parentUpdate(
-    parentModel,
-    ParentMessage.GotEntryMessage({
-      id: 'active',
-      message: ChildMessage.ChangedCount({ amount: 2 }),
-    }),
-  )
-  const stale = parentUpdate(
-    parentModel,
-    ParentMessage.GotEntryMessage({
-      id: 'stale',
-      message: ChildMessage.ChangedCount({ amount: 2 }),
-    }),
-  )
+  const canonical = parentUpdate(parentModel, {
+    _tag: 'GotChildMessage',
+    placement: 'child',
+    generation: 0,
+    message: ChildMessage.ChangedCount({ amount: 2 }),
+  })
+  const contextual = parentUpdate(parentModel, {
+    _tag: 'GotContextualChildMessage',
+    placement: 'contextualChild',
+    generation: 0,
+    message: ChildMessage.ChangedCount({ amount: 2 }),
+  })
+  const keyed = parentUpdate(parentModel, {
+    _tag: 'GotStrictRoutingRuntimeChildMessage',
+    placement: 'StrictRoutingRuntimeChild',
+    generation: 0,
+    key: 'active',
+    message: ChildMessage.ChangedCount({ amount: 2 }),
+  })
+  const stale = parentUpdate(parentModel, {
+    _tag: 'GotStrictRoutingRuntimeChildMessage',
+    placement: 'StrictRoutingRuntimeChild',
+    generation: 0,
+    key: 'stale',
+    message: ChildMessage.ChangedCount({ amount: 2 }),
+  })
   const local = parentUpdate(parentModel, ParentMessage.ClickedReset())
 
   expect(canonical.model.child.count).toBe(2)
@@ -162,12 +153,12 @@ it('routes canonical, contextual, and keyed Messages before authored facts', () 
 })
 
 it('installs routing around a raw full-Message completion update', () => {
-  const routed = RawCompletionBlock.update(
-    parentModel,
-    ParentMessage.GotChildMessage({
-      message: ChildMessage.ChangedCount({ amount: 1 }),
-    }),
-  )
+  const routed = RawCompletionBlock.update(parentModel, {
+    _tag: 'GotChildMessage',
+    placement: 'child',
+    generation: 0,
+    message: ChildMessage.ChangedCount({ amount: 1 }),
+  })
   const local = RawCompletionBlock.update(
     parentModel,
     ParentMessage.ClickedReset(),
@@ -183,22 +174,17 @@ it('does not wrap an update authored by the same Composition twice', () => {
   expect(GeneratedCompletionBlock.update).toBe(parentUpdate)
 })
 
-it('rejects missing and conflicting Got wrapper owners for erased callers', () => {
-  expect(() => Reflect.apply(Parent.makeComposition, Parent, [])).toThrow(
-    'Got* child wrapper without an owning Binding',
-  )
-
+it('rejects duplicate generated delivery placements for erased callers', () => {
   const duplicateBinding = Parent.bindChild(ChildBlock, {
     field: 'child',
-    placement: 'duplicate-child',
-    parentMessage: ParentMessage.GotChildMessage,
+    placement: 'child',
     init: false,
   })
 
   expect(() =>
     Reflect.apply(Parent.makeComposition, Parent, [
       {
-        childBindings: [
+        bindings: [
           ChildBinding,
           ContextBinding,
           EntryBinding,
@@ -206,7 +192,7 @@ it('rejects missing and conflicting Got wrapper owners for erased callers', () =
         ],
       },
     ]),
-  ).toThrow('both claim parent Message "GotChildMessage"')
+  ).toThrow('both resolve to placement "child"')
 })
 
 it('blocks an unclaimed Got Message hidden behind an opaque Schema', () => {

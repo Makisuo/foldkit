@@ -46,6 +46,14 @@ export const update = EducationEntryComposition.makeUpdate((model, message) =>
       model: modifyFields(model, { isCurrentlyEnrolled: () => isChecked }),
     }),
 
+    RequestedRevealErrors: () => ({
+      model: modifyFields(model, {
+        school: revealFieldErrors(schoolRules),
+        degree: revealFieldErrors(degreeRules),
+        fieldOfStudy: revealFieldErrors(fieldOfStudyRules),
+      }),
+    }),
+
     ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
   }),
 )
@@ -59,10 +67,3 @@ export const isComplete = (entry: Model): boolean =>
     [entry.degree, degreeRules],
     [entry.fieldOfStudy, fieldOfStudyRules],
   ])
-
-export const revealErrors = (entry: Model): Model =>
-  modifyFields(entry, {
-    school: revealFieldErrors(schoolRules),
-    degree: revealFieldErrors(degreeRules),
-    fieldOfStudy: revealFieldErrors(fieldOfStudyRules),
-  })

@@ -10,37 +10,38 @@ import {
   SilentBlock,
 } from './message-free-keyed.accepted.js'
 
+// @ts-expect-error An exact Message-free child rejects obsolete outgoing Message mappers.
 ParentDefinition.bindChild(SilentBlock, {
   placement: 'mapped-silent',
   readAll: (model: typeof ParentModel.Type) => model.entries,
   key: (entry: typeof Entry.Type) => entry.key,
   read: (entry: typeof Entry.Type) => entry.silent,
   writeAt: (model: typeof ParentModel.Type, _key, _nextSilent) => model,
-  // @ts-expect-error An exact Message-free child needs no outgoing mapper.
   toParentMessage: () => ({ _tag: 'ClickedParent' }),
 })
 
 const MessagefulMessage = defineMessageUnion({ ChangedReady: {} })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const MessagefulDefinition = Block.define(
+
+// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
+const MessagefulComposition = Block.makeDefinition(
   'StrictRoutingGeneralKeyedMessageful',
   {
     Model: Schema.Struct({ ready: Schema.Boolean }),
     Message: MessagefulMessage,
   },
-)
-// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const MessagefulComposition = MessagefulDefinition.makeComposition()
-const MessagefulBlock = MessagefulComposition.makeBlock({
+).makeComposition()
+const MessagefulBlock = MessagefulComposition.assembleBlock({
   init: MessagefulComposition.makeInit(() => ({ model: { ready: false } })),
   update: MessagefulComposition.makeUpdate(model => ({ model })),
 })
 
-// @ts-expect-error A messageful general keyed Binding requires explicit mapping and routing.
+// @ts-expect-error A messageful general keyed Binding requires an exact key Schema for generated delivery.
 ParentDefinition.bindChild(MessagefulBlock, {
   readAll: (model: typeof ParentModel.Type) => model.entries,
   key: (entry: typeof Entry.Type) => entry.key,
-  read: (entry: typeof Entry.Type) => entry.silent,
+  read: (entry: typeof Entry.Type) =>
+    MessagefulBlock.Model.make({ ready: entry.silent.ready }),
   writeAt: (model: typeof ParentModel.Type, _key, _nextChild) => model,
 })
 
@@ -58,7 +59,7 @@ const omittedUpdate = OmittedComposition.makeUpdate((model, _message) =>
 )
 
 // @ts-expect-error Connected initialization requires its message-free Binding to be registered.
-OmittedComposition.makeBlock({
+OmittedComposition.assembleBlock({
   init: OmittedComposition.makeInit(() => ({
     model: ParentModel.make({ entries: [] }),
   })),
@@ -66,11 +67,11 @@ OmittedComposition.makeBlock({
 })
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const SilentComposition = Block.define('InvalidSilentExposure', {
+const SilentComposition = Block.makeDefinition('InvalidSilentExposure', {
   Model: SilentBlock.Model,
   Message: Schema.Never,
 }).makeComposition()
-SilentComposition.makeBlock({
+SilentComposition.assembleBlock({
   init: SilentComposition.makeInit((id: string) => ({
     model: SilentBlock.Model.make({ id, ready: false }),
   })),

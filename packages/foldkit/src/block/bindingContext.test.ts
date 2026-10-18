@@ -4,14 +4,15 @@ import { describe, expect, expectTypeOf, it } from 'vitest'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import * as Update from '../update/index.js'
-import type { BindingRequirement } from './binding.js'
-import { define } from './define.js'
+import type { RequirementOfBinding } from './binding.js'
+import { makeDefinition } from './define.js'
+import type { OutgoingMessageOfBinding } from './delivery.js'
 import type { BindingInitRecipe } from './initRecipe.js'
 
 const CounterModel = Schema.Struct({ count: Schema.Number })
 const CounterMessage = defineMessageUnion({ ClickedReset: {} })
 const CounterOutMessage = defineMessageUnion({ Reset: {} })
-const ResetCounter = define('ResetCounter', {
+const ResetCounter = makeDefinition('ResetCounter', {
   Model: CounterModel,
   Message: CounterMessage,
   OutMessage: CounterOutMessage,
@@ -21,7 +22,7 @@ const reset = ResetCounter.step(model => ({
   outMessage: CounterOutMessage.Reset(),
 }))
 const ResetCounterComposition = ResetCounter.makeComposition()
-const block = ResetCounterComposition.makeBlock({
+const block = ResetCounterComposition.assembleBlock({
   init: (count: number) => ({ model: CounterModel.make({ count }) }),
   update: ResetCounterComposition.makeUpdate((model, _message) => reset(model)),
   operations: { reset: () => Tuple.make(CounterMessage.ClickedReset()) },
@@ -36,13 +37,11 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 const Message = defineMessageUnion({
-  GotCounterMessage: { message: CounterMessage },
-  GotEntryMessage: { id: Schema.Number, message: CounterMessage },
   RequestedResetCounter: {},
   RequestedResetEntry: { id: Schema.Number },
 })
 type Message = typeof Message.Type
-const Parent = define('BindingContextParent', {
+const Parent = makeDefinition('BindingContextParent', {
   Model,
   Message,
 })
@@ -64,7 +63,6 @@ const BoundCounterBinding = Parent.bindChild(block, {
   read: model => Option.some(model.counter),
   write: (model: Model, nextCounter: typeof CounterModel.Type) =>
     modifyFields(model, { counter: () => nextCounter }),
-  parentMessage: Message.GotCounterMessage,
   outMessage: { fold: foldCounterOutMessage },
 })
 const keyedPolicy = {
@@ -109,16 +107,7 @@ const keyedBaseConfig = {
         entry.id === id ? { ...entry, counter: nextCounter } : entry,
       ),
     }),
-  toParentMessage: (id: number, message: typeof CounterMessage.Type) =>
-    Message.GotEntryMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: Message.GotEntryMessage,
-    args: (
-      _model: Model,
-      { id, message }: typeof Message.GotEntryMessage.Type,
-    ): Option.Option<readonly [number, typeof CounterMessage.Type]> =>
-      Option.some([id, message]),
-  },
+  keySchema: Schema.Number,
 }
 const EntriesBinding = Parent.bindChild(block, {
   ...keyedBaseConfig,
@@ -143,7 +132,7 @@ const SequencedCounterMessage = defineMessageUnion({
   RequestedMultiply: { factor: Schema.Number },
   CompletedRecordCount: {},
 })
-const SequencedCounter = define('SequencedCounter', {
+const SequencedCounter = makeDefinition('SequencedCounter', {
   Model: SequencedCounterModel,
   Message: SequencedCounterMessage,
 })
@@ -162,7 +151,7 @@ const multiply = SequencedCounter.step((model, factor: number) => ({
   model: modifyFields(model, { count: count => count * factor }),
 }))
 const SequencedCounterComposition = SequencedCounter.makeComposition()
-const sequencedCounterBlock = SequencedCounterComposition.makeBlock({
+const sequencedCounterBlock = SequencedCounterComposition.assembleBlock({
   init: (count: number) => ({ model: { count } }),
   update: SequencedCounterComposition.makeUpdate((model, message) =>
     SequencedCounterMessage.match(message, {
@@ -185,10 +174,9 @@ const sequencedCounterBlock = SequencedCounterComposition.makeBlock({
 const SequencedParentModel = Schema.Struct({ child: SequencedCounterModel })
 type SequencedParentModel = typeof SequencedParentModel.Type
 const SequencedParentMessage = defineMessageUnion({
-  GotSequencedCounterMessage: { message: SequencedCounterMessage },
   RequestedSequence: {},
 })
-const SequencedParent = define('SequencedCounterParent', {
+const SequencedParent = makeDefinition('SequencedCounterParent', {
   Model: SequencedParentModel,
   Message: SequencedParentMessage,
 })
@@ -198,7 +186,6 @@ const SequencedCounterBinding = SequencedParent.bindChild(
     read: model => Option.some(model.child),
     write: (model, nextChild) =>
       modifyFields(model, { child: () => nextChild }),
-    parentMessage: SequencedParentMessage.GotSequencedCounterMessage,
   },
 )
 
@@ -226,13 +213,13 @@ if (false) {
   expectTypeOf<
     typeof boundCounterInit extends BindingInitRecipe<
       Model,
-      Message,
+      OutgoingMessageOfBinding<typeof BoundCounterBinding>,
       never,
       infer Evidence
     >
       ? Evidence
       : never
-  >().toEqualTypeOf<BindingRequirement<'ResetCounter', typeof block>>()
+  >().toEqualTypeOf<RequirementOfBinding<typeof BoundCounterBinding>>()
   expectTypeOf<
     Update.RequirementsOf<() => typeof boundCounterInit>
   >().toEqualTypeOf<never>()
@@ -247,7 +234,7 @@ if (false) {
   void forwardBoundInit
   expectTypeOf<
     CommandMessageOf<ReturnType<typeof BoundCounterBinding.fold>>
-  >().toEqualTypeOf<Message>()
+  >().toEqualTypeOf<OutgoingMessageOfBinding<typeof BoundCounterBinding>>()
   expectTypeOf<
     Update.GraphModelOf<typeof EntriesBinding.fold>
   >().toEqualTypeOf<Model>()
@@ -326,9 +313,9 @@ if (false) {
 }
 
 const StaticComposition = Parent.makeComposition({
-  childBindings: [BoundCounterBinding, EntriesBinding],
+  bindings: [BoundCounterBinding, EntriesBinding],
 })
-const staticParent = StaticComposition.makeBlock({
+const staticParent = StaticComposition.assembleBlock({
   init: () => ({ model: initialModel }),
   update: StaticComposition.makeUpdate((model, message) =>
     Message.match(message, {
@@ -339,9 +326,9 @@ const staticParent = StaticComposition.makeBlock({
   operations: { reset: () => Tuple.make(Message.RequestedResetCounter()) },
 })
 const KeyedComposition = Parent.makeComposition({
-  childBindings: [BoundCounterBinding, EntriesBinding],
+  bindings: [BoundCounterBinding, EntriesBinding],
 })
-const keyedParent = KeyedComposition.makeBlock({
+const keyedParent = KeyedComposition.assembleBlock({
   init: () => ({ model: initialModel }),
   update: KeyedComposition.makeUpdate((model, message) =>
     Message.match(message, {
@@ -357,10 +344,12 @@ const keyedParent = KeyedComposition.makeBlock({
 describe('bound OutMessage context', () => {
   it('preserves the previous parent Model for static folds and exposed operations', () => {
     const results = [
-      staticParent.update(
-        initialModel,
-        Message.GotCounterMessage({ message: CounterMessage.ClickedReset() }),
-      ),
+      staticParent.update(initialModel, {
+        _tag: 'GotResetCounterMessage',
+        placement: 'ResetCounter',
+        generation: 0,
+        message: CounterMessage.ClickedReset(),
+      }),
       staticParent.operations.reset(initialModel),
     ]
     for (const result of results) {
@@ -371,13 +360,13 @@ describe('bound OutMessage context', () => {
 
   it('preserves the previous parent Model for keyed folds and exposed operations', () => {
     const results = [
-      keyedParent.update(
-        initialModel,
-        Message.GotEntryMessage({
-          id: 1,
-          message: CounterMessage.ClickedReset(),
-        }),
-      ),
+      keyedParent.update(initialModel, {
+        _tag: 'GotEntriesMessage',
+        placement: 'entries',
+        generation: 0,
+        key: 1,
+        message: CounterMessage.ClickedReset(),
+      }),
       keyedParent.operations.reset(initialModel, 1),
     ]
     for (const result of results) {
@@ -395,7 +384,7 @@ describe('bound OutMessage context', () => {
 describe('bound Step sequencing', () => {
   it('threads each projected Step Model forward and retains Commands in order', () => {
     const SequencedComposition = SequencedParent.makeComposition({
-      childBindings: [SequencedCounterBinding],
+      bindings: [SequencedCounterBinding],
     })
     const update = SequencedComposition.makeUpdate(model =>
       Update.combine(model, [

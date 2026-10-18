@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, Schema } from 'effect'
 import { HttpClient, HttpClientRequest } from 'effect/http'
-import { Http, defineApplication } from 'foldkit'
+import { Http, makeApplicationDefinition } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineTaggedUnion } from 'foldkit/schema'
 
@@ -19,7 +19,10 @@ export const UserState = defineTaggedUnion({
 })
 
 export const Model = Schema.Struct({ user: UserState })
-export const ApplicationDefinition = defineApplication({ Model, Message })
+export const ApplicationDefinition = makeApplicationDefinition({
+  Model,
+  Message,
+})
 
 type ApiClient = Readonly<{
   getUser: (userId: string) => Effect.Effect<User, unknown>

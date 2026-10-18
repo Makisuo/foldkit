@@ -1,31 +1,25 @@
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit each into your own Model, init, Message,
 // update, subscriptions, and view definitions.
-import { Schema, Tuple } from 'effect'
+import { Array, Schema, Tuple } from 'effect'
 import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 import { DragAndDrop } from '@foldkit/ui'
-import {
-  draggable as DragAndDropDraggable,
-  droppable as DragAndDropDroppable,
-} from '@foldkit/ui/dragAndDrop'
 
 // Add a field to your Model for the DragAndDrop Block plus the items being sorted:
 const Model = Schema.Struct({
   items: Schema.Array(
     Schema.Struct({ id: Schema.String, label: Schema.String }),
   ),
-  dragAndDrop: DragAndDrop.Model,
+  dragAndDrop: DragAndDrop.DragAndDropBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
 
-// Embed the DragAndDrop Message in your parent Message:
-const Message = defineMessageUnion({
-  GotDragAndDropMessage: { message: DragAndDrop.Message },
-})
+// This excerpt has no parent-owned facts. The Composition derives delivery.
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 declare const reorder: (
@@ -39,7 +33,7 @@ declare const reorder: (
 // carries the move so you can apply it to your own list. Each arm returns an
 // Update.Step over the parent Model, which already has the next DragAndDrop
 // Model written back:
-const foldDragAndDropOutMessage = DragAndDrop.OutMessage.match<
+const foldDragAndDropOutMessage = DragAndDrop.DragAndDropBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   Reordered:
@@ -53,25 +47,27 @@ const foldDragAndDropOutMessage = DragAndDrop.OutMessage.match<
   // The child has emitted `Cancelled`. In this arm the parent can update
   // its own state or dispatch its own Commands, for example revert an
   // optimistic UI change, log analytics, or trigger a downstream Command.
-  Cancelled: () => model => ({ model }),
+  Cancelled: () => SortableListDefinition.stepNoop(),
 })
 
 // The Binding delegates the child update, writes the next DragAndDrop Model,
-// maps its Commands, handles OutMessages, and collects its Subscriptions.
-const SortableListDefinition = Block.define('SortableList', {
+// routes generated delivery, handles OutMessages, and collects Subscriptions.
+const SortableListDefinition = Block.makeDefinition('SortableList', {
   Model,
   Message,
 })
 
-const DragAndDropBinding = SortableListDefinition.bindChild(DragAndDrop.block, {
-  field: 'dragAndDrop',
-  parentMessage: Message.GotDragAndDropMessage,
-  init: { startupToArgs: () => Tuple.make({ id: 'sortable-list' }) },
-  outMessage: { fold: foldDragAndDropOutMessage },
-})
+const DragAndDropBinding = SortableListDefinition.bindChild(
+  DragAndDrop.DragAndDropBlock,
+  {
+    field: 'dragAndDrop',
+    init: { contextToArgs: () => Tuple.make({ id: 'sortable-list' }) },
+    outMessage: { fold: foldDragAndDropOutMessage },
+  },
+)
 
 const SortableListComposition = SortableListDefinition.makeComposition({
-  childBindings: [DragAndDropBinding],
+  bindings: [DragAndDropBinding],
 })
 
 // Initialize the fields the parent owns. The Composition initializes the
@@ -89,34 +85,37 @@ const init = SortableListComposition.makeInit(() => ({
 
 const update = SortableListComposition.makeUpdate()
 
-// Registering `DragAndDropBinding` in `childBindings` collects its document-level Subscriptions.
+// Registering `DragAndDropBinding` in `bindings` collects its document-level Subscriptions.
 
-// Inside your view function, spread draggable() onto items and droppable()
-// onto containers:
+// Inside your view function, embed the behavior-only Block and lay out its
+// draggable and droppable attribute bundles in `toView`:
 const view = SortableListComposition.makeView((model, h) =>
-  h.ul(
-    [
-      ...DragAndDropDroppable('list', 'Sortable items'),
-      h.Class('flex flex-col gap-2'),
-    ],
-    model.items.map((item, index) =>
-      h.li(
-        [
-          ...DragAndDropDraggable(
-            {
-              model: model.dragAndDrop,
-              toParentMessage: message =>
-                Message.GotDragAndDropMessage({ message }),
-              itemId: item.id,
-              containerId: 'list',
-              index,
-            },
-            h,
+  h.block(
+    DragAndDropBinding.embedView({
+      slotId: 'sortable-list',
+      model: model.dragAndDrop,
+      viewInputs: {
+        toView: ({ draggable, droppable }) =>
+          h.ul(
+            [
+              ...droppable('list', 'Sortable items'),
+              h.Class('flex flex-col gap-2'),
+            ],
+            Array.map(model.items, (item, index) =>
+              h.li(
+                [
+                  ...draggable({
+                    itemId: item.id,
+                    containerId: 'list',
+                    index,
+                  }),
+                  h.Class('p-3 rounded-lg border cursor-grab'),
+                ],
+                [h.span([], [item.label])],
+              ),
+            ),
           ),
-          h.Class('p-3 rounded-lg border cursor-grab'),
-        ],
-        [h.span([], [item.label])],
-      ),
-    ),
+      },
+    }),
   ),
 )

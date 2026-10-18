@@ -1,5 +1,5 @@
 import { Array, Schema } from 'effect'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Filter = Schema.Literals(['All', 'Active', 'Done'])
@@ -17,7 +17,7 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
 
 export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {

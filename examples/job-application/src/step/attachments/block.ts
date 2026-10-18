@@ -1,16 +1,10 @@
-import { Option } from 'effect'
-
 import { AttachmentsComposition } from './composition'
+import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const block = AttachmentsComposition.makeBlock({
-  init: AttachmentsComposition.makeInit(() => ({
-    model: {
-      maybeResume: Option.none(),
-      additionalFiles: [],
-    },
-  })),
+export const AttachmentsBlock = AttachmentsComposition.assembleBlock({
+  init,
   update,
   view,
 })

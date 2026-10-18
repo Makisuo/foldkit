@@ -4,8 +4,7 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { fromString } from 'foldkit/url'
 import { describe, expect, test } from 'vitest'
 
-import { Dialog } from '@foldkit/ui'
-import { CloseDialog, ShowDialog } from '@foldkit/ui/dialog'
+import { Dialog, DialogBlock } from '@foldkit/ui'
 
 import { Message } from './message'
 import { type Model } from './model'
@@ -105,11 +104,17 @@ describe('update', () => {
         update,
         given(initialModel),
         message(Message.ClickedOpenMobileMenu()),
-        Command.resolve(ShowDialog, Dialog.Message.SucceededShowDialog()),
+        Command.resolve(
+          Dialog.test.ShowDialog,
+          DialogBlock.Message.SucceededShowDialog(),
+        ),
         message(
           Message.ChangedUrl({ url: urlOrThrow('http://localhost/button') }),
         ),
-        Command.resolve(CloseDialog, Dialog.Message.CompletedCloseDialog()),
+        Command.resolve(
+          Dialog.test.CloseDialog,
+          DialogBlock.Message.CompletedCloseDialog(),
+        ),
         model(model => {
           expect(model.uiModel.mobileMenuDialog.isOpen).toBe(false)
         }),

@@ -35,6 +35,6 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
           return { model: nextModel, commands: [saveCanvas(nextModel)] }
         },
       }),
-    // ... 23 more handlers
+    // ... 17 more handlers
   }),
 )

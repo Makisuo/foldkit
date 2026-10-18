@@ -1,40 +1,40 @@
-import { Array, Option } from 'effect'
+import { Array } from 'effect'
 import { type Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { Message, type Model, WorkHistoryDefinition } from './definition'
-import * as Entry from './entry'
+import { WorkHistoryEntryBlock } from './entry'
 
 const foldEntryOutMessage = (
   entryId: string,
-  outMessage: typeof Entry.OutMessage.Type,
+  outMessage: typeof WorkHistoryEntryBlock.OutMessage.Type,
 ) =>
-  Entry.OutMessage.match<Update.Step<Model, Message>>(outMessage, {
-    Removed: () => model => ({
-      model: modifyFields(model, {
-        entries: Array.filter(entry => entry.id !== entryId),
+  WorkHistoryEntryBlock.OutMessage.match<Update.Step<Model, Message>>(
+    outMessage,
+    {
+      Removed: () => model => ({
+        model: modifyFields(model, {
+          entries: Array.filter(entry => entry.id !== entryId),
+        }),
       }),
-    }),
-  })
+    },
+  )
 
-export const EntriesBinding = WorkHistoryDefinition.bindChild(Entry.block, {
-  field: 'entries',
-  key: 'id',
-  toParentMessage: (entryId, message) =>
-    Message.GotEntryMessage({ entryId, message }),
-  fromParentMessage: {
-    parentMessage: Message.GotEntryMessage,
-    args: (_model, { entryId, message }) => Option.some([entryId, message]),
+export const EntriesBinding = WorkHistoryDefinition.bindChild(
+  WorkHistoryEntryBlock,
+  {
+    field: 'entries',
+    key: 'id',
+    init: {
+      instances: ({ today, initialEntryId }) => [
+        { key: initialEntryId, args: [initialEntryId, today] },
+      ],
+      toItem: (_occurrence, entry) => entry,
+    },
+    outMessage: { fold: foldEntryOutMessage },
   },
-  init: {
-    occurrences: ({ today, initialEntryId }) => [
-      { key: initialEntryId, args: [initialEntryId, today] },
-    ],
-    toItem: (_occurrence, entry) => entry,
-  },
-  outMessage: { fold: foldEntryOutMessage },
-})
+)
 
 export const WorkHistoryComposition = WorkHistoryDefinition.makeComposition({
-  childBindings: [EntriesBinding],
+  bindings: [EntriesBinding],
 })

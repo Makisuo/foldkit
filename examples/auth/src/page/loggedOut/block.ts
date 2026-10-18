@@ -1,12 +1,10 @@
-import type { LoggedOutRoute } from '../../route'
 import { LoggedOutComposition } from './composition'
+import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const block = LoggedOutComposition.makeBlock({
-  init: LoggedOutComposition.makeInit((route: LoggedOutRoute) => ({
-    model: { _tag: 'LoggedOut', route },
-  })),
+export const LoggedOutBlock = LoggedOutComposition.assembleBlock({
+  init,
   update,
   view,
 })

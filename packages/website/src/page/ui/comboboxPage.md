@@ -10,7 +10,7 @@ Embed Combobox via the [`Combobox.create(Item)` factory](/ui/selection-blocks) a
 
 What the factory returns is typed [`Completed<Item>` from `@foldkit/ui/combobox`](/ui/selection-blocks#completed-type). The multi-select subpath exports its own `Completed<Item>` type for cases where a created Block has to be named.
 
-Call `ParentDefinition.bindChild` with the completed Block, its parent Model `field`, a `parentMessage` wrapper constructor, and exhaustive OutMessage policy. Use explicit accessors for custom storage. Include the resulting Binding in the parent Composition's `childBindings` list to collect the Combobox's handlers and Mounts. `binding.embedView` supplies the canonical view and Message wrapper at the render site. See [Connecting a static placement](/core/block#embedding) for the complete authoring flow. Use `Combobox.block` for plain strings; `Combobox.create(Item)` requires the Item Schema.
+Call `ParentDefinition.bindChild` with the completed Block, its parent Model `field` and an exhaustive OutMessage policy. Use explicit accessors for custom storage. Include the resulting Binding in the parent Composition's `bindings` list to collect the Combobox's handlers and Mounts. `binding.embedView` supplies the canonical view and Message wrapper at the render site. See [Connecting a static placement](/core/block#embedding) for the complete authoring flow. Use `Combobox.create(Schema.String)` for plain strings; `Combobox.create(Item)` requires the Item Schema.
 
 ### Programmatic API
 
@@ -54,7 +54,7 @@ To make the behavior reproducible at any scroll position, this demo keeps the pa
 
 ### Multi-Select
 
-Use `Combobox.Multi.block` and `Combobox.Multi.create` for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and folds each `Selected` OutMessage by toggling the value in its array.
+Use `Combobox.Multi.create(Schema.String)` and `Combobox.Multi.create` for multi-selection. The dropdown stays open on selection and items toggle on/off. The parent stores the selected values and folds each `Selected` OutMessage by toggling the value in its array.
 
 ::Demo{name="multi"}
 

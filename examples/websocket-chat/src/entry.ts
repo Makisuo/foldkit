@@ -4,13 +4,12 @@ import { ApplicationComposition } from './composition'
 import { init } from './init'
 import { EffectsLayer } from './layer'
 import { managedResources } from './managedResource'
-import { Message } from './message'
 import { ApplicationLayer } from './services'
 import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const application = ApplicationComposition.makeApplication({
+const application = ApplicationComposition.assembleApplication({
   init,
   update,
   view,
@@ -18,7 +17,7 @@ const application = ApplicationComposition.makeApplication({
   managedResources,
   EffectsLayer,
   container: document.getElementById('root'),
-  devTools: { Message },
+  devTools: { Message: ApplicationComposition.Message },
 })
 
 Runtime.run(application.provide(ApplicationLayer))

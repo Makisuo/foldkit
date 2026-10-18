@@ -34,8 +34,8 @@ import { resolveTypeaheadMatch } from '../typeahead.js'
 
 export { resolveTypeaheadMatch }
 
-/** Shared named component handle for both Listbox selection variants. */
-export const ListboxDefinition = Block.define('Listbox')
+/** Shared Listbox namespace for selection-specific definitions and effects. */
+export const ListboxNamespace = Block.makeNamespace('Listbox')
 
 // MODEL
 
@@ -54,7 +54,7 @@ export const BaseModel = Schema.Struct({
   isAnimated: Schema.Boolean,
   isModal: Schema.Boolean,
   orientation: Orientation,
-  animation: Animation.Model,
+  animation: Animation.AnimationBlock.Model,
   maybeActiveItemIndex: Schema.Option(Schema.Number),
   activationTrigger: ActivationTrigger,
   searchQuery: Schema.String,
@@ -81,7 +81,8 @@ export const baseInit = (config: BaseInitConfig): BaseModel => ({
   isAnimated: config.isAnimated ?? false,
   isModal: config.isModal ?? false,
   orientation: config.orientation ?? 'Vertical',
-  animation: Animation.init({ id: `${config.id}-listbox` }),
+  animation: Animation.AnimationBlock.init({ id: `${config.id}-listbox` })
+    .model,
   maybeActiveItemIndex: Option.none(),
   activationTrigger: 'Keyboard',
   searchQuery: '',
@@ -131,7 +132,6 @@ export const Message = defineMessageUnion({
   CompletedAnchorListbox: {},
   CompletedPortalListboxBackdrop: {},
   CompletedDetectListboxMovementOrAnimationEnd: { generation: Schema.Number },
-  GotAnimationMessage: { message: Animation.Message },
   PressedPointerOnButton: {
     pointerType: Schema.String,
     button: Schema.Number,
@@ -234,18 +234,15 @@ type HandlerReturn<Model> = Readonly<{
 }>
 
 /** Prevents page scrolling while the listbox is open in modal mode. */
-export const LockListboxScroll = ListboxDefinition.command(
-  'LockListboxScroll',
-  {
-    messages: [Message.CompletedLockListboxScroll],
-    handler: function* () {
-      return () =>
-        Dom.lockScroll.pipe(Effect.as(Message.CompletedLockListboxScroll()))
-    },
+export const LockListboxScroll = ListboxNamespace.command('LockListboxScroll', {
+  messages: [Message.CompletedLockListboxScroll],
+  handler: function* () {
+    return () =>
+      Dom.lockScroll.pipe(Effect.as(Message.CompletedLockListboxScroll()))
   },
-)
+})
 /** Re-enables page scrolling after the listbox closes. */
-export const UnlockListboxScroll = ListboxDefinition.command(
+export const UnlockListboxScroll = ListboxNamespace.command(
   'UnlockListboxScroll',
   {
     messages: [Message.CompletedUnlockListboxScroll],
@@ -256,7 +253,7 @@ export const UnlockListboxScroll = ListboxDefinition.command(
   },
 )
 /** Marks all elements outside the listbox as inert for modal behavior. */
-export const InertListboxOthers = ListboxDefinition.command(
+export const InertListboxOthers = ListboxNamespace.command(
   'InertListboxOthers',
   {
     args: { id: Schema.String },
@@ -270,7 +267,7 @@ export const InertListboxOthers = ListboxDefinition.command(
   },
 )
 /** Removes the inert attribute from elements outside the listbox. */
-export const RestoreListboxInert = ListboxDefinition.command(
+export const RestoreListboxInert = ListboxNamespace.command(
   'RestoreListboxInert',
   {
     args: { id: Schema.String },
@@ -284,7 +281,7 @@ export const RestoreListboxInert = ListboxDefinition.command(
   },
 )
 /** Moves focus back to the listbox button after closing. */
-export const FocusListboxButton = ListboxDefinition.command(
+export const FocusListboxButton = ListboxNamespace.command(
   'FocusListboxButton',
   {
     args: { id: Schema.String },
@@ -299,22 +296,19 @@ export const FocusListboxButton = ListboxDefinition.command(
   },
 )
 /** Moves focus to the listbox items container after opening. */
-export const FocusListboxItems = ListboxDefinition.command(
-  'FocusListboxItems',
-  {
-    args: { id: Schema.String },
-    messages: [Message.CompletedFocusListboxItems],
-    handler: function* () {
-      return ({ id }) =>
-        Dom.focus(itemsSelector(id)).pipe(
-          Effect.ignore,
-          Effect.as(Message.CompletedFocusListboxItems()),
-        )
-    },
+export const FocusListboxItems = ListboxNamespace.command('FocusListboxItems', {
+  args: { id: Schema.String },
+  messages: [Message.CompletedFocusListboxItems],
+  handler: function* () {
+    return ({ id }) =>
+      Dom.focus(itemsSelector(id)).pipe(
+        Effect.ignore,
+        Effect.as(Message.CompletedFocusListboxItems()),
+      )
   },
-)
+})
 /** Scrolls the active listbox item into view after keyboard navigation. */
-export const ScrollListboxItemIntoView = ListboxDefinition.command(
+export const ScrollListboxItemIntoView = ListboxNamespace.command(
   'ScrollListboxItemIntoView',
   {
     args: { id: Schema.String, index: Schema.Number },
@@ -329,7 +323,7 @@ export const ScrollListboxItemIntoView = ListboxDefinition.command(
   },
 )
 /** Programmatically clicks the active listbox item's DOM element. */
-export const ClickListboxItem = ListboxDefinition.command('ClickListboxItem', {
+export const ClickListboxItem = ListboxNamespace.command('ClickListboxItem', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedClickListboxItem],
   handler: function* () {
@@ -341,7 +335,7 @@ export const ClickListboxItem = ListboxDefinition.command('ClickListboxItem', {
   },
 })
 /** Waits for the typeahead search debounce period before clearing the query. */
-export const DelayClearListboxSearch = ListboxDefinition.command(
+export const DelayClearListboxSearch = ListboxNamespace.command(
   'DelayClearListboxSearch',
   {
     args: { version: Schema.Number },
@@ -355,7 +349,7 @@ export const DelayClearListboxSearch = ListboxDefinition.command(
   },
 )
 /** Detects whether the listbox button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation block that leave is complete. */
-export const DetectListboxMovementOrAnimationEnd = ListboxDefinition.command(
+export const DetectListboxMovementOrAnimationEnd = ListboxNamespace.command(
   'DetectListboxMovementOrAnimationEnd',
   {
     args: { id: Schema.String, generation: Schema.Number },
@@ -396,7 +390,7 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
   ) => HandlerReturn<BaseModel>,
 ) => {
   type Model = BaseModel
-  type RoutedMessage = Exclude<Message, typeof Message.GotAnimationMessage.Type>
+  type RoutedMessage = Message
 
   const detectListboxMovementOrAnimationEnd = (generation: number) =>
     step(model => ({
@@ -412,7 +406,7 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
 
   const ignoreTransitionedOut = step(model => ({ model }))
 
-  const foldAnimationOutMessage = Animation.OutMessage.match<
+  const foldAnimationOutMessage = Animation.AnimationBlock.OutMessage.match<
     AnimationOutMessageStep | typeof ignoreTransitionedOut
   >({
     StartedLeaveAnimating: ({ generation }) =>
@@ -420,9 +414,8 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
     TransitionedOut: () => ignoreTransitionedOut,
   })
 
-  const AnimationBinding = bindChild(Animation.block, {
+  const AnimationBinding = bindChild(Animation.AnimationBlock, {
     field: 'animation',
-    parentMessage: Message.GotAnimationMessage,
     init: false,
     outMessage: { fold: foldAnimationOutMessage },
   })
@@ -688,7 +681,7 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
  *  Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AnchorListbox, CompletedAnchorListbox())`.
  */
-export const AnchorListbox = ListboxDefinition.mount('AnchorListbox', {
+export const AnchorListbox = ListboxNamespace.mount('AnchorListbox', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorListbox],
   handler: function* () {
@@ -712,7 +705,7 @@ export const AnchorListbox = ListboxDefinition.mount('AnchorListbox', {
 /** The backdrop-portaling Mount this Listbox renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalListboxBackdrop, CompletedPortalListboxBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalListboxBackdrop = ListboxDefinition.mount(
+export const PortalListboxBackdrop = ListboxNamespace.mount(
   'PortalListboxBackdrop',
   {
     messages: [Message.CompletedPortalListboxBackdrop],
@@ -1382,11 +1375,11 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
     ])
   }
 
-  return <Item, Value extends string = string>() =>
+  return <Item, Value extends string = string, ParentMessage = never>() =>
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     impl as unknown as (
       model: Model,
       viewInputs: BaseViewInputs<Item, Value>,
-      h: HtmlBuilder<Message, MountRequirements>,
+      h: HtmlBuilder<Message | ParentMessage, MountRequirements>,
     ) => Html
 }

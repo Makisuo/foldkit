@@ -1,15 +1,15 @@
-import { Option } from 'effect'
+import { Option, Schema } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
 import { ApplicationDefinition } from '../definition'
-import { Message } from '../message'
 import { RoomInstance } from '../model'
-import { Room } from '../page'
+import { RoomBlock } from '../page'
 import { ApplicationRoute } from '../route'
 
-export const RoomBinding = ApplicationDefinition.bindChild(Room.block, {
+export const RoomBinding = ApplicationDefinition.bindChild(RoomBlock, {
   readAll: model => Option.toArray(model.maybeRoomInstance),
   key: roomInstance => roomInstance.roomId,
+  keySchema: Schema.String,
   read: roomInstance => roomInstance.model,
   writeAt: (model, roomId, nextRoom) =>
     modifyFields(model, {
@@ -19,14 +19,10 @@ export const RoomBinding = ApplicationDefinition.bindChild(Room.block, {
           : roomInstance,
       ),
     }),
-  toParentMessage: (roomId, message) =>
-    Message.GotRoomMessage({ roomId, message }),
-  fromParentMessage: {
-    parentMessage: Message.GotRoomMessage,
-    args: (model, { roomId, message }) =>
-      model.route._tag === 'Room' && model.route.roomId === roomId
-        ? Option.some([roomId, message, { roomId }])
-        : Option.none(),
+  delivery: {
+    when: (model, roomId) =>
+      model.route._tag === 'Room' && model.route.roomId === roomId,
+    toUpdateContext: (_model, roomId) => [{ roomId }],
   },
   subscriptions: {
     when: (model, roomId) =>

@@ -18,7 +18,22 @@ import {
 import { Step } from '../domain'
 import { Message } from '../message'
 import { type Model } from '../model'
-import { Education, PersonalInfo, Skills, WorkHistory } from '../step'
+import {
+  hasErrors as educationHasErrors,
+  isComplete as isEducationComplete,
+} from '../step/education/update'
+import {
+  isComplete as isPersonalInfoComplete,
+  hasErrors as personalInfoHasErrors,
+} from '../step/personalInfo/update'
+import {
+  isComplete as isSkillsComplete,
+  hasErrors as skillsHasErrors,
+} from '../step/skills/update'
+import {
+  isComplete as isWorkHistoryComplete,
+  hasErrors as workHistoryHasErrors,
+} from '../step/workHistory/update'
 import { preview } from './preview'
 import { review } from './review'
 import { stepMenu, stepTabButton } from './stepNav'
@@ -28,11 +43,11 @@ const stepHasErrors =
   (step: Step.Step): boolean =>
     Match.value(step).pipe(
       Match.when('PersonalInfo', () =>
-        PersonalInfo.hasErrors(model.personalInfo),
+        personalInfoHasErrors(model.personalInfo),
       ),
-      Match.when('WorkHistory', () => WorkHistory.hasErrors(model.workHistory)),
-      Match.when('Education', () => Education.hasErrors(model.education)),
-      Match.when('Skills', () => Skills.hasErrors(model.skills)),
+      Match.when('WorkHistory', () => workHistoryHasErrors(model.workHistory)),
+      Match.when('Education', () => educationHasErrors(model.education)),
+      Match.when('Skills', () => skillsHasErrors(model.skills)),
       Match.orElse(() => false),
     )
 
@@ -41,13 +56,11 @@ const stepIsComplete =
   (step: Step.Step): boolean =>
     Match.value(step).pipe(
       Match.when('PersonalInfo', () =>
-        PersonalInfo.isComplete(model.personalInfo),
+        isPersonalInfoComplete(model.personalInfo),
       ),
-      Match.when('WorkHistory', () =>
-        WorkHistory.isComplete(model.workHistory),
-      ),
-      Match.when('Education', () => Education.isComplete(model.education)),
-      Match.when('Skills', () => Skills.isComplete(model.skills)),
+      Match.when('WorkHistory', () => isWorkHistoryComplete(model.workHistory)),
+      Match.when('Education', () => isEducationComplete(model.education)),
+      Match.when('Skills', () => isSkillsComplete(model.skills)),
       Match.orElse(() => true),
     )
 

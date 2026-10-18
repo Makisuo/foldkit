@@ -25,16 +25,13 @@ const Message = defineMessageUnion({
 })
 
 type Message = typeof Message.Type
-
-const NotificationPreferencesDefinition = Block.define(
+const NotificationPreferencesComposition = Block.makeDefinition(
   'NotificationPreferences',
   {
     Model,
     Message,
   },
-)
-const NotificationPreferencesComposition =
-  NotificationPreferencesDefinition.makeComposition()
+).makeComposition()
 
 // In your init function, start each unchecked:
 const init = NotificationPreferencesComposition.makeInit(() => ({

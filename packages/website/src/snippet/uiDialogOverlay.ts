@@ -23,27 +23,24 @@ const cities: ReadonlyArray<City> = [
 // the parent-owned selection (`City` and `CityCombobox` are the
 // `Schema.Literals` Schema and typed factory from the Combobox example):
 const Model = Schema.Struct({
-  dialog: Dialog.Model,
+  dialog: Dialog.DialogBlock.Model,
   combobox: CityCombobox.Model,
   maybeCity: Schema.Option(City),
   // ...your other fields
 })
 type Model = typeof Model.Type
 
-// Embed each block's Message in your parent Message and delegate both to
-// their own update (see the Dialog and Combobox examples for the delegation).
-const Message = defineMessageUnion({
-  GotDialogMessage: { message: Dialog.Message },
-  GotComboboxMessage: { message: CityCombobox.Message },
-})
+// This excerpt has no parent-owned facts. The two Bindings derive distinct
+// generated delivery for Dialog and Combobox.
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const foldDialogOutMessage = Dialog.OutMessage.match<
+const foldDialogOutMessage = Dialog.DialogBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
-  Opened: () => model => ({ model }),
-  Closed: () => model => ({ model }),
-  CompletedClose: () => model => ({ model }),
+  Opened: () => FilterDialogDefinition.stepNoop(),
+  Closed: () => FilterDialogDefinition.stepNoop(),
+  CompletedClose: () => FilterDialogDefinition.stepNoop(),
 })
 
 const foldComboboxOutMessage = CityCombobox.OutMessage.match<
@@ -54,30 +51,28 @@ const foldComboboxOutMessage = CityCombobox.OutMessage.match<
     model => ({
       model: modifyFields(model, { maybeCity: () => Option.some(value) }),
     }),
-  ClearedSelection: () => model => ({ model }),
+  ClearedSelection: () => FilterDialogDefinition.stepNoop(),
 })
 
-const FilterDialogDefinition = Block.define('FilterDialog', {
+const FilterDialogDefinition = Block.makeDefinition('FilterDialog', {
   Model,
   Message,
 })
 
-const DialogBinding = FilterDialogDefinition.bindChild(Dialog.block, {
+const DialogBinding = FilterDialogDefinition.bindChild(Dialog.DialogBlock, {
   field: 'dialog',
-  parentMessage: Message.GotDialogMessage,
-  init: { startupToArgs: () => Tuple.make({ id: 'edit-filters' }) },
+  init: { contextToArgs: () => Tuple.make({ id: 'edit-filters' }) },
   outMessage: { fold: foldDialogOutMessage },
 })
 
 const ComboboxBinding = FilterDialogDefinition.bindChild(CityCombobox, {
   field: 'combobox',
-  parentMessage: Message.GotComboboxMessage,
-  init: { startupToArgs: () => Tuple.make({ id: 'city' }) },
+  init: { contextToArgs: () => Tuple.make({ id: 'city' }) },
   outMessage: { fold: foldComboboxOutMessage },
 })
 
 const FilterDialogComposition = FilterDialogDefinition.makeComposition({
-  childBindings: [DialogBinding, ComboboxBinding],
+  bindings: [DialogBinding, ComboboxBinding],
 })
 
 const init = FilterDialogComposition.makeInit(() => ({

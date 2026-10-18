@@ -1,10 +1,10 @@
-import { Option } from 'effect'
+import { Option, Schema } from 'effect'
 import * as Story from 'foldkit/story'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import * as Animation from '../animation/index.js'
+import * as Animation from '../animation/block.js'
 import {
   DetectPopoverMovementOrAnimationEnd,
   FocusPopoverButton,
@@ -13,25 +13,38 @@ import {
   Message,
   type Model,
   OutMessage,
+  PopoverBlock,
   RestorePopoverInert,
   UnlockPopoverScroll,
   init,
   update,
-} from './index.js'
+} from './block.js'
 
 const completedDetectPopoverMovementOrAnimationEnd = (generation: number) =>
   Message.CompletedDetectPopoverMovementOrAnimationEnd({ generation })
 
 const STALE_ANIMATION_GENERATION = -1
 
-const givenClosed = Story.given(init({ id: 'test' }))
+const gotAnimationMessage = ({
+  message,
+}: Readonly<{ message: typeof Animation.AnimationBlock.Message.Type }>) =>
+  Schema.decodeSync(PopoverBlock.Message)({
+    _tag: 'GotAnimationMessage',
+    placement: 'animation',
+    generation: 0,
+    message,
+  })
+
+const givenClosed = Story.given(init({ id: 'test' }).model)
 
 const givenOpen = Story.steps(
   givenClosed,
   Story.message(Message.RequestedOpen()),
 )
 
-const givenClosedAnimated = Story.given(init({ id: 'test', isAnimated: true }))
+const givenClosedAnimated = Story.given(
+  init({ id: 'test', isAnimated: true }).model,
+)
 
 const givenOpenAnimated = Story.steps(
   givenClosedAnimated,
@@ -54,40 +67,40 @@ const givenOpenAnimated = Story.steps(
 describe('Popover', () => {
   describe('init', () => {
     it('defaults to closed', () => {
-      expect(init({ id: 'test' })).toStrictEqual({
+      expect(init({ id: 'test' }).model).toStrictEqual({
         id: 'test',
         isOpen: false,
         isAnimated: false,
         isModal: false,
         contentFocus: false,
-        animation: Animation.init({ id: 'test-panel' }),
+        animation: Animation.init({ id: 'test-panel' }).model,
         maybeLastButtonPointerType: Option.none(),
       })
     })
 
     it('accepts isAnimated option', () => {
-      const model = init({ id: 'test', isAnimated: true })
+      const model = init({ id: 'test', isAnimated: true }).model
       expect(model.isAnimated).toBe(true)
       expect(model.animation.transitionState).toBe('Idle')
     })
 
     it('defaults isModal to false', () => {
-      const model = init({ id: 'test' })
+      const model = init({ id: 'test' }).model
       expect(model.isModal).toBe(false)
     })
 
     it('accepts isModal option', () => {
-      const model = init({ id: 'test', isModal: true })
+      const model = init({ id: 'test', isModal: true }).model
       expect(model.isModal).toBe(true)
     })
 
     it('defaults contentFocus to false', () => {
-      const model = init({ id: 'test' })
+      const model = init({ id: 'test' }).model
       expect(model.contentFocus).toBe(false)
     })
 
     it('accepts contentFocus option', () => {
-      const model = init({ id: 'test', contentFocus: true })
+      const model = init({ id: 'test', contentFocus: true }).model
       expect(model.contentFocus).toBe(true)
     })
   })
@@ -413,7 +426,7 @@ describe('Popover', () => {
       describe('leave flow', () => {
         it('preserves Closed when the pointer closes an animated Popover', () => {
           const opened = update(
-            init({ id: 'animated-pointer', isAnimated: true }),
+            init({ id: 'animated-pointer', isAnimated: true }).model,
             Message.RequestedOpen(),
           )
           const closed = update(
@@ -571,7 +584,7 @@ describe('Popover', () => {
             update,
             givenOpen,
             Story.message(
-              Message.GotAnimationMessage({
+              gotAnimationMessage({
                 message: Animation.Message.CompletedWaitForPaint({
                   generation: 0,
                 }),
@@ -644,7 +657,9 @@ describe('Popover', () => {
   })
 
   describe('modal commands', () => {
-    const givenClosedModal = Story.given(init({ id: 'test', isModal: true }))
+    const givenClosedModal = Story.given(
+      init({ id: 'test', isModal: true }).model,
+    )
 
     const givenOpenModal = Story.steps(
       givenClosedModal,

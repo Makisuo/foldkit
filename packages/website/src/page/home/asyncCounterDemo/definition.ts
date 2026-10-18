@@ -37,7 +37,10 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const AsyncCounterDemoDefinition = Block.define('AsyncCounterDemo', {
-  Model,
-  Message,
-})
+export const AsyncCounterDemoDefinition = Block.makeDefinition(
+  'AsyncCounterDemo',
+  {
+    Model,
+    Message,
+  },
+)

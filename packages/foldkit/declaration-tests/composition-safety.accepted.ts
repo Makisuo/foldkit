@@ -12,6 +12,26 @@ type Equal<Left, Right> =
       : false
     : false
 type Expect<Value extends true> = Value
+type RecipeModel<Value> =
+  Value extends Update.ResultRecipe<
+    infer Model,
+    infer _Message,
+    infer _OutMessage,
+    infer _Requirements,
+    infer _Evidence
+  >
+    ? Model
+    : never
+type RecipeMessage<Value> =
+  Value extends Update.ResultRecipe<
+    infer _Model,
+    infer Message,
+    infer _OutMessage,
+    infer _Requirements,
+    infer _Evidence
+  >
+    ? Message
+    : never
 
 export const ChildModel = Schema.Struct({ count: Schema.Number })
 export type ChildModel = typeof ChildModel.Type
@@ -43,16 +63,14 @@ declare const restContextUpdate: Block.DefinedUpdate<
   never
 >
 
-const CompositionSafetyPlainDefinition = Block.define(
+const CompositionSafetyPlainComposition = Block.makeDefinition(
   'CompositionSafetyPlain',
   {
     Model: ChildModel,
     Message: ChildMessage,
   },
-)
-const CompositionSafetyPlainComposition =
-  CompositionSafetyPlainDefinition.makeComposition()
-export const PlainBlock = CompositionSafetyPlainComposition.makeBlock({
+).makeComposition()
+export const PlainBlock = CompositionSafetyPlainComposition.assembleBlock({
   init: CompositionSafetyPlainComposition.makeInit(() => ({
     model: ChildModel.make({ count: 0 }),
   })),
@@ -60,17 +78,15 @@ export const PlainBlock = CompositionSafetyPlainComposition.makeBlock({
   EffectsLayer: Layer.empty,
 })
 
-const CompositionSafetyOptionalContextDefinition = Block.define(
+const CompositionSafetyOptionalContextComposition = Block.makeDefinition(
   'CompositionSafetyOptionalContext',
   {
     Model: ChildModel,
     Message: ChildMessage,
   },
-)
-const CompositionSafetyOptionalContextComposition =
-  CompositionSafetyOptionalContextDefinition.makeComposition()
+).makeComposition()
 export const OptionalContextBlock =
-  CompositionSafetyOptionalContextComposition.makeBlock({
+  CompositionSafetyOptionalContextComposition.assembleBlock({
     init: CompositionSafetyOptionalContextComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
     })),
@@ -78,17 +94,15 @@ export const OptionalContextBlock =
     EffectsLayer: Layer.empty,
   })
 
-const CompositionSafetyRestContextDefinition = Block.define(
+const CompositionSafetyRestContextComposition = Block.makeDefinition(
   'CompositionSafetyRestContext',
   {
     Model: ChildModel,
     Message: ChildMessage,
   },
-)
-const CompositionSafetyRestContextComposition =
-  CompositionSafetyRestContextDefinition.makeComposition()
+).makeComposition()
 export const RestContextBlock =
-  CompositionSafetyRestContextComposition.makeBlock({
+  CompositionSafetyRestContextComposition.assembleBlock({
     init: CompositionSafetyRestContextComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
     })),
@@ -100,7 +114,7 @@ export const ParameterizedChildModel = Schema.Struct({ count: Schema.Number })
 export const ParameterizedChildMessage = Message.defineMessageUnion({
   CompletedLoad: {},
 })
-const CompositionSafetyParameterizedDefinition = Block.define(
+const CompositionSafetyParameterizedDefinition = Block.makeDefinition(
   'CompositionSafetyParameterized',
   {
     Model: ParameterizedChildModel,
@@ -117,7 +131,7 @@ export const LoadParameterizedChild =
 const CompositionSafetyParameterizedComposition =
   CompositionSafetyParameterizedDefinition.makeComposition()
 export const ParameterizedBlock =
-  CompositionSafetyParameterizedComposition.makeBlock({
+  CompositionSafetyParameterizedComposition.assembleBlock({
     init: CompositionSafetyParameterizedComposition.makeInit(
       (count: number) => ({
         model: ParameterizedChildModel.make({ count }),
@@ -149,17 +163,8 @@ export const ParentMessage = Message.defineMessageUnion({
   RequestedInitializePlain: {},
   RequestedInitializePlainWithOwningParentCommand: {},
   RequestedInitializePlainWithParentCommands: {},
-  RoutedProjectedMessage: { message: ChildMessage },
-  RoutedPlainMessage: { message: ChildMessage },
-  RoutedParentCommandMessage: { message: ChildMessage },
-  RoutedOptionalContextMessage: { message: ChildMessage },
-  RoutedRestContextMessage: { message: ChildMessage },
-  RoutedEntryMessage: {
-    id: Schema.String,
-    message: ParameterizedChildMessage,
-  },
 })
-export const CompositionSafetyParentDefinition = Block.define(
+export const CompositionSafetyParentDefinition = Block.makeDefinition(
   'CompositionSafetyParent',
   {
     Model: ParentModel,
@@ -180,17 +185,17 @@ export const StableProjectedBinding =
     read: model => Option.some(model.first),
     write: (model, nextChild) =>
       Struct.modifyFields(model, { first: () => nextChild }),
-    parentMessage: ParentMessage.RoutedProjectedMessage,
+
     init: {
-      startupToArgs: () => [],
-      model: child => ({ first: child }),
+      contextToArgs: () => [],
+      toParentFields: child => ({ first: child }),
     },
   })
 export const PlainBinding = CompositionSafetyParentDefinition.bindChild(
   PlainBlock,
   {
     field: 'plain',
-    parentMessage: ParentMessage.RoutedPlainMessage,
+
     init: false,
   },
 )
@@ -200,28 +205,22 @@ export const ParentCommandsBinding =
     read: model => Option.some(model.plain),
     write: (model, nextChild) =>
       Struct.modifyFields(model, { plain: () => nextChild }),
-    toParentMessage: message =>
-      ParentMessage.RoutedParentCommandMessage({ message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.RoutedParentCommandMessage,
-      args: (_model, { message }) => Option.some([message]),
-    },
   })
 export const OptionalContextBinding =
   CompositionSafetyParentDefinition.bindChild(OptionalContextBlock, {
     field: 'optionalContext',
-    parentMessage: ParentMessage.RoutedOptionalContextMessage,
-    fromParentMessage: {
-      args: (_model, { message }) => Option.some([message]),
+
+    delivery: {
+      toUpdateContext: () => [],
     },
   })
 export const RestContextBinding = CompositionSafetyParentDefinition.bindChild(
   RestContextBlock,
   {
     field: 'restContext',
-    parentMessage: ParentMessage.RoutedRestContextMessage,
-    fromParentMessage: {
-      args: (_model, { message }) => Option.some([message, { amount: 1 }]),
+
+    delivery: {
+      toUpdateContext: () => [{ amount: 1 }],
     },
   },
 )
@@ -229,14 +228,9 @@ export const EntryBinding = CompositionSafetyParentDefinition.bindChild(
   ParameterizedBlock,
   {
     field: 'entries',
+    placement: 'entries',
     key: 'id',
     childField: 'child',
-    toParentMessage: (id, message) =>
-      ParentMessage.RoutedEntryMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.RoutedEntryMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
   },
 )
 
@@ -251,7 +245,7 @@ export const initialParentModel = ParentModel.make({
 
 // eslint-disable-next-line foldkit/block-name-matches-variable
 const foldComposition = CompositionSafetyParentDefinition.makeComposition({
-  childBindings: [StableProjectedBinding, PlainBinding],
+  bindings: [StableProjectedBinding, PlainBinding],
 })
 export const foldStableProjected = foldComposition.makeUpdate(
   (model, _message, childMessage: typeof ChildMessage.Type) =>
@@ -340,9 +334,9 @@ export const initializePlainWithOwningParentCommand =
 
 export const CompositionSafetyParentComposition =
   CompositionSafetyParentDefinition.makeComposition({
-    childBindings: [PlainBinding, ParentCommandsBinding, EntryBinding],
+    bindings: [PlainBinding, ParentCommandsBinding, EntryBinding],
   })
-export const StrictBlock = CompositionSafetyParentComposition.makeBlock({
+export const StrictBlock = CompositionSafetyParentComposition.assembleBlock({
   init: CompositionSafetyParentComposition.makeInit(() => ({
     model: initialParentModel,
   })),
@@ -356,9 +350,6 @@ export const StrictBlock = CompositionSafetyParentComposition.makeBlock({
       RequestedInitializePlainWithParentCommands: () =>
         initializePlainWithParentCommands(model),
       CompletedParentInitialization: () => ({ model }),
-      RoutedProjectedMessage: () => ({ model }),
-      RoutedOptionalContextMessage: () => ({ model }),
-      RoutedRestContextMessage: () => ({ model }),
     }),
   ),
   operations: {
@@ -397,29 +388,32 @@ type ParentCommandRegistrationIsExact = Expect<
     Update.RegistrationEvidenceOf<
       ReturnType<typeof initializePlainWithParentCommands>
     >,
-    | Block.BindingRequirement<'parentCommands', typeof PlainBlock>
-    | Block.BindingRequirement<'entries', typeof ParameterizedBlock>
+    | Block.RequirementOfBinding<typeof ParentCommandsBinding>
+    | Block.RequirementOfBinding<typeof EntryBinding>
   >
 >
 type EntryInitModelIsExact = Expect<
   Equal<
-    ReturnType<typeof initializeEntry>,
-    Update.ResultRecipe<
-      typeof ParentModel.Type,
-      typeof ParentMessage.Type,
-      never,
-      Block.Qualify<
-        'entries',
-        Command.HandlerOf<typeof LoadParameterizedChild>
-      >,
-      Block.BindingRequirement<'entries', typeof ParameterizedBlock>
-    >
+    RecipeModel<ReturnType<typeof initializeEntry>>,
+    typeof ParentModel.Type
+  >
+>
+type EntryInitMessageIsExact = Expect<
+  Equal<
+    RecipeMessage<ReturnType<typeof initializeEntry>>,
+    typeof ParentMessage.Type
+  >
+>
+type EntryInitRegistrationIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<typeof initializeEntry>>,
+    Block.RequirementOfBinding<typeof EntryBinding>
   >
 >
 type PlainInitRegistrationIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<typeof initializePlain>>,
-    Block.BindingRequirement<'plain', typeof PlainBlock>
+    Block.RequirementOfBinding<typeof PlainBinding>
   >
 >
 type ParentCommandRecipeRequirementsAreExact = Expect<
@@ -433,12 +427,12 @@ type ParentCommandRecipeRegistrationIsExact = Expect<
     Update.RegistrationEvidenceOf<
       ReturnType<typeof makeParentCommandInitRecipe>
     >,
-    Block.BindingRequirement<'parentCommands', typeof PlainBlock>
+    Block.RequirementOfBinding<typeof ParentCommandsBinding>
   >
 >
 
 export const initialize = CompositionSafetyParentDefinition.makeComposition({
-  childBindings: [StableProjectedBinding],
+  bindings: [StableProjectedBinding],
 }).makeInit(() => ({
   model: {
     second: ChildModel.make({ count: 0 }),
@@ -454,6 +448,8 @@ export type CompositionSafetyAssertions = [
   ParentCommandRequirementsAreExact,
   ParentCommandRegistrationIsExact,
   EntryInitModelIsExact,
+  EntryInitMessageIsExact,
+  EntryInitRegistrationIsExact,
   PlainInitRegistrationIsExact,
   ParentCommandRecipeRequirementsAreExact,
   ParentCommandRecipeRegistrationIsExact,

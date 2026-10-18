@@ -12,7 +12,7 @@ describe('education', () => {
   test('renders the first school fields and the add control', () => {
     scene(
       { update, view },
-      given(init(today, 'education-entry-1')),
+      given(init(today, 'education-entry-1').model),
       expect(label('School')).toExist(),
       expect(label('Degree')).toExist(),
       expect(role('button', { name: '+ Add Education' })).toExist(),

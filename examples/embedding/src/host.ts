@@ -5,7 +5,6 @@ import {
   ApplicationComposition,
   EffectsLayer,
   Flags,
-  Message,
   init,
   ports,
   subscriptions,
@@ -74,7 +73,7 @@ export const startHost = (): void => {
   const widgetSlot = getElement('widget-slot')
 
   const flags: Flags = { initialCount: INITIAL_COUNT }
-  const element = ApplicationComposition.makeElement({
+  const element = ApplicationComposition.assembleElement({
     init,
     update,
     view,
@@ -84,7 +83,7 @@ export const startHost = (): void => {
     flags: Effect.succeed(flags),
     ports,
     container: widgetSlot,
-    devTools: { Message },
+    devTools: { Message: ApplicationComposition.Message },
   })
 
   type WidgetHandle = Runtime.EmbedHandle<typeof element.ports>

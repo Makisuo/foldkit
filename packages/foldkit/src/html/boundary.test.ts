@@ -177,6 +177,105 @@ describe('getOrCreateBoundaryDispatch', () => {
     expect(registry.boundaryDispatchOwners.has('child')).toBe(false)
   })
 
+  it('drops an old handler after unmount and gives a same-id remount a fresh dispatcher', () => {
+    const registry = createBoundaryRegistry()
+    const calls: Array<unknown> = []
+    const dispatch: DispatchSync = message => calls.push(message)
+    const first = {
+      toParentMessage: (message: unknown) => ({ generation: 1, message }),
+    }
+
+    registerBoundaryWrap(registry, 'child', first, dispatch)
+    const oldDispatcher = getOrCreateBoundaryDispatch(
+      registry,
+      dispatch,
+      'child',
+    )
+    deregisterBoundaryWrap(registry, 'child', first, dispatch)
+
+    expect(() => oldDispatcher({ _tag: 'BlurredItems' })).not.toThrow()
+    expect(calls).toEqual([])
+
+    beginRender(registry)
+    const second = {
+      toParentMessage: (message: unknown) => ({ generation: 2, message }),
+    }
+    registerBoundaryWrap(registry, 'child', second, dispatch)
+    const currentDispatcher = getOrCreateBoundaryDispatch(
+      registry,
+      dispatch,
+      'child',
+    )
+
+    expect(currentDispatcher).not.toBe(oldDispatcher)
+    oldDispatcher({ _tag: 'BlurredItems' })
+    currentDispatcher({ _tag: 'FocusedItems' })
+    expect(calls).toEqual([
+      { generation: 2, message: { _tag: 'FocusedItems' } },
+    ])
+  })
+
+  it('still throws when an active dispatcher has a missing wrap', () => {
+    const registry = createBoundaryRegistry()
+    const dispatch: DispatchSync = () => {}
+    const block = { toParentMessage: (message: unknown) => message }
+
+    registerBoundaryWrap(registry, 'child', block, dispatch)
+    const activeDispatcher = getOrCreateBoundaryDispatch(
+      registry,
+      dispatch,
+      'child',
+    )
+    registry.wraps.delete('child')
+
+    expect(() => activeDispatcher({ _tag: 'ClickedChild' })).toThrow(
+      /dispatchAcrossBoundary missing wrap for ancestor "child"/,
+    )
+  })
+
+  it('keeps a nested sibling dispatcher active when another sibling unmounts', () => {
+    const registry = createBoundaryRegistry()
+    const calls: Array<unknown> = []
+    const dispatch: DispatchSync = message => calls.push(message)
+    const parent = {
+      toParentMessage: (message: unknown) => ({ _tag: 'GotParent', message }),
+    }
+    const left = {
+      toParentMessage: (message: unknown) => ({ _tag: 'GotLeft', message }),
+    }
+    const right = {
+      toParentMessage: (message: unknown) => ({ _tag: 'GotRight', message }),
+    }
+
+    registerBoundaryWrap(registry, 'parent', parent, dispatch)
+    registerBoundaryWrap(registry, 'parent|left', left, dispatch)
+    registerBoundaryWrap(registry, 'parent|right', right, dispatch)
+    const leftDispatcher = getOrCreateBoundaryDispatch(
+      registry,
+      dispatch,
+      'parent|left',
+    )
+    const rightDispatcher = getOrCreateBoundaryDispatch(
+      registry,
+      dispatch,
+      'parent|right',
+    )
+
+    deregisterBoundaryWrap(registry, 'parent|left', left, dispatch)
+    leftDispatcher({ _tag: 'BlurredLeft' })
+    rightDispatcher({ _tag: 'ClickedRight' })
+
+    expect(calls).toEqual([
+      {
+        _tag: 'GotParent',
+        message: {
+          _tag: 'GotRight',
+          message: { _tag: 'ClickedRight' },
+        },
+      },
+    ])
+  })
+
   it('does not let a stale destroy hook evict a replacement dispatcher', () => {
     const registry = createBoundaryRegistry()
     const dispatch: DispatchSync = () => {}

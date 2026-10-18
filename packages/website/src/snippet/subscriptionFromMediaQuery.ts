@@ -12,7 +12,7 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const MotionPreferencesDefinition = Block.define('MotionPreferences', {
+const MotionPreferencesDefinition = Block.makeDefinition('MotionPreferences', {
   Model,
   Message,
 })

@@ -3,17 +3,16 @@ import { describe, expect, it } from 'vitest'
 
 import { defineMessageUnion } from '../schema/index.js'
 import { modifyFields } from '../struct/index.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 const ChildMessage = defineMessageUnion({ Incremented: {} })
 
-const Plain = define('CompositionSafetyRuntimePlain', {
+const PlainComposition = makeDefinition('CompositionSafetyRuntimePlain', {
   Model: ChildModel,
   Message: ChildMessage,
-})
-const PlainComposition = Plain.makeComposition()
-const PlainBlock = Reflect.apply(PlainComposition.makeBlock, undefined, [
+}).makeComposition()
+const PlainBlock = Reflect.apply(PlainComposition.assembleBlock, undefined, [
   {
     init: PlainComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
@@ -27,13 +26,15 @@ const PlainBlock = Reflect.apply(PlainComposition.makeBlock, undefined, [
   },
 ])
 
-const OptionalContext = define('CompositionSafetyRuntimeOptionalContext', {
-  Model: ChildModel,
-  Message: ChildMessage,
-})
-const OptionalContextComposition = OptionalContext.makeComposition()
+const OptionalContextComposition = makeDefinition(
+  'CompositionSafetyRuntimeOptionalContext',
+  {
+    Model: ChildModel,
+    Message: ChildMessage,
+  },
+).makeComposition()
 const OptionalContextBlock = Reflect.apply(
-  OptionalContextComposition.makeBlock,
+  OptionalContextComposition.assembleBlock,
   undefined,
   [
     {
@@ -57,10 +58,8 @@ const OptionalContextBlock = Reflect.apply(
 )
 
 const ParentModel = Schema.Struct({ child: ChildModel })
-const ParentMessage = defineMessageUnion({
-  GotChildMessage: { message: ChildMessage },
-})
-const Parent = define('CompositionSafetyRuntimeParent', {
+const ParentMessage = Schema.Never
+const Parent = makeDefinition('CompositionSafetyRuntimeParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -71,11 +70,10 @@ describe('Composition safety', () => {
       PlainBlock,
       {
         field: 'child',
-        parentMessage: ParentMessage.GotChildMessage,
       },
     ])
     const composition = Reflect.apply(Parent.makeComposition, undefined, [
-      { childBindings: [binding] },
+      { bindings: [binding] },
     ])
     const update = Reflect.apply(composition.makeUpdate, undefined, [])
     const initial = ParentModel.make({
@@ -88,7 +86,12 @@ describe('Composition safety', () => {
 
     const result = Reflect.apply(update, undefined, [
       initial,
-      ParentMessage.GotChildMessage({ message: ChildMessage.Incremented() }),
+      {
+        _tag: 'GotChildMessage',
+        placement: 'child',
+        generation: 0,
+        message: ChildMessage.Incremented(),
+      },
     ])
 
     expect(result).toMatchObject({ model: { child: { count: 1 } } })
@@ -100,11 +103,8 @@ describe('Composition safety', () => {
         OptionalContextBlock,
         {
           field: 'child',
-          parentMessage: ParentMessage.GotChildMessage,
         },
       ]),
-    ).toThrow(
-      'A contextual canonical Binding must supply fromParentMessage.args',
-    )
+    ).toThrow('A contextual child update requires delivery.toUpdateContext')
   })
 })

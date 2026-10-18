@@ -5,11 +5,11 @@ import { describe, test } from 'vitest'
 
 import {
   DelayAdvanceAsyncCounterPhase,
-  Message,
   init,
   update,
   view,
-} from './asyncCounterDemo'
+} from './asyncCounterDemo/asyncCounterDemo'
+import { Message } from './asyncCounterDemo/definition'
 
 const init_ = init()
 

@@ -961,32 +961,19 @@ export const blockBindingMethod = (
   }
 
   if (
-    bindingConfigHasProperties(node, ['field', 'key', 'toParentMessage']) &&
+    bindingConfigHasProperties(node, ['field', 'key']) &&
     bindingConfigHasStaticStringProperty(node, 'key')
   ) {
     return Option.some('Keyed')
   }
 
-  if (
-    bindingConfigHasProperties(node, [
-      'readAll',
-      'key',
-      'read',
-      'writeAt',
-      'toParentMessage',
-    ])
-  ) {
+  if (bindingConfigHasProperties(node, ['readAll', 'key', 'read', 'writeAt'])) {
     return Option.some('Keyed')
   }
 
-  const hasMessageMapping =
-    bindingConfigHasProperties(node, ['parentMessage']) ||
-    bindingConfigHasProperties(node, ['toParentMessage'])
-
   if (
-    hasMessageMapping &&
-    (bindingConfigHasProperties(node, ['read', 'write']) ||
-      bindingConfigHasProperties(node, ['field']))
+    bindingConfigHasProperties(node, ['read', 'write']) ||
+    bindingConfigHasProperties(node, ['field'])
   ) {
     return Option.some('Static')
   }
@@ -994,7 +981,7 @@ export const blockBindingMethod = (
   return Option.none()
 }
 
-/** Recognizes a definition method on a Block, Application, or imported feature owner. */
+/** Recognizes an authoring method on a Block, Application, or imported feature owner. */
 const isOwnedDefinitionCallee = (
   callee: unknown,
   method: string,
@@ -1034,9 +1021,10 @@ const isOwnedDefinitionCallee = (
             apiPath => {
               const path = Array.join(apiPath, '.')
               return (
-                path === 'Block.define' ||
-                path === 'Application.define' ||
-                path === 'defineApplication'
+                path === 'Block.makeDefinition' ||
+                path === 'Block.makeNamespace' ||
+                path === 'Application.makeDefinition' ||
+                path === 'makeApplicationDefinition'
               )
             },
           )
@@ -1047,7 +1035,7 @@ const isOwnedDefinitionCallee = (
         if (
           isMemberExpression(call.callee) &&
           Option.exists(staticMemberName(call.callee), member =>
-            Array.contains(['define', 'makeComposition'], member),
+            Array.contains(['makeDefinition', 'makeComposition'], member),
           ) &&
           isCallExpression(call.callee.object)
         ) {
@@ -1058,7 +1046,7 @@ const isOwnedDefinitionCallee = (
           staticMemberPath(call.callee),
           definePath =>
             Option.exists(Array.last(definePath.members), methodName =>
-              Array.contains(['define', 'makeComposition'], methodName),
+              Array.contains(['makeDefinition', 'makeComposition'], methodName),
             ) &&
             Option.exists(
               resolvedVariable(references, definePath.root),

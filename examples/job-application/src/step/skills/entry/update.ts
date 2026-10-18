@@ -22,14 +22,14 @@ export const update = SkillsEntryComposition.makeUpdate((model, message) =>
       model: modifyFields(model, { name: () => validateName(value) }),
     }),
 
+    RequestedRevealErrors: () => ({
+      model: modifyFields(model, { name: revealFieldErrors(nameRules) }),
+    }),
+
     ClickedRemoveSelf: () => ({ model, outMessage: OutMessage.Removed() }),
   }),
 )
 
-export const hasErrors = (entry: Model): boolean => anyInvalid([entry.name])
+export const hasErrors = (entry: Model) => anyInvalid([entry.name])
 
-export const isComplete = (entry: Model): boolean =>
-  allValid([[entry.name, nameRules]])
-
-export const revealErrors = (entry: Model): Model =>
-  modifyFields(entry, { name: revealFieldErrors(nameRules) })
+export const isComplete = (entry: Model) => allValid([[entry.name, nameRules]])

@@ -26,7 +26,7 @@ Foldkit uses [The Elm Architecture](https://guide.elm-lang.org/architecture/). A
 
 Each feature declares the effects it needs and bundles their handlers in [Effect Layers](https://foldkit.dev/core/layers). Parent Bindings carry those handlers to the application root, where you provide the shared services they require. TypeScript checks that the completed application is ready before it can run. Tests can provide controlled services while running the same effect handlers.
 
-A [Block](https://foldkit.dev/core/block) packages its Model and Message contracts, update, public operations, lifecycle registrations, view, and handler recipes. Its parent creates one Binding to a Model location and Message wrapper. Composition then collects the child’s lifecycle entries and handlers; the parent decides when to dispatch Messages, render the child, and handle its OutMessages.
+A [Block](https://foldkit.dev/core/block) packages its Model and Message contracts, update, public operations, lifecycle registrations, view, and handler recipes. Its parent creates one Binding to a Model location. Composition derives child Message delivery and collects the child’s lifecycle entries and handlers; the parent decides when the child exists, where it renders, and how to handle its OutMessages.
 
 > [!NOTE]
 > Foldkit is pre-1.0 and under active development. The architecture is settled and the core API is stable in practice, but breaking changes may occur in minor releases. See the [roadmap](https://foldkit.dev/introduction/roadmap).
@@ -48,7 +48,7 @@ This complete program defines the Model, Messages, update, init, and view in `ap
 ```ts
 // src/application.ts
 import { Schema } from 'effect'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -65,8 +65,10 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const Application = defineApplication({ Model, Message })
-export const ApplicationComposition = Application.makeComposition()
+export const ApplicationComposition = makeApplicationDefinition({
+  Model,
+  Message,
+}).makeComposition()
 
 export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
@@ -127,7 +129,7 @@ import { Runtime } from 'foldkit'
 
 import { ApplicationComposition, init, update, view } from './application'
 
-const application = ApplicationComposition.makeApplication({
+const application = ApplicationComposition.assembleApplication({
   init,
   update,
   view,
@@ -138,7 +140,7 @@ Runtime.run(application)
 ```
 
 The `makeComposition`, `makeInit`, `makeUpdate`, `makeView`, and
-`makeApplication` calls return passive configuration or authored functions.
+`assembleApplication` calls return passive configuration or authored functions.
 `Runtime.run` starts the completed application.
 
 Try [Counter in the browser](https://foldkit.dev/example-apps/counter), follow the [walkthrough](https://foldkit.dev/core/counter-example), or explore the [source](https://github.com/foldkit/foldkit/tree/main/examples/counter).

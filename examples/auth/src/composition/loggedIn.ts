@@ -2,19 +2,18 @@ import { Match, Option } from 'effect'
 
 import { ClearSession, RedirectToHome } from '../command'
 import { ApplicationDefinition } from '../definition'
-import { Message } from '../message'
-import { LoggedIn, LoggedOut } from '../page'
+import { LoggedInBlock, LoggedOutBlock } from '../page'
 import { ApplicationRoute } from '../route'
 
-const foldLoggedInOutMessage = LoggedIn.OutMessage.match({
+const foldLoggedInOutMessage = LoggedInBlock.OutMessage.match({
   RequestedLogout: () =>
     ApplicationDefinition.step(() => ({
-      model: LoggedOut.init(ApplicationRoute.Home()),
+      model: LoggedOutBlock.init(ApplicationRoute.Home()).model,
       commands: [ClearSession(), RedirectToHome()],
     })),
 })
 
-export const LoggedInBinding = ApplicationDefinition.bindChild(LoggedIn.block, {
+export const LoggedInBinding = ApplicationDefinition.bindChild(LoggedInBlock, {
   read: model =>
     Match.value(model).pipe(
       Match.tagsExhaustive({
@@ -23,10 +22,5 @@ export const LoggedInBinding = ApplicationDefinition.bindChild(LoggedIn.block, {
       }),
     ),
   write: (_model, nextLoggedIn) => nextLoggedIn,
-  parentMessage: Message.GotLoggedInMessage,
-  fromParentMessage: {
-    parentMessage: Message.GotLoggedInMessage,
-    args: (_model, { message }) => Option.some([message]),
-  },
   outMessage: { fold: foldLoggedInOutMessage },
 })

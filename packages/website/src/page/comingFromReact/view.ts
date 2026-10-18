@@ -5,10 +5,9 @@ import { Disclosure } from '@foldkit/ui'
 
 import { type CodeBlock } from '../../component'
 import { Icon } from '../../icon'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink } from '../../prose'
-import raw from './comingFromReact.md'
 import { ComingFromReactComposition } from './composition'
+import { ComingFromReactContent } from './content'
 import { Message } from './message'
 import type { Model } from './model'
 
@@ -78,10 +77,7 @@ const faqItem = (
 
 // PAGE
 
-const { tableOfContents, view: renderPage } = slotDocPage(
-  raw,
-  'coming-from-react',
-)
+const { tableOfContents, view: renderPage } = ComingFromReactContent
 
 export { tableOfContents }
 

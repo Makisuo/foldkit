@@ -1,19 +1,12 @@
-import { Option } from 'effect'
 import { Block } from 'foldkit'
 
 import { Message } from './message'
 import { Model } from './model'
 import { Row } from './row'
 
-const TableDefinition = Block.define('Table', { Model, Message })
+const TableDefinition = Block.makeDefinition('Table', { Model, Message })
 
-export const RowsBinding = TableDefinition.bindChild(Row.block, {
+export const RowsBinding = TableDefinition.bindChild(Row.RowBlock, {
   field: 'rows',
   key: 'id',
-  toParentMessage: (rowId, message) =>
-    Message.GotRowMessage({ rowId, message }),
-  fromParentMessage: {
-    parentMessage: Message.GotRowMessage,
-    args: (_model, { rowId, message }) => Option.some([rowId, message]),
-  },
 })

@@ -1,13 +1,12 @@
 import { Match } from 'effect'
 import { Html, childAttributes, inertHtml as ih } from 'foldkit/html'
 
-import { Menu } from '@foldkit/ui'
 import { type AnchorConfig, buttonId } from '@foldkit/ui/menu'
 
 import { Icon } from '../../../icon'
 import type { UiViewBuilder } from '../composition'
 import { MenuAnimatedDemoBinding, MenuBasicDemoBinding } from '../composition'
-import { type MenuItem } from './components'
+import { DemoMenuBlock, type MenuItem } from './components'
 
 // DEMO CONTENT
 
@@ -94,7 +93,7 @@ const menuViewConfig = (itemsClassName: string) => {
 }
 
 export const basicDemo = (
-  menuModel: typeof Menu.Model.Type,
+  menuModel: typeof DemoMenuBlock.Model.Type,
   h: UiViewBuilder,
 ) => {
   return [
@@ -125,7 +124,7 @@ export const basicDemo = (
 }
 
 export const animatedDemo = (
-  menuModel: typeof Menu.Model.Type,
+  menuModel: typeof DemoMenuBlock.Model.Type,
   h: UiViewBuilder,
 ) => {
   return [

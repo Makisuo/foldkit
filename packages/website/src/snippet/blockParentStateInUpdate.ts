@@ -1,4 +1,4 @@
-import { Array, Option, Schema } from 'effect'
+import { Array, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -14,12 +14,10 @@ const AccountSettingsModel = Schema.Struct({
 const AccountSettingsMessage = defineMessageUnion({
   ChangedTheme: { theme: Theme },
 })
-
-const AccountSettingsDefinition = Block.define('AccountSettings', {
+const AccountSettingsComposition = Block.makeDefinition('AccountSettings', {
   Model: AccountSettingsModel,
   Message: AccountSettingsMessage,
-})
-const AccountSettingsComposition = AccountSettingsDefinition.makeComposition()
+}).makeComposition()
 
 const accountSettingsInit = AccountSettingsComposition.makeInit(() => ({
   model: AccountSettingsModel.make({
@@ -41,7 +39,7 @@ const accountSettingsUpdate = AccountSettingsComposition.makeUpdate(
 const accountSettingsView = AccountSettingsComposition.makeView((model, h) =>
   h.p([], [`${model.theme}; audit: ${Array.join(model.auditTrail, ', ')}`]),
 )
-const accountSettingsBlock = AccountSettingsComposition.makeBlock({
+const AccountSettingsBlock = AccountSettingsComposition.assembleBlock({
   init: accountSettingsInit,
   update: accountSettingsUpdate,
   view: accountSettingsView,
@@ -51,26 +49,22 @@ const ProfileModel = Schema.Struct({
   currentUser: CurrentUser,
   accountSettings: AccountSettingsModel,
 })
-const ProfileMessage = defineMessageUnion({
-  GotAccountSettingsMessage: { message: AccountSettingsMessage },
-})
-const ProfileDefinition = Block.define('Profile', {
+const ProfileMessage = defineMessageUnion({})
+const ProfileDefinition = Block.makeDefinition('Profile', {
   Model: ProfileModel,
   Message: ProfileMessage,
 })
 
 export const AccountSettingsBinding = ProfileDefinition.bindChild(
-  accountSettingsBlock,
+  AccountSettingsBlock,
   {
     field: 'accountSettings',
-    parentMessage: ProfileMessage.GotAccountSettingsMessage,
-    fromParentMessage: {
-      parentMessage: ProfileMessage.GotAccountSettingsMessage,
-      args: (model, { message }) => Option.some([message, model.currentUser]),
+    delivery: {
+      toUpdateContext: model => [model.currentUser],
     },
   },
 )
 
 export const ProfileComposition = ProfileDefinition.makeComposition({
-  childBindings: [AccountSettingsBinding],
+  bindings: [AccountSettingsBinding],
 })

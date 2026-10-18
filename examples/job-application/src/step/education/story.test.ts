@@ -4,13 +4,29 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
 import { GenerateEducationEntryId } from './command'
+import { EntriesBinding } from './composition'
 import { Message } from './definition'
-import * as Entry from './entry'
+import { EducationEntryBlock } from './entry'
 import { init } from './init'
 import { update } from './update'
 
 const today = Calendar.make(2026, 4, 16)
-const givenInitial = given(init(today, 'education-entry-1'))
+const givenInitial = given(init(today, 'education-entry-1').model)
+const emptyEducationEntryView = EducationEntryBlock.makeView(
+  (_model, h) => h.empty,
+)
+
+const entryMessage = (
+  entryId: string,
+  model: typeof EducationEntryBlock.Model.Type,
+  message: typeof EducationEntryBlock.Message.Type,
+) =>
+  EntriesBinding.embedView({
+    key: entryId,
+    slotId: entryId,
+    model,
+    view: emptyEducationEntryView,
+  }).toParentMessage(message)
 
 describe('education', () => {
   test('ClickedAddEntry generates an id and appends an entry', () => {
@@ -36,24 +52,25 @@ describe('education', () => {
       message(Message.FailedGenerateEducationEntryId()),
       Command.expectNone(),
       model(model => {
-        expect(model).toEqual(init(today, 'education-entry-1'))
+        expect(model).toEqual(init(today, 'education-entry-1').model)
       }),
     )
   })
 
   test('an entry OutMessage.Removed removes that entry', () => {
     const firstEntry = Option.getOrThrow(
-      Array.head(init(today, 'education-entry-1').entries),
+      Array.head(init(today, 'education-entry-1').model.entries),
     )
 
     story(
       update,
       givenInitial,
       message(
-        Message.GotEntryMessage({
-          entryId: firstEntry.id,
-          message: Entry.Message.ClickedRemoveSelf(),
-        }),
+        entryMessage(
+          firstEntry.id,
+          firstEntry,
+          EducationEntryBlock.Message.ClickedRemoveSelf(),
+        ),
       ),
       model(model => {
         expect(model.entries).toHaveLength(0)
@@ -61,19 +78,20 @@ describe('education', () => {
     )
   })
 
-  test('GotEntryMessage folds a school update into the matching entry', () => {
+  test('a generated entry Message updates the matching entry', () => {
     const firstEntry = Option.getOrThrow(
-      Array.head(init(today, 'education-entry-1').entries),
+      Array.head(init(today, 'education-entry-1').model.entries),
     )
 
     story(
       update,
       givenInitial,
       message(
-        Message.GotEntryMessage({
-          entryId: firstEntry.id,
-          message: Entry.Message.UpdatedSchool({ value: 'MIT' }),
-        }),
+        entryMessage(
+          firstEntry.id,
+          firstEntry,
+          EducationEntryBlock.Message.UpdatedSchool({ value: 'MIT' }),
+        ),
       ),
       model(model => {
         expect(

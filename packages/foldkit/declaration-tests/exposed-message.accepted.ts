@@ -1,4 +1,4 @@
-import { Array, Context, Effect, Layer, Option, Schema, Tuple } from 'effect'
+import { Context, Effect, Layer, Schema, Tuple } from 'effect'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
 import { defineMessageUnion } from 'foldkit/message'
@@ -33,7 +33,7 @@ export const ChildOutMessage = defineMessageUnion({
 export type ChildOutMessage = typeof ChildOutMessage.Type
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-export const ChildDefinition = Block.define('ExposeMessageProofChild', {
+export const ChildDefinition = Block.makeDefinition('ExposeMessageProofChild', {
   Model: ChildModel,
   Message: ChildMessage,
   OutMessage: ChildOutMessage,
@@ -65,7 +65,7 @@ export const childUpdate = ChildComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const ChildBlock = ChildComposition.makeBlock({
+export const ChildBlock = ChildComposition.assembleBlock({
   init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
   update: childUpdate,
   operations: {
@@ -82,7 +82,7 @@ export const ContextMessage = defineMessageUnion({
 })
 export type RequiredContext = Readonly<{ source: string }>
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-export const ContextChildDefinition = Block.define(
+export const ContextChildDefinition = Block.makeDefinition(
   'ExposeMessageProofContextChild',
   {
     Model: ContextModel,
@@ -106,7 +106,7 @@ export const contextUpdate = ContextComposition.makeUpdate(
     }),
   }),
 )
-export const ContextBlock = ContextComposition.makeBlock({
+export const ContextBlock = ContextComposition.assembleBlock({
   init: () => ({ model: ContextModel.make({ value: '' }) }),
   update: contextUpdate,
   operations: {
@@ -138,23 +138,22 @@ export const ParentModel = Schema.Struct({
 })
 export type ParentModel = typeof ParentModel.Type
 export const ParentMessage = defineMessageUnion({
-  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture deliberately probes reserved Got* routing with a nonstandard payload.
-  GotChildMessage: { message: ChildMessage },
-  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture deliberately probes reserved Got* routing with a nonstandard payload.
-  GotEntryMessage: { id: Schema.String, message: ChildMessage },
   RequestedNoop: {},
   RequestedSetChild: { value: Schema.String },
   RequestedSetEntry: { id: Schema.String, value: Schema.String },
 })
 export type ParentMessage = typeof ParentMessage.Type
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-export const ParentDefinition = Block.define('ExposeMessageProofParent', {
-  Model: ParentModel,
-  Message: ParentMessage,
-})
+export const ParentDefinition = Block.makeDefinition(
+  'ExposeMessageProofParent',
+  {
+    Model: ParentModel,
+    Message: ParentMessage,
+  },
+)
 export const ChildBinding = ParentDefinition.bindChild(ChildBlock, {
   field: 'child',
-  parentMessage: ParentMessage.GotChildMessage,
+
   outMessage: {
     fold: ChildOutMessage.match<Update.Step<ParentModel, ParentMessage>>({
       ChangedValue: () => model => ({ model }),
@@ -163,22 +162,9 @@ export const ChildBinding = ParentDefinition.bindChild(ChildBlock, {
 })
 export const EntryBinding = ParentDefinition.bindChild(ChildBlock, {
   placement: 'entries',
-  readAll: model => model.entries,
-  key: entry => entry.id,
-  read: entry => entry.child,
-  writeAt: (model, id, nextChild) =>
-    modifyFields(model, {
-      entries: entries =>
-        Array.map(entries, entry =>
-          entry.id === id ? { ...entry, child: nextChild } : entry,
-        ),
-    }),
-  toParentMessage: (id, message) =>
-    ParentMessage.GotEntryMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotEntryMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
+  field: 'entries',
+  key: 'id',
+  childField: 'child',
   outMessage: {
     fold: (_id, outMessage) =>
       ChildOutMessage.match<Update.Step<ParentModel, ParentMessage>>(
@@ -190,7 +176,7 @@ export const EntryBinding = ParentDefinition.bindChild(ChildBlock, {
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 export const ParentComposition = ParentDefinition.makeComposition({
-  childBindings: [ChildBinding, EntryBinding],
+  bindings: [ChildBinding, EntryBinding],
 })
 export const parentUpdate = ParentComposition.makeUpdate((model, message) =>
   ParentMessage.match(message, {
@@ -201,7 +187,7 @@ export const parentUpdate = ParentComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const ParentBlock = ParentComposition.makeBlock({
+export const ParentBlock = ParentComposition.assembleBlock({
   init: ParentComposition.makeInit(() => ({
     model: { entries: [{ id: 'first', child: { value: 'entry' } }] },
   })),
@@ -225,14 +211,17 @@ export function makeChoice<
     CompletedObserve: {},
   })
   // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-  const ChoiceOwnerDefinition = Block.define('ExposeMessageProofChoice')
-  const Observe = ChoiceOwnerDefinition.mount('Observe', {
+  const ChoiceOwnerNamespace = Block.makeNamespace('ExposeMessageProofChoice')
+  const Observe = ChoiceOwnerNamespace.mount('Observe', {
     messages: [Message.CompletedObserve],
   })
   // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-  const ChoiceDefinition = ChoiceOwnerDefinition.define({ Model, Message })
+
   // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-  const Composition = ChoiceDefinition.makeComposition({ mounts: [Observe] })
+  const Composition = ChoiceOwnerNamespace.makeDefinition({
+    Model,
+    Message,
+  }).makeComposition({ mounts: [Observe] })
   const view = Composition.makeView.withInputs<Readonly<{ label: string }>>(
     (model, { label }, h) =>
       h.button(
@@ -252,7 +241,7 @@ export function makeChoice<
   const select = (value: Values[number], required: RequiredContext) =>
     Tuple.make(Message.UpdatedValue({ value }), required)
 
-  const block = Composition.makeBlock({
+  const block = Composition.assembleBlock({
     init: (selected: Values[number]) => ({ model: Model.make({ selected }) }),
     update,
     view,
@@ -278,7 +267,7 @@ export const MountedChoiceMessage = defineMessageUnion({
   UpdatedSelection: { value: Schema.String },
   CompletedObserveSelection: {},
 })
-export const MountedChoiceDefinition = Block.define('MountedChoice', {
+export const MountedChoiceDefinition = Block.makeDefinition('MountedChoice', {
   Model: MountedChoiceModel,
   Message: MountedChoiceMessage,
 })
@@ -307,7 +296,7 @@ export const mountedChoiceUpdate = MountedChoiceComposition.makeUpdate(
       CompletedObserveSelection: () => ({ model }),
     }),
 )
-export const MountedChoiceBlock = MountedChoiceComposition.makeBlock({
+export const MountedChoiceBlock = MountedChoiceComposition.assembleBlock({
   init: (selected: string) => ({
     model: MountedChoiceModel.make({ selected }),
   }),
@@ -319,24 +308,26 @@ export const MountedChoiceBlock = MountedChoiceComposition.makeBlock({
   },
   EffectsLayer: ObserveSelection.layer,
 })
-export const ManagedMountedChoiceBlock = MountedChoiceComposition.makeBlock({
-  init: (selected: string) => ({
-    model: MountedChoiceModel.make({ selected }),
-  }),
-  update: mountedChoiceUpdate,
-  view: mountedChoiceView,
-  managedResources: {},
-  operations: {
-    select: (value: string) =>
-      Tuple.make(MountedChoiceMessage.UpdatedSelection({ value })),
+export const ManagedMountedChoiceBlock = MountedChoiceComposition.assembleBlock(
+  {
+    init: (selected: string) => ({
+      model: MountedChoiceModel.make({ selected }),
+    }),
+    update: mountedChoiceUpdate,
+    view: mountedChoiceView,
+    managedResources: {},
+    operations: {
+      select: (value: string) =>
+        Tuple.make(MountedChoiceMessage.UpdatedSelection({ value })),
+    },
+    EffectsLayer: ObserveSelection.layer,
   },
-  EffectsLayer: ObserveSelection.layer,
-})
+)
 
 export const ExactModel = Schema.Struct({ value: Schema.String })
 export const ExactMessage = defineMessageUnion({ RequestedPing: {} })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-export const ExactDefinition = Block.define('ExposeMessageProofExact', {
+export const ExactDefinition = Block.makeDefinition('ExposeMessageProofExact', {
   Model: ExactModel,
   Message: ExactMessage,
 })
@@ -348,7 +339,7 @@ export function exactUpdate(
 }
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 export const ExactComposition = ExactDefinition.makeComposition()
-export const ExactBlock = ExactComposition.makeBlock({
+export const ExactBlock = ExactComposition.assembleBlock({
   init: () => ({ model: ExactModel.make({ value: '' }) }),
   update: exactUpdate,
   operations: {

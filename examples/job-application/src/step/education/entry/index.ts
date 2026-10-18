@@ -1,5 +1,1 @@
-export { Model, Message, OutMessage } from './definition'
-export { init } from './init'
-export { hasErrors, isComplete, revealErrors } from './update'
-export type { ViewInputs } from './view'
-export { block } from './block'
+export { EducationEntryBlock } from './block'

@@ -1,3 +1,9 @@
-import { BlockPageDefinition } from './definition'
+import { Block } from 'foldkit'
 
-export const BlockPageComposition = BlockPageDefinition.makeComposition()
+import { Message } from './message'
+import { Model } from './model'
+
+export const BlockPageComposition = Block.makeDefinition('BlockPage', {
+  Model,
+  Message,
+}).makeComposition()

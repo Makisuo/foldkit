@@ -31,7 +31,7 @@ import {
   type ExampleMeta,
   type ExampleSlug,
   examples as exampleMetas,
-} from '../example'
+} from '../example/domain'
 import { exampleAppCount } from '../examples'
 import type { HomeViewBuilder } from './composition'
 

@@ -23,6 +23,7 @@ import {
   Direct,
   DirectChildBinding,
   DirectInitBlock,
+  DirectInitChildBinding,
   DirectModel,
   Measure,
   ObserveParent,
@@ -262,7 +263,7 @@ type EmittedChildInitRequirementsAreExact = Expect<
 type EmittedDirectInitEvidenceIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<typeof emittedDirectResultInit>,
-    Block.BindingRequirement<'direct-init-child', typeof ChildBlock>
+    Block.RequirementOfBinding<typeof DirectInitChildBinding>
   >
 >
 type EmittedDirectInitRequirementsAreExact = Expect<
@@ -288,19 +289,29 @@ type EmittedBoundEvidenceIsExact = Expect<
     Update.RegistrationEvidenceOf<
       ReturnType<ReturnType<typeof ChildBinding.refresh>>
     >,
-    Block.BindingRequirement<'child', typeof ChildBlock>
+    Block.RequirementOfBinding<typeof ChildBinding>
   >
 >
 type EmittedAccessorMappedMessageIsExact = Expect<
   Equal<
     CommandMessageOfReturn<ReturnType<typeof ChildBinding.fold>>,
-    ReturnType<typeof ParentMessage.GotChildMessage>
+    Readonly<{
+      _tag: 'GotChildMessage'
+      placement: 'child'
+      generation: number
+      message: ChildMessage
+    }>
   >
 >
 type EmittedDirectMappedMessageIsExact = Expect<
   Equal<
     CommandMessageOfReturn<ReturnType<typeof DirectChildBinding.fold>>,
-    ReturnType<typeof ParentMessage.GotChildMessage>
+    Readonly<{
+      _tag: 'GotChildMessage'
+      placement: 'child'
+      generation: number
+      message: ChildMessage
+    }>
   >
 >
 type EmittedBindingStringKeysAreExact = Expect<
@@ -325,7 +336,7 @@ type EmittedProducerParametersAreExact = Expect<
       model: ParentModel &
         Update.GraphCapability<
           ParentModel,
-          Block.BindingRequirement<'child', typeof ChildBlock>
+          Block.RequirementOfBinding<typeof ChildBinding>
         >,
       context?: RefreshContext | undefined,
     ]

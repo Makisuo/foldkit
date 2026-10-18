@@ -1,22 +1,22 @@
+import { Schema } from 'effect'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
-import { Dialog } from '@foldkit/ui'
+import { DialogBlock } from '@foldkit/ui'
 
-import { block } from './block'
+import { SearchBlock } from './block'
+import { SearchComposition } from './composition'
+import { SearchState } from './domain'
 import { init } from './init'
 import { Message } from './message'
-import { SearchState } from './model'
 import {
   FetchSearchResults,
   NavigateToResult,
   ScrollToResult,
   update,
 } from './update'
-
 const init_ = init()
-
 const searchResults = [
   {
     url: '/docs/commands',
@@ -33,7 +33,6 @@ const searchResults = [
     kind: '',
   },
 ]
-
 describe('search', () => {
   test('typing a query starts a search', () => {
     story(
@@ -61,7 +60,6 @@ describe('search', () => {
       }),
     )
   })
-
   test('clearing the query resets to Idle', () => {
     story(
       update,
@@ -75,7 +73,6 @@ describe('search', () => {
       Command.expectNone(),
     )
   })
-
   test('same query is ignored', () => {
     story(
       update,
@@ -87,7 +84,6 @@ describe('search', () => {
       Command.expectNone(),
     )
   })
-
   test('new query preserves previous results in Loading state', () => {
     story(
       update,
@@ -112,7 +108,6 @@ describe('search', () => {
       ),
     )
   })
-
   test('stale results are ignored', () => {
     story(
       update,
@@ -128,7 +123,6 @@ describe('search', () => {
       }),
     )
   })
-
   test('selecting a result navigates and resets', () => {
     story(
       update,
@@ -145,13 +139,11 @@ describe('search', () => {
       }),
     )
   })
-
   test('arrow keys cycle through results', () => {
     const modelWithResults = modifyFields(init_.model, {
       searchState: () => SearchState.Ok({ results: searchResults }),
       activeResultIndex: () => 0,
     })
-
     story(
       update,
       given(modelWithResults),
@@ -173,7 +165,6 @@ describe('search', () => {
       Command.resolve(ScrollToResult, Message.CompletedScrollToResult()),
     )
   })
-
   test('clearing the query explicitly resets state', () => {
     story(
       update,
@@ -192,12 +183,14 @@ describe('search', () => {
       }),
     )
   })
-
   test('close completion clears Search after cleanup, including after a reopen', () => {
     const opened = update(
       init_.model,
-      Message.GotSearchDialogMessage({
-        message: Dialog.Message.RequestedOpen(),
+      Schema.decodeSync(SearchComposition.Message)({
+        _tag: 'GotDialogMessage',
+        placement: 'dialog',
+        generation: 0,
+        message: DialogBlock.Message.RequestedOpen(),
       }),
     )
     const queried = update(
@@ -206,23 +199,31 @@ describe('search', () => {
     )
     const transitioned = update(
       queried.model,
-      Message.GotSearchDialogMessage({
-        message: Dialog.Message.RequestedClose(),
+      Schema.decodeSync(SearchComposition.Message)({
+        _tag: 'GotDialogMessage',
+        placement: 'dialog',
+        generation: 0,
+        message: DialogBlock.Message.RequestedClose(),
       }),
     )
     const reopened = update(
       transitioned.model,
-      Message.GotSearchDialogMessage({
-        message: Dialog.Message.RequestedOpen(),
+      Schema.decodeSync(SearchComposition.Message)({
+        _tag: 'GotDialogMessage',
+        placement: 'dialog',
+        generation: 0,
+        message: DialogBlock.Message.RequestedOpen(),
       }),
     )
     const completed = update(
       reopened.model,
-      Message.GotSearchDialogMessage({
-        message: Dialog.Message.CompletedCloseDialog(),
+      Schema.decodeSync(SearchComposition.Message)({
+        _tag: 'GotDialogMessage',
+        placement: 'dialog',
+        generation: 0,
+        message: DialogBlock.Message.CompletedCloseDialog(),
       }),
     )
-
     expect(transitioned.model.query).toBe('routing')
     expect(reopened.model.query).toBe('routing')
     expect(reopened.model.dialog.isOpen).toBe(true)
@@ -230,12 +231,14 @@ describe('search', () => {
     expect(completed.model.searchState._tag).toBe('Idle')
     expect(completed.model.activeResultIndex).toBe(-1)
   })
-
   test('route changes clear and close Search while keyboard clearing leaves it open', () => {
     const opened = update(
       init_.model,
-      Message.GotSearchDialogMessage({
-        message: Dialog.Message.RequestedOpen(),
+      Schema.decodeSync(SearchComposition.Message)({
+        _tag: 'GotDialogMessage',
+        placement: 'dialog',
+        generation: 0,
+        message: DialogBlock.Message.RequestedOpen(),
       }),
     )
     const queried = update(
@@ -247,8 +250,9 @@ describe('search', () => {
       cleared.model,
       Message.UpdatedSearchQuery({ query: 'composition' }),
     )
-    const changedRoute = block.operations.informRouteChanged(retyped.model)
-
+    const changedRoute = SearchBlock.operations.informRouteChanged(
+      retyped.model,
+    )
     expect(cleared.model.query).toBe('')
     expect(cleared.model.dialog.isOpen).toBe(true)
     expect(changedRoute.model.query).toBe('')

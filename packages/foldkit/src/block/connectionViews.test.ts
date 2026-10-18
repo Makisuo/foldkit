@@ -4,13 +4,16 @@ import { expect, expectTypeOf, it } from 'vitest'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 
 const Model = Schema.Struct({ count: Schema.Number })
 type Model = typeof Model.Type
 const Message = defineMessageUnion({ ClickedIncrement: {} })
-const ConnectionViewsChild = define('ConnectionViewsChild', { Model, Message })
-const ConnectionViewsChildComposition = ConnectionViewsChild.makeComposition()
+
+const ConnectionViewsChildComposition = makeDefinition('ConnectionViewsChild', {
+  Model,
+  Message,
+}).makeComposition()
 const ViewInputs = Schema.Struct({ label: Schema.String })
 type ViewInputs = typeof ViewInputs.Type
 const view = ConnectionViewsChildComposition.makeView.withInputs<ViewInputs>(
@@ -20,7 +23,7 @@ const view = ConnectionViewsChildComposition.makeView.withInputs<ViewInputs>(
       [inputs.label, globalThis.String(model.count)],
     ),
 )
-const block = ConnectionViewsChildComposition.makeBlock({
+const block = ConnectionViewsChildComposition.assembleBlock({
   init: () => ({ model: Model.make({ count: 0 }) }),
   update: ConnectionViewsChildComposition.makeUpdate(model => ({
     model: modifyFields(model, { count: count => count + 1 }),
@@ -34,21 +37,13 @@ const ParentModel = Schema.Struct({
   entries: Schema.Array(Entry),
 })
 type ParentModel = typeof ParentModel.Type
-const ParentMessage = defineMessageUnion({
-  GotChildMessage: { message: Message },
-  GotEntryMessage: { id: Schema.String, message: Message },
-})
-const SingleParentMessage = defineMessageUnion({
-  GotChildMessage: { message: Message },
-})
-const ConnectionViewsParent = define('ConnectionViewsParent', {
+const ConnectionViewsParent = makeDefinition('ConnectionViewsParent', {
   Model: ParentModel,
-  Message: ParentMessage,
+  Message: Schema.Never,
 })
 
 const ConnectedBinding = ConnectionViewsParent.bindChild(block, {
   field: 'child',
-  parentMessage: ParentMessage.GotChildMessage,
 })
 const entryKey = (entry: typeof Entry.Type): string => entry.id
 const KeyedBinding = ConnectionViewsParent.bindChild(block, {
@@ -64,20 +59,17 @@ const KeyedBinding = ConnectionViewsParent.bindChild(block, {
           : entry,
       ),
     }),
-  toParentMessage: (id: string, message: typeof Message.Type) =>
-    ParentMessage.GotEntryMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotEntryMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
+  keySchema: Schema.String,
 })
 const ForeignMessage = defineMessageUnion({ ClickedForeignButton: {} })
-const ConnectionViewsForeign = define('ConnectionViewsForeign', {
-  Model,
-  Message: ForeignMessage,
-})
-const ConnectionViewsForeignComposition =
-  ConnectionViewsForeign.makeComposition()
+
+const ConnectionViewsForeignComposition = makeDefinition(
+  'ConnectionViewsForeign',
+  {
+    Model,
+    Message: ForeignMessage,
+  },
+).makeComposition()
 const foreignView = ConnectionViewsForeignComposition.makeView((model, h) =>
   h.button(
     [h.OnClick(ForeignMessage.ClickedForeignButton())],
@@ -89,16 +81,15 @@ const ActiveParent = Schema.TaggedStruct('Active', { child: Model })
 const InactiveParent = Schema.TaggedStruct('Inactive', {})
 const TaggedParentModel = Schema.Union([ActiveParent, InactiveParent])
 type TaggedParentModel = typeof TaggedParentModel.Type
-const TaggedParent = define('ConnectionViewsTaggedParent', {
+const TaggedParent = makeDefinition('ConnectionViewsTaggedParent', {
   Model: TaggedParentModel,
-  Message: SingleParentMessage,
+  Message: Schema.Never,
 })
 const TaggedBinding = TaggedParent.bindChild(block, {
   read: model =>
     model._tag === 'Active' ? Option.some(model.child) : Option.none(),
   write: (model, nextChild) =>
     model._tag === 'Active' ? ActiveParent.make({ child: nextChild }) : model,
-  parentMessage: SingleParentMessage.GotChildMessage,
 })
 
 it('retains default ViewInputs and checks alternate static and keyed Messages', () => {
@@ -170,12 +161,15 @@ it('supports explicit tagged-union readers and writers', () => {
   const inactive = InactiveParent.make({})
 
   const TaggedComposition = TaggedParent.makeComposition({
-    childBindings: [TaggedBinding],
+    bindings: [TaggedBinding],
   })
   const update = TaggedComposition.makeUpdate()
-  const message = SingleParentMessage.GotChildMessage({
+  const message = {
+    _tag: 'GotConnectionViewsChildMessage',
+    placement: 'ConnectionViewsChild',
+    generation: 0,
     message: Message.ClickedIncrement(),
-  })
+  } satisfies Parameters<typeof update>[1]
 
   expect(update(active, message).model).toEqual(
     ActiveParent.make({ child: Model.make({ count: 2 }) }),
@@ -189,8 +183,6 @@ it('supports explicit tagged-union readers and writers', () => {
         model._tag === 'Active' ? Option.some(model.child) : Option.none(),
       // @ts-expect-error A tagged Binding writer must return the parent Model union.
       write: (_model: TaggedParentModel, nextChild) => nextChild,
-      // @ts-expect-error The invalid tagged writer prevents accessor overload selection.
-      parentMessage: SingleParentMessage.GotChildMessage,
     })
   }
 })
@@ -201,12 +193,15 @@ it('lowers required-field shorthand through the shared pure Binding adapter', ()
     entries: [],
   })
   const ParentComposition = ConnectionViewsParent.makeComposition({
-    childBindings: [ConnectedBinding, KeyedBinding],
+    bindings: [ConnectedBinding, KeyedBinding],
   })
   const update = ParentComposition.makeUpdate()
-  const message = ParentMessage.GotChildMessage({
+  const message = {
+    _tag: 'GotChildMessage',
+    placement: 'child',
+    generation: 0,
     message: Message.ClickedIncrement(),
-  })
+  } satisfies Parameters<typeof update>[1]
   const result = update(initial, message)
 
   expect(result.model.child.count).toBe(1)
@@ -218,24 +213,27 @@ it('lowers required-field shorthand through the shared pure Binding adapter', ()
   expectTypeOf(result.model).toEqualTypeOf<ParentModel>()
 
   const optionalModel = Schema.Struct({ maybeChild: Schema.Option(Model) })
-  const OptionalParent = define('ConnectionViewsOptionalParent', {
+  const OptionalParent = makeDefinition('ConnectionViewsOptionalParent', {
     Model: optionalModel,
-    Message: SingleParentMessage,
+    Message: Schema.Never,
   })
   const OptionalBinding = OptionalParent.bindChild(block, {
     read: model => model.maybeChild,
     write: (model, nextChild) =>
       modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
-    parentMessage: SingleParentMessage.GotChildMessage,
   })
   const OptionalComposition = OptionalParent.makeComposition({
-    childBindings: [OptionalBinding],
+    bindings: [OptionalBinding],
   })
   const optionalUpdate = OptionalComposition.makeUpdate()
 
   expect(
-    optionalUpdate(optionalModel.make({ maybeChild: Option.none() }), message)
-      .model.maybeChild,
+    optionalUpdate(optionalModel.make({ maybeChild: Option.none() }), {
+      _tag: 'GotConnectionViewsChildMessage',
+      placement: 'ConnectionViewsChild',
+      generation: 0,
+      message: Message.ClickedIncrement(),
+    }).model.maybeChild,
   ).toEqual(Option.none())
 
   const widerModel = Schema.Struct({
@@ -250,55 +248,44 @@ it('lowers required-field shorthand through the shared pure Binding adapter', ()
       label: Schema.optionalKey(Schema.String),
     }),
   })
-  const WiderParent = define('ConnectionViewsWiderParent', {
+  const WiderParent = makeDefinition('ConnectionViewsWiderParent', {
     Model: widerModel,
-    Message: SingleParentMessage,
+    Message: Schema.Never,
   })
-  const NarrowerParent = define('ConnectionViewsNarrowerParent', {
+  const NarrowerParent = makeDefinition('ConnectionViewsNarrowerParent', {
     Model: narrowerModel,
-    Message: SingleParentMessage,
+    Message: Schema.Never,
   })
-  const ExtendedParent = define('ConnectionViewsExtendedParent', {
+  const ExtendedParent = makeDefinition('ConnectionViewsExtendedParent', {
     Model: extendedModel,
-    Message: SingleParentMessage,
+    Message: Schema.Never,
   })
 
   if (false) {
     WiderParent.bindChild(block, {
       // @ts-expect-error A wider field cannot be replaced by this child's Model.
       field: 'child',
-      // @ts-expect-error A wider field cannot be replaced by this child's Model.
-      parentMessage: SingleParentMessage.GotChildMessage,
     })
     NarrowerParent.bindChild(block, {
       // @ts-expect-error A narrower field cannot accept every child Model update.
       field: 'child',
-      // @ts-expect-error A narrower field cannot accept every child Model update.
-      parentMessage: SingleParentMessage.GotChildMessage,
     })
     ExtendedParent.bindChild(block, {
       // @ts-expect-error The Binding cannot discard additional optional child fields.
       field: 'child',
-      // @ts-expect-error The Binding cannot discard additional optional child fields.
-      parentMessage: SingleParentMessage.GotChildMessage,
     })
     OptionalParent.bindChild(block, {
       field: 'maybeChild',
-      parentMessage: SingleParentMessage.GotChildMessage,
     })
     ConnectionViewsParent.bindChild(block, {
       // @ts-expect-error Required-field shorthand rejects undeclared fields.
       field: 'missing',
-      // @ts-expect-error Required-field shorthand rejects undeclared fields.
-      parentMessage: ParentMessage.GotChildMessage,
     })
     ConnectionViewsParent.bindChild(block, {
       // @ts-expect-error Required-field shorthand cannot mix explicit readers.
       field: 'child',
       // @ts-expect-error The direct shorthand cannot mix explicit readers.
       read: (model: ParentModel) => Option.some(model.child),
-      // @ts-expect-error The invalid explicit reader prevents direct overload selection.
-      parentMessage: ParentMessage.GotChildMessage,
     })
   }
 })

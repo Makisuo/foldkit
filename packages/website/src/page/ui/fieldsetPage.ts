@@ -1,14 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import { UiComposition } from './composition'
+import { FieldsetPageContent } from './content'
 import * as Fieldset from './demo/fieldset'
-import raw from './fieldsetPage.md'
 
-const { tableOfContents, view: renderPage } = slotDocPage<'basic' | 'disabled'>(
-  raw,
-  'ui/fieldset',
-)
+const { tableOfContents, view: renderPage } = FieldsetPageContent
 
 export { tableOfContents }
 

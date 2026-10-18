@@ -173,12 +173,12 @@ export type KeyedBindingBaseConfig<
   Key extends InstanceKey,
   Placement extends string,
 > = Readonly<{
-  /** Identifies this Binding within the parent's composition graph. A general
-   * keyed config defaults to the child Block ID; field array shorthands default
-   * to their `field`. It does not identify a DOM position or one dynamic child
-   * occurrence. Every occurrence shares the placement, and `key` distinguishes
-   * occurrences under it. Supply an override only to avoid a sibling default
-   * collision or preserve a deliberate stable identity. */
+  /** Identifies this Binding within the parent's composition graph. Keyed
+   * configs default to the child Block ID. It does not identify a DOM position
+   * or one dynamic child occurrence. Every occurrence shares the placement,
+   * and `key` distinguishes occurrences under it. Supply an override only to
+   * avoid a sibling default collision or preserve a deliberate stable
+   * identity. */
   placement?: Placement
   /** Enumerates the current collection from the parent Model. The returned keys
    * determine which child occurrences have active Subscription,
@@ -277,6 +277,7 @@ type KeyedEmbed<
   ParentMessage,
   Placement extends string,
   Key,
+  GeneratedSchema extends Schema.Top = never,
 > = {
   <View extends AnyBlockView>(
     config: Omit<BoundBlockFields<View, ParentMessage>, 'toParentMessage'> &
@@ -301,7 +302,10 @@ type KeyedEmbed<
           : never
         : never),
   ): BoundBlockConfig<
-    BoundBlockView<View, BindingRequirement<Placement, BlockValue>>,
+    BoundBlockView<
+      View,
+      BindingRequirement<Placement, BlockValue, GeneratedSchema>
+    >,
     ParentMessage
   >
 } & (BlockValue extends Readonly<{
@@ -315,7 +319,10 @@ type KeyedEmbed<
         > &
           Readonly<{ key: Key; view?: View }>,
       ): BoundBlockConfig<
-        BoundBlockView<View, BindingRequirement<Placement, BlockValue>>,
+        BoundBlockView<
+          View,
+          BindingRequirement<Placement, BlockValue, GeneratedSchema>
+        >,
         ParentMessage
       >
     }
@@ -328,13 +335,15 @@ type KeyedBoundExposedOperations<
   Key extends InstanceKey,
   Placement extends string,
   Policy,
+  GeneratedSchema extends Schema.Top = never,
 > = Readonly<{
   [Name in keyof BlockValue['operations']]: BoundExposedOperations<
     BlockValue,
     ParentModel,
     ParentMessage,
     Placement,
-    Policy
+    Policy,
+    GeneratedSchema
   >[Name] extends (...args: infer Args) => infer Output
     ? (key: Key, ...args: Args) => Output
     : never
@@ -356,6 +365,7 @@ export type KeyedBinding<
   OutgoingMessage = ParentMessage,
   IncomingMessage = never,
   InitializerMessage = ContractMessage,
+  GeneratedSchema extends Schema.Top = never,
 > = WithoutBindingEvidence<
   Omit<
     Binding<BlockValue, ParentModel, ParentMessage, Placement, Policy>,
@@ -385,7 +395,7 @@ export type KeyedBinding<
     >,
     true
   > &
-  BindingDeliveryEvidence<OutgoingMessage, IncomingMessage> &
+  BindingDeliveryEvidence<OutgoingMessage, IncomingMessage, GeneratedSchema> &
   Readonly<{
     /** The stable identity of this child Binding in the parent Block's
      * composition graph. It is independent of DOM position. Every keyed
@@ -403,7 +413,8 @@ export type KeyedBinding<
       Placement,
       Key,
       true,
-      InitializerMessage
+      InitializerMessage,
+      GeneratedSchema
     >
     /** Produces an opaque connected result for the child update at `key`,
      * `writeAt`, lifted Commands, and OutMessage policy. Its Model input requires
@@ -412,7 +423,7 @@ export type KeyedBinding<
     fold: (
       model: Update.GraphInput<
         ParentModel,
-        BindingRequirement<Placement, BlockValue>
+        BindingRequirement<Placement, BlockValue, GeneratedSchema>
       >,
       key: Key,
       ...args: Parameters<
@@ -433,11 +444,17 @@ export type KeyedBinding<
       Policy,
       Placement,
       BlockId<BlockValue>,
-      BindingRequirement<Placement, BlockValue>
+      BindingRequirement<Placement, BlockValue, GeneratedSchema>
     >
     /** Builds the `h.block` config for one keyed occurrence. The config carries
      * the key, placement identity, Message mapping, and Mount evidence. */
-    embedView: KeyedEmbed<BlockValue, ParentMessage, Placement, Key>
+    embedView: KeyedEmbed<
+      BlockValue,
+      ParentMessage,
+      Placement,
+      Key,
+      GeneratedSchema
+    >
   }> &
   KeyedBoundExposedOperations<
     BlockValue,
@@ -445,7 +462,8 @@ export type KeyedBinding<
     ParentMessage,
     Key,
     Placement,
-    Policy
+    Policy,
+    GeneratedSchema
   > &
   ([ContractModel] extends [never]
     ? unknown
@@ -607,7 +625,8 @@ type RuntimeKeyedBindingConfig = Readonly<{
   subscriptions?: Readonly<{ when?: RuntimeKeyedSubscriptionWhen }>
   outMessage?: RuntimeKeyedOutMessagePolicy
   validateChildKey?: (key: InstanceKey, childModel: any) => void
-  outgoingParentMessage?: Schema.Top & ((...args: ReadonlyArray<any>) => any)
+  validateSelectedKey?: (key: unknown) => void
+  outgoingParentMessage?: Schema.Top
   fromParentMessage?: RuntimeFromParentMessage
 }>
 
@@ -653,6 +672,16 @@ export const bindEach = <const BlockValue extends BindableBlock>(
     toParentMessage: trackedMapper.toParentMessage,
   }
   const placement = config.placement ?? block.owner.id
+  const readAll = (model: any): ReadonlyArray<any> => {
+    const items = config.readAll(model)
+    if (!globalThis.Array.isArray(items)) {
+      throw new Error(
+        `[foldkit] Keyed child Binding "${placement}" readAll must return an array.`,
+      )
+    }
+
+    return items
+  }
   const isChildModel = Reflect.apply(Schema.is, undefined, [block.Model])
   const equivalentChildModel = Reflect.apply(Schema.toEquivalence, undefined, [
     block.Model,
@@ -660,9 +689,14 @@ export const bindEach = <const BlockValue extends BindableBlock>(
   assertSegment(placement)
   assertValidBindingOperationNames(block.operations)
   const allowedIdentities = hostIdentitiesOf(block)
+  const keyOf = (item: any): InstanceKey => {
+    const key = config.key(item)
+    config.validateSelectedKey?.(key)
+    return key
+  }
   const readAt = (model: any, key: InstanceKey): Option.Option<any> =>
     Option.map(
-      Array.findFirst(config.readAll(model), item => config.key(item) === key),
+      Array.findFirst(readAll(model), item => keyOf(item) === key),
       config.read,
     )
   const scopeReturn = (
@@ -726,7 +760,7 @@ export const bindEach = <const BlockValue extends BindableBlock>(
   ): RuntimeKeyedChildFold => ({
     update: (childModel, operation) =>
       scopeReturn(
-        withOperationGraph(block.childBindings, () =>
+        withOperationGraph(block.bindings, () =>
           producer(childModel, ...operation.args),
         ),
         operation.key,
@@ -802,7 +836,7 @@ export const bindEach = <const BlockValue extends BindableBlock>(
   )
   const initialize = (key: InstanceKey, ...args: ReadonlyArray<any>) => {
     assertRegisteredInitialization(binding, placement)
-    const initialChild = withOperationGraph(block.childBindings, () =>
+    const initialChild = withOperationGraph(block.bindings, () =>
       block.init(...args),
     )
     config.validateChildKey?.(key, initialChild.model)
@@ -829,8 +863,8 @@ export const bindEach = <const BlockValue extends BindableBlock>(
         let matchingKeyCount = 0
         let selectedChild: unknown
         try {
-          for (const item of config.readAll(model)) {
-            if (config.key(item) === key) {
+          for (const item of readAll(model)) {
+            if (keyOf(item) === key) {
               matchingKeyCount += 1
               selectedChild = config.read(item)
             }
@@ -877,7 +911,7 @@ export const bindEach = <const BlockValue extends BindableBlock>(
           identity: {
             owner: block.owner,
             mounts: block[LocalMountsTypeId],
-            childBindings: block.childBindings,
+            bindings: block.bindings,
           },
         },
       } as unknown as BoundBlockConfig<View, any>
@@ -889,8 +923,8 @@ export const bindEach = <const BlockValue extends BindableBlock>(
     block,
     initialize: (key, args) => initialize(requireKey(key), ...args),
     select: model =>
-      config.readAll(model).map(item => ({
-        key: config.key(item),
+      readAll(model).map(item => ({
+        key: keyOf(item),
         model: config.read(item),
       })),
     toParentMessage: (key, message) =>

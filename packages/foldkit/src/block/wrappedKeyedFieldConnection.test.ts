@@ -18,7 +18,7 @@ import type {
 } from '../runtime/slowPhase.js'
 import { modifyFields } from '../struct/index.js'
 import { inspectBinding } from './binding.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 
 const CounterModel = Schema.Struct({ count: Schema.Number })
 const StoredCounterModel = Schema.Struct({ count: Schema.Number })
@@ -27,7 +27,7 @@ const CounterMessage = defineMessageUnion({
   UpdatedCount: { count: Schema.Number },
   CompletedFinishInitialization: { count: Schema.Number },
 })
-const Counter = define('WrappedKeyedFieldCounter', {
+const Counter = makeDefinition('WrappedKeyedFieldCounter', {
   Model: CounterModel,
   Message: CounterMessage,
 })
@@ -43,7 +43,7 @@ const setCount = Counter.step((model, count: number) => ({
   model: modifyFields(model, { count: () => count }),
 }))
 const CounterComposition = Counter.makeComposition()
-const counterBlock = CounterComposition.makeBlock({
+const counterBlock = CounterComposition.assembleBlock({
   init: CounterComposition.makeInit((count: number) => ({
     model: CounterModel.make({ count }),
     commands: [FinishInitialization({ count })],
@@ -71,12 +71,12 @@ const CounterEntry = Schema.Struct({
 const TextMessage = defineMessageUnion({
   ReplacedText: { value: Schema.String },
 })
-const Text = define('WrappedKeyedFieldText', {
+
+const TextComposition = makeDefinition('WrappedKeyedFieldText', {
   Model: Schema.String,
   Message: TextMessage,
-})
-const TextComposition = Text.makeComposition()
-const textBlock = TextComposition.makeBlock({
+}).makeComposition()
+const textBlock = TextComposition.assembleBlock({
   init: TextComposition.makeInit((value: string) => ({ model: value })),
   update: TextComposition.makeUpdate((_model, { value }) => ({ model: value })),
 })
@@ -91,11 +91,9 @@ const ParentModel = Schema.Struct({
 })
 type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
-  GotCounterMessage: { id: Schema.String, message: CounterMessage },
-  GotTextMessage: { id: Schema.String, message: TextMessage },
   RequestedSetCount: { id: Schema.String, count: Schema.Number },
 })
-const Parent = define('WrappedKeyedFieldParent', {
+const Parent = makeDefinition('WrappedKeyedFieldParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -103,40 +101,22 @@ const CountersBinding = Parent.bindChild(counterBlock, {
   field: 'counters',
   key: 'id',
   childField: 'counter',
-  toParentMessage: (id, message) =>
-    ParentMessage.GotCounterMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotCounterMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
 })
 const AlternateCountersBinding = Parent.bindChild(counterBlock, {
   field: 'counters',
   key: 'id',
   childField: 'counter',
   placement: 'alternateCounters',
-  toParentMessage: (id, message) =>
-    ParentMessage.GotCounterMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotCounterMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
 })
 const TextEntriesBinding = Parent.bindChild(textBlock, {
   field: 'textEntries',
   key: 'id',
   childField: 'text',
-  toParentMessage: (id, message) =>
-    ParentMessage.GotTextMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotTextMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
 })
 const ParentComposition = Parent.makeComposition({
-  childBindings: [CountersBinding, TextEntriesBinding],
+  bindings: [CountersBinding, TextEntriesBinding],
 })
-const ParentBlock = ParentComposition.makeBlock({
+const ParentBlock = ParentComposition.assembleBlock({
   init: ParentComposition.makeInit(() => ({
     model: ParentModel.make({ counters: [], textEntries: [] }),
   })),
@@ -177,13 +157,13 @@ const initial = ParentModel.make({
 it('updates only the child field of the targeted wrapper', () => {
   const previousFirst = Option.getOrThrow(Array.get(initial.counters, 0))
   const previousSecond = Option.getOrThrow(Array.get(initial.counters, 1))
-  const result = ParentBlock.update(
-    initial,
-    ParentMessage.GotCounterMessage({
-      id: 'first',
-      message: CounterMessage.UpdatedCount({ count: 7 }),
-    }),
-  )
+  const result = ParentBlock.update(initial, {
+    _tag: 'GotWrappedKeyedFieldCounterMessage',
+    placement: 'WrappedKeyedFieldCounter',
+    generation: 0,
+    key: 'first',
+    message: CounterMessage.UpdatedCount({ count: 7 }),
+  })
   const nextFirst = Option.getOrThrow(Array.get(result.model.counters, 0))
   const nextSecond = Option.getOrThrow(Array.get(result.model.counters, 1))
 
@@ -206,13 +186,13 @@ it('updates only the child field of the targeted wrapper', () => {
 
 it('leaves the exact parent unchanged when a wrapper key is absent', () => {
   expect(
-    ParentBlock.update(
-      initial,
-      ParentMessage.GotCounterMessage({
-        id: 'missing',
-        message: CounterMessage.UpdatedCount({ count: 9 }),
-      }),
-    ).model,
+    ParentBlock.update(initial, {
+      _tag: 'GotWrappedKeyedFieldCounterMessage',
+      placement: 'WrappedKeyedFieldCounter',
+      generation: 0,
+      key: 'missing',
+      message: CounterMessage.UpdatedCount({ count: 9 }),
+    }).model,
   ).toBe(initial)
   expect(ParentBlock.operations.setCount(initial, 'missing', 9).model).toBe(
     initial,
@@ -220,11 +200,13 @@ it('leaves the exact parent unchanged when a wrapper key is absent', () => {
 })
 
 it('keeps literal default and overridden placements', () => {
-  expectTypeOf(CountersBinding.placement).toEqualTypeOf<'counters'>()
+  expectTypeOf(
+    CountersBinding.placement,
+  ).toEqualTypeOf<'WrappedKeyedFieldCounter'>()
   expectTypeOf(
     AlternateCountersBinding.placement,
   ).toEqualTypeOf<'alternateCounters'>()
-  expect(CountersBinding.placement).toBe('counters')
+  expect(CountersBinding.placement).toBe('WrappedKeyedFieldCounter')
   expect(AlternateCountersBinding.placement).toBe('alternateCounters')
 })
 
@@ -273,30 +255,33 @@ it('initializes the parent Model and lifts Commands with the wrapper key', async
       textEntries: [],
     }),
   )
-  expect(command.name).toBe('counters["created"]/FinishInitialization')
-  expect(completed).toEqual(
-    ParentMessage.GotCounterMessage({
-      id: 'created',
-      message: CounterMessage.CompletedFinishInitialization({ count: 4 }),
-    }),
+  expect(command.name).toBe(
+    'WrappedKeyedFieldCounter["created"]/FinishInitialization',
   )
+  expect(completed).toEqual({
+    _tag: 'GotWrappedKeyedFieldCounterMessage',
+    placement: 'WrappedKeyedFieldCounter',
+    generation: 0,
+    key: 'created',
+    message: CounterMessage.CompletedFinishInitialization({ count: 4 }),
+  })
 })
 
 it('accepts equivalent child Schemas and scalar child Models', () => {
-  const counterResult = ParentBlock.update(
-    initial,
-    ParentMessage.GotCounterMessage({
-      id: 'second',
-      message: CounterMessage.UpdatedCount({ count: 8 }),
-    }),
-  )
-  const textResult = ParentBlock.update(
-    initial,
-    ParentMessage.GotTextMessage({
-      id: 'text',
-      message: TextMessage.ReplacedText({ value: 'after' }),
-    }),
-  )
+  const counterResult = ParentBlock.update(initial, {
+    _tag: 'GotWrappedKeyedFieldCounterMessage',
+    placement: 'WrappedKeyedFieldCounter',
+    generation: 0,
+    key: 'second',
+    message: CounterMessage.UpdatedCount({ count: 8 }),
+  })
+  const textResult = ParentBlock.update(initial, {
+    _tag: 'GotWrappedKeyedFieldTextMessage',
+    placement: 'WrappedKeyedFieldText',
+    generation: 0,
+    key: 'text',
+    message: TextMessage.ReplacedText({ value: 'after' }),
+  })
   const nextText = Option.getOrThrow(Array.head(textResult.model.textEntries))
 
   expect(
@@ -354,7 +339,7 @@ const InvalidParentModel = Schema.Struct({
   missingChildEntries: Schema.Array(MissingChildEntry),
   wrongChildEntries: Schema.Array(WrongChildEntry),
 })
-const InvalidParent = define('WrappedKeyedFieldInvalidParent', {
+const InvalidParent = makeDefinition('WrappedKeyedFieldInvalidParent', {
   Model: InvalidParentModel,
   Message: ParentMessage,
 })
@@ -366,8 +351,6 @@ const invalidConfig = (
   field,
   key,
   childField,
-  toParentMessage: (_id: unknown, message: typeof CounterMessage.Type) =>
-    ParentMessage.GotCounterMessage({ id: 'invalid', message }),
 })
 const bindInvalid = (field: string, key?: string, childField?: string) =>
   Reflect.apply(InvalidParent.bindChild, undefined, [
@@ -377,7 +360,7 @@ const bindInvalid = (field: string, key?: string, childField?: string) =>
 
 it('rejects unsupported wrapper storage Schemas at runtime', () => {
   expect(() => bindInvalid('missingEntries')).toThrow(
-    'declared parent Struct Model field',
+    'requires a string or finite-number key Schema',
   )
   for (const field of [
     'opaqueEntries',
@@ -387,20 +370,20 @@ it('rejects unsupported wrapper storage Schemas at runtime', () => {
     'mapEntries',
   ]) {
     expect(() => bindInvalid(field)).toThrow(
-      /required Schema\.Array of declared Struct wrappers|unambiguous declared Struct wrapper fields/,
+      /required Schema\.Array of declared Struct wrappers|unambiguous declared Struct wrapper fields|requires a string or finite-number key Schema/,
     )
   }
 })
 
 it('rejects invalid wrapper key and child fields at runtime', () => {
   expect(() => bindInvalid('missingKeyEntries')).toThrow(
-    /declared (item|wrapper) key field/,
+    'requires a string or finite-number key Schema',
   )
   expect(() => bindInvalid('optionalKeyEntries')).toThrow(
     'key field must be required',
   )
   expect(() => bindInvalid('booleanKeyEntries')).toThrow(
-    /key field Schema must decode to a string or number/,
+    'requires a string or finite-number key Schema',
   )
   expect(() => bindInvalid('missingChildEntries')).toThrow(
     'declared childField',
@@ -416,7 +399,7 @@ it('rejects invalid wrapper key and child fields at runtime', () => {
   const SameFieldParentModel = Schema.Struct({
     values: Schema.Array(SameFieldEntry),
   })
-  const SameFieldParent = define('WrappedKeyedFieldSameFieldParent', {
+  const SameFieldParent = makeDefinition('WrappedKeyedFieldSameFieldParent', {
     Model: SameFieldParentModel,
     Message: ParentMessage,
   })
@@ -428,8 +411,6 @@ it('rejects invalid wrapper key and child fields at runtime', () => {
         field: 'values',
         key: 'value',
         childField: 'value',
-        toParentMessage: (id: string, message: typeof TextMessage.Type) =>
-          ParentMessage.GotTextMessage({ id, message }),
       },
     ]),
   ).toThrow('key and childField must be distinct')
@@ -451,7 +432,6 @@ it('rejects Schema and custom adapter conflicts at runtime', () => {
     'write',
     'writeAt',
     'presentWhen',
-    'parentMessage',
   ]) {
     expect(() =>
       Reflect.apply(Parent.bindChild, undefined, [

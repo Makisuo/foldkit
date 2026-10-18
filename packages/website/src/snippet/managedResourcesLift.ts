@@ -9,16 +9,15 @@ import * as VideoCall from './videoCall'
 
 const SIGNALING_URL = 'wss://example.com/call/signaling'
 
-const CallDefinition = Block.define('Call', { Model, Message })
+const CallDefinition = Block.makeDefinition('Call', { Model, Message })
 const SignalingSocket = CallDefinition.resource<WebSocket>()('SignalingSocket')
 
-const VideoCallBinding = CallDefinition.bindChild(VideoCall.block, {
+const VideoCallBinding = CallDefinition.bindChild(VideoCall.VideoCallBlock, {
   field: 'videoCall',
-  parentMessage: Message.GotVideoCallMessage,
 })
 
 const CallComposition = CallDefinition.makeComposition({
-  childBindings: [VideoCallBinding],
+  bindings: [VideoCallBinding],
 })
 
 export const managedResources = CallDefinition.managedResources(entry => ({
@@ -38,7 +37,7 @@ export const managedResources = CallDefinition.managedResources(entry => ({
   }),
 }))
 
-export const block = CallComposition.makeBlock({
+export const CallBlock = CallComposition.assembleBlock({
   init,
   update,
   managedResources,

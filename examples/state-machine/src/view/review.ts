@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
 import { Button, Checkbox, Input } from '@foldkit/ui'
 
@@ -18,7 +18,7 @@ import {
 
 export const reviewView = (
   state: typeof CheckoutState.Review.Type,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ): Html => {
   const isReadyToPlace = isReviewReady(state)
   const pricing = orderPricing(
@@ -319,3 +319,4 @@ export const reviewView = (
     ],
   )
 }
+import type { ApplicationViewBuilder } from '../composition'

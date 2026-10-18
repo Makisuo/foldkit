@@ -11,23 +11,21 @@ import type { FileDropAttributes as FileDropFileDropAttributes } from '@foldkit/
 
 // Add the FileDrop Block to your Model, plus a list of accepted files:
 const Model = Schema.Struct({
-  uploader: FileDrop.Model,
+  uploader: FileDrop.FileDropBlock.Model,
   uploadedFiles: Schema.Array(File.File),
   // ...your other fields
 })
 type Model = typeof Model.Type
 
-// Embed FileDrop's Message in your parent Message:
-const Message = defineMessageUnion({
-  GotFileDropMessage: { message: FileDrop.Message },
-})
+// This excerpt has no parent-owned facts. The Composition derives delivery.
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 // At module scope, fold the OutMessage FileDrop emits when files arrive (via
 // drop or input change) into your own Model. Each arm returns an Update.Step
 // over the parent Model, which already has the next FileDrop Model written
 // back:
-const foldFileDropOutMessage = FileDrop.OutMessage.match<
+const foldFileDropOutMessage = FileDrop.FileDropBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   ReceivedFiles:
@@ -39,26 +37,28 @@ const foldFileDropOutMessage = FileDrop.OutMessage.match<
     }),
   // Fires when something is dropped but no files came through (e.g.
   // a drag of text or a URL). Ignore, or show a hint to the user.
-  RejectedNonFiles: () => model => ({ model }),
+  RejectedNonFiles: () => FileDropExampleDefinition.stepNoop(),
 })
 
-// The Binding wires the completed child Block into the parent: it runs FileDrop.update,
-// writes the next FileDrop Model back, maps the Block's Commands into your
-// Message type, and hands any OutMessage to the OutMessage fold.
-const FileDropExampleDefinition = Block.define('FileDropExample', {
+// The Binding wires the completed child Block into the parent: it runs FileDrop.FileDropBlock.update,
+// writes the next FileDrop Model back, routes generated delivery, and hands
+// any OutMessage to the OutMessage fold.
+const FileDropExampleDefinition = Block.makeDefinition('FileDropExample', {
   Model,
   Message,
 })
 
-const FileDropBinding = FileDropExampleDefinition.bindChild(FileDrop.block, {
-  field: 'uploader',
-  parentMessage: Message.GotFileDropMessage,
-  init: { startupToArgs: () => Tuple.make({ id: 'uploader' }) },
-  outMessage: { fold: foldFileDropOutMessage },
-})
+const FileDropBinding = FileDropExampleDefinition.bindChild(
+  FileDrop.FileDropBlock,
+  {
+    field: 'uploader',
+    init: { contextToArgs: () => Tuple.make({ id: 'uploader' }) },
+    outMessage: { fold: foldFileDropOutMessage },
+  },
+)
 
 const FileDropExampleComposition = FileDropExampleDefinition.makeComposition({
-  childBindings: [FileDropBinding],
+  bindings: [FileDropBinding],
 })
 
 // Initialize the fields the parent owns. The Composition initializes the

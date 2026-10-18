@@ -10,4 +10,4 @@ export const ToastPayload = Schema.Struct({
 })
 export type ToastPayload = typeof ToastPayload.Type
 
-export const Toast = ToastComponent.make(ToastPayload)
+export const ToastBlock = ToastComponent.make(ToastPayload)

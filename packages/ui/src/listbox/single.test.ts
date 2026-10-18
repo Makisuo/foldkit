@@ -1,11 +1,11 @@
-import { Option } from 'effect'
+import { Option, Schema } from 'effect'
 import { Scene, Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import * as Animation from '../animation/index.js'
+import * as Animation from '../animation/block.js'
 import {
   AnchorListbox,
   ClickListboxItem,
@@ -24,10 +24,20 @@ import {
   buttonId,
   makeView,
 } from './shared.js'
-import { init, update } from './single.js'
+import { create, init, update } from './single.js'
 import type { Model, ViewInputs } from './single.js'
 
 const render = makeView<Model>({ ariaMultiSelectable: false })<string, string>()
+const TestListbox = create()
+const gotAnimationMessage = ({
+  message,
+}: Readonly<{ message: typeof Animation.AnimationBlock.Message.Type }>) =>
+  Schema.decodeSync(TestListbox.Message)({
+    _tag: 'GotAnimationMessage',
+    placement: 'animation',
+    generation: 0,
+    message,
+  })
 const view = (
   model: Model,
   { maybeSelectedValue, ...baseInputs }: ViewInputs<string>,
@@ -60,7 +70,7 @@ const STALE_CLEAR_SEARCH_VERSION = 9999
 
 const STALE_ANIMATION_GENERATION = -1
 
-const givenClosed = Story.given(init({ id: 'test' }))
+const givenClosed = Story.given(init({ id: 'test' }).model)
 
 const givenOpen = Story.steps(
   givenClosed,
@@ -71,7 +81,9 @@ const givenOpen = Story.steps(
   ),
 )
 
-const givenClosedAnimated = Story.given(init({ id: 'test', isAnimated: true }))
+const givenClosedAnimated = Story.given(
+  init({ id: 'test', isAnimated: true }).model,
+)
 
 const givenOpenAnimated = Story.steps(
   givenClosedAnimated,
@@ -95,13 +107,13 @@ const givenOpenAnimated = Story.steps(
 describe('Listbox', () => {
   describe('init', () => {
     it('defaults to closed with no active item', () => {
-      expect(init({ id: 'test' })).toStrictEqual({
+      expect(init({ id: 'test' }).model).toStrictEqual({
         id: 'test',
         isOpen: false,
         isAnimated: false,
         isModal: false,
         orientation: 'Vertical',
-        animation: Animation.init({ id: 'test-listbox' }),
+        animation: Animation.init({ id: 'test-listbox' }).model,
         maybeActiveItemIndex: Option.none(),
         activationTrigger: 'Keyboard',
         searchQuery: '',
@@ -112,28 +124,28 @@ describe('Listbox', () => {
     })
 
     it('accepts isAnimated option', () => {
-      const model = init({ id: 'test', isAnimated: true })
+      const model = init({ id: 'test', isAnimated: true }).model
       expect(model.isAnimated).toBe(true)
       expect(model.animation.transitionState).toBe('Idle')
     })
 
     it('defaults isModal to false', () => {
-      const model = init({ id: 'test' })
+      const model = init({ id: 'test' }).model
       expect(model.isModal).toBe(false)
     })
 
     it('accepts isModal option', () => {
-      const model = init({ id: 'test', isModal: true })
+      const model = init({ id: 'test', isModal: true }).model
       expect(model.isModal).toBe(true)
     })
 
     it('defaults orientation to Vertical', () => {
-      const model = init({ id: 'test' })
+      const model = init({ id: 'test' }).model
       expect(model.orientation).toBe('Vertical')
     })
 
     it('accepts orientation option', () => {
-      const model = init({ id: 'test', orientation: 'Horizontal' })
+      const model = init({ id: 'test', orientation: 'Horizontal' }).model
       expect(model.orientation).toBe('Horizontal')
     })
   })
@@ -162,7 +174,7 @@ describe('Listbox', () => {
         Story.story(
           update,
           Story.given(
-            modifyFields(init({ id: 'test' }), {
+            modifyFields(init({ id: 'test' }).model, {
               searchQuery: () => 'stale',
               searchVersion: () => 1,
             }),
@@ -220,7 +232,7 @@ describe('Listbox', () => {
         Story.story(
           update,
           Story.given(
-            modifyFields(init({ id: 'test' }), {
+            modifyFields(init({ id: 'test' }).model, {
               maybeLastPointerPosition: () =>
                 Option.some({
                   screenX: 100,
@@ -1183,7 +1195,7 @@ describe('Listbox', () => {
             update,
             givenOpen,
             Story.message(
-              Message.GotAnimationMessage({
+              gotAnimationMessage({
                 message: Animation.Message.CompletedWaitForPaint({
                   generation: 0,
                 }),
@@ -1300,7 +1312,9 @@ describe('Listbox', () => {
   })
 
   describe('modal commands', () => {
-    const givenClosedModal = Story.given(init({ id: 'test', isModal: true }))
+    const givenClosedModal = Story.given(
+      init({ id: 'test', isModal: true }).model,
+    )
 
     const givenOpenModal = Story.steps(
       givenClosedModal,
@@ -1426,7 +1440,7 @@ describe('Listbox', () => {
   })
 
   describe('view', () => {
-    const closedModel = () => init({ id: 'test' })
+    const closedModel = () => init({ id: 'test' }).model
     const openModel = (): Model => {
       let model!: Model
       Story.story(

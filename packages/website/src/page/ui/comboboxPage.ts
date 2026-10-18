@@ -1,17 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
-import raw from './comboboxPage.md'
 import { UiComposition } from './composition'
+import { ComboboxPageContent } from './content'
 import * as Combobox from './demo/combobox'
 
-const { tableOfContents, view: renderPage } = slotDocPage<
-  | 'single-select'
-  | 'nullable'
-  | 'select-on-focus'
-  | 'locked-placement'
-  | 'multi'
->(raw, 'ui/combobox')
+const { tableOfContents, view: renderPage } = ComboboxPageContent
 
 export { tableOfContents }
 

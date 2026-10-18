@@ -1,16 +1,9 @@
 import { Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
 
-import {
-  ApplicationTabs,
-  FetchedPostDetail,
-  FetchedPosts,
-  FetchedStats,
-} from './model'
+import { FetchedPostDetail, FetchedPosts, FetchedStats } from './model'
 
 export const Message = defineMessageUnion({
-  GotTabsMessage: { message: ApplicationTabs.Message },
-
   ClickedPost: { postId: Schema.String },
   ClickedBackToPosts: {},
   ClickedInvalidatePosts: {},

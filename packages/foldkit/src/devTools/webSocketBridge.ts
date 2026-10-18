@@ -7,6 +7,7 @@ import {
   Match,
   Option,
   Order,
+  Result,
   Schema,
   Scope,
   SubscriptionRef,
@@ -55,7 +56,6 @@ import {
   INIT_INDEX,
   computeDiff,
   latestEntryIndex,
-  nextEntryIndex,
 } from './store.js'
 import {
   type PathResolution,
@@ -65,6 +65,15 @@ import {
 } from './summarize.js'
 
 type Hot = NonNullable<ImportMeta['hot']>
+
+/** @internal A decoded Message prepared for one exact runtime occurrence. */
+export type PreparedDispatch = Result.Result<
+  Effect.Effect<Result.Result<Option.Option<number>, string>>,
+  string
+>
+
+/** @internal Admits external input before it enters the runtime queue. */
+export type PrepareDispatch = (message: unknown) => PreparedDispatch
 
 const REQUEST_CHANNEL = 'foldkit:devTools:request'
 const RESPONSE_CHANNEL = 'foldkit:devTools:response'
@@ -102,9 +111,10 @@ const tryDeriveJsonSchemaDocument = (
  * this runtime from its connected set. A page that goes away for good takes
  * its socket with it, and the relay prunes on that close.
  *
- * `dispatch` delivers a Message to the runtime; the bridge
- * uses it to fulfill `RequestDispatchMessage` after decoding the payload
- * against a JSON-canonical derivation of `maybeMessageSchema` (via
+ * `prepareDispatch` admits a decoded Message for its current runtime
+ * occurrence and returns the queued execution whose receipt identifies the
+ * exact recorded history entry. The bridge decodes the payload against a
+ * JSON-canonical derivation of `maybeMessageSchema` (via
  * `Schema.toCodecJson`). The derivation reconstructs runtime values like
  * `Option`, `Date`, `Map`, and `Set` from their JSON-tagged shapes, so
  * application Message Schemas using stdlib types Just Work over dispatch
@@ -126,8 +136,8 @@ const tryDeriveJsonSchemaDocument = (
 export const startWebSocketBridge = (
   store: DevToolsStore,
   hot: Hot,
-  dispatch: (message: unknown) => Effect.Effect<void>,
   maybeMessageSchema: Option.Option<Schema.Codec<any, any>>,
+  prepareDispatch: PrepareDispatch,
 ): Effect.Effect<void, never, Scope.Scope> =>
   Effect.gen(function* () {
     const connectionId = generateConnectionId()
@@ -177,10 +187,10 @@ export const startWebSocketBridge = (
       Effect.gen(function* () {
         const response = yield* dispatchRequest(
           store,
-          dispatch,
           maybeDispatchSchema,
           maybeJsonSchemaDocument,
           request,
+          prepareDispatch,
         )
         sendResponse(id, response)
       })
@@ -393,10 +403,10 @@ const formatInvalidMessageReason = (error: unknown, message: unknown): string =>
  */
 export const dispatchRequest = (
   store: DevToolsStore,
-  dispatch: (message: unknown) => Effect.Effect<void>,
   maybeDispatchSchema: Option.Option<Schema.Codec<any, any>>,
   maybeJsonSchemaDocument: Option.Option<unknown>,
   request: Request,
+  prepareDispatch: PrepareDispatch,
 ): Effect.Effect<Response> =>
   Request.match<Effect.Effect<Response>>(request, {
     RequestGetModel: ({ maybePath, expand }) =>
@@ -623,21 +633,39 @@ export const dispatchRequest = (
       Option.match(maybeDispatchSchema, {
         onNone: () => Effect.succeed(missingMessageSchemaResponse),
         onSome: dispatchSchema =>
-          Effect.gen(function* () {
-            const decodedMessage =
-              yield* Schema.decodeUnknownEffect(dispatchSchema)(message)
-            const stateBefore = yield* SubscriptionRef.get(store.stateRef)
-            const acceptedAtIndex = nextEntryIndex(stateBefore)
-            yield* dispatch(decodedMessage)
-            return Response.ResponseDispatched({ acceptedAtIndex })
-          }).pipe(
-            Effect.catch(error =>
-              Effect.succeed(
-                Response.ResponseError({
-                  reason: `Invalid Message: ${formatInvalidMessageReason(error, message)}`,
-                }),
-              ),
-            ),
+          Schema.decodeUnknownEffect(dispatchSchema)(message).pipe(
+            Effect.matchEffect({
+              onFailure: error =>
+                Effect.succeed(
+                  Response.ResponseError({
+                    reason: `Invalid Message: ${formatInvalidMessageReason(error, message)}`,
+                  }),
+                ),
+              onSuccess: (decodedMessage): Effect.Effect<Response> => {
+                const prepared = prepareDispatch(decodedMessage)
+                if (Result.isFailure(prepared)) {
+                  return Effect.succeed(
+                    Response.ResponseError({ reason: prepared.failure }),
+                  )
+                }
+
+                return Effect.map(
+                  prepared.success,
+                  Result.match({
+                    onFailure: reason => Response.ResponseError({ reason }),
+                    onSuccess: Option.match({
+                      onNone: () =>
+                        Response.ResponseError({
+                          reason:
+                            'Message was not dispatched because its queued admission guard no longer identifies a current occurrence.',
+                        }),
+                      onSome: acceptedAtIndex =>
+                        Response.ResponseDispatched({ acceptedAtIndex }),
+                    }),
+                  }),
+                )
+              },
+            }),
           ),
       }),
 
@@ -666,13 +694,40 @@ export const dispatchRequest = (
                     ),
                 ),
             )
-            const stateBefore = yield* SubscriptionRef.get(store.stateRef)
-            const firstAcceptedIndex = nextEntryIndex(stateBefore)
-            yield* Effect.forEach(decodedMessages, dispatch)
-            const acceptedAtIndices = Array.map(
+            const preparedDispatches = yield* Effect.forEach(
               decodedMessages,
-              (_decodedMessage, offset) => firstAcceptedIndex + offset,
+              (
+                decodedMessage,
+                position,
+              ): Effect.Effect<
+                Effect.Effect<Result.Result<Option.Option<number>, string>>,
+                Error
+              > => {
+                const prepared = prepareDispatch(decodedMessage)
+                return Result.isFailure(prepared)
+                  ? Effect.fail(
+                      new Error(
+                        `Rejected Message at zero-based batch position ${position}: ${prepared.failure}\n\nNo Messages from the batch were dispatched.`,
+                      ),
+                    )
+                  : Effect.succeed(prepared.success)
+              },
             )
+            const acceptedAtIndices: Array<number> = []
+            for (const [position, dispatch] of preparedDispatches.entries()) {
+              const receipt = yield* dispatch
+              if (Result.isFailure(receipt)) {
+                const recordedPrefix = Array.isArrayEmpty(acceptedAtIndices)
+                  ? 'No Messages from the batch were recorded before the runtime terminated.'
+                  : `The batch had already recorded history indices ${acceptedAtIndices.join(', ')} before the runtime terminated.`
+                return Response.ResponseError({
+                  reason: `Runtime terminated while dispatching Message at zero-based batch position ${position}: ${receipt.failure}\n\n${recordedPrefix}`,
+                })
+              }
+              if (Option.isSome(receipt.success)) {
+                acceptedAtIndices.push(receipt.success.value)
+              }
+            }
             return Response.ResponseDispatchedBatch({ acceptedAtIndices })
           }).pipe(
             Effect.catch(error =>

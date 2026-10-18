@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 import {
   assertRegisteredBinding,
   withOperationGraph,
@@ -13,7 +13,7 @@ const ChildModel = Schema.Struct({ count: Schema.Number })
 const ChildMessage = defineMessageUnion({
   CompletedRead: { value: Schema.Number },
 })
-const Child = define('InitializedChild', {
+const Child = makeDefinition('InitializedChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
@@ -26,7 +26,7 @@ const Read = Child.command('Read', {
 })
 const initialized = vi.fn<(count: number) => void>()
 const ChildComposition = Child.makeComposition()
-const child = ChildComposition.makeBlock({
+const child = ChildComposition.assembleBlock({
   init: ChildComposition.makeInit((count: number) => {
     initialized(count)
 
@@ -40,13 +40,12 @@ const ParentModel = Schema.Struct({
   items: Schema.Array(Schema.Struct({ id: Schema.String, child: ChildModel })),
 })
 const ParentMessage = defineMessageUnion({
-  GotChildMessage: { id: Schema.String, message: ChildMessage },
   CompletedRecord: {},
   RequestedCreateChild: {},
   RequestedCreateKeyedChild: { label: Schema.String },
   RequestedCreateIncompleteKeyedChild: {},
 })
-const Parent = define('InitializationParent', {
+const Parent = makeDefinition('InitializationParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -60,15 +59,9 @@ const ItemsBinding = Parent.bindChild(child, {
   field: 'items',
   key: 'id',
   childField: 'child',
-  toParentMessage: (id, message) =>
-    ParentMessage.GotChildMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotChildMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
 })
 const ParentComposition = Parent.makeComposition({
-  childBindings: [ItemsBinding],
+  bindings: [ItemsBinding],
 })
 const init = ParentComposition.makeInit(() =>
   ItemsBinding.init({
@@ -79,7 +72,7 @@ const init = ParentComposition.makeInit(() =>
     commands: [Record()],
   }),
 )
-const parent = ParentComposition.makeBlock({
+const parent = ParentComposition.assembleBlock({
   init,
   update: ParentComposition.makeUpdate(model => ({ model })),
   EffectsLayer: Record.layer,
@@ -116,15 +109,9 @@ describe('connected initialization', () => {
       field: 'items',
       key: 'id',
       childField: 'child',
-      toParentMessage: (id, message) =>
-        ParentMessage.GotChildMessage({ id, message }),
-      fromParentMessage: {
-        parentMessage: ParentMessage.GotChildMessage,
-        args: (_model, { id, message }) => Option.some([id, message]),
-      },
     })
     const ForeignComposition = Parent.makeComposition({
-      childBindings: [ForeignItemsBinding],
+      bindings: [ForeignItemsBinding],
     })
     const foreignInit = Reflect.apply(ForeignComposition.makeInit, undefined, [
       () => recipe,
@@ -150,10 +137,13 @@ describe('connected initialization', () => {
       items: [{ id: 'first', child: { count: 4 } }],
     })
     expect(messages).toEqual([
-      ParentMessage.GotChildMessage({
-        id: 'first',
+      {
+        _tag: 'GotInitializedChildMessage',
+        placement: 'InitializedChild',
+        generation: 0,
+        key: 'first',
         message: ChildMessage.CompletedRead({ value: 4 }),
-      }),
+      },
       ParentMessage.CompletedRecord(),
     ])
   })
@@ -202,7 +192,7 @@ describe('connected initialization', () => {
           modifyFields(model, { items: Array.append({ id: 'first', child }) }),
       }),
     )
-    const completed = ParentComposition.makeBlock({
+    const completed = ParentComposition.assembleBlock({
       init: () => ({ model: initialModel }),
       update: ParentComposition.makeUpdate((model, message) =>
         ParentMessage.match(message, {
@@ -304,20 +294,18 @@ const DirectModel = Schema.Struct({
   label: Schema.String,
 })
 const DirectMessage = defineMessageUnion({
-  GotChildMessage: { message: ChildMessage },
   RequestedCreateChild: { label: Schema.String },
   RequestedCreateIncompleteChild: {},
 })
-const Direct = define('DirectInitializationParent', {
+const Direct = makeDefinition('DirectInitializationParent', {
   Model: DirectModel,
   Message: DirectMessage,
 })
 const DirectBinding = Direct.bindChild(child, {
   field: 'child',
-  parentMessage: DirectMessage.GotChildMessage,
 })
 const DirectComposition = Direct.makeComposition({
-  childBindings: [DirectBinding],
+  bindings: [DirectBinding],
 })
 const createDirectChild = Direct.step((_model, label: string) =>
   DirectBinding.init({
@@ -336,7 +324,7 @@ const createIncompleteDirectChild = Direct.step(
       },
     ]),
 )
-const dynamicDirect = DirectComposition.makeBlock({
+const dynamicDirect = DirectComposition.assembleBlock({
   init: DirectComposition.makeInit(() => ({
     model: DirectModel.make({ child: Option.none(), label: 'initial' }),
   })),
@@ -363,7 +351,7 @@ describe('direct connected initialization', () => {
           DirectModel.make({ child: Option.some(child), label: 'parent' }),
       }),
     )
-    const direct = DirectComposition.makeBlock({
+    const direct = DirectComposition.assembleBlock({
       init: directInit,
       update: dynamicDirect.update,
       operations: {},
@@ -378,11 +366,12 @@ describe('direct connected initialization', () => {
       child: Option.some({ count: 5 }),
       label: 'parent',
     })
-    expect(message).toEqual(
-      DirectMessage.GotChildMessage({
-        message: ChildMessage.CompletedRead({ value: 5 }),
-      }),
-    )
+    expect(message).toEqual({
+      _tag: 'GotChildMessage',
+      placement: 'child',
+      generation: 0,
+      message: ChildMessage.CompletedRead({ value: 5 }),
+    })
   })
 
   it('rejects retaining absence instead of the initialized child', () => {
@@ -444,7 +433,7 @@ const CompleteKeyedModel = Schema.Struct({
   items: Schema.Array(Schema.Struct({ id: Schema.String, child: ChildModel })),
   label: Schema.String,
 })
-const CompleteKeyed = define('CompleteKeyedInitializationParent', {
+const CompleteKeyed = makeDefinition('CompleteKeyedInitializationParent', {
   Model: CompleteKeyedModel,
   Message: ParentMessage,
 })
@@ -452,15 +441,9 @@ const CompleteItemsBinding = CompleteKeyed.bindChild(child, {
   field: 'items',
   key: 'id',
   childField: 'child',
-  toParentMessage: (id, message) =>
-    ParentMessage.GotChildMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotChildMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
 })
 const CompleteKeyedComposition = CompleteKeyed.makeComposition({
-  childBindings: [CompleteItemsBinding],
+  bindings: [CompleteItemsBinding],
 })
 const createKeyedChild = CompleteKeyed.step((_model, label: string) =>
   CompleteItemsBinding.init({
@@ -484,7 +467,7 @@ const createIncompleteKeyedChild = CompleteKeyed.step(
       },
     ]),
 )
-const dynamicKeyed = CompleteKeyedComposition.makeBlock({
+const dynamicKeyed = CompleteKeyedComposition.assembleBlock({
   init: CompleteKeyedComposition.makeInit(() => ({
     model: CompleteKeyedModel.make({ items: [], label: 'initial' }),
   })),

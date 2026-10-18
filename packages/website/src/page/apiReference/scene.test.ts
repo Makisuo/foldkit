@@ -1,18 +1,16 @@
-import { Option, pipe } from 'effect'
+import { Option, Schema, pipe } from 'effect'
 import { Calendar } from 'foldkit'
 import { expect, given, role, scene } from 'foldkit/scene'
 import * as Url from 'foldkit/url'
 import { describe, test } from 'vitest'
 
+import { ApplicationComposition } from '../../composition'
 import { Deployment } from '../../deployment'
 import { init } from '../../init'
-import { Message } from '../../message'
 import { update } from '../../update'
 import { view } from '../../view/view'
-import { ApiModule, ApiType } from './domain'
+import { ApiData, ApiModule, ApiType } from './domain'
 import { Message as ApiReferenceMessage } from './message'
-import { ApiData } from './model'
-
 const seededData = ApiData.make({
   parsedApi: {
     modules: [
@@ -34,12 +32,10 @@ const seededData = ApiData.make({
   },
   highlights: {},
 })
-
 const url = pipe(
   Url.fromString('https://foldkit.dev/api-reference/command'),
   Option.getOrThrow,
 )
-
 describe('prerendered API Reference', () => {
   test('displays the seeded module during refresh and after full-load failure', () => {
     const initialization = init(
@@ -52,20 +48,20 @@ describe('prerendered API Reference', () => {
       },
       url,
     )
-
     scene(
       { update, view },
       given(initialization.model),
       expect(role('heading', { name: 'SeededCommand' })).toExist(),
     )
-
     const failedLoad = update(
       initialization.model,
-      Message.GotApiReferenceMessage({
+      Schema.decodeSync(ApplicationComposition.Message)({
+        _tag: 'GotApiReferenceMessage',
+        placement: 'apiReference',
+        generation: 0,
         message: ApiReferenceMessage.FailedLoadApiData({ error: 'Offline' }),
       }),
     )
-
     scene(
       { update, view },
       given(failedLoad.model),

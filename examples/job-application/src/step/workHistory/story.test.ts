@@ -4,13 +4,25 @@ import { Command, given, message, model, story } from 'foldkit/story'
 import { describe, expect, test } from 'vitest'
 
 import { GenerateWorkHistoryEntryId } from './command'
+import { EntriesBinding } from './composition'
 import { Message } from './definition'
-import * as Entry from './entry'
+import { WorkHistoryEntryBlock } from './entry'
 import { init } from './init'
 import { update } from './update'
 
 const today = Calendar.make(2026, 4, 16)
-const givenInitial = given(init(today, 'work-history-entry-1'))
+const givenInitial = given(init(today, 'work-history-entry-1').model)
+
+const entryMessage = (
+  entryId: string,
+  model: typeof WorkHistoryEntryBlock.Model.Type,
+  message: typeof WorkHistoryEntryBlock.Message.Type,
+) =>
+  EntriesBinding.embedView({
+    key: entryId,
+    slotId: entryId,
+    model,
+  }).toParentMessage(message)
 
 describe('workHistory', () => {
   test('ClickedAddEntry generates an id and appends an entry', () => {
@@ -36,24 +48,25 @@ describe('workHistory', () => {
       message(Message.FailedGenerateWorkHistoryEntryId()),
       Command.expectNone(),
       model(model => {
-        expect(model).toEqual(init(today, 'work-history-entry-1'))
+        expect(model).toEqual(init(today, 'work-history-entry-1').model)
       }),
     )
   })
 
   test('an entry OutMessage.Removed removes that entry', () => {
     const firstEntry = Option.getOrThrow(
-      Array.head(init(today, 'work-history-entry-1').entries),
+      Array.head(init(today, 'work-history-entry-1').model.entries),
     )
 
     story(
       update,
       givenInitial,
       message(
-        Message.GotEntryMessage({
-          entryId: firstEntry.id,
-          message: Entry.Message.ClickedRemoveSelf(),
-        }),
+        entryMessage(
+          firstEntry.id,
+          firstEntry,
+          WorkHistoryEntryBlock.Message.ClickedRemoveSelf(),
+        ),
       ),
       model(model => {
         expect(model.entries).toHaveLength(0)
@@ -61,19 +74,22 @@ describe('workHistory', () => {
     )
   })
 
-  test('GotEntryMessage folds a company update into the matching entry', () => {
+  test('a generated entry Message updates the matching entry', () => {
     const firstEntry = Option.getOrThrow(
-      Array.head(init(today, 'work-history-entry-1').entries),
+      Array.head(init(today, 'work-history-entry-1').model.entries),
     )
 
     story(
       update,
       givenInitial,
       message(
-        Message.GotEntryMessage({
-          entryId: firstEntry.id,
-          message: Entry.Message.UpdatedCompany({ value: 'Foldkit Inc.' }),
-        }),
+        entryMessage(
+          firstEntry.id,
+          firstEntry,
+          WorkHistoryEntryBlock.Message.UpdatedCompany({
+            value: 'Foldkit Inc.',
+          }),
+        ),
       ),
       model(model => {
         expect(

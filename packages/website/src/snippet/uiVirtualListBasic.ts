@@ -26,39 +26,41 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// Embed the VirtualList Message in your parent Message:
+// Declare only the parent-owned scrolling fact. The Composition derives
+// VirtualList delivery from the Binding.
 const Message = defineMessageUnion({
   ClickedScrollActivityListToMiddle: {},
-  GotActivityListMessage: { message: ActivityList.Message },
 })
 type Message = typeof Message.Type
 
-const ActivityListExampleDefinition = Block.define('ActivityListExample', {
-  Model,
-  Message,
-})
+const ActivityListExampleDefinition = Block.makeDefinition(
+  'ActivityListExample',
+  {
+    Model,
+    Message,
+  },
+)
 
 const foldActivityListOutMessage = ActivityList.OutMessage.match<
   Update.Step<Model, Message>
 >({
-  ObservedContainerScroll: () => model => ({ model }),
+  ObservedContainerScroll: () => ActivityListExampleDefinition.stepNoop(),
 })
 
 const ActivityListBinding = ActivityListExampleDefinition.bindChild(
   ActivityList,
   {
     field: 'activityList',
-    parentMessage: Message.GotActivityListMessage,
     outMessage: { fold: foldActivityListOutMessage },
     init: {
-      startupToArgs: () => Tuple.make({ id: 'activity-list', rowHeightPx: 56 }),
+      contextToArgs: () => Tuple.make({ id: 'activity-list', rowHeightPx: 56 }),
     },
   },
 )
 
 const ActivityListExampleComposition =
   ActivityListExampleDefinition.makeComposition({
-    childBindings: [ActivityListBinding],
+    bindings: [ActivityListBinding],
   })
 
 // In your init function, give the list a unique id and a row height in

@@ -11,15 +11,13 @@ import { buttonId as PopoverButtonId } from '@foldkit/ui/popover'
 
 // Add a field to your Model for the Popover Block:
 const Model = Schema.Struct({
-  popover: Popover.Model,
+  popover: Popover.PopoverBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
 
-// Embed the Popover Message in your parent Message:
-const Message = defineMessageUnion({
-  GotPopoverMessage: { message: Popover.Message },
-})
+// This excerpt has no parent-owned facts. The Composition derives delivery.
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 // At module scope, fold the OutMessage into your own Model. `Opened` and
@@ -27,36 +25,38 @@ type Message = typeof Message.Type
 // other UI, or clear ephemeral state on close. Each arm returns an
 // Update.Step over the parent Model, which already has the next Popover Model
 // written back:
-const foldPopoverOutMessage = Popover.OutMessage.match<
+const foldPopoverOutMessage = Popover.PopoverBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   // The child has emitted `Opened`. In this arm the parent can update its
   // own state or dispatch its own Commands, for example lazy-load panel
   // content, log analytics, or trigger a downstream Command.
-  Opened: () => model => ({ model }),
+  Opened: () => PopoverExampleDefinition.stepNoop(),
   // The child has emitted `Closed`. In this arm the parent can update its
   // own state or dispatch its own Commands, for example persist a draft,
   // clear ephemeral state, or trigger a downstream Command.
-  Closed: () => model => ({ model }),
+  Closed: () => PopoverExampleDefinition.stepNoop(),
 })
 
-// The Binding wires the completed child Block into the parent: it runs Popover.update,
-// writes the next Popover Model back, maps the Block's Commands into your
-// Message type, and hands any OutMessage to the OutMessage fold.
-const PopoverExampleDefinition = Block.define('PopoverExample', {
+// The Binding wires the completed child Block into the parent: it runs Popover.PopoverBlock.update,
+// writes the next Popover Model back, routes generated delivery and Command
+// results, and hands any OutMessage to the OutMessage fold.
+const PopoverExampleDefinition = Block.makeDefinition('PopoverExample', {
   Model,
   Message,
 })
 
-const PopoverBinding = PopoverExampleDefinition.bindChild(Popover.block, {
-  field: 'popover',
-  parentMessage: Message.GotPopoverMessage,
-  init: { startupToArgs: () => Tuple.make({ id: 'info' }) },
-  outMessage: { fold: foldPopoverOutMessage },
-})
+const PopoverBinding = PopoverExampleDefinition.bindChild(
+  Popover.PopoverBlock,
+  {
+    field: 'popover',
+    init: { contextToArgs: () => Tuple.make({ id: 'info' }) },
+    outMessage: { fold: foldPopoverOutMessage },
+  },
+)
 
 const PopoverExampleComposition = PopoverExampleDefinition.makeComposition({
-  childBindings: [PopoverBinding],
+  bindings: [PopoverBinding],
 })
 
 // In your init function, initialize the Popover Block with a unique id:

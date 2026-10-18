@@ -2,31 +2,30 @@ import { Effect, Layer, Schema } from 'effect'
 import { expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
-import { define } from './define.js'
+import { makeDefinition, makeNamespace } from './define.js'
 
 const Message = defineMessageUnion({
   RequestedWork: {},
   CompletedWork: {},
 })
 type Message = typeof Message.Type
-const ParentMessage = defineMessageUnion({
-  GotChildMessage: { message: Message },
-})
-
 const makeGenericComplete = <const Id extends string>(id: Id) => {
-  const Feature = define(id)
+  const FeatureNamespace = makeNamespace(id)
   const Model = Schema.Struct({ value: Schema.String })
   type Model = typeof Model.Type
-  const Work = Feature.command('Work', {
+  const Work = FeatureNamespace.command('Work', {
     messages: [Message.CompletedWork],
     handler: function* () {
       return () => Effect.succeed(Message.CompletedWork())
     },
   })
-  const CompleteDefinition = Feature.define({ Model, Message })
-  const composition = CompleteDefinition.makeComposition()
 
-  return composition.makeBlock({
+  const composition = FeatureNamespace.makeDefinition({
+    Model,
+    Message,
+  }).makeComposition()
+
+  return composition.assembleBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: composition.makeUpdate((model, message) =>
       Message.match(message, {
@@ -40,16 +39,19 @@ const makeGenericComplete = <const Id extends string>(id: Id) => {
 }
 
 const makeGenericMissing = <const Id extends string>(id: Id) => {
-  const Feature = define(id)
+  const FeatureNamespace = makeNamespace(id)
   const Model = Schema.Struct({ value: Schema.String })
   type Model = typeof Model.Type
-  const Work = Feature.command('Work', {
+  const Work = FeatureNamespace.command('Work', {
     messages: [Message.CompletedWork],
   })
-  const MissingDefinition = Feature.define({ Model, Message })
-  const composition = MissingDefinition.makeComposition()
 
-  return composition.makeBlock({
+  const composition = FeatureNamespace.makeDefinition({
+    Model,
+    Message,
+  }).makeComposition()
+
+  return composition.assembleBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: composition.makeUpdate((model, message) =>
       Message.match(message, {
@@ -65,14 +67,13 @@ const makeGenericMissing = <const Id extends string>(id: Id) => {
 const complete = makeGenericComplete('GenericComplete')
 const CompleteParentModel = Schema.Struct({ child: complete.Model })
 
-const CompleteParent = define('GenericCompleteParent', {
+const CompleteParent = makeDefinition('GenericCompleteParent', {
   Model: CompleteParentModel,
-  Message: ParentMessage,
+  Message: Schema.Never,
 })
 const CompleteBinding = CompleteParent.bindChild(complete, {
   placement: 'GenericComplete',
   field: 'child',
-  parentMessage: ParentMessage.GotChildMessage,
 })
 
 it('keeps a complete generic Block connectable after literal instantiation', () => {
@@ -82,15 +83,14 @@ it('keeps a complete generic Block connectable after literal instantiation', () 
 if (false) {
   const missing = makeGenericMissing('GenericMissing')
   const MissingParentModel = Schema.Struct({ child: missing.Model })
-  const MissingParent = define('GenericMissingParent', {
+  const MissingParent = makeDefinition('GenericMissingParent', {
     Model: MissingParentModel,
-    Message: ParentMessage,
+    Message: Schema.Never,
   })
 
   // @ts-expect-error Concrete Bindings validate deferred generic handler coverage.
   MissingParent.bindChild(missing, {
     placement: 'GenericMissing',
     field: 'child',
-    parentMessage: ParentMessage.GotChildMessage,
   })
 }

@@ -131,6 +131,13 @@ const entryFilePatterns = [
 
 const decisionTimeRuleId = 'foldkit/no-impure-call-at-decision-time'
 
+const legacyAuthoredDeliveryRuleIds = [
+  'foldkit/got-block-message-name',
+  'foldkit/got-prefix-requires-block-payload',
+  'foldkit/got-wrapper-carries-only-routing',
+  'foldkit/wrap-child-output-in-got-message',
+]
+
 const serverOverride: Override = {
   files: serverFilePatterns,
   excludeFiles: testFilePatterns,
@@ -172,6 +179,9 @@ const withOverrides = (config: Plugin.OxlintConfig): OverriddenConfig => ({
   rules: {
     ...config.rules,
     'foldkit/no-nonportable-server-globals': 'off',
+    ...Object.fromEntries(
+      legacyAuthoredDeliveryRuleIds.map(id => [id, 'off'] as const),
+    ),
   },
   overrides: [serverOverride, entryOverride, testOverride(config)],
 })

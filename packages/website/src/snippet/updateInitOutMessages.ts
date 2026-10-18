@@ -1,6 +1,6 @@
 import { ApplicationDefinition } from './definition'
 
-const foldSearchOutMessage = Search.OutMessage.match<
+const foldSearchOutMessage = Search.SearchBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   RestoredQuery:
@@ -12,7 +12,7 @@ const foldSearchOutMessage = Search.OutMessage.match<
     }),
 })
 
-const foldEditorOutMessage = Editor.OutMessage.match<
+const foldEditorOutMessage = Editor.EditorBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   RestoredDraft:
@@ -24,20 +24,18 @@ const foldEditorOutMessage = Editor.OutMessage.match<
     }),
 })
 
-const SearchBinding = ApplicationDefinition.bindChild(Search.block, {
+const SearchBinding = ApplicationDefinition.bindChild(Search.SearchBlock, {
   field: 'search',
-  parentMessage: Message.GotSearchMessage,
   outMessage: { fold: foldSearchOutMessage },
 })
 
-const EditorBinding = ApplicationDefinition.bindChild(Editor.block, {
+const EditorBinding = ApplicationDefinition.bindChild(Editor.EditorBlock, {
   field: 'editor',
-  parentMessage: Message.GotEditorMessage,
   outMessage: { fold: foldEditorOutMessage },
 })
 
 const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [SearchBinding, EditorBinding],
+  bindings: [SearchBinding, EditorBinding],
 })
 
 const init = ApplicationComposition.makeInit(() => ({

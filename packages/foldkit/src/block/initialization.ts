@@ -14,14 +14,14 @@ declare const InitialBindingEvidenceTypeId: unique symbol
 export interface InitialBindingEvidence<
   Field extends string,
   Value,
-  Startup,
+  ChildInitContext,
   Requirements,
   Registration,
 > {
   readonly [InitialBindingEvidenceTypeId]: Readonly<{
     field: Field
     value: Value
-    startup: Startup
+    childInitContext: ChildInitContext
     requirements: Requirements
     registration: Registration
   }>
@@ -61,47 +61,49 @@ type InitialFields<ChildBindings extends ReadonlyArray<AnyBinding>> = Readonly<{
   ]: Evidence extends Readonly<{ value: infer Value }> ? Value : never
 }>
 
-type InitialStartupFunctions<ChildBindings extends ReadonlyArray<AnyBinding>> =
+type InitialChildInitContextFunctions<
+  ChildBindings extends ReadonlyArray<AnyBinding>,
+> =
   InitialEvidenceOfBindings<ChildBindings> extends infer Evidence
     ? HasInitialBindings<ChildBindings> extends true
-      ? Evidence extends Readonly<{ startup: infer Startup }>
-        ? [Startup] extends [never]
+      ? Evidence extends Readonly<{ childInitContext: infer ChildInitContext }>
+        ? [ChildInitContext] extends [never]
           ? never
-          : (startup: Startup) => void
+          : (childInitContext: ChildInitContext) => void
         : never
       : never
     : never
 
-type InitialStartup<ChildBindings extends ReadonlyArray<AnyBinding>> =
+type InitialChildInitContext<ChildBindings extends ReadonlyArray<AnyBinding>> =
   HasInitialBindings<ChildBindings> extends true
-    ? [InitialStartupFunctions<ChildBindings>] extends [never]
+    ? [InitialChildInitContextFunctions<ChildBindings>] extends [never]
       ? never
-      : InitialStartupFunctions<ChildBindings> extends (
-            startup: infer Startup,
+      : InitialChildInitContextFunctions<ChildBindings> extends (
+            childInitContext: infer ChildInitContext,
           ) => void
-        ? Startup
+        ? ChildInitContext
         : never
     : never
 
-/** @internal Checks shared selector inputs and an optional Definition startup contract. */
-export type ValidateChildStartup<
+/** @internal Checks shared selector inputs and an optional Definition ChildInitContext contract. */
+export type ValidateChildInitContext<
   ChildBindings extends ReadonlyArray<AnyBinding>,
-  Startup,
-> = [InitialStartupFunctions<ChildBindings>] extends [never]
+  ChildInitContext,
+> = [InitialChildInitContextFunctions<ChildBindings>] extends [never]
   ? unknown
-  : [InitialStartup<ChildBindings>] extends [never]
+  : [InitialChildInitContext<ChildBindings>] extends [never]
     ? Readonly<{
-        'Binding startup selectors must accept one compatible startup input': never
+        'Binding init selectors must accept one compatible ChildInitContext': never
       }>
-    : [Startup] extends [never]
+    : [ChildInitContext] extends [never]
       ? unknown
-      : [Startup, InitialStartup<ChildBindings>] extends [
-            InitialStartup<ChildBindings>,
-            Startup,
+      : [ChildInitContext, InitialChildInitContext<ChildBindings>] extends [
+            InitialChildInitContext<ChildBindings>,
+            ChildInitContext,
           ]
         ? unknown
         : Readonly<{
-            'Binding startup selectors must match the parent Definition Startup': InitialStartup<ChildBindings>
+            'Binding init selectors must match the parent Definition ChildInitContext': InitialChildInitContext<ChildBindings>
           }>
 
 type InitialRequirements<ChildBindings extends ReadonlyArray<AnyBinding>> =
@@ -126,15 +128,18 @@ type InitialRegistration<ChildBindings extends ReadonlyArray<AnyBinding>> =
  * A parent Model transformation applied after initialized child fields have
  * been assembled. Initialization Steps cannot emit an OutMessage.
  */
-export type InitializationStep<Model, Message, GraphRequirement = never> = (
-  model: Update.GraphInput<Model, GraphRequirement>,
-) =>
+export type InitializationStep<
+  Model,
+  Message,
+  GraphRequirement = never,
+  DispatchMessage = Message,
+> = (model: Update.GraphInput<Model, GraphRequirement>) =>
   | Readonly<{
       model: Model
       commands?: ReadonlyArray<Command<Message, never, any>> | undefined
       outMessage?: never
     }>
-  | Update.ResultRecipe<Model, Message, never, any, unknown>
+  | Update.ResultRecipe<Model, DispatchMessage, never, any, unknown>
 
 type ParentOwnedModel<
   Model,
@@ -145,32 +150,34 @@ type ParentOwnedModel<
       readonly [Field in keyof InitialFields<ChildBindings>]?: never
     }
 
-type StartupPlan<ChildBindings extends ReadonlyArray<AnyBinding>> = [
-  InitialStartupFunctions<ChildBindings>,
+type ChildInitContextPlan<ChildBindings extends ReadonlyArray<AnyBinding>> = [
+  InitialChildInitContextFunctions<ChildBindings>,
 ] extends [never]
   ? Readonly<{
       /**
        * Optional input shared with child Binding init policies. It is not stored
-       * in the Model. Omit it when no policy needs startup inputs.
+       * in the Model. Omit it when no child init policy needs shared context.
        */
-      startup?: unknown
+      childInitContext?: unknown
     }>
   : Readonly<{
       /**
        * Input shared with every child Binding init selector. Its type must
        * satisfy all registered selectors; it is not stored in the Model.
        */
-      startup: InitialStartup<ChildBindings>
+      childInitContext: InitialChildInitContext<ChildBindings>
     }>
 
 /**
  * The declarative work returned by a Composition initializer. The parent
  * supplies only its owned Model fields; initialized Bindings supply theirs.
+ * Unsupported string fields are rejected rather than silently ignored.
  */
 export type InitializationPlan<
   Model,
   Message,
   ChildBindings extends ReadonlyArray<AnyBinding>,
+  DispatchMessage = Message,
 > = Readonly<{
   /**
    * Parent-owned initial fields. Omit fields supplied by registered Binding
@@ -194,7 +201,8 @@ export type InitializationPlan<
         InitializationStep<
           Model,
           Message,
-          RequirementsOfBindings<ChildBindings>
+          RequirementsOfBindings<ChildBindings>,
+          DispatchMessage
         >
       >
     | undefined
@@ -204,7 +212,7 @@ export type InitializationPlan<
    */
   outMessage?: never
 }> &
-  StartupPlan<ChildBindings>
+  ChildInitContextPlan<ChildBindings>
 
 type CommandsOf<Output> =
   Output extends Readonly<{
@@ -385,11 +393,46 @@ type ValidateInitializationEvidence<Init> = Init extends (
       ]
   : readonly []
 
+type InitializationPlanFields =
+  | 'model'
+  | 'commands'
+  | 'steps'
+  | 'childInitContext'
+  | 'outMessage'
+
+type UnknownInitializationFields<
+  Output,
+  ChildBindings extends ReadonlyArray<AnyBinding>,
+> = Exclude<
+  Extract<
+    KeysOfUnion<ResolvedInitializationOutput<Output, ChildBindings>>,
+    string
+  >,
+  InitializationPlanFields
+>
+
+type ValidateInitializationFields<
+  Init,
+  ChildBindings extends ReadonlyArray<AnyBinding>,
+> = Init extends (...args: ReadonlyArray<any>) => infer Output
+  ? [UnknownInitializationFields<Output, ChildBindings>] extends [never]
+    ? readonly []
+    : readonly [
+        error: Readonly<{
+          'Composition initializer returned unknown fields': UnknownInitializationFields<
+            Output,
+            ChildBindings
+          >
+        }>,
+      ]
+  : readonly []
+
 type ValidateInit<
   Init,
   ChildBindings extends ReadonlyArray<AnyBinding>,
 > = readonly [
   ...ValidateSingleInitSignature<Init>,
+  ...ValidateInitializationFields<Init, ChildBindings>,
   ...ValidateInitializationEvidence<Init>,
   ...ValidateInitializationOutMessage<Init, ChildBindings>,
 ]
@@ -404,12 +447,13 @@ export interface CompositionInit<
   Model,
   Message,
   ChildBindings extends ReadonlyArray<AnyBinding>,
+  DispatchMessage = Message,
 > {
   <
     const Init extends (
       ...args: ReadonlyArray<never>
     ) =>
-      | InitializationPlan<Model, Message, ChildBindings>
+      | InitializationPlan<Model, Message, ChildBindings, DispatchMessage>
       | AnyBindingInitRecipe,
     const Validation extends ValidateInit<NoInfer<Init>, ChildBindings> =
       ValidateInit<NoInfer<Init>, ChildBindings>,
@@ -419,7 +463,12 @@ export interface CompositionInit<
   ): NoInfer<
     (
       ...args: CallableArguments<Init>
-    ) => InitializationReturn<Model, Message, ChildBindings, ReturnType<Init>>
+    ) => InitializationReturn<
+      Model,
+      DispatchMessage,
+      ChildBindings,
+      ReturnType<Init>
+    >
   >
 }
 

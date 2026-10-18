@@ -3,7 +3,7 @@ import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const block = ComingFromReactComposition.makeBlock({
+export const ComingFromReactBlock = ComingFromReactComposition.assembleBlock({
   init,
   update,
   view,

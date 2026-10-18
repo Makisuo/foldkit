@@ -26,8 +26,8 @@ import { findFirstEnabledIndex, keyToIndex } from '../keyboard.js'
 
 export { groupContiguous }
 
-/** Shared named component handle for both Combobox selection variants. */
-export const ComboboxDefinition = Block.define('Combobox')
+/** Shared Combobox namespace for selection-specific definitions and effects. */
+export const ComboboxNamespace = Block.makeNamespace('Combobox')
 
 // MODEL
 
@@ -44,7 +44,7 @@ export const BaseModel = Schema.Struct({
   nullable: Schema.Boolean,
   immediate: Schema.Boolean,
   selectInputOnFocus: Schema.Boolean,
-  animation: Animation.Model,
+  animation: Animation.AnimationBlock.Model,
   maybeActiveItemIndex: Schema.Option(Schema.Number),
   activationTrigger: ActivationTrigger,
   inputValue: Schema.String,
@@ -78,7 +78,7 @@ export const baseInit = (config: BaseInitConfig): BaseModel => ({
   nullable: config.nullable ?? false,
   immediate: config.immediate ?? false,
   selectInputOnFocus: config.selectInputOnFocus ?? false,
-  animation: Animation.init({ id: `${config.id}-items` }),
+  animation: Animation.AnimationBlock.init({ id: `${config.id}-items` }).model,
   maybeActiveItemIndex: Option.none(),
   activationTrigger: 'Keyboard',
   inputValue: '',
@@ -87,12 +87,21 @@ export const baseInit = (config: BaseInitConfig): BaseModel => ({
 
 // MESSAGE
 
-/** A string Schema whose constructor input preserves the same exact Item type. */
-export type ItemSchema<Item extends string> = Schema.Schema<Item> &
+/** A synchronous, service-free string Codec whose constructor input preserves
+ *  the exact Item type. The encoded type is retained in the completed Block's
+ *  Message and OutMessage Codecs. */
+export type ItemSchema<Item extends string, ItemEncoded = Item> = Schema.Codec<
+  Item,
+  ItemEncoded,
+  never,
+  never
+> &
   Readonly<{ '~type.make': Item }>
 
 /** Builds the Combobox Message union with item payloads refined by a Schema. */
-export const makeMessage = <Item extends string>(Item: ItemSchema<Item>) =>
+export const makeMessage = <Item extends string, ItemEncoded = Item>(
+  Item: ItemSchema<Item, ItemEncoded>,
+) =>
   defineMessageUnion({
     RequestedOpen: {},
     RequestedClose: {
@@ -143,7 +152,6 @@ export const makeMessage = <Item extends string>(Item: ItemSchema<Item>) =>
     CompletedAttachSelectOnFocus: {},
     CompletedPortalBackdrop: {},
     CompletedDetectMovementOrAnimationEnd: { generation: Schema.Number },
-    GotAnimationMessage: { message: Animation.Message },
     UpdatedInputValue: { value: Schema.String },
     PressedToggleButton: {
       restingInputValue: Schema.String,
@@ -181,22 +189,30 @@ export type PressedToggleButton = typeof Message.PressedToggleButton.Type
 
 /** The Message Schema and callable constructors on a created Combobox,
  * refined to the Item Schema supplied to `create`. */
-export type MessageSchema<Item extends string = string> =
+export type MessageSchema<Item extends string = string, ItemEncoded = Item> =
   typeof Message extends MessageUnion<infer Cases>
     ? MessageUnion<
         Omit<Cases, 'RequestedSelectItem' | 'SelectedItem' | 'ActivatedItem'> &
           Readonly<{
             RequestedSelectItem: Omit<Cases['RequestedSelectItem'], 'item'> &
-              Readonly<{ item: ItemSchema<Item> }>
+              Readonly<{
+                item: ItemSchema<Item, ItemEncoded>
+              }>
             SelectedItem: Omit<Cases['SelectedItem'], 'item'> &
-              Readonly<{ item: ItemSchema<Item> }>
+              Readonly<{
+                item: ItemSchema<Item, ItemEncoded>
+              }>
             ActivatedItem: Omit<
               Cases['ActivatedItem'],
               'maybeImmediateSelection'
             > &
               Readonly<{
                 maybeImmediateSelection: Schema.Option<
-                  Schema.Struct<Readonly<{ item: ItemSchema<Item> }>>
+                  Schema.Struct<
+                    Readonly<{
+                      item: ItemSchema<Item, ItemEncoded>
+                    }>
+                  >
                 >
               }>
           }>
@@ -216,7 +232,9 @@ export type Selected<Value extends string = string> = Readonly<{
 export type ClearedSelection = typeof OutMessage.ClearedSelection.Type
 
 /** Builds the Combobox OutMessage union with its selected value refined by a Schema. */
-export const makeOutMessage = <Item extends string>(Item: ItemSchema<Item>) =>
+export const makeOutMessage = <Item extends string, ItemEncoded = Item>(
+  Item: ItemSchema<Item, ItemEncoded>,
+) =>
   defineMessageUnion({
     Selected: { value: Item },
     ClearedSelection: {},
@@ -227,13 +245,15 @@ export const OutMessage = makeOutMessage(Schema.String)
 
 /** The OutMessage Schema and callable constructors on a created Combobox,
  * refined to the Item Schema supplied to `create`. */
-export type OutMessageSchema<Item extends string = string> =
+export type OutMessageSchema<Item extends string = string, ItemEncoded = Item> =
   typeof OutMessage extends MessageUnion<infer Cases>
     ? MessageUnion<
         Omit<Cases, 'Selected'> &
           Readonly<{
             Selected: Omit<Cases['Selected'], 'value'> &
-              Readonly<{ value: ItemSchema<Item> }>
+              Readonly<{
+                value: ItemSchema<Item, ItemEncoded>
+              }>
           }>
       >
     : never
@@ -287,14 +307,14 @@ type HandlerReturn<Model, Item extends string> = Readonly<{
 }>
 
 /** Prevents page scrolling while the combobox popup is open in modal mode. */
-export const LockScroll = ComboboxDefinition.command('LockScroll', {
+export const LockScroll = ComboboxNamespace.command('LockScroll', {
   messages: [Message.CompletedLockScroll],
   handler: function* () {
     return () => Dom.lockScroll.pipe(Effect.as(Message.CompletedLockScroll()))
   },
 })
 /** Re-enables page scrolling after the combobox popup closes. */
-export const UnlockScroll = ComboboxDefinition.command('UnlockScroll', {
+export const UnlockScroll = ComboboxNamespace.command('UnlockScroll', {
   messages: [Message.CompletedUnlockScroll],
   handler: function* () {
     return () =>
@@ -302,7 +322,7 @@ export const UnlockScroll = ComboboxDefinition.command('UnlockScroll', {
   },
 })
 /** Marks all elements outside the combobox as inert for modal behavior. */
-export const InertOthers = ComboboxDefinition.command('InertOthers', {
+export const InertOthers = ComboboxNamespace.command('InertOthers', {
   args: { id: Schema.String },
   messages: [Message.CompletedInertOthers],
   handler: function* () {
@@ -315,7 +335,7 @@ export const InertOthers = ComboboxDefinition.command('InertOthers', {
   },
 })
 /** Removes the inert attribute from elements outside the combobox. */
-export const RestoreInert = ComboboxDefinition.command('RestoreInert', {
+export const RestoreInert = ComboboxNamespace.command('RestoreInert', {
   args: { id: Schema.String },
   messages: [Message.CompletedRestoreInert],
   handler: function* () {
@@ -324,7 +344,7 @@ export const RestoreInert = ComboboxDefinition.command('RestoreInert', {
   },
 })
 /** Moves focus to the combobox input after selection or close. */
-export const FocusInput = ComboboxDefinition.command('FocusInput', {
+export const FocusInput = ComboboxNamespace.command('FocusInput', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusInput],
   handler: function* () {
@@ -336,7 +356,7 @@ export const FocusInput = ComboboxDefinition.command('FocusInput', {
   },
 })
 /** Scrolls the active combobox item into view after keyboard navigation. */
-export const ScrollItemIntoView = ComboboxDefinition.command(
+export const ScrollItemIntoView = ComboboxNamespace.command(
   'ScrollItemIntoView',
   {
     args: { id: Schema.String, index: Schema.Number },
@@ -351,7 +371,7 @@ export const ScrollItemIntoView = ComboboxDefinition.command(
   },
 )
 /** Programmatically clicks the active combobox item's DOM element. */
-export const ClickItem = ComboboxDefinition.command('ClickItem', {
+export const ClickItem = ComboboxNamespace.command('ClickItem', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedClickItem],
   handler: function* () {
@@ -363,7 +383,7 @@ export const ClickItem = ComboboxDefinition.command('ClickItem', {
   },
 })
 /** Detects whether the combobox input wrapper moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation block that leave is complete. */
-export const DetectMovementOrAnimationEnd = ComboboxDefinition.command(
+export const DetectMovementOrAnimationEnd = ComboboxNamespace.command(
   'DetectMovementOrAnimationEnd',
   {
     args: { id: Schema.String, generation: Schema.Number },
@@ -389,15 +409,15 @@ export const DetectMovementOrAnimationEnd = ComboboxDefinition.command(
 /** Creates a combobox update function from variant-specific handlers. Shared logic (open, close, activate, transition) is handled internally; only close, selection, and immediate-activation behavior varies by variant. */
 export const makeUpdate = <
   Item extends string,
+  ItemEncoded,
   ParentOutMessageSchema extends Schema.Top,
 >(
   bindChild: Block.BindChild<
     typeof BaseModel,
-    ReturnType<typeof makeMessage<Item>>,
+    MessageSchema<Item, ItemEncoded>,
     ParentOutMessageSchema
   >,
   step: Block.DefineStep<BaseModel, Message<Item>, OutMessage<Item>>,
-  Message: ReturnType<typeof makeMessage<Item>>,
   selectionBehavior: 'CloseWithFocus' | 'KeepOpen',
   handlers: Readonly<{
     handleClose: (
@@ -429,7 +449,7 @@ export const makeUpdate = <
 
   const ignoreTransitionedOut = step(model => ({ model }))
 
-  const foldAnimationOutMessage = Animation.OutMessage.match<
+  const foldAnimationOutMessage = Animation.AnimationBlock.OutMessage.match<
     AnimationOutMessageStep | typeof ignoreTransitionedOut
   >({
     StartedLeaveAnimating: ({ generation }) =>
@@ -437,17 +457,13 @@ export const makeUpdate = <
     TransitionedOut: () => ignoreTransitionedOut,
   })
 
-  const AnimationBinding = bindChild(Animation.block, {
+  const AnimationBinding = bindChild(Animation.AnimationBlock, {
     field: 'animation',
-    parentMessage: Message.GotAnimationMessage,
     init: false,
     outMessage: { fold: foldAnimationOutMessage },
   })
 
-  type AuthoredMessage = Exclude<
-    Message<Item>,
-    ReturnType<typeof Message.GotAnimationMessage>
-  >
+  type AuthoredMessage = Message<Item>
 
   const internalUpdate = (model: Model, message: AuthoredMessage) => {
     const openCommands = Array.filter(
@@ -763,7 +779,7 @@ export const makeUpdate = <
  *  installs the `pointerdown`-cancelling capture listener that prevents
  *  input blur on item presses. Exposed so Scene tests can call
  *  `Scene.Mount.resolve(Anchor, CompletedAnchor())`. */
-export const Anchor = ComboboxDefinition.mount('Anchor', {
+export const Anchor = ComboboxNamespace.mount('Anchor', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchor],
   handler: function* () {
@@ -800,7 +816,7 @@ export const Anchor = ComboboxDefinition.mount('Anchor', {
  *  capture listener that prevents blur on item presses. Exposed so Scene
  *  tests can call
  *  `Scene.Mount.resolve(AttachPreventBlur, CompletedAttachPreventBlur())`. */
-export const AttachPreventBlur = ComboboxDefinition.mount('AttachPreventBlur', {
+export const AttachPreventBlur = ComboboxNamespace.mount('AttachPreventBlur', {
   messages: [Message.CompletedAttachPreventBlur],
   handler: function* () {
     return ({ element }) =>
@@ -830,7 +846,7 @@ export const AttachPreventBlur = ComboboxDefinition.mount('AttachPreventBlur', {
 /** The Mount this Combobox renders to install the input's select-on-focus
  *  behavior. Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AttachSelectOnFocus, CompletedAttachSelectOnFocus())`. */
-export const AttachSelectOnFocus = ComboboxDefinition.mount(
+export const AttachSelectOnFocus = ComboboxNamespace.mount(
   'AttachSelectOnFocus',
   {
     messages: [Message.CompletedAttachSelectOnFocus],
@@ -859,7 +875,7 @@ export const AttachSelectOnFocus = ComboboxDefinition.mount(
 /** The backdrop-portaling Mount this Combobox renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalBackdrop, CompletedPortalBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalBackdrop = ComboboxDefinition.mount('PortalBackdrop', {
+export const PortalBackdrop = ComboboxNamespace.mount('PortalBackdrop', {
   messages: [Message.CompletedPortalBackdrop],
   handler: function* () {
     return ({ element }) =>
@@ -1006,14 +1022,19 @@ export type ViewBehavior = Readonly<{
 }>
 
 /** Creates a combobox view function from variant-specific behavior. Shared rendering logic (input, items, transitions, keyboard navigation) is handled internally; only listbox multi-select semantics vary by variant. */
-export const makeView = <Model extends BaseModel, Item extends string>(
+export const makeView = <
+  Model extends BaseModel,
+  Item extends string,
+  ParentMessage = never,
+  ItemEncoded = Item,
+>(
   behavior: ViewBehavior,
-  Message: ReturnType<typeof makeMessage<Item>>,
+  Message: MessageSchema<Item, ItemEncoded>,
 ) => {
   const impl = (
     model: Model,
     viewInputs: BaseViewInputs<Item>,
-    h: HtmlBuilder<Message<Item>, MountRequirements>,
+    h: HtmlBuilder<Message<Item> | ParentMessage, MountRequirements>,
   ): Html => {
     const {
       id,

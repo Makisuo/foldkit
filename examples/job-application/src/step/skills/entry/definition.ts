@@ -20,7 +20,7 @@ export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   UpdatedName: { value: Schema.String },
-  GotProficiencyRadioGroupMessage: { message: ProficiencyRadioGroup.Message },
+  RequestedRevealErrors: {},
   ClickedRemoveSelf: {},
 })
 
@@ -34,9 +34,9 @@ export type OutMessage = typeof OutMessage.Type
 
 export type Removed = typeof OutMessage.Removed.Type
 
-export const SkillsEntryDefinition = Block.define('SkillsEntry', {
+export const SkillsEntryDefinition = Block.makeDefinition('SkillsEntry', {
   Model,
   Message,
   OutMessage,
-  Startup: Schema.String,
+  ChildInitContext: Schema.String,
 })

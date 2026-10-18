@@ -5,11 +5,10 @@ import { Disclosure } from '@foldkit/ui'
 
 import { CodeBlock } from '../../../component'
 import { Icon } from '../../../icon'
-import { slotDocPage } from '../../../markdown'
 import { type RenderHeadingLink, inlineCode } from '../../../prose'
 import * as Snippet from '../../../snippet'
-import raw from '../block.md'
 import { BlockPageComposition } from './composition'
+import { BlockPageContent } from './content'
 import { Message } from './message'
 import { type Model } from './model'
 
@@ -102,8 +101,7 @@ const mapMessagesUnderHoodDemo = (
     h,
   )
 
-const { tableOfContents, view: renderPage } =
-  slotDocPage<'map-messages-under-hood'>(raw, 'core/block')
+const { tableOfContents, view: renderPage } = BlockPageContent
 
 export { tableOfContents }
 

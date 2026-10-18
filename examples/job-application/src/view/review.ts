@@ -8,11 +8,11 @@ import type { ApplicationViewBuilder } from '../composition'
 import { Step } from '../domain'
 import { Message } from '../message'
 import { type Model, Submission } from '../model'
-import { EducationEntry, WorkHistoryEntry } from '../step'
-import { isComplete as isEducationComplete } from '../step/education'
-import { isComplete as isPersonalInfoComplete } from '../step/personalInfo'
-import { isComplete as isSkillsComplete } from '../step/skills'
-import { isComplete as isWorkHistoryComplete } from '../step/workHistory'
+import { EducationEntryBlock, WorkHistoryEntryBlock } from '../step'
+import { isComplete as isEducationComplete } from '../step/education/update'
+import { isComplete as isPersonalInfoComplete } from '../step/personalInfo/update'
+import { isComplete as isSkillsComplete } from '../step/skills/update'
+import { isComplete as isWorkHistoryComplete } from '../step/workHistory/update'
 import { employmentRange, pluralize } from './format'
 
 const reviewSection = (
@@ -68,7 +68,7 @@ const personalInfoSection = (
   )
 
 const workEntryReview = (
-  entry: typeof WorkHistoryEntry.Model.Type,
+  entry: typeof WorkHistoryEntryBlock.Model.Type,
   h: ApplicationViewBuilder,
 ): Html => {
   const title = entry.company.value
@@ -112,7 +112,9 @@ const workHistorySection = (
     h,
   )
 
-const educationTimeline = (entry: typeof EducationEntry.Model.Type): string => {
+const educationTimeline = (
+  entry: typeof EducationEntryBlock.Model.Type,
+): string => {
   if (entry.isCurrentlyEnrolled) {
     return ' (Currently enrolled)'
   }
@@ -123,7 +125,7 @@ const educationTimeline = (entry: typeof EducationEntry.Model.Type): string => {
 }
 
 const educationEntryReview = (
-  entry: typeof EducationEntry.Model.Type,
+  entry: typeof EducationEntryBlock.Model.Type,
   h: ApplicationViewBuilder,
 ): Html => {
   const title = entry.fieldOfStudy.value

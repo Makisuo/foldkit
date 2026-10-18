@@ -1,24 +1,12 @@
 export {
-  init,
-  update,
-  view,
-  subscriptions,
+  SliderBlock,
   forRoot,
-  block,
   fractionOfValue,
   snapAndClamp,
   valueFromPointer,
-  Model,
-  Message,
   Orientation,
-  OutMessage,
   ThumbAlignment,
-  type PressedThumb,
-  type PressedPointer,
-  type MovedDragPointer,
-  type ReleasedDragPointer,
-  type CancelledDrag,
-  type PressedKeyboardNavigation,
+  type InitConfig,
+  type ViewInputs,
+  type SliderAttributes,
 } from './index.js'
-
-export type { InitConfig, ViewInputs, SliderAttributes } from './index.js'

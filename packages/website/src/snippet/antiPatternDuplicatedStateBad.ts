@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 // ❌ Bad: visibleItems can stop matching items and query.
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -17,9 +17,10 @@ const Message = defineMessageUnion({
   UpdatedQuery: { query: Schema.String },
 })
 type Message = typeof Message.Type
-
-const ApplicationDefinition = defineApplication({ Model, Message })
-const ApplicationComposition = ApplicationDefinition.makeComposition()
+const ApplicationComposition = makeApplicationDefinition({
+  Model,
+  Message,
+}).makeComposition()
 
 const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {

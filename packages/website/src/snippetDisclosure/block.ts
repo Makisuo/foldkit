@@ -6,9 +6,10 @@ import { view } from './view'
 
 export const EffectsLayer = MeasureSnippetHeight.layer
 
-export const block = SnippetDisclosureComposition.makeBlock({
-  init,
-  update,
-  view,
-  EffectsLayer,
-})
+export const SnippetDisclosureBlock =
+  SnippetDisclosureComposition.assembleBlock({
+    init,
+    update,
+    view,
+    EffectsLayer,
+  })

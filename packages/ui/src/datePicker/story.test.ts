@@ -1,24 +1,53 @@
-import { Option } from 'effect'
+import { Option, Schema } from 'effect'
 import * as Calendar from 'foldkit/calendar'
 import * as Story from 'foldkit/story'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import * as UiCalendar from '../calendar/index.js'
-import * as Popover from '../popover/index.js'
-import { Message, OutMessage, block, focusDate, init, update } from './index.js'
+import * as UiCalendar from '../calendar/block.js'
+import * as Popover from '../popover/block.js'
+import {
+  DatePickerBlock,
+  Message,
+  OutMessage,
+  focusDate,
+  init,
+  update,
+} from './block.js'
 
 const today = Calendar.make(2026, 4, 13)
 
-const givenClosed = Story.given(init({ id: 'picker', today }))
+const gotCalendarMessage = ({
+  message,
+}: Readonly<{
+  message: typeof UiCalendar.CalendarBlock.Message.Type
+}>) =>
+  Schema.decodeSync(DatePickerBlock.Message)({
+    _tag: 'GotCalendarMessage',
+    placement: 'calendar',
+    generation: 0,
+    message,
+  })
+
+const gotPopoverMessage = ({
+  message,
+}: Readonly<{ message: typeof Popover.PopoverBlock.Message.Type }>) =>
+  Schema.decodeSync(DatePickerBlock.Message)({
+    _tag: 'GotPopoverMessage',
+    placement: 'popover',
+    generation: 0,
+    message,
+  })
+
+const givenClosed = Story.given(init({ id: 'picker', today }).model)
 
 const givenOpen = Story.steps(givenClosed, Story.message(Message.Opened()))
 
 describe('DatePicker', () => {
   describe('init', () => {
     it('defaults to a closed popover with contentFocus enabled', () => {
-      const model = init({ id: 'picker', today })
+      const model = init({ id: 'picker', today }).model
       expect(model.id).toBe('picker')
       expect(model.popover.isOpen).toBe(false)
       expect(model.popover.contentFocus).toBe(true)
@@ -32,12 +61,12 @@ describe('DatePicker', () => {
         id: 'picker',
         today,
         initialViewDate,
-      })
+      }).model
       expect(model.calendar.viewMonth).toBe(5)
     })
 
     it('propagates isAnimated to the popover block', () => {
-      const model = init({ id: 'picker', today, isAnimated: true })
+      const model = init({ id: 'picker', today, isAnimated: true }).model
       expect(model.popover.isAnimated).toBe(true)
     })
 
@@ -50,7 +79,7 @@ describe('DatePicker', () => {
         minDate,
         maxDate,
         disabledDaysOfWeek: ['Sunday'],
-      })
+      }).model
       expect(model.calendar.maybeMinDate).toStrictEqual(Option.some(minDate))
       expect(model.calendar.maybeMaxDate).toStrictEqual(Option.some(maxDate))
       expect(model.calendar.disabledDaysOfWeek).toStrictEqual(['Sunday'])
@@ -85,7 +114,7 @@ describe('DatePicker', () => {
           update,
           givenOpen,
           Story.message(
-            Message.GotCalendarMessage({
+            gotCalendarMessage({
               message: UiCalendar.Message.ClickedHeading(),
             }),
           ),
@@ -94,7 +123,7 @@ describe('DatePicker', () => {
             UiCalendar.Message.CompletedFocusGrid(),
           ),
           Story.message(
-            Message.GotCalendarMessage({
+            gotCalendarMessage({
               message: UiCalendar.Message.ClickedHeading(),
             }),
           ),
@@ -140,7 +169,7 @@ describe('DatePicker', () => {
           update,
           givenOpen,
           Story.message(
-            Message.GotCalendarMessage({
+            gotCalendarMessage({
               message: UiCalendar.Message.ClickedHeading(),
             }),
           ),
@@ -149,7 +178,7 @@ describe('DatePicker', () => {
             UiCalendar.Message.CompletedFocusGrid(),
           ),
           Story.message(
-            Message.GotCalendarMessage({
+            gotCalendarMessage({
               message: UiCalendar.Message.ClickedHeading(),
             }),
           ),
@@ -176,7 +205,7 @@ describe('DatePicker', () => {
           update,
           givenOpen,
           Story.message(
-            Message.GotCalendarMessage({
+            gotCalendarMessage({
               message: UiCalendar.Message.ClickedHeading(),
             }),
           ),
@@ -185,7 +214,7 @@ describe('DatePicker', () => {
             UiCalendar.Message.CompletedFocusGrid(),
           ),
           Story.message(
-            Message.GotCalendarMessage({
+            gotCalendarMessage({
               message: UiCalendar.Message.ClickedHeading(),
             }),
           ),
@@ -194,7 +223,7 @@ describe('DatePicker', () => {
             UiCalendar.Message.CompletedFocusGrid(),
           ),
           Story.message(
-            Message.GotCalendarMessage({
+            gotCalendarMessage({
               message: UiCalendar.Message.PagedYears({ direction: 1 }),
             }),
           ),
@@ -260,7 +289,7 @@ describe('DatePicker', () => {
           id: 'picker',
           today,
           initialViewDate: Calendar.make(2026, 4, 20),
-        })
+        }).model
         Story.story(
           update,
           Story.steps(Story.given(seeded), Story.message(Message.Opened())),
@@ -280,7 +309,7 @@ describe('DatePicker', () => {
           update,
           givenOpen,
           Story.message(
-            Message.GotCalendarMessage({
+            gotCalendarMessage({
               message: UiCalendar.Message.ClickedNextMonthButton(),
             }),
           ),
@@ -298,7 +327,7 @@ describe('DatePicker', () => {
           update,
           givenOpen,
           Story.message(
-            Message.GotCalendarMessage({
+            gotCalendarMessage({
               message: UiCalendar.Message.PressedKeyOnGrid({
                 key: 'ArrowRight',
                 isShift: false,
@@ -320,7 +349,7 @@ describe('DatePicker', () => {
           update,
           givenOpen,
           Story.message(
-            Message.GotPopoverMessage({
+            gotPopoverMessage({
               message: Popover.Message.RequestedClose(),
             }),
           ),
@@ -338,26 +367,28 @@ describe('DatePicker', () => {
 
   describe('programmatic helpers', () => {
     it('open(model) behaves like dispatching Opened', () => {
-      const model = init({ id: 'picker', today })
-      const pickerOpen = block.operations.requestOpen(model)
+      const model = init({ id: 'picker', today }).model
+      const pickerOpen = DatePickerBlock.operations.requestOpen(model)
       expect(pickerOpen.model.popover.isOpen).toBe(true)
     })
 
     it('close(model) behaves like dispatching Closed', () => {
-      const pickerOpen = block.operations.requestOpen(
-        init({ id: 'picker', today }),
+      const pickerOpen = DatePickerBlock.operations.requestOpen(
+        init({ id: 'picker', today }).model,
       )
-      const pickerClose = block.operations.requestClose(pickerOpen.model)
+      const pickerClose = DatePickerBlock.operations.requestClose(
+        pickerOpen.model,
+      )
       expect(pickerClose.model.popover.isOpen).toBe(false)
       expect((pickerClose.commands ?? []).length).toBeGreaterThan(0)
     })
 
     it('selectDate(model, date) commits the date, closes the popover, and emits SelectedDate', () => {
       const target = Calendar.make(2026, 4, 20)
-      const pickerOpen = block.operations.requestOpen(
-        init({ id: 'picker', today }),
+      const pickerOpen = DatePickerBlock.operations.requestOpen(
+        init({ id: 'picker', today }).model,
       )
-      const dateSelection = block.operations.requestSelectDate(
+      const dateSelection = DatePickerBlock.operations.requestSelectDate(
         pickerOpen.model,
         target,
       )
@@ -372,15 +403,15 @@ describe('DatePicker', () => {
         id: 'picker',
         today,
         initialViewDate: Calendar.make(2026, 4, 20),
-      })
-      const selectionClear = block.operations.requestClear(seeded)
+      }).model
+      const selectionClear = DatePickerBlock.operations.requestClear(seeded)
       expect(selectionClear.outMessage).toStrictEqual(OutMessage.ClearedDate())
     })
 
     it('informMinDateChanged forwards to the embedded calendar', () => {
-      const model = init({ id: 'picker', today })
+      const model = init({ id: 'picker', today }).model
       const newMin = Calendar.make(2026, 5, 1)
-      const minDateChange = block.operations.informMinDateChanged(
+      const minDateChange = DatePickerBlock.operations.informMinDateChanged(
         model,
         Option.some(newMin),
       )
@@ -394,8 +425,8 @@ describe('DatePicker', () => {
         id: 'picker',
         today,
         minDate: Calendar.make(2026, 1, 1),
-      })
-      const minDateChange = block.operations.informMinDateChanged(
+      }).model
+      const minDateChange = DatePickerBlock.operations.informMinDateChanged(
         model,
         Option.none(),
       )
@@ -405,9 +436,9 @@ describe('DatePicker', () => {
     })
 
     it('informMaxDateChanged forwards to the embedded calendar', () => {
-      const model = init({ id: 'picker', today })
+      const model = init({ id: 'picker', today }).model
       const newMax = Calendar.make(2026, 12, 31)
-      const maxDateChange = block.operations.informMaxDateChanged(
+      const maxDateChange = DatePickerBlock.operations.informMaxDateChanged(
         model,
         Option.some(newMax),
       )
@@ -417,21 +448,19 @@ describe('DatePicker', () => {
     })
 
     it('informDisabledDatesChanged forwards to the embedded calendar', () => {
-      const model = init({ id: 'picker', today })
+      const model = init({ id: 'picker', today }).model
       const disabled = [Calendar.make(2026, 4, 15)]
-      const disabledDatesChange = block.operations.informDisabledDatesChanged(
-        model,
-        disabled,
-      )
+      const disabledDatesChange =
+        DatePickerBlock.operations.informDisabledDatesChanged(model, disabled)
       expect(disabledDatesChange.model.calendar.disabledDates).toStrictEqual(
         disabled,
       )
     })
 
     it('informDisabledDaysOfWeekChanged forwards to the embedded calendar', () => {
-      const model = init({ id: 'picker', today })
+      const model = init({ id: 'picker', today }).model
       const disabledDaysChange =
-        block.operations.informDisabledDaysOfWeekChanged(model, [
+        DatePickerBlock.operations.informDisabledDaysOfWeekChanged(model, [
           'Saturday',
           'Sunday',
         ])
@@ -444,7 +473,7 @@ describe('DatePicker', () => {
   describe('focusDate', () => {
     it('moves the embedded calendar view and cursor to a date', () => {
       const date = Calendar.make(2026, 8, 15)
-      const dateFocus = focusDate(init({ id: 'picker', today }), date)
+      const dateFocus = focusDate(init({ id: 'picker', today }).model, date)
       expect(dateFocus.model.calendar.viewYear).toBe(2026)
       expect(dateFocus.model.calendar.viewMonth).toBe(8)
       expect(dateFocus.model.calendar.maybeFocusedDate).toStrictEqual(

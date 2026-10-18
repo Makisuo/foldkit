@@ -5,7 +5,7 @@ import { Message } from './message'
 import { update } from './update'
 import { view } from './view'
 
-export const block = SearchComposition.makeBlock({
+export const SearchBlock = SearchComposition.assembleBlock({
   init,
   update,
   view,

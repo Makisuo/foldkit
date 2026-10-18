@@ -5,8 +5,8 @@ import * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import * as Update from '../update/index.js'
-import type { BindingRequirement } from './binding.js'
-import { define } from './define.js'
+import type { RequirementOfBinding } from './binding.js'
+import { makeDefinition } from './define.js'
 import type { OperationPayload } from './operation.js'
 
 const constructorProbe = { defaultRuns: 0 }
@@ -34,7 +34,7 @@ const OutMessage = defineMessageUnion({
 })
 type OutMessage = typeof OutMessage.Type
 
-const Definition = define('OperationConstructorRuntimeChild', {
+const Definition = makeDefinition('OperationConstructorRuntimeChild', {
   Model,
   Message,
   OutMessage,
@@ -83,7 +83,7 @@ const updateValue = Message.UpdatedValue
 const operations = { resetValue, updateValue }
 
 const makeBlock = (selectedUpdate: typeof update) =>
-  Composition.makeBlock({
+  Composition.assembleBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: selectedUpdate,
     operations,
@@ -99,12 +99,10 @@ const ParentModel = Schema.Struct({
 })
 type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
-  GotChildMessage: { message: Message },
-  GotEntryMessage: { id: Schema.String, message: Message },
   RequestedUpdateChild: { value: Schema.String },
   RequestedUpdateEntry: { id: Schema.String, value: Schema.String },
 })
-const Parent = define('OperationConstructorRuntimeParent', {
+const Parent = makeDefinition('OperationConstructorRuntimeParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -113,10 +111,8 @@ const ChildBinding = Parent.bindChild(Block, {
   read: model => model.maybeChild,
   write: (model, nextChild) =>
     modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
-  toParentMessage: message => ParentMessage.GotChildMessage({ message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotChildMessage,
-    args: (_model, { message }) => Option.some([message, { prefix: 'routed' }]),
+  delivery: {
+    toUpdateContext: () => [{ prefix: 'routed' }],
   },
   outMessage: {
     fold: OutMessage.match<Update.Step<ParentModel, typeof ParentMessage.Type>>(
@@ -130,6 +126,7 @@ const EntryBinding = Parent.bindChild(Block, {
   placement: 'entries',
   readAll: model => model.entries,
   key: entry => entry.id,
+  keySchema: Schema.String,
   read: entry => entry.child,
   writeAt: (model, id, nextChild) =>
     modifyFields(model, {
@@ -137,12 +134,8 @@ const EntryBinding = Parent.bindChild(Block, {
         entry.id === id ? Entry.make({ id, child: nextChild }) : entry,
       ),
     }),
-  toParentMessage: (id, message) =>
-    ParentMessage.GotEntryMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotEntryMessage,
-    args: (_model, { id, message }) =>
-      Option.some([id, message, { prefix: 'routed' }]),
+  delivery: {
+    toUpdateContext: () => [{ prefix: 'routed' }],
   },
   outMessage: {
     fold: (_id, outMessage) =>
@@ -155,9 +148,9 @@ const EntryBinding = Parent.bindChild(Block, {
   },
 })
 const ParentComposition = Parent.makeComposition({
-  childBindings: [ChildBinding, EntryBinding],
+  bindings: [ChildBinding, EntryBinding],
 })
-const ParentBlock = ParentComposition.makeBlock({
+const ParentBlock = ParentComposition.assembleBlock({
   init: () => ({
     model: ParentModel.make({ maybeChild: Option.none(), entries: [] }),
   }),
@@ -259,12 +252,15 @@ describe('Message constructor operations', () => {
     const SymbolMessage = defineMessageUnion({
       UpdatedValue: { [valueField]: Schema.String },
     })
-    const SymbolDefinition = define('OperationConstructorRuntimeSymbolField', {
-      Model: SymbolModel,
-      Message: SymbolMessage,
-    })
-    const SymbolComposition = SymbolDefinition.makeComposition()
-    const SymbolBlock = SymbolComposition.makeBlock({
+
+    const SymbolComposition = makeDefinition(
+      'OperationConstructorRuntimeSymbolField',
+      {
+        Model: SymbolModel,
+        Message: SymbolMessage,
+      },
+    ).makeComposition()
+    const SymbolBlock = SymbolComposition.assembleBlock({
       init: () => ({ model: SymbolModel.make({ value: '' }) }),
       update: SymbolComposition.makeUpdate(
         (model, message, suffix: string) => ({
@@ -325,26 +321,24 @@ describe('Message constructor operations', () => {
       Update.RegistrationEvidenceOf<
         ReturnType<ReturnType<typeof EntryBinding.updateValue>>
       >
-    >().toMatchTypeOf<BindingRequirement<'entries', typeof Block>>()
+    >().toMatchTypeOf<RequirementOfBinding<typeof EntryBinding>>()
   })
 
   it('recognizes constructors declared directly or through nested Message unions', () => {
-    const SingleDefinition = define('OperationConstructorSingle', {
+    const SingleComposition = makeDefinition('OperationConstructorSingle', {
       Model,
       Message: Message.ResetValue,
-    })
-    const NestedDefinition = define('OperationConstructorNested', {
+    }).makeComposition()
+    const NestedComposition = makeDefinition('OperationConstructorNested', {
       Model,
       Message: Schema.Union([
         Message.ResetValue,
         Schema.Union([Message.UpdatedValue, Message.CompletedRecordValue]),
       ]),
-    })
-    const SingleComposition = SingleDefinition.makeComposition()
-    const NestedComposition = NestedDefinition.makeComposition()
+    }).makeComposition()
 
     expect(() =>
-      SingleComposition.makeBlock({
+      SingleComposition.assembleBlock({
         init: () => ({ model: initialModel }),
         update: SingleComposition.makeUpdate(model => ({ model })),
         operations: { resetValue: Message.ResetValue },
@@ -352,7 +346,7 @@ describe('Message constructor operations', () => {
       }),
     ).not.toThrow()
     expect(() =>
-      NestedComposition.makeBlock({
+      NestedComposition.assembleBlock({
         init: () => ({ model: initialModel }),
         update: NestedComposition.makeUpdate(model => ({ model })),
         operations: { updateValue: Message.UpdatedValue },
@@ -362,21 +356,27 @@ describe('Message constructor operations', () => {
   })
 
   it('accepts the same local constructor in multiple Definitions', () => {
-    const FirstComposition = define('OperationConstructorRuntimeFirst', {
-      Model,
-      Message,
-    }).makeComposition()
-    const SecondComposition = define('OperationConstructorRuntimeSecond', {
-      Model,
-      Message,
-    }).makeComposition()
-    const FirstBlock = FirstComposition.makeBlock({
+    const FirstComposition = makeDefinition(
+      'OperationConstructorRuntimeFirst',
+      {
+        Model,
+        Message,
+      },
+    ).makeComposition()
+    const SecondComposition = makeDefinition(
+      'OperationConstructorRuntimeSecond',
+      {
+        Model,
+        Message,
+      },
+    ).makeComposition()
+    const FirstBlock = FirstComposition.assembleBlock({
       init: () => ({ model: initialModel }),
       update: FirstComposition.makeUpdate(model => ({ model })),
       operations: { resetValue: Message.ResetValue },
       EffectsLayer: Layer.empty,
     })
-    const SecondBlock = SecondComposition.makeBlock({
+    const SecondBlock = SecondComposition.assembleBlock({
       init: () => ({ model: initialModel }),
       update: SecondComposition.makeUpdate(model => ({ model })),
       operations: { resetValue: Message.ResetValue },
@@ -404,17 +404,7 @@ describe('Message constructor operations', () => {
     })
 
     expect(() =>
-      Reflect.apply(ParentComposition.makeBlock, undefined, [
-        {
-          init: ParentBlock.init,
-          update: ParentBlock.update,
-          operations: { routed: ParentMessage.GotChildMessage },
-          EffectsLayer: Layer.empty,
-        },
-      ]),
-    ).toThrow(/Got|routed|authored/)
-    expect(() =>
-      Reflect.apply(Composition.makeBlock, undefined, [
+      Reflect.apply(Composition.assembleBlock, undefined, [
         {
           init: () => ({ model: initialModel }),
           update,
@@ -424,7 +414,7 @@ describe('Message constructor operations', () => {
       ]),
     ).toThrow(/declared Message Schema/)
     expect(() =>
-      Reflect.apply(Composition.makeBlock, undefined, [
+      Reflect.apply(Composition.assembleBlock, undefined, [
         {
           init: () => ({ model: initialModel }),
           update,
@@ -434,18 +424,22 @@ describe('Message constructor operations', () => {
       ]),
     ).toThrow(/same-shaped|declared Message Schema/)
 
-    const PlainSchemaBlock = Reflect.apply(Composition.makeBlock, undefined, [
-      {
-        init: () => ({ model: initialModel }),
-        update,
-        operations: {
-          plainSchema: Schema.TaggedStruct('UpdatedValue', {
-            value: Schema.String,
-          }),
+    const PlainSchemaBlock = Reflect.apply(
+      Composition.assembleBlock,
+      undefined,
+      [
+        {
+          init: () => ({ model: initialModel }),
+          update,
+          operations: {
+            plainSchema: Schema.TaggedStruct('UpdatedValue', {
+              value: Schema.String,
+            }),
+          },
+          EffectsLayer: RecordValue.layer,
         },
-        EffectsLayer: RecordValue.layer,
-      },
-    ])
+      ],
+    )
 
     expect(() =>
       PlainSchemaBlock.operations.plainSchema(initialModel, {
@@ -453,7 +447,7 @@ describe('Message constructor operations', () => {
       }),
     ).toThrow(/nonempty \[Message, \.\.\.context\] tuple/)
     expect(() =>
-      Reflect.apply(Composition.makeBlock, undefined, [
+      Reflect.apply(Composition.assembleBlock, undefined, [
         {
           init: () => ({ model: initialModel }),
           update,
@@ -463,7 +457,7 @@ describe('Message constructor operations', () => {
       ]),
     ).toThrow(/operation name "fold"|collides/)
     expect(() =>
-      Reflect.apply(Composition.makeBlock, undefined, [
+      Reflect.apply(Composition.assembleBlock, undefined, [
         {
           init: () => ({ model: initialModel }),
           update,
@@ -473,7 +467,7 @@ describe('Message constructor operations', () => {
       ]),
     ).toThrow(/operation|constructor|producer/)
     expect(() =>
-      Reflect.apply(Composition.makeBlock, undefined, [
+      Reflect.apply(Composition.assembleBlock, undefined, [
         {
           init: () => ({ model: initialModel }),
           update,
@@ -485,36 +479,47 @@ describe('Message constructor operations', () => {
 
     expect(Reflect.get(Composition, 'makeOperation')).toBeUndefined()
 
-    const InvalidTupleBlock = Reflect.apply(Composition.makeBlock, undefined, [
-      {
-        init: () => ({ model: initialModel }),
-        update,
-        operations: { invalidTuple: () => ({}) },
-        EffectsLayer: RecordValue.layer,
-      },
-    ])
+    const InvalidTupleBlock = Reflect.apply(
+      Composition.assembleBlock,
+      undefined,
+      [
+        {
+          init: () => ({ model: initialModel }),
+          update,
+          operations: { invalidTuple: () => ({}) },
+          EffectsLayer: RecordValue.layer,
+        },
+      ],
+    )
 
     expect(() =>
       InvalidTupleBlock.operations.invalidTuple(initialModel),
     ).toThrow(/nonempty \[Message, \.\.\.context\] tuple/)
 
-    const BypassBlock = Reflect.apply(ParentComposition.makeBlock, undefined, [
-      {
-        init: ParentBlock.init,
-        update: ParentBlock.update,
-        operations: {
-          bypass: () => [
-            ParentMessage.GotChildMessage({
-              message: Message.ResetValue(),
-            }),
-          ],
+    const BypassBlock = Reflect.apply(
+      ParentComposition.assembleBlock,
+      undefined,
+      [
+        {
+          init: ParentBlock.init,
+          update: ParentBlock.update,
+          operations: {
+            bypass: () => [
+              {
+                _tag: 'GotChildMessage',
+                placement: 'child',
+                generation: 0,
+                message: Message.ResetValue(),
+              },
+            ],
+          },
+          EffectsLayer: Layer.empty,
         },
-        EffectsLayer: Layer.empty,
-      },
-    ])
+      ],
+    )
 
     expect(() => BypassBlock.operations.bypass(initialParent)).toThrow(
-      /cannot publish child wrapper Message/,
+      /outside this Block's Message Schema/,
     )
   })
 })

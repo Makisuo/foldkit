@@ -10,44 +10,47 @@ import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
 // Add a field to your Model for the Dialog Block:
 const Model = Schema.Struct({
-  dialog: Dialog.Model,
+  dialog: Dialog.DialogBlock.Model,
   // ...your other fields
 })
 type Model = typeof Model.Type
 
-// Embed the Dialog Message in your parent Message and delegate to
-// the Dialog update (open from a trigger with a fact and
-// `DialogBinding.requestOpen()`, as in the basic Dialog example):
-const Message = defineMessageUnion({
-  GotDialogMessage: { message: Dialog.Message },
-})
+// This excerpt has no parent-owned facts. The Composition derives Dialog
+// delivery; open from a trigger with `DialogBinding.requestOpen()` as in the
+// basic Dialog example.
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-const foldDialogOutMessage = Dialog.OutMessage.match<
+const foldDialogOutMessage = Dialog.DialogBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
-  Opened: () => model => ({ model }),
-  Closed: () => model => ({ model }),
-  CompletedClose: () => model => ({ model }),
+  Opened: () => AnimatedDialogExampleDefinition.stepNoop(),
+  Closed: () => AnimatedDialogExampleDefinition.stepNoop(),
+  CompletedClose: () => AnimatedDialogExampleDefinition.stepNoop(),
 })
 
-const AnimatedDialogExampleDefinition = Block.define('AnimatedDialogExample', {
-  Model,
-  Message,
-})
-
-const DialogBinding = AnimatedDialogExampleDefinition.bindChild(Dialog.block, {
-  field: 'dialog',
-  parentMessage: Message.GotDialogMessage,
-  init: {
-    startupToArgs: () => Tuple.make({ id: 'confirm', isAnimated: true }),
+const AnimatedDialogExampleDefinition = Block.makeDefinition(
+  'AnimatedDialogExample',
+  {
+    Model,
+    Message,
   },
-  outMessage: { fold: foldDialogOutMessage },
-})
+)
+
+const DialogBinding = AnimatedDialogExampleDefinition.bindChild(
+  Dialog.DialogBlock,
+  {
+    field: 'dialog',
+    init: {
+      contextToArgs: () => Tuple.make({ id: 'confirm', isAnimated: true }),
+    },
+    outMessage: { fold: foldDialogOutMessage },
+  },
+)
 
 const AnimatedDialogExampleComposition =
   AnimatedDialogExampleDefinition.makeComposition({
-    childBindings: [DialogBinding],
+    bindings: [DialogBinding],
   })
 
 // In your init function, set isAnimated: true to coordinate CSS transitions:

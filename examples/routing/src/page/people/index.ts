@@ -1,6 +1,1 @@
-export { block, EffectsLayer } from './block'
-export { FetchPeople, PushSearchUrl } from './command'
-export { Message } from './message'
-export { Model, SearchResults, findPerson, searchPeople } from './model'
-export { init, update } from './update'
-export { view } from './view'
+export { PeopleBlock } from './block'

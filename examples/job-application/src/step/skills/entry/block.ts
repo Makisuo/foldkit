@@ -1,18 +1,12 @@
-import { NotValidated } from 'foldkit/fieldValidation'
-
 import { SkillsEntryComposition } from './composition'
+import { Message } from './definition'
+import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const block = SkillsEntryComposition.makeBlock({
-  init: SkillsEntryComposition.makeInit((entryId: string) => ({
-    startup: entryId,
-    model: {
-      id: entryId,
-      name: NotValidated({ value: '' }),
-      proficiency: 'Intermediate',
-    },
-  })),
+export const SkillsEntryBlock = SkillsEntryComposition.assembleBlock({
+  init,
   update,
   view,
+  operations: { requestRevealErrors: Message.RequestedRevealErrors },
 })

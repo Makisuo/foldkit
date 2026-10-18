@@ -18,10 +18,8 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// Embed the Menu Message in your parent Message:
-const Message = defineMessageUnion({
-  GotMenuMessage: { message: ActionMenu.Message },
-})
+// This excerpt has no parent-owned facts. The Composition derives delivery.
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 const actions: ReadonlyArray<Action> = [
@@ -32,35 +30,36 @@ const actions: ReadonlyArray<Action> = [
 ]
 
 // At module scope, fold the OutMessage into your own Model. `Selected` carries
-// the picked item directly (typed as `Action`). The arm returns an Update.Step
-// over the parent Model, which already has the next Menu Model written back:
+// the picked item directly (typed as `Action`), while `Closed` reports a close
+// without selection. Each arm returns an Update.Step over the parent Model,
+// which already has the next Menu Model written back:
 const foldMenuOutMessage = ActionMenu.OutMessage.match<
   Update.Step<Model, Message>
 >({
   // The child has emitted `Selected`. In this arm the parent can update
   // its own state or dispatch its own Commands, for example transition a
   // page, mutate domain state, or trigger a downstream Command.
-  Selected: () => model => ({ model }),
+  Selected: () => ActionMenuExampleDefinition.stepNoop(),
+  Closed: () => ActionMenuExampleDefinition.stepNoop(),
 })
 
 // The Binding wires the completed child Block into the parent: it runs ActionMenu.update,
-// writes the next Menu Model back, maps the Block's Commands into your
-// Message type, and hands any OutMessage to the OutMessage fold.
-const ActionMenuExampleDefinition = Block.define('ActionMenuExample', {
+// writes the next Menu Model back, routes generated delivery and Command
+// results, and hands any OutMessage to the OutMessage fold.
+const ActionMenuExampleDefinition = Block.makeDefinition('ActionMenuExample', {
   Model,
   Message,
 })
 
 const MenuBinding = ActionMenuExampleDefinition.bindChild(ActionMenu, {
   field: 'menu',
-  parentMessage: Message.GotMenuMessage,
-  init: { startupToArgs: () => Tuple.make({ id: 'actions' }) },
+  init: { contextToArgs: () => Tuple.make({ id: 'actions' }) },
   outMessage: { fold: foldMenuOutMessage },
 })
 
 const ActionMenuExampleComposition =
   ActionMenuExampleDefinition.makeComposition({
-    childBindings: [MenuBinding],
+    bindings: [MenuBinding],
   })
 
 // In your init function, initialize the Menu Block with a unique id:

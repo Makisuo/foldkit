@@ -1,23 +1,38 @@
-import { Block, Block as AliasedBlock, defineApplication } from 'foldkit'
+import {
+  Block,
+  Block as AliasedBlock,
+  makeApplicationDefinition,
+} from 'foldkit'
 import * as Foldkit from 'foldkit'
-import { define as aliasedDefine, define } from 'foldkit/block'
+import {
+  makeDefinition,
+  makeNamespace as aliasedMakeNamespace,
+} from 'foldkit/block'
 import * as BlockModule from 'foldkit/block'
 
-const WrongRoot = Block.define('Root')
-const WrongAliasedRoot = AliasedBlock.define('AliasedRoot')
-const WrongNamespaceRoot = Foldkit.Block.define('NamespaceRoot')
-const WrongSubpathDefine = define('SubpathDefine')
-const WrongAliasedSubpathDefine = aliasedDefine('AliasedSubpathDefine')
-const WrongRegistered = BlockModule.define('Registered', {
-  Model,
-  Message,
-}).makeComposition({})
-const WrongIdentityFirst = Block.define('IdentityFirst').define({
+const WrongRoot = Block.makeDefinition('Root', { Model, Message })
+const WrongAliasedRoot = AliasedBlock.makeDefinition('AliasedRoot', {
   Model,
   Message,
 })
-const WrongApplication = defineApplication({ Model, Message })
-const WrongRegisteredApplication = defineApplication({
+const WrongNamespaceRoot = Foldkit.Block.makeNamespace('NamespaceRoot')
+const WrongSubpathDefinition = makeDefinition('Subpath', {
+  Model,
+  Message,
+})
+const WrongAliasedSubpathNamespace = aliasedMakeNamespace('SubpathNamespace')
+const WrongRegistered = BlockModule.makeDefinition('Registered', {
+  Model,
+  Message,
+}).makeComposition({})
+const WrongIdentityFirst = Block.makeNamespace(
+  'IdentityFirst',
+).makeDefinition({ Model, Message })
+const WrongIdentityComposition = Block.makeNamespace('IdentityComposition')
+  .makeDefinition({ Model, Message })
+  .makeComposition({})
+const WrongApplication = makeApplicationDefinition({ Model, Message })
+const WrongRegisteredApplication = makeApplicationDefinition({
   Model,
   Message,
 }).makeComposition({})
@@ -25,16 +40,17 @@ const WrongRegisteredApplication = defineApplication({
 void WrongRoot
 void WrongAliasedRoot
 void WrongNamespaceRoot
-void WrongSubpathDefine
-void WrongAliasedSubpathDefine
+void WrongSubpathDefinition
+void WrongAliasedSubpathNamespace
 void WrongRegistered
 void WrongIdentityFirst
+void WrongIdentityComposition
 void WrongApplication
 void WrongRegisteredApplication
 
-const SeparateDefinition = Block.define('Separate', { Model, Message })
+const SeparateDefinition = Block.makeDefinition('Separate', { Model, Message })
 const WrongSeparateComposition = SeparateDefinition.makeComposition()
-const SharedDefinition = Block.define('Shared')
-const WrongShared = SharedDefinition.define({ Model, Message })
+const SharedNamespace = Block.makeNamespace('Shared')
+const WrongShared = SharedNamespace.makeDefinition({ Model, Message })
 void WrongSeparateComposition
 void WrongShared

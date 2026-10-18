@@ -1,4 +1,4 @@
-import { Context, Stream } from 'effect'
+import { Context, Option, Stream } from 'effect'
 import { afterEach, beforeEach, expect, vi } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -195,6 +195,85 @@ describe('childAttributes', () => {
     const onClick = result?.data?.on?.click as () => void
     onClick()
 
+    expect(dispatched).toEqual([
+      {
+        _tag: 'GotChild',
+        message: { _tag: 'ChildClicked' },
+      },
+    ])
+  })
+
+  it('keeps child-owned attribute producers in the Block boundary when a parent slot invokes them', () => {
+    const producerInvocations: Array<unknown> = []
+    const selection = Option.some({ label: 'checkbox' })
+    type ProducerViewInputs = Readonly<{
+      toView: (
+        attributes: {
+          checkbox: (
+            this: Readonly<{ owner: string }>,
+            label: string,
+          ) => ReadonlyArray<ChildAttribute>
+        },
+        selection: Option.Option<Readonly<{ label: string }>>,
+      ) => Html
+    }>
+
+    const producerView = defineView<object, ChildClicked, ProducerViewInputs>(
+      (_model, viewInputs, h) => {
+        const renderInfo = {
+          checkbox: function (label: string) {
+            producerInvocations.push(this, label)
+            return childAttributes([h.OnClick({ _tag: 'ChildClicked' })])
+          },
+        }
+        Object.defineProperty(renderInfo, 'metadata', {
+          value: 'preserved',
+          enumerable: false,
+          writable: false,
+        })
+
+        return viewInputs.toView(renderInfo, selection)
+      },
+    )
+
+    const result = block({
+      slotId: 'attribute-producer',
+      model: {},
+      view: producerView,
+      viewInputs: {
+        toView: (attributes, selected) => {
+          producerInvocations.push(
+            selected,
+            Option.getOrThrow(selected).label,
+            Object.getPrototypeOf(attributes),
+            Object.getOwnPropertyDescriptor(attributes, 'metadata'),
+          )
+          const hParent = __htmlBuilder<ParentDirect>()
+          return hParent.button([
+            ...attributes.checkbox.call({ owner: 'parent-slot' }, 'checkbox'),
+          ])
+        },
+      },
+      toParentMessage: message => GotChild({ message }),
+    })
+
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+    const onClick = result?.data?.on?.click as () => void
+    onClick()
+
+    expect(producerInvocations).toEqual([
+      selection,
+      'checkbox',
+      Object.prototype,
+      {
+        value: 'preserved',
+        writable: false,
+        enumerable: false,
+        configurable: false,
+      },
+      { owner: 'parent-slot' },
+      'checkbox',
+    ])
     expect(dispatched).toEqual([
       {
         _tag: 'GotChild',

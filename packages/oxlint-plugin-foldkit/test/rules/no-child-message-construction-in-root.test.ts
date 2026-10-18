@@ -24,9 +24,7 @@ describe('no-child-message-construction-in-root', () => {
 
     expect(result).toHaveLength(1)
     expect(result[0]?.diagnostic.message).toContain('Chat.Message.ClickedOpen')
-    expect(result[0]?.diagnostic.message).toContain(
-      'child.fold(model, message)',
-    )
+    expect(result[0]?.diagnostic.message).toContain('Generated child delivery')
     expect(result[0]?.diagnostic.message).toContain(
       "Block's `operations` record",
     )

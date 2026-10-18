@@ -24,10 +24,8 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// Embed the RadioGroup Message in your parent Message:
-const Message = defineMessageUnion({
-  GotPlanRadioGroupMessage: { message: PlanRadioGroup.Message },
-})
+// This excerpt has no parent-owned facts. The Composition derives delivery.
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type // ...united with your others
 
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
@@ -53,22 +51,21 @@ const foldPlanRadioGroupOutMessage = PlanRadioGroup.OutMessage.match<
 })
 
 // The Binding wires the completed child Block into the parent: it runs the child update,
-// writes the child Model back, maps the child's Commands into your Message
-// type, and hands any OutMessage to the OutMessage fold.
-const PlanPickerDefinition = Block.define('PlanPicker', {
+// writes the child Model back, routes generated delivery and Command results,
+// and hands any OutMessage to the OutMessage fold.
+const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
   Model,
   Message,
 })
 
 const PlanRadioGroupBinding = PlanPickerDefinition.bindChild(PlanRadioGroup, {
   field: 'planRadioGroup',
-  parentMessage: Message.GotPlanRadioGroupMessage,
-  init: { startupToArgs: () => Tuple.make({ id: 'plan' }) },
+  init: { contextToArgs: () => Tuple.make({ id: 'plan' }) },
   outMessage: { fold: foldPlanRadioGroupOutMessage },
 })
 
 const PlanPickerComposition = PlanPickerDefinition.makeComposition({
-  childBindings: [PlanRadioGroupBinding],
+  bindings: [PlanRadioGroupBinding],
 })
 
 // In your init function, initialize the RadioGroup Block with a unique

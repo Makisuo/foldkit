@@ -94,7 +94,7 @@ export type ViewConfig<Message> = Readonly<{
  *  }),
  *  ``` */
 export const view = <Message>(
-  config: ViewConfig<Message>,
+  config: ViewConfig<NoInfer<Message>>,
   h: HtmlBuilder<Message>,
 ): Html => {
   const {

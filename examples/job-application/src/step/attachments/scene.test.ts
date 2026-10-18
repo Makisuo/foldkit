@@ -9,7 +9,7 @@ describe('attachments', () => {
   test('renders the resume and additional-files drop zones', () => {
     scene(
       { update, view },
-      given(init()),
+      given(init().model),
       expect(role('heading', { name: 'Resume (PDF)' })).toExist(),
       expect(text('Drop your resume or click to upload')).toExist(),
       expect(

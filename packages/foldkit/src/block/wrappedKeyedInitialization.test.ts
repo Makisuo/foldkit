@@ -1,10 +1,10 @@
-import { Array, Effect, Layer, Option, Predicate, Schema, Tuple } from 'effect'
+import { Array, Effect, Layer, Predicate, Schema, Tuple } from 'effect'
 import { expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import { registerBinding, runtimeBindingOf } from './composition.js'
-import { define } from './define.js'
+import { makeDefinition } from './define.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 type ChildModel = typeof ChildModel.Type
@@ -15,7 +15,7 @@ const ChildMessage = defineMessageUnion({
   CompletedIncrement: {},
 })
 
-const Child = define('WrappedInitializationChild', {
+const Child = makeDefinition('WrappedInitializationChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
@@ -41,7 +41,7 @@ const single = (value: number): [number] => [value]
 
 const initCalls: globalThis.Array<number> = []
 const ChildComposition = Child.makeComposition()
-const ChildBlock = ChildComposition.makeBlock({
+const ChildBlock = ChildComposition.assembleBlock({
   init: ChildComposition.makeInit((count: number) => {
     initCalls.push(count)
     return {
@@ -78,10 +78,9 @@ const ParentModel = Schema.Struct({
 type ParentModel = typeof ParentModel.Type
 
 const ParentMessage = defineMessageUnion({
-  GotChildMessage: { id: Schema.String, message: ChildMessage },
   CompletedParentInitialization: {},
 })
-const Parent = define('WrappedInitializationParent', {
+const Parent = makeDefinition('WrappedInitializationParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -92,7 +91,7 @@ const FinishParentInitialization = Parent.command('FinishInitialization', {
   },
 })
 
-type Startup = Readonly<{
+type ChildInitContext = Readonly<{
   firstCount: number
   secondCount: number
 }>
@@ -101,16 +100,10 @@ const EntriesBinding = Parent.bindChild(ChildBlock, {
   field: 'entries',
   key: 'id',
   childField: 'child',
-  toParentMessage: (id, message) =>
-    ParentMessage.GotChildMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: ParentMessage.GotChildMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
   init: {
-    occurrences: (startup: Startup) => [
-      { key: 'first', args: single(startup.firstCount) },
-      { key: 'second', args: single(startup.secondCount) },
+    instances: (childInitContext: ChildInitContext) => [
+      { key: 'first', args: single(childInitContext.firstCount) },
+      { key: 'second', args: single(childInitContext.secondCount) },
     ],
     toItem: ({ key }, child) => ({
       id: key,
@@ -120,19 +113,21 @@ const EntriesBinding = Parent.bindChild(ChildBlock, {
   },
 })
 const ParentComposition = Parent.makeComposition({
-  childBindings: [EntriesBinding],
+  bindings: [EntriesBinding],
 })
 
 it('initializes occurrences in order and orders own, child, then Step Commands', () => {
   const markStepped = Parent.step(model => ({
     model: modifyFields(model, { status: () => 'Stepped' }),
   }))
-  const initialize = ParentComposition.makeInit((startup: Startup) => ({
-    startup,
-    model: { status: 'Ready' },
-    commands: [FinishParentInitialization()],
-    steps: [EntriesBinding.increment('first'), markStepped],
-  }))
+  const initialize = ParentComposition.makeInit(
+    (childInitContext: ChildInitContext) => ({
+      childInitContext,
+      model: { status: 'Ready' },
+      commands: [FinishParentInitialization()],
+      steps: [EntriesBinding.increment('first'), markStepped],
+    }),
+  )
 
   initCalls.splice(0)
   const initialized = initialize({ firstCount: 1, secondCount: 2 })
@@ -148,9 +143,9 @@ it('initializes occurrences in order and orders own, child, then Step Commands',
   })
   expect(initialized.commands?.map(command => command.name)).toEqual([
     'WrappedInitializationParent/FinishInitialization',
-    'entries["first"]/FinishInitialization',
-    'entries["second"]/FinishInitialization',
-    'entries["first"]/FinishIncrement',
+    'WrappedInitializationChild["first"]/FinishInitialization',
+    'WrappedInitializationChild["second"]/FinishInitialization',
+    'WrappedInitializationChild["first"]/FinishIncrement',
   ])
 })
 
@@ -160,12 +155,11 @@ const KeyedChildModel = Schema.Struct({
 })
 type KeyedChildModel = typeof KeyedChildModel.Type
 
-const KeyedChild = define('KeyedInitializationChild', {
+const KeyedChildComposition = makeDefinition('KeyedInitializationChild', {
   Model: KeyedChildModel,
   Message: ChildMessage,
-})
-const KeyedChildComposition = KeyedChild.makeComposition()
-const KeyedChildBlock = KeyedChildComposition.makeBlock({
+}).makeComposition()
+const KeyedChildBlock = KeyedChildComposition.assembleBlock({
   init: KeyedChildComposition.makeInit((id: string, count: number) => ({
     model: KeyedChildModel.make({ id, count }),
   })),
@@ -175,7 +169,7 @@ const KeyedParentModel = Schema.Struct({
   entries: Schema.Array(KeyedChildModel),
   status: Schema.Literal('Ready'),
 })
-const KeyedParent = define('KeyedInitializationParent', {
+const KeyedParent = makeDefinition('KeyedInitializationParent', {
   Model: KeyedParentModel,
   Message: ParentMessage,
 })
@@ -189,22 +183,14 @@ const initializeKeyedParent = (
   const binding = KeyedParent.bindChild(KeyedChildBlock, {
     field: 'entries',
     key: 'id',
-    toParentMessage: (id, message) =>
-      ParentMessage.GotChildMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotChildMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
     init: {
-      occurrences: (count: number) => [
-        { key: 'first', args: ['first', count] },
-      ],
+      instances: (count: number) => [{ key: 'first', args: ['first', count] }],
       toItem,
     },
   })
-  const composition = KeyedParent.makeComposition({ childBindings: [binding] })
+  const composition = KeyedParent.makeComposition({ bindings: [binding] })
   const initialize = composition.makeInit((count: number) => ({
-    startup: count,
+    childInitContext: count,
     model: { status: 'Ready' },
   }))
 
@@ -257,7 +243,7 @@ it('drops an original init Command when a Step removes its key before another St
     }),
   }))
   const initialize = ParentComposition.makeInit(() => ({
-    startup: { firstCount: 1, secondCount: 2 },
+    childInitContext: { firstCount: 1, secondCount: 2 },
     model: { status: 'Ready' },
     steps: [removeFirst, readdFirst],
   }))
@@ -269,12 +255,12 @@ it('drops an original init Command when a Step removes its key before another St
     { id: 'first', child: { count: 999 }, label: 'Replacement' },
   ])
   expect(initialized.commands?.map(command => command.name)).toEqual([
-    'entries["second"]/FinishInitialization',
+    'WrappedInitializationChild["second"]/FinishInitialization',
   ])
 })
 
 const makeRuntimeComposition = (init: object) => {
-  const RuntimeParent = define('WrappedInitializationRuntimeParent', {
+  const RuntimeParent = makeDefinition('WrappedInitializationRuntimeParent', {
     Model: ParentModel,
     Message: ParentMessage,
   })
@@ -284,21 +270,12 @@ const makeRuntimeComposition = (init: object) => {
       field: 'entries',
       key: 'id',
       childField: 'child',
-      toParentMessage: (id: string, message: typeof ChildMessage.Type) =>
-        ParentMessage.GotChildMessage({ id, message }),
-      fromParentMessage: {
-        parentMessage: ParentMessage.GotChildMessage,
-        args: (
-          _model: unknown,
-          { id, message }: typeof ParentMessage.GotChildMessage.Type,
-        ) => Option.some([id, message]),
-      },
       init,
     },
   ])
 
   return Reflect.apply(RuntimeParent.makeComposition, undefined, [
-    { childBindings: [binding] },
+    { bindings: [binding] },
   ])
 }
 
@@ -332,7 +309,7 @@ it('preflights every occurrence before calling child init', () => {
   ]) {
     initCalls.splice(0)
     const composition = makeRuntimeComposition({
-      occurrences,
+      instances: occurrences,
       toItem: ({ key }: { key: string }, child: ChildModel) =>
         Entry.make({ id: key, child, label: key }),
     })
@@ -350,20 +327,15 @@ it('preflights every Binding selector before calling any child init', () => {
     entries: Schema.Array(Entry),
     status: Schema.Literal('Ready'),
   })
-  const AllPlansParent = define('WrappedInitializationAllPlansParent', {
+  const AllPlansParent = makeDefinition('WrappedInitializationAllPlansParent', {
     Model: AllPlansModel,
-    Message: defineMessageUnion({
-      GotChildMessage: { id: Schema.String, message: ChildMessage },
-      GotDirectMessage: { message: ChildMessage },
-    }),
+    Message: Schema.Never,
   })
-  const AllPlansMessage = AllPlansParent.Message
   const directBinding = Reflect.apply(AllPlansParent.bindChild, undefined, [
     ChildBlock,
     {
       field: 'direct',
-      parentMessage: AllPlansMessage.GotDirectMessage,
-      init: { startupToArgs: () => single(9) },
+      init: { contextToArgs: () => single(9) },
     },
   ])
   const keyedBinding = Reflect.apply(AllPlansParent.bindChild, undefined, [
@@ -372,24 +344,15 @@ it('preflights every Binding selector before calling any child init', () => {
       field: 'entries',
       key: 'id',
       childField: 'child',
-      toParentMessage: (id: string, message: typeof ChildMessage.Type) =>
-        AllPlansMessage.GotChildMessage({ id, message }),
-      fromParentMessage: {
-        parentMessage: AllPlansMessage.GotChildMessage,
-        args: (
-          _model: unknown,
-          { id, message }: typeof AllPlansMessage.GotChildMessage.Type,
-        ) => Option.some([id, message]),
-      },
       init: {
-        occurrences: () => [{ key: 'invalid' }],
+        instances: () => [{ key: 'invalid' }],
         toItem: ({ key }: { key: string }, child: ChildModel) =>
           Entry.make({ id: key, child, label: key }),
       },
     },
   ])
   const composition = Reflect.apply(AllPlansParent.makeComposition, undefined, [
-    { childBindings: [directBinding, keyedBinding] },
+    { bindings: [directBinding, keyedBinding] },
   ])
   const initAuthor = Reflect.get(composition, 'makeInit')
   if (!Predicate.isFunction(initAuthor)) {
@@ -411,7 +374,7 @@ it('preflights every Binding selector before calling any child init', () => {
 
 it('rejects wrappers that change a planned key', () => {
   const composition = makeRuntimeComposition({
-    occurrences: () => [{ key: 'planned', args: single(1) }],
+    instances: () => [{ key: 'planned', args: single(1) }],
     toItem: (_occurrence: unknown, child: ChildModel) =>
       Entry.make({ id: 'changed', child, label: 'Changed' }),
   })
@@ -425,7 +388,7 @@ it('rejects wrappers that change a planned key', () => {
 
 it('rejects wrappers that replace the initialized child', () => {
   const composition = makeRuntimeComposition({
-    occurrences: () => [{ key: 'planned', args: single(1) }],
+    instances: () => [{ key: 'planned', args: single(1) }],
     toItem: ({ key }: { key: string }) =>
       Entry.make({
         id: key,
@@ -448,14 +411,8 @@ it('remains passive and creates fresh wrappers on every invocation', () => {
     key: 'id',
     childField: 'child',
     placement: 'freshEntries',
-    toParentMessage: (id, message) =>
-      ParentMessage.GotChildMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotChildMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
     init: {
-      occurrences: () => {
+      instances: () => {
         occurrenceCalls.count += 1
         return Array.makeBy(2, index => ({
           key: `entry-${index}`,
@@ -466,7 +423,7 @@ it('remains passive and creates fresh wrappers on every invocation', () => {
     },
   })
   const FreshComposition = Parent.makeComposition({
-    childBindings: [FreshBinding],
+    bindings: [FreshBinding],
   })
   const initialize = FreshComposition.makeInit(() => ({
     model: { status: 'Ready' },
@@ -488,14 +445,8 @@ it('selects one large wrapped keyed field once in each validation and survival p
     key: 'id',
     childField: 'child',
     placement: 'scalingEntries',
-    toParentMessage: (id, message) =>
-      ParentMessage.GotChildMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotChildMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
     init: {
-      occurrences: () =>
+      instances: () =>
         Array.makeBy(occurrenceCount, index => ({
           key: `entry-${index}`,
           args: single(index),
@@ -513,7 +464,7 @@ it('selects one large wrapped keyed field once in each validation and survival p
     },
   })
   const ScalingComposition = Parent.makeComposition({
-    childBindings: [ScalingBinding],
+    bindings: [ScalingBinding],
   })
   const retainEntries = Parent.step(model => ({ model }))
   const initialize = ScalingComposition.makeInit(() => ({
@@ -545,19 +496,8 @@ if (false) {
     // @ts-expect-error Wrapped occurrence args must match child init exactly.
     childField: 'child',
     // @ts-expect-error Wrapped occurrence args must match child init exactly.
-    toParentMessage: (id: string, message: typeof ChildMessage.Type) =>
-      ParentMessage.GotChildMessage({ id, message }),
-    // @ts-expect-error Wrapped occurrence args must match child init exactly.
-    fromParentMessage: {
-      parentMessage: ParentMessage.GotChildMessage,
-      args: (
-        _model: ParentModel,
-        { id, message }: typeof ParentMessage.GotChildMessage.Type,
-      ) => Option.some([id, message]),
-    },
-    // @ts-expect-error Wrapped occurrence args must match child init exactly.
     init: {
-      occurrences: () => [{ key: 'invalid', args: ['invalid'] }],
+      instances: () => [{ key: 'invalid', args: ['invalid'] }],
       toItem: ({ key }: { key: string }, child: ChildModel) =>
         Entry.make({ id: key, child, label: key }),
     },

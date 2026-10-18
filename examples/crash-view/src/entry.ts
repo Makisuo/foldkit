@@ -3,14 +3,13 @@ import { Runtime } from 'foldkit'
 
 import {
   ApplicationComposition,
-  Message,
   crashView,
   init,
   update,
   view,
 } from './application'
 
-const application = ApplicationComposition.makeApplication({
+const application = ApplicationComposition.assembleApplication({
   init,
   update,
   view,
@@ -25,7 +24,7 @@ const application = ApplicationComposition.makeApplication({
       })
     },
   },
-  devTools: { Message },
+  devTools: { Message: ApplicationComposition.Message },
 })
 
 Runtime.run(application)

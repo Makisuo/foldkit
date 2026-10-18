@@ -5,7 +5,7 @@ import { UiComposition } from './composition'
 import {
   type VirtualListChatMessage,
   VirtualListChatStartProximity,
-} from './model'
+} from './domain/domain'
 
 const chatBodies = [
   'Can you review the latest build?',
@@ -27,7 +27,7 @@ const initialVirtualListChatMessages: ReadonlyArray<VirtualListChatMessage> =
   }))
 
 export const init = UiComposition.makeInit((today: Calendar.CalendarDate) => ({
-  startup: today,
+  childInitContext: today,
   model: {
     buttonClickCount: 0,
     inputDemoValue: '',

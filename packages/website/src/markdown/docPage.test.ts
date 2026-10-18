@@ -245,6 +245,33 @@ describe('faq island registration', () => {
 // module never declared.
 const DEMO_ISLAND_PATTERN = /::Demo\{name="([^"]+)"\}/g
 
+const demoDeclarationSource = (pagePath: string, pageSource: string): string =>
+  Option.match(
+    Array.head(
+      capturedNames(
+        pageSource,
+        /import\s*\{\s*(\w+PageContent)\s*\}\s*from ['"]\.\/content['"]/g,
+      ),
+    ),
+    {
+      onNone: () => pageSource,
+      onSome: contentName => {
+        const contentPath = pagePath.replace(/[^/]+$/, 'content.ts')
+        const contentSource = pageSources[contentPath]
+
+        expect(
+          contentSource,
+          `no content module at ${contentPath}`,
+        ).toBeDefined()
+
+        return Array.findFirst(
+          globalThis.String(contentSource).split('export const '),
+          declaration => declaration.startsWith(`${contentName} =`),
+        ).pipe(Option.getOrThrow)
+      },
+    },
+  )
+
 describe('demo island registration', () => {
   const demoUsages = Array.filterMap(
     Object.entries(markdownSources),
@@ -274,8 +301,13 @@ describe('demo island registration', () => {
 
       expect(pageSource, `no page module at ${pagePath}`).toBeDefined()
 
+      const declarationSource = demoDeclarationSource(
+        pagePath,
+        globalThis.String(pageSource),
+      )
+
       for (const name of names) {
-        expect(globalThis.String(pageSource)).toContain(`'${name}'`)
+        expect(declarationSource).toContain(`'${name}'`)
       }
     },
   )

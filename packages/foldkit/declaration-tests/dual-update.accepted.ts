@@ -1,7 +1,7 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect'
 import {
   type Application as ApplicationProgram,
-  define as defineApplication,
+  makeDefinition as makeApplicationDefinition,
 } from 'foldkit/application'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
@@ -38,7 +38,7 @@ const OutMessage = defineMessageUnion({
 type OutMessage = typeof OutMessage.Type
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const CounterDefinition = Block.define('DualUpdatePrototypeCounter', {
+const CounterDefinition = Block.makeDefinition('DualUpdatePrototypeCounter', {
   Model,
   Message,
   OutMessage,
@@ -111,7 +111,7 @@ type CurriedStepReturn = Expect<
   Equal<ReturnType<typeof changedCountStep>, ReturnType<typeof update>>
 >
 
-const CounterBlock = CounterComposition.makeBlock({
+const CounterBlock = CounterComposition.assembleBlock({
   init: CounterComposition.makeInit(() => ({
     model: Model.make({ count: 0 }),
   })),
@@ -119,7 +119,7 @@ const CounterBlock = CounterComposition.makeBlock({
   EffectsLayer: SaveLayer,
 })
 const plainUpdate = (model: Model, _message: Message) => ({ model })
-const PlainUpdateBlock = CounterComposition.makeBlock({
+const PlainUpdateBlock = CounterComposition.assembleBlock({
   init: CounterComposition.makeInit(() => ({
     model: Model.make({ count: 0 }),
   })),
@@ -144,7 +144,7 @@ function handAuthoredDualUpdate(
 
   return (model: Model) => ({ model, audit: 'preserved' })
 }
-const HandAuthoredDualBlock = CounterComposition.makeBlock({
+const HandAuthoredDualBlock = CounterComposition.assembleBlock({
   init: CounterComposition.makeInit(() => ({
     model: Model.make({ count: 0 }),
   })),
@@ -202,7 +202,7 @@ const fullChannelUpdate = CounterComposition.makeUpdate(
     outMessage: OutMessage.ReportedCount({ count: model.count }),
   }),
 )
-const FullChannelBlock = CounterComposition.makeBlock({
+const FullChannelBlock = CounterComposition.assembleBlock({
   init: CounterComposition.makeInit(() => ({
     model: Model.make({ count: 0 }),
   })),
@@ -236,15 +236,15 @@ type FullChannelReturn = Expect<
 >
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const ContextualCounterDefinition = Block.define(
+
+// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
+const ContextualComposition = Block.makeDefinition(
   'DualUpdatePrototypeContextualCounter',
   {
     Model,
     Message,
   },
-)
-// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const ContextualComposition = ContextualCounterDefinition.makeComposition()
+).makeComposition()
 
 const requiredContextUpdate = ContextualComposition.makeUpdate(
   (model, message, context: DispatchContext) => ({
@@ -328,7 +328,7 @@ requiredRestContextUpdate(changedCount)(Model.make({ count: 0 }), {
   multiplier: 2,
 })
 
-const RequiredRestBlock = ContextualComposition.makeBlock({
+const RequiredRestBlock = ContextualComposition.assembleBlock({
   init: ContextualComposition.makeInit(() => ({
     model: Model.make({ count: 0 }),
   })),
@@ -336,11 +336,10 @@ const RequiredRestBlock = ContextualComposition.makeBlock({
 })
 const RequiredRestParentModel = Schema.Struct({ child: Model })
 const RequiredRestParentMessage = defineMessageUnion({
-  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture deliberately probes reserved Got* routing with a nonstandard payload.
-  GotChildMessage: { message: Message },
+  ClickedParent: {},
 })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const RequiredRestParentDefinition = Block.define(
+const RequiredRestParentDefinition = Block.makeDefinition(
   'DualUpdateRequiredRestParent',
   {
     Model: RequiredRestParentModel,
@@ -353,13 +352,13 @@ const ChildMessage = defineMessageUnion({
   ChangedCount: { amount: Schema.Number },
 })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const ChildDefinition = Block.define('DualUpdatePrototypeChild', {
+
+// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
+const ChildComposition = Block.makeDefinition('DualUpdatePrototypeChild', {
   Model: ChildModel,
   Message: ChildMessage,
-})
-// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const ChildComposition = ChildDefinition.makeComposition()
-const ChildBlock = ChildComposition.makeBlock({
+}).makeComposition()
+const ChildBlock = ChildComposition.assembleBlock({
   init: ChildComposition.makeInit(() => ({
     model: ChildModel.make({ count: 0 }),
   })),
@@ -376,8 +375,6 @@ const GraphFullModel = Schema.Struct({
 })
 type GraphFullModel = typeof GraphFullModel.Type
 const GraphFullMessage = defineMessageUnion({
-  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture deliberately probes reserved Got* routing with a nonstandard payload.
-  GotChildMessage: { message: ChildMessage },
   ChangedCount: { amount: Schema.Number },
   CompletedSave: {},
 })
@@ -387,7 +384,7 @@ const GraphFullOutMessage = defineMessageUnion({
 })
 type GraphFullOutMessage = typeof GraphFullOutMessage.Type
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const GraphFullDefinition = Block.define('DualUpdateGraphFull', {
+const GraphFullDefinition = Block.makeDefinition('DualUpdateGraphFull', {
   Model: GraphFullModel,
   Message: GraphFullMessage,
   OutMessage: GraphFullOutMessage,
@@ -410,11 +407,10 @@ const GraphFullSaveLayer = GraphFullSave.toLayer<
 )
 const GraphFullChildBinding = GraphFullDefinition.bindChild(ChildBlock, {
   field: 'child',
-  parentMessage: GraphFullMessage.GotChildMessage,
 })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 const GraphFullComposition = GraphFullDefinition.makeComposition({
-  childBindings: [GraphFullChildBinding],
+  bindings: [GraphFullChildBinding],
 })
 const graphFullUpdate = GraphFullComposition.makeUpdate(
   (model, message, context: DispatchContext) => {
@@ -432,7 +428,7 @@ const graphFullUpdate = GraphFullComposition.makeUpdate(
     }
   },
 )
-const GraphFullBlock = GraphFullComposition.makeBlock({
+const GraphFullBlock = GraphFullComposition.assembleBlock({
   init: GraphFullComposition.makeInit(() => ({
     model: { count: 0 },
   })),
@@ -457,7 +453,11 @@ type GraphFullCompletedRegistration = Expect<
 type GraphFullParameters = Expect<
   Equal<
     Parameters<typeof GraphFullBlock.update>,
-    [model: GraphFullModel, message: GraphFullMessage, context: DispatchContext]
+    [
+      model: GraphFullModel,
+      message: typeof GraphFullComposition.Message.Type,
+      context: DispatchContext,
+    ]
   >
 >
 type GraphFullStepParameters = Expect<
@@ -471,7 +471,7 @@ type GraphFullReturn = Expect<
     ReturnType<typeof GraphFullBlock.update>,
     Update.ReturnWithOutMessage<
       GraphFullModel,
-      GraphFullMessage,
+      typeof GraphFullComposition.Message.Type,
       GraphFullOutMessage,
       Command.HandlerOf<typeof GraphFullSave>
     >
@@ -490,23 +490,20 @@ type GraphFullConstructorService = Expect<
 const ParentModel = Schema.Struct({ child: ChildModel, updates: Schema.Number })
 type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
-  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture deliberately probes reserved Got* routing with a nonstandard payload.
-  GotChildMessage: { message: ChildMessage },
   ChangedLabel: { label: Schema.Literals(['Primary', 'Secondary']) },
 })
 type ParentMessage = typeof ParentMessage.Type
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const ParentDefinition = Block.define('DualUpdatePrototypeParent', {
+const ParentDefinition = Block.makeDefinition('DualUpdatePrototypeParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
 const ChildBinding = ParentDefinition.bindChild(ChildBlock, {
   field: 'child',
-  parentMessage: ParentMessage.GotChildMessage,
 })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 const ParentComposition = ParentDefinition.makeComposition({
-  childBindings: [ChildBinding],
+  bindings: [ChildBinding],
 })
 const parentUpdate = ParentComposition.makeUpdate((model, message) => {
   type RefinedMessage = Expect<
@@ -521,9 +518,7 @@ const parentModel = ParentModel.make({
   child: ChildModel.make({ count: 0 }),
   updates: 0,
 })
-const parentMessage = ParentMessage.GotChildMessage({
-  message: ChildMessage.ChangedCount({ amount: 4 }),
-})
+const parentMessage = ParentMessage.ChangedLabel({ label: 'Primary' })
 const countParentUpdate = ParentDefinition.step(model => ({
   model: modifyFields(model, { updates: updates => updates + 1 }),
 }))
@@ -533,7 +528,7 @@ const graphCombined = Update.combine(parentModel, [
   countParentUpdate,
 ])
 
-const ParentBlock = ParentComposition.makeBlock({
+const ParentBlock = ParentComposition.assembleBlock({
   init: ParentComposition.makeInit(() => ({ model: { updates: 0 } })),
   update: parentUpdate,
 })
@@ -546,7 +541,7 @@ const completedGraphCombined = Update.combine(parentModel, [
 type CompletedParentParameters = Expect<
   Equal<
     Parameters<typeof ParentBlock.update>,
-    [model: ParentModel, message: ParentMessage]
+    [model: ParentModel, message: typeof ParentComposition.Message.Type]
   >
 >
 type CompletedParentStepParameters = Expect<
@@ -573,7 +568,7 @@ type GraphCombinedRegistration = Expect<
 >
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const RootApplicationDefinition = defineApplication({ Model, Message })
+const RootApplicationDefinition = makeApplicationDefinition({ Model, Message })
 const Persist = RootApplicationDefinition.command('Persist', {
   messages: [Message.CompletedSave],
 })
@@ -603,7 +598,7 @@ const rootView = RootComposition.makeView((model, h) => ({
   body: h.empty,
 }))
 const makePendingApplication = () =>
-  RootComposition.makeApplication({
+  RootComposition.assembleApplication({
     container: document.body,
     init: rootInit,
     update: rootUpdate,

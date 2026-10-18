@@ -36,7 +36,7 @@ Return Commands beside the next Model from the Message branch that requests the 
 
 `ClickedIncrement` changes the count and asks the runtime to persist it. `CompletedPersistCount` records that the Command finished, but it has no more work to request, so that branch omits `commands`.
 
-`FeatureComposition.makeUpdate` authors a Block's update and infers the handler services required by the Commands across all parent-owned branches. Registered Bindings route their claimed wrapper Messages before this callback runs.
+`FeatureComposition.makeUpdate` authors a Block's update and infers the handler services required by the Commands across all parent-owned branches. Registered Bindings route their generated child envelopes before this callback runs.
 
 ### Calling update as a Step
 
@@ -46,7 +46,7 @@ Use the curried form for internal Step composition. A Block's `operations` recor
 
 ::Snippet{name="updateCurriedStep" label="Declaring a Message-producing operation"}
 
-A constructor-backed operation takes one constructor payload object for a constructor with fields, with constructor defaults honored, followed by the update context. An empty-fields constructor takes no payload placeholder. Use a tuple producer under `operations` when the public inputs need mapping, refinement, defaults, or an exact context tuple. Inline tuple producers receive context from `makeBlock`; use `Tuple.make(Message.Fact(...), ...context)` when extracting one so TypeScript preserves the tuple. Both forms complete through the same update path and use the update function's complete return contract, including its Command requirements and OutMessage type, even when the selected Message branch returns less. Calling a pure operation does not run effects returned by another branch. Keep standalone and Definition-owned Steps for internal composition that does not form part of the Block's public operation API.
+A constructor-backed operation takes one constructor payload object for a constructor with fields, with constructor defaults honored, followed by the update context. An empty-fields constructor takes no payload placeholder. Use a tuple producer under `operations` when the public inputs need mapping, refinement, defaults, or an exact context tuple. Inline tuple producers receive context from `assembleBlock`; use `Tuple.make(Message.Fact(...), ...context)` when extracting one so TypeScript preserves the tuple. Both forms complete through the same update path and use the update function's complete return contract, including its Command requirements and OutMessage type, even when the selected Message branch returns less. Calling a pure operation does not run effects returned by another branch. Keep standalone and Definition-owned Steps for internal composition that does not form part of the Block's public operation API.
 
 The context rule is exact: `update(message)(model, ...context)`. `Update.combine` accepts unary Steps, so an update with required dispatch context needs an explicit unary adapter that supplies that context:
 

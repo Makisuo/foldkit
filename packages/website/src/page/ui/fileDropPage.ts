@@ -1,14 +1,10 @@
 import { type CodeBlock } from '../../component'
-import { slotDocPage } from '../../markdown'
 import { type RenderHeadingLink, demoContainer } from '../../prose'
 import { UiComposition } from './composition'
+import { FileDropPageContent } from './content'
 import * as FileDrop from './demo/fileDrop'
-import raw from './fileDropPage.md'
 
-const { tableOfContents, view: renderPage } = slotDocPage<'basic'>(
-  raw,
-  'ui/file-drop',
-)
+const { tableOfContents, view: renderPage } = FileDropPageContent
 
 export { tableOfContents }
 

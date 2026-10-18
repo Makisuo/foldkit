@@ -1,17 +1,22 @@
-import { LoggedOutDefinition } from './definition'
-import { Message, OutMessage } from './message'
-import * as Login from './page/login'
+import type { Block } from 'foldkit'
 
-export const LoginBinding = LoggedOutDefinition.bindChild(Login.block, {
+import { LoggedOutDefinition } from './definition'
+import { OutMessage } from './message'
+import { LoginBlock } from './page/login'
+
+export const LoginBinding = LoggedOutDefinition.bindChild(LoginBlock, {
   field: 'loginModel',
-  parentMessage: Message.GotLoginMessage,
+  init: { contextToArgs: () => [] },
   outMessage: {
-    forward: Login.OutMessage.match<OutMessage>({
+    forward: LoginBlock.OutMessage.match<OutMessage>({
       SucceededLogin: ({ session }) => OutMessage.SucceededLogin({ session }),
     }),
   },
 })
 
 export const LoggedOutComposition = LoggedOutDefinition.makeComposition({
-  childBindings: [LoginBinding],
+  bindings: [LoginBinding],
 })
+export type LoggedOutViewBuilder = Block.ViewBuilderFor<
+  typeof LoggedOutComposition
+>

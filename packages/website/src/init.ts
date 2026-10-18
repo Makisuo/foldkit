@@ -43,7 +43,7 @@ export const init = ApplicationComposition.makeInit(
     const systemTheme: ResolvedTheme = 'Light'
 
     return {
-      startup: { route, today: flags.today },
+      childInitContext: { route, today: flags.today },
       model: {
         route,
         url,

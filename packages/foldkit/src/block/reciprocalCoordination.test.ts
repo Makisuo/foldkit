@@ -24,7 +24,7 @@ const HomeMessage = defineMessageUnion({
 const HomeOutMessage = defineMessageUnion({
   JoinedRoom: { roomId: Schema.String, username: Schema.String },
 })
-const Home = Block.define('Home', {
+const Home = Block.makeDefinition('Home', {
   Model: HomeModel,
   Message: HomeMessage,
   OutMessage: HomeOutMessage,
@@ -49,7 +49,7 @@ const requestJoin = Home.step((model, roomId: string, username: string) => ({
   model,
   outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
 }))
-const HomeBlock = HomeComposition.makeBlock({
+const HomeBlock = HomeComposition.assembleBlock({
   init: HomeComposition.makeInit(() => ({
     model: HomeModel.make({ username: '', resetCount: 0 }),
   })),
@@ -83,7 +83,7 @@ const RoomMessage = defineMessageUnion({
 const RoomOutMessage = defineMessageUnion({
   LeftRoom: { roomId: Schema.String },
 })
-const Room = Block.define('Room', {
+const Room = Block.makeDefinition('Room', {
   Model: RoomModel,
   Message: RoomMessage,
   OutMessage: RoomOutMessage,
@@ -94,7 +94,7 @@ const informJoined = Room.step(
     model: modifyFields(model, { maybeUsername: () => Option.some(username) }),
   }),
 )
-const RoomBlock = RoomComposition.makeBlock({
+const RoomBlock = RoomComposition.assembleBlock({
   init: RoomComposition.makeInit(() => ({
     model: RoomModel.make({ maybeUsername: Option.none() }),
   })),
@@ -128,13 +128,14 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 const Message = defineMessageUnion({
-  GotHomeMessage: { message: HomeMessage },
-  GotRoomMessage: { roomId: Schema.String, message: RoomMessage },
   RequestedJoin: { roomId: Schema.String, username: Schema.String },
   RequestedResetJoinForm: { username: Schema.String },
 })
 type Message = typeof Message.Type
-const Application = Block.define('ReciprocalApplication', { Model, Message })
+const Application = Block.makeDefinition('ReciprocalApplication', {
+  Model,
+  Message,
+})
 
 const foldRoomOutMessage = (
   _roomId: string,
@@ -180,7 +181,6 @@ const foldHomeOutMessage = (outMessage: typeof HomeOutMessage.Type) =>
 const HomeBinding = Application.bindChild(HomeBlock, {
   field: 'home',
   presentWhen: model => model.route._tag === 'Home',
-  parentMessage: Message.GotHomeMessage,
   init: false,
   outMessage: {
     fold: foldHomeOutMessage,
@@ -199,14 +199,11 @@ const RoomBinding = Application.bindChild(RoomBlock, {
           : instance,
       ),
     }),
-  toParentMessage: (roomId, message) =>
-    Message.GotRoomMessage({ roomId, message }),
-  fromParentMessage: {
-    parentMessage: Message.GotRoomMessage,
-    args: (model, { roomId, message }) =>
-      model.route._tag === 'Room' && model.route.roomId === roomId
-        ? Option.some([roomId, message, { roomId }])
-        : Option.none(),
+  keySchema: Schema.String,
+  delivery: {
+    when: (model, roomId) =>
+      model.route._tag === 'Room' && model.route.roomId === roomId,
+    toUpdateContext: (_model, roomId) => [{ roomId }],
   },
   outMessage: {
     fold: foldRoomOutMessage,
@@ -214,7 +211,7 @@ const RoomBinding = Application.bindChild(RoomBlock, {
 })
 
 const ApplicationComposition = Application.makeComposition({
-  childBindings: [HomeBinding, RoomBinding],
+  bindings: [HomeBinding, RoomBinding],
 })
 const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
@@ -237,7 +234,7 @@ const erasedDirectHomeRequest: (
   model: Parameters<typeof directHomeRequest>[0],
 ) => Update.ResultRecipe<
   Model,
-  Message,
+  Parameters<typeof update>[1],
   never,
   Update.RequirementsOf<typeof directHomeRequest>,
   Block.RequirementOfBinding<typeof HomeBinding>
@@ -247,7 +244,7 @@ const widenedDirectHomeRequest: (
   model: Parameters<typeof directHomeRequest>[0],
 ) => Update.ResultRecipe<
   Model,
-  Message,
+  Parameters<typeof update>[1],
   never,
   Update.RequirementsOf<typeof directHomeRequest>,
   unknown
@@ -260,7 +257,7 @@ ApplicationComposition.makeInit(() => ({
 }))
 
 void erasedDirectHomeRequest
-const ApplicationBlock = ApplicationComposition.makeBlock({
+const ApplicationBlock = ApplicationComposition.assembleBlock({
   init: ApplicationComposition.makeInit(() => ({ model: makeInitialModel() })),
   update,
   operations: {
@@ -271,23 +268,23 @@ const ApplicationBlock = ApplicationComposition.makeBlock({
   },
 })
 const joinRoom = (model: typeof Model.Type) =>
-  update(
-    model,
-    Message.GotHomeMessage({
-      message: HomeMessage.SucceededJoinRoom({
-        roomId: 'room-a',
-        username: 'Devin',
-      }),
+  update(model, {
+    _tag: 'GotHomeMessage',
+    placement: 'home',
+    generation: 0,
+    message: HomeMessage.SucceededJoinRoom({
+      roomId: 'room-a',
+      username: 'Devin',
     }),
-  )
+  })
 const leaveRoom = (model: typeof Model.Type, roomId = 'room-a') =>
-  update(
-    model,
-    Message.GotRoomMessage({
-      roomId,
-      message: RoomMessage.CompletedLeaveRoom(),
-    }),
-  )
+  update(model, {
+    _tag: 'GotRoomMessage',
+    placement: 'Room',
+    generation: 0,
+    key: roomId,
+    message: RoomMessage.CompletedLeaveRoom(),
+  })
 
 describe('reciprocal sibling coordination', () => {
   it.each([
@@ -317,7 +314,6 @@ describe('reciprocal sibling coordination', () => {
     ({ policy, error }) => {
       const config = {
         field: 'home',
-        parentMessage: Message.GotHomeMessage,
         ...(policy === undefined ? {} : { outMessage: policy }),
       }
 
@@ -334,7 +330,6 @@ describe('reciprocal sibling coordination', () => {
       HomeBlock,
       {
         field: 'home',
-        parentMessage: Message.GotHomeMessage,
         outMessage: { fold },
       },
     ])
@@ -387,11 +382,12 @@ describe('reciprocal sibling coordination', () => {
     )
 
     expect(clear).toHaveBeenCalledTimes(1)
-    expect(completed).toEqual(
-      Message.GotHomeMessage({
-        message: HomeMessage.CompletedClearJoinDraft(),
-      }),
-    )
+    expect(completed).toEqual({
+      _tag: 'GotHomeMessage',
+      placement: 'home',
+      generation: 0,
+      message: HomeMessage.CompletedClearJoinDraft(),
+    })
     expect(update(left.model, completed).model).toEqual(left.model)
   })
 

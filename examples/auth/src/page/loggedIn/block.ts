@@ -1,16 +1,10 @@
-import type { Session } from '../../domain/session'
-import type { LoggedInRoute } from '../../route'
 import { LoggedInComposition } from './composition'
-import { init } from './model'
+import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-export const block = LoggedInComposition.makeBlock({
-  init: LoggedInComposition.makeInit(
-    (route: LoggedInRoute, session: Session) => ({
-      model: init(route, session),
-    }),
-  ),
+export const LoggedInBlock = LoggedInComposition.assembleBlock({
+  init,
   update,
   view,
 })

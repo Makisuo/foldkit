@@ -1,14 +1,13 @@
-import { Option } from 'effect'
+import { Option, Schema } from 'effect'
 import { Block, Scene, Story } from 'foldkit'
-import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 import type * as Update from 'foldkit/update'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
-import * as Animation from '../animation/index.js'
-import type { ViewInputs } from './index.js'
+import * as Animation from '../animation/block.js'
+import type { ViewInputs } from './menu.js'
 import {
   AnchorMenu,
   ClickMenuItem,
@@ -25,66 +24,69 @@ import {
   RestoreMenuInert,
   ScrollMenuItemIntoView,
   UnlockMenuScroll,
-  block,
   buttonId,
   create,
   groupContiguous,
   init,
   resolveTypeaheadMatch,
   update,
-} from './index.js'
+} from './menu.js'
 
-const MenuStoryMessage = defineMessageUnion({
-  GotMenuMessage: { message: Message },
-})
+const TestMenu = create()
 
-const MenuStoryDefinition = Block.define('MenuStory', {
+const MenuStoryDefinition = Block.makeDefinition('MenuStory', {
   Model,
-  Message: MenuStoryMessage,
+  Message: Schema.Never,
 })
 
-const foldMenuOutMessage = OutMessage.match<
-  Update.Step<Model, typeof MenuStoryMessage.Type>
->({
+const foldMenuOutMessage = OutMessage.match<Update.Step<Model, never>>({
   Selected: () => MenuStoryDefinition.step(model => ({ model })),
+  Closed: () => MenuStoryDefinition.step(model => ({ model })),
 })
 
-const MenuBinding = MenuStoryDefinition.bindChild(block, {
+const MenuBinding = MenuStoryDefinition.bindChild(TestMenu, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
-  parentMessage: MenuStoryMessage.GotMenuMessage,
   outMessage: { fold: foldMenuOutMessage },
 })
 
 const MenuStoryComposition = MenuStoryDefinition.makeComposition({
-  childBindings: [MenuBinding],
+  bindings: [MenuBinding],
 })
 const sceneUpdate = MenuStoryComposition.makeUpdate()
 
 const RefinedMenu = create<'Edit' | 'Duplicate' | 'Delete'>()
 
-const RefinedMenuStoryDefinition = Block.define('RefinedMenuStory', {
+const RefinedMenuStoryDefinition = Block.makeDefinition('RefinedMenuStory', {
   Model,
-  Message: MenuStoryMessage,
+  Message: Schema.Never,
 })
 
 const RefinedMenuBinding = RefinedMenuStoryDefinition.bindChild(RefinedMenu, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
-  parentMessage: MenuStoryMessage.GotMenuMessage,
   outMessage: {
-    fold: RefinedMenu.OutMessage.match<
-      Update.Step<Model, typeof MenuStoryMessage.Type>
-    >({
+    fold: RefinedMenu.OutMessage.match<Update.Step<Model, never>>({
       Selected: () => RefinedMenuStoryDefinition.step(model => ({ model })),
+      Closed: () => RefinedMenuStoryDefinition.step(model => ({ model })),
     }),
   },
 })
 
 const RefinedMenuStoryComposition = RefinedMenuStoryDefinition.makeComposition({
-  childBindings: [RefinedMenuBinding],
+  bindings: [RefinedMenuBinding],
 })
 const refinedSceneUpdate = RefinedMenuStoryComposition.makeUpdate()
+
+const gotAnimationMessage = ({
+  message,
+}: Readonly<{ message: typeof Animation.AnimationBlock.Message.Type }>) =>
+  Schema.decodeSync(TestMenu.Message)({
+    _tag: 'GotAnimationMessage',
+    placement: 'animation',
+    generation: 0,
+    message,
+  })
 
 const sceneView = (
   overrides: Pick<
@@ -137,11 +139,11 @@ const STALE_ANIMATION_GENERATION = -1
 
 const openModel = (): Model =>
   update(
-    init({ id: 'test' }),
+    init({ id: 'test' }).model,
     Message.Opened({ maybeActiveItemIndex: Option.some(0) }),
   ).model
 
-const givenClosed = Story.given(init({ id: 'test' }))
+const givenClosed = Story.given(init({ id: 'test' }).model)
 
 const givenOpen = Story.steps(
   givenClosed,
@@ -149,7 +151,9 @@ const givenOpen = Story.steps(
   acknowledgeFocusItems,
 )
 
-const givenClosedAnimated = Story.given(init({ id: 'test', isAnimated: true }))
+const givenClosedAnimated = Story.given(
+  init({ id: 'test', isAnimated: true }).model,
+)
 
 const givenOpenAnimated = Story.steps(
   givenClosedAnimated,
@@ -175,7 +179,7 @@ describe('Menu', () => {
     it('renders a factory-refined Menu with its own child bindings', () => {
       Scene.scene(
         { update: refinedSceneUpdate, view: refinedMenuSceneView },
-        Scene.given(init({ id: 'test' })),
+        Scene.given(init({ id: 'test' }).model),
         Scene.expect(button).toExist(),
       )
     })
@@ -183,7 +187,7 @@ describe('Menu', () => {
     it('only points at the items panel while it is rendered', () => {
       Scene.scene(
         { update: sceneUpdate, view: sceneView() },
-        Scene.given(init({ id: 'test' })),
+        Scene.given(init({ id: 'test' }).model),
         Scene.expect(button).not.toHaveAttr('aria-controls'),
         Scene.given(openModel()),
         Scene.expect(button).toHaveAttr('aria-controls', 'test-items'),
@@ -214,12 +218,12 @@ describe('Menu', () => {
 
   describe('init', () => {
     it('defaults to closed with no active item', () => {
-      expect(init({ id: 'test' })).toStrictEqual({
+      expect(init({ id: 'test' }).model).toStrictEqual({
         id: 'test',
         isOpen: false,
         isAnimated: false,
         isModal: false,
-        animation: Animation.init({ id: 'test-items' }),
+        animation: Animation.init({ id: 'test-items' }).model,
         maybeActiveItemIndex: Option.none(),
         activationTrigger: 'Keyboard',
         searchQuery: '',
@@ -231,18 +235,18 @@ describe('Menu', () => {
     })
 
     it('accepts isAnimated option', () => {
-      const model = init({ id: 'test', isAnimated: true })
+      const model = init({ id: 'test', isAnimated: true }).model
       expect(model.isAnimated).toBe(true)
       expect(model.animation.transitionState).toBe('Idle')
     })
 
     it('defaults isModal to false', () => {
-      const model = init({ id: 'test' })
+      const model = init({ id: 'test' }).model
       expect(model.isModal).toBe(false)
     })
 
     it('accepts isModal option', () => {
-      const model = init({ id: 'test', isModal: true })
+      const model = init({ id: 'test', isModal: true }).model
       expect(model.isModal).toBe(true)
     })
   })
@@ -268,7 +272,7 @@ describe('Menu', () => {
         Story.story(
           update,
           Story.given(
-            modifyFields(init({ id: 'test' }), {
+            modifyFields(init({ id: 'test' }).model, {
               searchQuery: () => 'stale',
               searchVersion: () => 1,
             }),
@@ -317,7 +321,7 @@ describe('Menu', () => {
         Story.story(
           update,
           Story.given(
-            modifyFields(init({ id: 'test' }), {
+            modifyFields(init({ id: 'test' }).model, {
               maybeLastPointerPosition: () =>
                 Option.some({
                   screenX: 100,
@@ -342,6 +346,7 @@ describe('Menu', () => {
           update,
           givenOpen,
           Story.message(Message.Closed()),
+          Story.expectOutMessage(OutMessage.Closed()),
           Story.Command.resolve(
             FocusMenuButton,
             Message.CompletedFocusMenuButton(),
@@ -375,12 +380,28 @@ describe('Menu', () => {
       })
     })
 
+    describe('RequestedClose', () => {
+      it('emits Closed when an operation closes the menu', () => {
+        Story.story(
+          update,
+          givenOpen,
+          Story.message(Message.RequestedClose()),
+          Story.expectOutMessage(OutMessage.Closed()),
+          Story.Command.resolve(
+            FocusMenuButton,
+            Message.CompletedFocusMenuButton(),
+          ),
+        )
+      })
+    })
+
     describe('BlurredItems', () => {
       it('closes the menu without restoring button focus', () => {
         Story.story(
           update,
           givenOpen,
           Story.message(Message.BlurredItems()),
+          Story.expectOutMessage(OutMessage.Closed()),
           Story.model(model => {
             expect(model.isOpen).toBe(false)
             expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
@@ -476,6 +497,7 @@ describe('Menu', () => {
               timeStamp: 1000,
             }),
           ),
+          Story.expectOutMessage(OutMessage.Closed()),
           Story.Command.resolve(
             FocusMenuButton,
             Message.CompletedFocusMenuButton(),
@@ -1258,6 +1280,7 @@ describe('Menu', () => {
             update,
             givenOpenAnimated,
             Story.message(Message.Closed()),
+            Story.expectOutMessage(OutMessage.Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
@@ -1284,6 +1307,7 @@ describe('Menu', () => {
             update,
             givenOpenAnimated,
             Story.message(Message.BlurredItems()),
+            Story.expectOutMessage(OutMessage.Closed()),
             Story.model(model => {
               expect(model.isOpen).toBe(false)
               expect(model.animation.transitionState).toBe('LeaveStart')
@@ -1421,7 +1445,7 @@ describe('Menu', () => {
             update,
             givenOpen,
             Story.message(
-              Message.GotAnimationMessage({
+              gotAnimationMessage({
                 message: Animation.Message.CompletedWaitForPaint({
                   generation: 0,
                 }),
@@ -1534,7 +1558,9 @@ describe('Menu', () => {
   })
 
   describe('modal commands', () => {
-    const givenClosedModal = Story.given(init({ id: 'test', isModal: true }))
+    const givenClosedModal = Story.given(
+      init({ id: 'test', isModal: true }).model,
+    )
 
     const givenOpenModal = Story.steps(
       givenClosedModal,
@@ -1960,7 +1986,7 @@ describe('Menu', () => {
     it('no aria-label or aria-labelledby on the button by default', () => {
       Scene.scene(
         { update: sceneUpdate, view: sceneView() },
-        Scene.given(init({ id: 'test' })),
+        Scene.given(init({ id: 'test' }).model),
         Scene.expect(button).not.toHaveAttr('aria-label'),
         Scene.expect(button).not.toHaveAttr('aria-labelledby'),
       )
@@ -1969,7 +1995,7 @@ describe('Menu', () => {
     it('applies aria-label to the button when ariaLabel is provided', () => {
       Scene.scene(
         { update: sceneUpdate, view: sceneView({ ariaLabel: 'Actions' }) },
-        Scene.given(init({ id: 'test' })),
+        Scene.given(init({ id: 'test' }).model),
         Scene.expect(button).toHaveAttr('aria-label', 'Actions'),
         Scene.expect(button).not.toHaveAttr('aria-labelledby'),
       )
@@ -1981,7 +2007,7 @@ describe('Menu', () => {
           update: sceneUpdate,
           view: sceneView({ ariaLabelledBy: 'actions-label' }),
         },
-        Scene.given(init({ id: 'test' })),
+        Scene.given(init({ id: 'test' }).model),
         Scene.expect(button).toHaveAttr('aria-labelledby', 'actions-label'),
         Scene.expect(button).not.toHaveAttr('aria-label'),
       )
@@ -1996,7 +2022,7 @@ describe('Menu', () => {
             ariaLabelledBy: 'actions-label',
           }),
         },
-        Scene.given(init({ id: 'test' })),
+        Scene.given(init({ id: 'test' }).model),
         Scene.expect(button).toHaveAttr('aria-label', 'Actions'),
         Scene.expect(button).not.toHaveAttr('aria-labelledby'),
       )

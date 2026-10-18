@@ -4,24 +4,9 @@ import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
 
-import { Dialog } from '@foldkit/ui'
-
 import { ResolvedTheme } from './colorScheme'
-import {
-  ApiReference,
-  ComingFromReact,
-  CoreBlockPage,
-  ExampleDetail,
-  Home,
-  Playground,
-  Ui,
-} from './page'
-import * as Search from './search'
 import { GroupKey, SidebarState } from './sidebarStorage'
-import * as SnippetCopy from './snippetCopy'
-import * as SnippetDisclosure from './snippetDisclosure'
 import { ThemePreference } from './themePreference'
-import { ThemeMenu } from './view/themeMenu'
 
 // THEME
 
@@ -54,7 +39,6 @@ export const Message = defineMessageUnion({
   ClickedLink: { request: UrlRequest },
   ChangedUrl: { url: Url },
   ClickedCopyLink: { hash: Schema.String },
-  GotMobileMenuDialogMessage: { message: Dialog.Message },
   ClickedOpenMobileMenu: {},
   ClickedOpenSearch: {},
   PressedSearchShortcut: {},
@@ -62,19 +46,8 @@ export const Message = defineMessageUnion({
   ClickedMobileTableOfContentsLink: { sectionId: Schema.String },
   ChangedActiveSection: { sectionId: Schema.String },
   UpdatedNewsletterEmail: { value: Schema.String },
-  GotThemeMenuMessage: { message: ThemeMenu.Message },
   ChangedSystemTheme: { theme: ResolvedTheme },
   ChangedViewportWidth: { isNarrow: Schema.Boolean },
-  GotHomeMessage: { message: Home.Message },
-  GotSnippetCopyMessage: { message: SnippetCopy.Message },
-  GotSnippetDisclosureMessage: { message: SnippetDisclosure.Message },
-  GotCoreBlockPageMessage: { message: CoreBlockPage.Message },
-  GotPlaygroundMessage: { message: Playground.Message },
-  GotComingFromReactMessage: { message: ComingFromReact.Message },
-  GotApiReferenceMessage: { message: ApiReference.Message },
-  GotUiPageMessage: { message: Ui.Message },
   ToggledSidebarGroup: { key: GroupKey, isOpen: Schema.Boolean },
-  GotExampleDetailMessage: { message: ExampleDetail.Message },
-  GotSearchMessage: { message: Search.Message },
 })
 export type Message = typeof Message.Type

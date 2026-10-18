@@ -1,4 +1,12 @@
-import { ComingFromReactDefinition } from './definition'
+import { Block } from 'foldkit'
 
-export const ComingFromReactComposition =
-  ComingFromReactDefinition.makeComposition()
+import { Message } from './message'
+import { Model } from './model'
+
+export const ComingFromReactComposition = Block.makeDefinition(
+  'ComingFromReact',
+  {
+    Model,
+    Message,
+  },
+).makeComposition()

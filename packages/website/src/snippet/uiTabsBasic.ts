@@ -24,10 +24,8 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// Embed the Tabs Message in your parent Message:
-const Message = defineMessageUnion({
-  GotTabsMessage: { message: FrameworkTabs.Message },
-})
+// This excerpt has no parent-owned facts. The Composition derives delivery.
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 const frameworks: ReadonlyArray<Framework> = ['Foldkit', 'React', 'Elm']
@@ -59,20 +57,19 @@ const foldTabsOutMessage = FrameworkTabs.OutMessage.match<
 // FrameworkTabs.update, writes the next Tabs Model back, maps the Block's
 // Commands into your Message type, and hands any OutMessage to
 // the OutMessage fold.
-const TabsExampleDefinition = Block.define('TabsExample', {
+const TabsExampleDefinition = Block.makeDefinition('TabsExample', {
   Model,
   Message,
 })
 
 const TabsBinding = TabsExampleDefinition.bindChild(FrameworkTabs, {
   field: 'tabs',
-  parentMessage: Message.GotTabsMessage,
-  init: { startupToArgs: () => Tuple.make({ id: 'framework-tabs' }) },
+  init: { contextToArgs: () => Tuple.make({ id: 'framework-tabs' }) },
   outMessage: { fold: foldTabsOutMessage },
 })
 
 const TabsExampleComposition = TabsExampleDefinition.makeComposition({
-  childBindings: [TabsBinding],
+  bindings: [TabsBinding],
 })
 
 // In your init function, initialize the Tabs Block with a unique id and

@@ -1,10 +1,18 @@
 import { Context, Effect, Layer, Option, Schema, Scope, Stream } from 'effect'
 import { describe, expect, it, vi } from 'vitest'
 
+import {
+  makeChildEnvelopeSchema,
+  registerGeneratedDelivery,
+} from '../block/childEnvelope.js'
 import { runtimeBindingOf } from '../block/composition.js'
-import { define } from '../block/define.js'
+import { makeNamespace } from '../block/define.js'
 import { CurrentInstance } from '../block/instanceContext.js'
-import { invocationContext, qualifyLayer } from '../block/scope.js'
+import {
+  invocationContext,
+  qualifyCommand,
+  qualifyLayer,
+} from '../block/scope.js'
 import {
   clearRuntime,
   requireRuntimeContext,
@@ -16,10 +24,10 @@ import { modifyFields } from '../struct/index.js'
 import { makeCompositionRuntime } from './compositionRuntime.js'
 import type { SlowSubscriptionDependenciesContext } from './slowPhase.js'
 
-const ChildOwnerDefinition = define('LifecycleChild')
+const ChildOwnerNamespace = makeNamespace('LifecycleChild')
 const ChildModel = Schema.Struct({ id: Schema.Number })
 const ChildMessage = defineMessageUnion({ EmittedPulse: {} })
-const ChildValue = ChildOwnerDefinition.resource<string>()('Value')
+const ChildValue = ChildOwnerNamespace.resource<string>()('Value')
 class LifecycleLog extends Context.Service<
   LifecycleLog,
   Readonly<{
@@ -29,7 +37,7 @@ class LifecycleLog extends Context.Service<
     releaseResource: (value: string) => Effect.Effect<void>
   }>
 >()('CompositionRuntime/LifecycleLog') {}
-const ChildDefinition = ChildOwnerDefinition.define({
+const ChildDefinition = ChildOwnerNamespace.makeDefinition({
   Model: ChildModel,
   Message: ChildMessage,
 })
@@ -77,7 +85,7 @@ const childManagedResources = ChildDefinition.managedResources(entry => ({
   }),
 }))
 const childComposition = ChildDefinition.makeComposition()
-const childBlock = childComposition.makeBlock({
+const childBlock = childComposition.assembleBlock({
   init: (id: number) => ({ model: { id } }),
   update: childComposition.makeUpdate(model => ({ model })),
   subscriptions,
@@ -87,8 +95,8 @@ const childBlock = childComposition.makeBlock({
     childManagedResources.value.layer,
   ),
 })
-const RootDefinition = define('LifecycleApp')
-const RootValue = RootDefinition.resource<string>()('Value')
+const RootNamespace = makeNamespace('LifecycleApp')
+const RootValue = RootNamespace.resource<string>()('Value')
 const RootModel = Schema.Struct({
   maybeChild: Schema.Option(ChildModel),
   entries: Schema.Array(ChildModel),
@@ -96,11 +104,9 @@ const RootModel = Schema.Struct({
 })
 type RootModel = typeof RootModel.Type
 const RootMessage = defineMessageUnion({
-  GotOptionalChildMessage: { message: ChildMessage },
-  GotEntryMessage: { id: Schema.Number, message: ChildMessage },
   ChangedRootValueAvailability: {},
 })
-const RootBaseDefinition = RootDefinition.define({
+const RootBaseDefinition = RootNamespace.makeDefinition({
   Model: RootModel,
   Message: RootMessage,
 })
@@ -108,7 +114,6 @@ const OptionalChildBinding = RootBaseDefinition.bindChild(childBlock, {
   read: (model: RootModel) => model.maybeChild,
   write: (model, nextChild) =>
     modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
-  parentMessage: RootMessage.GotOptionalChildMessage,
   subscriptions: { when: model => model.subscriptionState === 'Active' },
 })
 const EntriesBinding = RootBaseDefinition.bindChild(childBlock, {
@@ -121,15 +126,10 @@ const EntriesBinding = RootBaseDefinition.bindChild(childBlock, {
       entries: entries =>
         entries.map(entry => (entry.id === key ? nextChild : entry)),
     }),
-  toParentMessage: (id, message) =>
-    RootMessage.GotEntryMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: RootMessage.GotEntryMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
+  keySchema: Schema.Number,
 })
 const root = RootBaseDefinition.makeComposition({
-  childBindings: [OptionalChildBinding, EntriesBinding],
+  bindings: [OptionalChildBinding, EntriesBinding],
 })
 const rootManagedResources = RootBaseDefinition.managedResources(entry => ({
   value: entry('Value', Schema.Option(Schema.Null), {
@@ -151,25 +151,22 @@ const initialModel = RootModel.make({
   entries: [],
   subscriptionState: 'Active',
 })
-const block = root.makeBlock({
+const block = root.assembleBlock({
   init: () => ({ model: initialModel }),
   update: root.makeUpdate(model => ({ model })),
   managedResources: rootManagedResources,
   EffectsLayer: rootManagedResources.value.layer,
 })
 
-const NestedParentDefinition = define('NestedLifecycleParent')
+const NestedParentNamespace = makeNamespace('NestedLifecycleParent')
 const NestedParentModel = Schema.Struct({
   id: Schema.Number,
   entries: Schema.Array(ChildModel),
 })
 type NestedParentModel = typeof NestedParentModel.Type
-const NestedParentMessage = defineMessageUnion({
-  GotChildMessage: { id: Schema.Number, message: ChildMessage },
-})
-const NestedParentBaseDefinition = NestedParentDefinition.define({
+const NestedParentBaseDefinition = NestedParentNamespace.makeDefinition({
   Model: NestedParentModel,
-  Message: NestedParentMessage,
+  Message: Schema.Never,
 })
 const NestedEntriesBinding = NestedParentBaseDefinition.bindChild(childBlock, {
   placement: 'entries',
@@ -181,34 +178,26 @@ const NestedEntriesBinding = NestedParentBaseDefinition.bindChild(childBlock, {
       entries: entries =>
         entries.map(entry => (entry.id === key ? nextChild : entry)),
     }),
-  toParentMessage: (id: number, message) =>
-    NestedParentMessage.GotChildMessage({ id, message }),
-  fromParentMessage: {
-    parentMessage: NestedParentMessage.GotChildMessage,
-    args: (_model, { id, message }) => Option.some([id, message]),
-  },
+  keySchema: Schema.Number,
 })
 const nestedParent = NestedParentBaseDefinition.makeComposition({
-  childBindings: [NestedEntriesBinding],
+  bindings: [NestedEntriesBinding],
 })
-const nestedParentBlock = nestedParent.makeBlock({
+const nestedParentBlock = nestedParent.assembleBlock({
   init: (id: number, entries: ReadonlyArray<typeof ChildModel.Type>) => ({
     model: { id, entries },
   }),
   update: nestedParent.makeUpdate(),
   EffectsLayer: Layer.empty,
 })
-const NestedRootDefinition = define('NestedLifecycleApp')
+const NestedRootNamespace = makeNamespace('NestedLifecycleApp')
 const NestedRootModel = Schema.Struct({
   parents: Schema.Array(NestedParentModel),
 })
 type NestedRootModel = typeof NestedRootModel.Type
-const NestedRootMessage = defineMessageUnion({
-  GotParentMessage: { id: Schema.Number, message: NestedParentMessage },
-})
-const NestedRootBaseDefinition = NestedRootDefinition.define({
+const NestedRootBaseDefinition = NestedRootNamespace.makeDefinition({
   Model: NestedRootModel,
-  Message: NestedRootMessage,
+  Message: Schema.Never,
 })
 const NestedParentsBinding = NestedRootBaseDefinition.bindChild(
   nestedParentBlock,
@@ -222,25 +211,49 @@ const NestedParentsBinding = NestedRootBaseDefinition.bindChild(
         parents: parents =>
           parents.map(parent => (parent.id === key ? nextParent : parent)),
       }),
-    toParentMessage: (id: number, message) =>
-      NestedRootMessage.GotParentMessage({ id, message }),
-    fromParentMessage: {
-      parentMessage: NestedRootMessage.GotParentMessage,
-      args: (_model, { id, message }) => Option.some([id, message]),
-    },
+    keySchema: Schema.Number,
   },
 )
 const nestedRoot = NestedRootBaseDefinition.makeComposition({
-  childBindings: [NestedParentsBinding],
+  bindings: [NestedParentsBinding],
 })
 const nestedInitialModel = NestedRootModel.make({
   parents: [{ id: 1, entries: [{ id: 10 }] }],
 })
-const nestedBlock = nestedRoot.makeBlock({
+const nestedBlock = nestedRoot.assembleBlock({
   init: () => ({ model: nestedInitialModel }),
   update: nestedRoot.makeUpdate(),
   EffectsLayer: Layer.empty,
 })
+
+registerGeneratedDelivery(
+  OptionalChildBinding,
+  makeChildEnvelopeSchema(OptionalChildBinding.placement, ChildMessage),
+)
+registerGeneratedDelivery(
+  EntriesBinding,
+  makeChildEnvelopeSchema(
+    EntriesBinding.placement,
+    ChildMessage,
+    Schema.Number,
+  ),
+)
+registerGeneratedDelivery(
+  NestedEntriesBinding,
+  makeChildEnvelopeSchema(
+    NestedEntriesBinding.placement,
+    ChildMessage,
+    Schema.Number,
+  ),
+)
+registerGeneratedDelivery(
+  NestedParentsBinding,
+  makeChildEnvelopeSchema(
+    NestedParentsBinding.placement,
+    nestedParentBlock.Message,
+    Schema.Number,
+  ),
+)
 
 const withRuntime = (
   run: (
@@ -255,6 +268,7 @@ const withRuntime = (
       acquiredResources: Array<string>
       releasedResources: Array<string>
       slow: Array<SlowSubscriptionDependenciesContext<RootModel>>
+      messages: Array<unknown>
     }>,
   ) => Promise<void>,
   control?: Readonly<{
@@ -266,6 +280,7 @@ const withRuntime = (
   const acquiredResources: Array<string> = []
   const releasedResources: Array<string> = []
   const slow: Array<SlowSubscriptionDependenciesContext<RootModel>> = []
+  const messages: Array<unknown> = []
   const services = Layer.succeed(LifecycleLog, {
     started: id => {
       starts.push(id)
@@ -300,7 +315,9 @@ const withRuntime = (
           initModel: initialModel,
           context: Context.makeUnsafe<never>(built.mapUnsafe),
           runtimeScope,
-          enqueueMessage: () => {},
+          enqueueMessage: message => {
+            messages.push(message)
+          },
           crashWith: cause => Effect.failCause(cause),
           maybeSlowSubscriptionDependencies: Option.some({
             thresholdMs: -1,
@@ -317,6 +334,7 @@ const withRuntime = (
             acquiredResources,
             releasedResources,
             slow,
+            messages,
           }),
         )
       }),
@@ -330,7 +348,7 @@ const withNestedRuntime = (
       ReturnType<
         typeof makeCompositionRuntime<
           NestedRootModel,
-          typeof NestedRootMessage.Type
+          typeof nestedBlock.Message.Type
         >
       >
     >,
@@ -365,7 +383,7 @@ const withNestedRuntime = (
         )
         const runtime = yield* makeCompositionRuntime<
           NestedRootModel,
-          typeof NestedRootMessage.Type
+          typeof nestedBlock.Message.Type
         >({
           block: nestedBlock,
           initModel: nestedInitialModel,
@@ -446,7 +464,9 @@ describe('composed lifecycle reconciliation', () => {
               entries: () => invalidEntries,
             }),
           ),
-        ).toThrow(/duplicate key|string or finite number keys/)
+        ).toThrow(
+          /duplicate key|does not satisfy its key Schema|string or finite number keys/,
+        )
         expect(before.children.get(OptionalChildBinding)!.get(undefined)).toBe(
           optionalBefore,
         )
@@ -640,5 +660,106 @@ describe('composed lifecycle reconciliation', () => {
       expect(nextReplayRoot).not.toBe(replayRoot)
       expect(nextReplayRoot.children.size).toBe(0)
     })
+  })
+
+  it('captures lifecycle provenance and rejects a removed occurrence after replacement', async () => {
+    await withRuntime(async (runtime, { messages }) => {
+      const rootNode = Context.get(runtime.context, CurrentInstance)!.node
+      const oldChild = rootNode.children
+        .get(OptionalChildBinding)!
+        .get(undefined)!
+
+      await vi.waitFor(() =>
+        expect(messages).toContainEqual({
+          _tag: 'GotLifecycleChildMessage',
+          placement: OptionalChildBinding.placement,
+          generation: oldChild.generation,
+          message: ChildMessage.EmittedPulse(),
+        }),
+      )
+
+      const toRootMessage = Reflect.get(oldChild, 'toRootMessage')
+      const oldMessage = Reflect.apply(toRootMessage, oldChild, [
+        ChildMessage.EmittedPulse(),
+      ])
+      const oldGuard = runtime.externalMessageGuard(oldMessage)
+      expect(oldGuard?.()).toBe(true)
+
+      runtime.synchronize(
+        modifyFields(initialModel, { maybeChild: () => Option.none() }),
+      )
+      expect(oldGuard?.()).toBe(false)
+      expect(runtime.externalMessageGuard(oldMessage)).toBeUndefined()
+
+      runtime.synchronize(initialModel)
+      const replacement = rootNode.children
+        .get(OptionalChildBinding)!
+        .get(undefined)!
+      expect(replacement.generation).not.toBe(oldChild.generation)
+      expect(runtime.externalMessageGuard(oldMessage)).toBeUndefined()
+    })
+  })
+
+  it('captures repeated and nested generated Command origins', async () => {
+    await withNestedRuntime(
+      async runtime => {
+        const rootNode = Context.get(runtime.context, CurrentInstance)!.node
+        const parentNode = rootNode.children.get(NestedParentsBinding)!.get(1)!
+        const entryNode = parentNode.children
+          .get(NestedEntriesBinding)!
+          .get(10)!
+        const syntheticMessage = {
+          _tag: 'GotParentsMessage',
+          placement: NestedParentsBinding.placement,
+          generation: 0,
+          key: 1,
+          message: {
+            _tag: 'GotEntriesMessage',
+            placement: NestedEntriesBinding.placement,
+            generation: 0,
+            key: 10,
+            message: ChildMessage.EmittedPulse(),
+          },
+        }
+        const command = qualifyCommand(
+          NestedParentsBinding.placement,
+          qualifyCommand(
+            NestedEntriesBinding.placement,
+            { name: 'EmitPulse', effect: Effect.succeed(syntheticMessage) },
+            undefined,
+            { binding: NestedEntriesBinding, key: 10 },
+          ),
+          undefined,
+          { binding: NestedParentsBinding, key: 1 },
+        )
+        const captured = runtime.capture(command)!
+        const stamped = captured.mapResult!(syntheticMessage)
+
+        expect(stamped).toEqual({
+          ...syntheticMessage,
+          generation: parentNode.generation,
+          message: {
+            ...syntheticMessage.message,
+            generation: entryNode.generation,
+          },
+        })
+        const acceptedGuard = runtime.externalMessageGuard(stamped)
+        expect(acceptedGuard?.()).toBe(true)
+
+        runtime.synchronize({ parents: [{ id: 1, entries: [] }] })
+        expect(acceptedGuard?.()).toBe(false)
+        expect(runtime.externalMessageGuard(stamped)).toBeUndefined()
+
+        runtime.synchronize(nestedInitialModel)
+        const replacementEntry = rootNode.children
+          .get(NestedParentsBinding)!
+          .get(1)!
+          .children.get(NestedEntriesBinding)!
+          .get(10)!
+        expect(replacementEntry.generation).not.toBe(entryNode.generation)
+        expect(runtime.externalMessageGuard(stamped)).toBeUndefined()
+      },
+      () => Effect.void,
+    )
   })
 })

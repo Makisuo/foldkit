@@ -1,17 +1,16 @@
 import { Effect, Layer, Schema } from 'effect'
-import { Block, type Html, Message, defineApplication } from 'foldkit'
+import { Block, type Html, Message, makeApplicationDefinition } from 'foldkit'
 
 export const ChildModel = Schema.Struct({ value: Schema.String })
 const ChildMessage = Message.defineMessageUnion({ ClickedChild: {} })
-const DeclarationViewHelperChildDefinition = Block.define(
+
+export const DeclarationViewHelperChildComposition = Block.makeDefinition(
   'DeclarationViewHelperChild',
   {
     Model: ChildModel,
     Message: ChildMessage,
   },
-)
-export const DeclarationViewHelperChildComposition =
-  DeclarationViewHelperChildDefinition.makeComposition()
+).makeComposition()
 type ChildViewBuilder = Block.ViewBuilderFor<
   typeof DeclarationViewHelperChildComposition
 >
@@ -22,7 +21,7 @@ export const childViewHelper = (
 const childView = DeclarationViewHelperChildComposition.makeView((model, h) =>
   childViewHelper(model, h),
 )
-export const ChildBlock = DeclarationViewHelperChildComposition.makeBlock({
+export const ChildBlock = DeclarationViewHelperChildComposition.assembleBlock({
   init: DeclarationViewHelperChildComposition.makeInit(() => ({
     model: ChildModel.make({ value: 'initial' }),
   })),
@@ -35,10 +34,9 @@ export const ChildBlock = DeclarationViewHelperChildComposition.makeBlock({
 
 export const ParentModel = Schema.Struct({ child: ChildModel })
 export const ParentMessage = Message.defineMessageUnion({
-  GotChildMessage: { message: ChildBlock.Message },
   CompletedObserveParent: {},
 })
-export const DeclarationViewHelperParentDefinition = Block.define(
+export const DeclarationViewHelperParentDefinition = Block.makeDefinition(
   'DeclarationViewHelperParent',
   {
     Model: ParentModel,
@@ -58,12 +56,11 @@ export const ChildBinding = DeclarationViewHelperParentDefinition.bindChild(
   ChildBlock,
   {
     field: 'child',
-    parentMessage: ParentMessage.GotChildMessage,
   },
 )
 export const DeclarationViewHelperParentComposition =
   DeclarationViewHelperParentDefinition.makeComposition({
-    childBindings: [ChildBinding],
+    bindings: [ChildBinding],
     mounts: [ObserveParent],
   })
 export type ParentViewBuilder = Block.ViewBuilderFor<
@@ -102,12 +99,11 @@ const sharedDivider = <SharedMessage, SharedRequirements>(
 
 export const parentSharedViewHelper = (h: ParentViewBuilder) => sharedDivider(h)
 
-const ApplicationDefinition = defineApplication({
+export const ApplicationComposition = makeApplicationDefinition({
   Model: ParentModel,
   Message: ParentMessage,
-})
-export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [ChildBinding],
+}).makeComposition({
+  bindings: [ChildBinding],
   mounts: [ObserveParent],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<

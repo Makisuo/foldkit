@@ -1,33 +1,13 @@
 export {
-  init,
-  update,
-  view,
+  PopoverBlock,
   buttonId,
   arrowId,
-  Model,
-  Message,
-  OutMessage,
-  type Opened,
-  type Closed,
-  type RequestedOpen,
-  type RequestedClose,
-  AnchorPopover,
-  PortalPopoverBackdrop,
-  LockPopoverScroll,
-  UnlockPopoverScroll,
-  InertPopoverOthers,
-  RestorePopoverInert,
-  FocusPopoverPanel,
-  FocusPopoverButton,
-  DetectPopoverMovementOrAnimationEnd,
-  block,
-  mounts,
-  type BlurredPanel,
-  type PressedPointerOnButton,
-  type IgnoredMouseClick,
-  type SuppressedSpaceScroll,
+  type InitConfig,
+  type RenderInfo,
+  type ViewInputs,
 } from './index.js'
 
-export type { Completed, InitConfig, ViewInputs, RenderInfo } from './index.js'
-
 export type { AnchorConfig } from '../anchor/index.js'
+
+/** Original Popover Command and Mount Definitions for Story and Scene test resolution. */
+export * as test from './test.js'

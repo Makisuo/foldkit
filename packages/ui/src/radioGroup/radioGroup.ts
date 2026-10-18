@@ -18,7 +18,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { idSelector } from '../internal/selectors.js'
 import { keyToIndex } from '../keyboard.js'
-import { RadioGroupDefinition as SharedRadioGroup } from './definition.js'
+import { RadioGroupNamespace } from './definition.js'
 
 // MODEL
 
@@ -97,10 +97,7 @@ export type InitConfig = Readonly<{
   id: string
 }>
 
-/** Creates an initial radio group model from a config. Focus follows the
- *  selected option until the user navigates a read-only group, so
- *  `maybeFocusedIndex` starts `None`. */
-export const init = (config: InitConfig): Model => ({
+const makeInitialModel = (config: InitConfig): Model => ({
   id: config.id,
   maybeFocusedIndex: Option.none(),
 })
@@ -116,7 +113,7 @@ const descriptionId = (id: string, index: number): string =>
   `${id}-option-${index}-description`
 
 /** Moves focus to the option at the given index. */
-export const FocusOption = SharedRadioGroup.command('FocusOption', {
+export const FocusOption = RadioGroupNamespace.command('FocusOption', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedFocusOption],
   handler: function* () {
@@ -131,13 +128,18 @@ export const FocusOption = SharedRadioGroup.command('FocusOption', {
 /** Effect providers used by the RadioGroup component. */
 export const EffectsLayer = Layer.mergeAll(FocusOption.layer)
 
-const RadioGroupDefinition = SharedRadioGroup.define({
+const RadioGroupComposition = RadioGroupNamespace.makeDefinition({
   Model,
   Message,
   OutMessage,
-})
+}).makeComposition()
 
-const RadioGroupComposition = RadioGroupDefinition.makeComposition()
+/** Creates an initial RadioGroup Model and Commands from a config. Focus follows the
+ *  selected option until the user navigates a read-only group, so
+ *  `maybeFocusedIndex` starts `None`. */
+export const init = RadioGroupComposition.makeInit((config: InitConfig) => ({
+  model: makeInitialModel(config),
+}))
 
 /** Processes a RadioGroup Message and returns the next Model, optional
  *  Commands, and an optional OutMessage. `Selected` fires when an option is
@@ -457,10 +459,8 @@ const internalView = RadioGroupComposition.makeView.withInputs<ViewInputs>(
 )
 
 /** Complete RadioGroup Block definition. */
-export const block = RadioGroupComposition.makeBlock({
-  init: RadioGroupComposition.makeInit((config: InitConfig) => ({
-    model: init(config),
-  })),
+export const block = RadioGroupComposition.assembleBlock({
+  init,
   update,
   view: internalView,
   EffectsLayer,
@@ -480,12 +480,14 @@ const makeBlockParts = <Value extends string>() => {
   const RefinedOutMessage =
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     OutMessage as unknown as OutMessageSchema<Value>
-  const RadioGroupDefinition = SharedRadioGroup.define({
+  const RadioGroupComposition = RadioGroupNamespace.makeDefinition({
     Model,
     Message,
     OutMessage: RefinedOutMessage,
-  })
-  const RadioGroupComposition = RadioGroupDefinition.makeComposition()
+  }).makeComposition()
+  const init = RadioGroupComposition.makeInit((config: InitConfig) => ({
+    model: makeInitialModel(config),
+  }))
   const refinedUpdate = RadioGroupComposition.makeUpdate((model, message) =>
     castReturn(update(model, message)),
   )
@@ -503,9 +505,7 @@ const makeBlockParts = <Value extends string>() => {
   return {
     composition: RadioGroupComposition,
     implementation: {
-      init: RadioGroupComposition.makeInit((config: InitConfig) => ({
-        model: init(config),
-      })),
+      init,
       update: refinedUpdate,
       view,
       EffectsLayer,
@@ -526,7 +526,7 @@ export interface Completed<
 const makeBlock = <Value extends string>(): Completed<Value> => {
   const { composition, implementation } = makeBlockParts<Value>()
 
-  return composition.makeBlock(implementation)
+  return composition.assembleBlock(implementation)
 }
 
 /**

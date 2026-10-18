@@ -17,14 +17,12 @@ import {
   LiteralInitializedChoicesBinding,
   ParentMessage,
   ParentModel,
-  PlainChoiceBlock,
   PlainChoicesBinding,
   TextMessage,
   choiceInspection,
   firstChoiceId,
   foldChoice,
   foldTextEntry,
-  fromChoiceMessage,
   initialParentModel,
   initialize,
   makePayloadParent,
@@ -33,7 +31,6 @@ import {
   selectChoice,
   setChoiceValue,
   setLiteralChoiceValue,
-  toChoiceMessage,
   unassembledInitialize,
 } from './wrapped-keyed-field.accepted.js'
 
@@ -54,6 +51,26 @@ type ExactRequirements<Actual, Expected> = 0 extends 1 & Actual
         : false
       : false
 
+type KeyedEnvelope<
+  Tag extends string,
+  Placement extends string,
+  Key,
+  ChildMessage,
+> = Readonly<{
+  _tag: Tag
+  placement: Placement
+  generation: number
+  key: Key
+  message: ChildMessage
+}>
+
+type ChoiceEnvelope = KeyedEnvelope<
+  'GotDeclarationWrappedKeyedFieldChoiceMessage',
+  'DeclarationWrappedKeyedFieldChoice',
+  typeof ChoiceId.Type,
+  typeof Choice.Message.Type
+>
+
 export type Key = Expect<
   Equal<Parameters<typeof ChoicesBinding.fold>[1], typeof ChoiceId.Type>
 >
@@ -64,10 +81,13 @@ export type LiteralKey = Expect<
   >
 >
 export type Placement = Expect<
-  Equal<typeof ChoicesBinding.placement, 'choices'>
+  Equal<typeof ChoicesBinding.placement, 'DeclarationWrappedKeyedFieldChoice'>
 >
 export type PlainPlacement = Expect<
-  Equal<typeof PlainChoicesBinding.placement, 'plainChoices'>
+  Equal<
+    typeof PlainChoicesBinding.placement,
+    'DeclarationWrappedKeyedFieldPlainChoice'
+  >
 >
 export type LiteralPlacement = Expect<
   Equal<typeof LiteralChoicesBinding.placement, 'literalChoices'>
@@ -78,7 +98,7 @@ export type ParentModelInput = Expect<
     typeof ParentModel.Type &
       Update.GraphCapability<
         typeof ParentModel.Type,
-        Block.BindingRequirement<'choices', typeof Choice.block>
+        Block.RequirementOfBinding<typeof ChoicesBinding>
       >
   >
 >
@@ -108,17 +128,82 @@ export type FoldModel = Expect<
     ReturnType<typeof ChoicesBinding.fold>,
     Update.ResultRecipe<
       typeof ParentModel.Type,
-      typeof ParentMessage.Type,
+      ChoiceEnvelope,
       never,
-      Block.Scoped<'choices', Command.HandlerOf<typeof Choice.ReadChoice>>,
-      | Block.BindingRequirement<'choices', typeof Choice.block>
+      Block.Scoped<
+        'DeclarationWrappedKeyedFieldChoice',
+        Command.HandlerOf<typeof Choice.ReadChoice>
+      >,
+      | Block.RequirementOfBinding<typeof ChoicesBinding>
       | Update.DeferredResultEvidence<
           Block.DeferredBindingPolicy<
-            'choices',
+            'DeclarationWrappedKeyedFieldChoice',
             'DeclarationWrappedKeyedFieldChoice'
           >
         >
     >
+  >
+>
+
+type CompleteDispatch =
+  | typeof ParentMessage.Type
+  | ChoiceEnvelope
+  | KeyedEnvelope<
+      'GotLiteralChoicesMessage',
+      'literalChoices',
+      'Primary' | 'Secondary',
+      typeof Choice.Message.Type
+    >
+  | KeyedEnvelope<
+      'GotDeclarationWrappedKeyedFieldTextMessage',
+      'DeclarationWrappedKeyedFieldText',
+      string,
+      typeof TextMessage.Type
+    >
+
+type CompleteEncodedDispatch =
+  | typeof ParentMessage.Encoded
+  | KeyedEnvelope<
+      'GotDeclarationWrappedKeyedFieldChoiceMessage',
+      'DeclarationWrappedKeyedFieldChoice',
+      typeof ChoiceId.Encoded,
+      typeof Choice.Message.Encoded
+    >
+  | KeyedEnvelope<
+      'GotLiteralChoicesMessage',
+      'literalChoices',
+      'Primary' | 'Secondary',
+      typeof Choice.Message.Encoded
+    >
+  | KeyedEnvelope<
+      'GotDeclarationWrappedKeyedFieldTextMessage',
+      'DeclarationWrappedKeyedFieldText',
+      string,
+      typeof TextMessage.Encoded
+    >
+
+export type CompleteDispatchType = Expect<
+  Equal<
+    typeof DeclarationWrappedKeyedFieldParentComposition.Message.Type,
+    CompleteDispatch
+  >
+>
+export type CompleteDispatchEncoded = Expect<
+  Equal<
+    typeof DeclarationWrappedKeyedFieldParentComposition.Message.Encoded,
+    CompleteEncodedDispatch
+  >
+>
+export type CompleteDispatchDecodingServices = Expect<
+  Equal<
+    typeof DeclarationWrappedKeyedFieldParentComposition.Message.DecodingServices,
+    never
+  >
+>
+export type CompleteDispatchEncodingServices = Expect<
+  Equal<
+    typeof DeclarationWrappedKeyedFieldParentComposition.Message.EncodingServices,
+    never
   >
 >
 export type GenericPayload = Expect<
@@ -143,7 +228,10 @@ export type InitConfig = Parameters<typeof ChoicesBinding.init>[0]
 export type InitKey = Expect<Equal<InitConfig['key'], typeof ChoiceId.Type>>
 export type InitArgs = Expect<Equal<InitConfig['args'], [value: 'One' | 'Two']>>
 export type InitializedPlacement = Expect<
-  Equal<typeof InitializedChoicesBinding.placement, 'choices'>
+  Equal<
+    typeof InitializedChoicesBinding.placement,
+    'DeclarationWrappedKeyedFieldChoice'
+  >
 >
 export type InitializeArguments = Expect<
   Equal<
@@ -159,25 +247,34 @@ export type InitializeArguments = Expect<
 export type InitializeRequirements = Expect<
   Equal<
     Update.RequirementsOf<typeof initialize>,
-    Block.Qualify<'choices', Command.HandlerOf<typeof Choice.ReadChoice>>
+    Block.Qualify<
+      'DeclarationWrappedKeyedFieldChoice',
+      Command.HandlerOf<typeof Choice.ReadChoice>
+    >
   >
 >
 export type Registration = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<typeof ChoicesBinding.fold>>,
-    Block.BindingRequirement<'choices', typeof Choice.block>
+    Block.RequirementOfBinding<typeof ChoicesBinding>
   >
 >
 export type RefreshRequirements = Expect<
   Equal<
     Update.RequirementsOf<ReturnType<typeof ChoicesBinding.refresh>>,
-    Block.Scoped<'choices', Command.HandlerOf<typeof Choice.ReadChoice>>
+    Block.Scoped<
+      'DeclarationWrappedKeyedFieldChoice',
+      Command.HandlerOf<typeof Choice.ReadChoice>
+    >
   >
 >
 export type PolicyRequirements = Expect<
   Equal<
     Update.RequirementsOf<ReturnType<typeof ChoicesBinding.select>>,
-    Block.Scoped<'choices', Command.HandlerOf<typeof Choice.ReadChoice>>
+    Block.Scoped<
+      'DeclarationWrappedKeyedFieldChoice',
+      Command.HandlerOf<typeof Choice.ReadChoice>
+    >
   >
 >
 export type InspectionServices = Expect<
@@ -210,7 +307,7 @@ export type EmittedGenericParentModel = Expect<
     typeof literalPayloadParent.Model.Type &
       Update.GraphCapability<
         typeof literalPayloadParent.Model.Type,
-        Block.BindingRequirement<'entries', typeof PlainChoiceBlock>
+        Block.RequirementOfBinding<typeof literalPayloadParent.Binding>
       >
   >
 >
@@ -240,9 +337,20 @@ foldTextEntry(
   TextMessage.ReplacedText({ value: 'next' }),
 )
 
+const generatedChoiceDelivery = Schema.decodeSync(
+  DeclarationWrappedKeyedFieldParentComposition.Message,
+)({
+  _tag: 'GotDeclarationWrappedKeyedFieldChoiceMessage',
+  placement: 'DeclarationWrappedKeyedFieldChoice',
+  generation: 0,
+  key: firstChoiceId,
+  message: Choice.Message.UpdatedValue({ value: 'Two' }),
+})
+void generatedChoiceDelivery
+
 // @ts-expect-error Emitted wrapped keyed policies must accept every collection key.
 // oxfmt-ignore
-DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', toParentMessage: toChoiceMessage, fromParentMessage: fromChoiceMessage, outMessage: { fold: (_key: 'other', _outMessage: typeof Choice.OutMessage.Type) => DeclarationWrappedKeyedFieldParentDefinition.step(model => ({ model })) } })
+DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, { field: 'choices', key: 'id', childField: 'choice', outMessage: { fold: (_key: 'other', _outMessage: typeof Choice.OutMessage.Type) => DeclarationWrappedKeyedFieldParentDefinition.step(model => ({ model })) } })
 
 // @ts-expect-error Emitted wrapped Bindings preserve branded keys.
 ChoicesBinding.refresh('first')
@@ -282,7 +390,7 @@ export type GeneralRegistration = Expect<
     Update.RegistrationEvidenceOf<
       ReturnType<typeof GeneralChoicesBinding.fold>
     >,
-    Block.BindingRequirement<'generalChoices', typeof Choice.block>
+    Block.RequirementOfBinding<typeof GeneralChoicesBinding>
   >
 >
 

@@ -3,8 +3,6 @@ import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
 
-import { People } from './page'
-
 export const NavigationShortcut = Schema.Literals(['GH', 'GP', 'GF', 'GN'])
 export type NavigationShortcut = typeof NavigationShortcut.Type
 
@@ -14,7 +12,6 @@ export const Message = defineMessageUnion({
   ClickedLink: { request: UrlRequest },
   ChangedUrl: { url: Url },
   EnteredNavigationShortcut: { shortcut: NavigationShortcut },
-  GotPeopleMessage: { message: People.Message },
 })
 
 export type Message = typeof Message.Type

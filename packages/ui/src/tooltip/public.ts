@@ -1,25 +1,12 @@
 export {
-  init,
-  update,
-  view,
-  block,
+  TooltipBlock,
   triggerId,
-  Model,
-  Message,
-  OutMessage,
-  type Shown,
-  type Hidden,
-  type EnteredTrigger,
-  type LeftTrigger,
-  type FocusedTrigger,
-  type BlurredTrigger,
-  type PressedEscape,
-  type PressedPointerOnTrigger,
-  WaitBeforeShowing,
-  AnchorTooltip,
-  mounts,
+  type InitConfig,
+  type RenderInfo,
+  type ViewInputs,
 } from './index.js'
 
-export type { InitConfig, ViewInputs, RenderInfo } from './index.js'
-
 export type { AnchorConfig } from '../anchor/index.js'
+
+/** Original Tooltip Command and Mount Definitions for Story and Scene test resolution. */
+export * as test from './test.js'

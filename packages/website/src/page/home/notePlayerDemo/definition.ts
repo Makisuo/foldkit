@@ -11,7 +11,7 @@ export type Note = typeof Note.Type
 export const NoteDuration = Schema.Literals(['Short', 'Medium', 'Long'])
 export type NoteDuration = typeof NoteDuration.Type
 
-export const NoteDurationRadioGroup = RadioGroup.create<NoteDuration>()
+export const NoteDurationRadioGroupBlock = RadioGroup.create<NoteDuration>()
 
 export const PlaybackState = defineTaggedUnion({
   Idle: {},
@@ -44,7 +44,7 @@ export type AudioState = typeof AudioState.Type
 
 export const Model = Schema.Struct({
   noteInput: FieldValidation.Field(Schema.String),
-  noteDurationRadioGroup: NoteDurationRadioGroup.Model,
+  noteDurationRadioGroup: NoteDurationRadioGroupBlock.Model,
   noteDuration: NoteDuration,
   playbackState: PlaybackState,
   highlightPhase: NoteHighlightPhase,
@@ -56,7 +56,6 @@ export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ChangedNoteInput: { value: Schema.String },
-  GotNoteDurationMessage: { message: NoteDurationRadioGroup.Message },
   ClickedPlay: {},
   ClickedPause: {},
   ClickedStop: {},
@@ -68,7 +67,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const NotePlayerDemoDefinition = Block.define('NotePlayerDemo', {
+export const NotePlayerDemoDefinition = Block.makeDefinition('NotePlayerDemo', {
   Model,
   Message,
 })

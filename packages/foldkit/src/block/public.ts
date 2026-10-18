@@ -13,7 +13,6 @@ export type {
 export type {
   AnyBinding,
   Binding,
-  BindingConfig,
   BindingEvidence,
   BindingInitializer,
   BindingInspection,
@@ -34,8 +33,6 @@ export type { BindChild } from './bindChild.js'
 export type {
   BindingDeliveryEvidence,
   DefineCompositionUpdate,
-  FromParentMessageArgs,
-  FromParentMessagePolicy,
 } from './delivery.js'
 export type {
   InitialBindingEvidence,
@@ -71,18 +68,19 @@ export type {
   Implementation,
   ViewBuilderFor,
   OwnedAuthoredView,
-  MakeBlock,
+  AssembleBlock,
   OwnedManagedResourceEntryBuilder,
   OwnedSubscriptionEntryBuilder,
   OwnedSubscriptionRegistry,
   RefineViewInputs,
 } from './definition.js'
-export { define } from './define.js'
+export { makeDefinition, makeNamespace } from './define.js'
+export type { DefineStepFields, DefineStepNoop } from './fieldStep.js'
 export type {
-  Authoring,
+  Namespace,
   AuthoringDefinition,
   AuthoringMakeComposition,
-  DefineContracts,
+  NamespaceMakeDefinition,
   Primitives,
 } from './define.js'
 export type {
@@ -91,11 +89,7 @@ export type {
   DefineMountStream,
   DefineResource,
 } from './named.js'
-export type {
-  KeyedBinding,
-  KeyedBindingConfig,
-  KeyedOutMessagePolicy,
-} from './keyedBinding.js'
+export type { KeyedBinding, KeyedOutMessagePolicy } from './keyedBinding.js'
 export type { Owner } from './owner.js'
 export type { Qualify, Scoped } from './scope.js'
 export type { BindingPolicyEvidence } from './policyEvidence.js'

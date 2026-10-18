@@ -1,27 +1,9 @@
 export {
-  init,
-  update,
-  view,
-  block,
-  Model,
-  Message,
-  OutMessage,
-  type BlurredPanel,
-  type BlurredTrigger,
-  type Closed,
-  type CompletedWaitBeforeClosing,
-  type CompletedWaitBeforeOpening,
-  type EnteredPanel,
-  type EnteredTrigger,
-  type FocusedPanel,
-  type FocusedTrigger,
-  type LeftPanel,
-  type LeftTrigger,
-  type Opened,
-  type PressedEscape,
-  type RequestedClose,
-  WaitBeforeClosing,
-  WaitBeforeOpening,
+  HoverIntentBlock,
+  type InitConfig,
+  type RenderInfo,
+  type ViewInputs,
 } from './index.js'
 
-export type { InitConfig, RenderInfo, ViewInputs } from './index.js'
+/** Original HoverIntent Command Definitions for Story and Scene test resolution. */
+export * as test from './test.js'

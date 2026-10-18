@@ -1,15 +1,13 @@
 import { type Html } from 'foldkit/html'
 
-import { type CodeBlock } from '../component'
-import { type Model } from './model'
-import { type ViewInputs } from './view'
+import { type CodeBlock } from './component'
+import type { SnippetDisclosureBinding } from './composition'
+import { SnippetDisclosureBlock } from './snippetDisclosure'
+
+type Model = typeof SnippetDisclosureBlock.Model.Type
 
 type Render = (
-  config: Readonly<{
-    slotId: string
-    model: Model
-    viewInputs: ViewInputs
-  }>,
+  config: Parameters<typeof SnippetDisclosureBinding.embedView>[0],
 ) => Html
 
 export const renderer =

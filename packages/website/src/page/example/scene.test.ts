@@ -12,15 +12,16 @@ import {
 } from 'foldkit/scene'
 import { describe, test } from 'vitest'
 
-import { Tabs } from '@foldkit/ui'
-import { FocusTab } from '@foldkit/ui/tabs'
+import { test as TabsTest } from '@foldkit/ui/tabs'
 
 import { Deployment } from '../../deployment'
 import { init } from '../../init'
-import * as SnippetDisclosure from '../../snippetDisclosure'
+import { SnippetDisclosureBlock } from '../../snippetDisclosure'
+import { SnippetSize } from '../../snippetDisclosure/model'
 import { MeasureSnippetHeight } from '../../snippetDisclosure/mount'
 import { update } from '../../update'
 import { view } from '../../view/view'
+import { SourceFileTabsBlock } from './fileTabs'
 import { type ExampleSources } from './sources'
 
 const longCode = pipe(
@@ -66,9 +67,9 @@ describe('example detail', () => {
         MeasureSnippetHeight({
           snippetId: 'example-ssr-source-src/application.ts',
         }),
-        SnippetDisclosure.Message.CompletedMeasureSnippetHeight({
+        SnippetDisclosureBlock.Message.CompletedMeasureSnippetHeight({
           snippetId: 'example-ssr-source-src/application.ts',
-          snippetSize: SnippetDisclosure.SnippetSize.Overflows(),
+          snippetSize: SnippetSize.Overflows(),
         }),
       ),
       click(
@@ -88,7 +89,10 @@ describe('example detail', () => {
         'aria-selected',
         'true',
       ),
-      Command.resolve(FocusTab, Tabs.Message.CompletedFocusTab()),
+      Command.resolve(
+        TabsTest.FocusTab,
+        SourceFileTabsBlock.Message.CompletedFocusTab(),
+      ),
       expect(
         within(
           role('tabpanel', { name: /entry\.server\.ts$/ }),

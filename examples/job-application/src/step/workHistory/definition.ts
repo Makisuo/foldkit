@@ -2,10 +2,10 @@ import { Schema } from 'effect'
 import { Block, Calendar } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import * as Entry from './entry/definition'
+import { WorkHistoryEntryBlock } from './entry'
 
 export const Model = Schema.Struct({
-  entries: Schema.Array(Entry.Model),
+  entries: Schema.Array(WorkHistoryEntryBlock.Model),
   today: Calendar.CalendarDate,
 })
 export type Model = typeof Model.Type
@@ -15,18 +15,15 @@ export const Message = defineMessageUnion({
   SucceededGenerateWorkHistoryEntryId: { entryId: Schema.String },
   FailedGenerateWorkHistoryEntryId: {},
   RemovedEntry: { entryId: Schema.String },
-  GotEntryMessage: {
-    entryId: Schema.String,
-    message: Entry.Message,
-  },
+  RequestedRevealErrors: {},
 })
 
 export type Message = typeof Message.Type
 
-export const WorkHistoryDefinition = Block.define('WorkHistory', {
+export const WorkHistoryDefinition = Block.makeDefinition('WorkHistory', {
   Model,
   Message,
-  Startup: Schema.Struct({
+  ChildInitContext: Schema.Struct({
     today: Calendar.CalendarDate,
     initialEntryId: Schema.String,
   }),

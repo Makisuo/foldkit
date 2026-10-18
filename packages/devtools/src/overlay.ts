@@ -21,7 +21,7 @@ import {
   pipe,
 } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import { Block, Update, defineApplication } from 'foldkit'
+import { Block, Update, makeApplicationDefinition } from 'foldkit'
 import {
   type CommandRecord,
   DEVTOOLS_HOST_ID,
@@ -52,7 +52,7 @@ import * as Tabs from '@foldkit/ui/tabs'
 import * as OptionExt from './internal/optionExtensions.js'
 import { overlayStyles } from './overlay-styles.js'
 
-const BlockFilterListbox = Listbox.create<string>()
+const BlockFilterListboxBlock = Listbox.create<string>()
 
 // MODEL
 
@@ -91,7 +91,7 @@ const SCRUBBER_SLIDER_ID = 'dt-scrubber'
 const InspectorTab = Schema.Literals(['Model', 'Message', 'Commands', 'Mounts'])
 type InspectorTab = typeof InspectorTab.Type
 const INSPECTOR_TABS: ReadonlyArray<InspectorTab> = InspectorTab.literals
-const InspectorTabs = Tabs.create<InspectorTab>()
+const InspectorTabsBlock = Tabs.create<InspectorTab>()
 
 /**
  * `Schema.Unknown` whose equivalence is reference equality. Effect 4's default
@@ -139,24 +139,26 @@ const Model = Schema.Struct({
   blockTags: Schema.Array(Schema.String),
   maybeBlockFilter: Schema.Option(Schema.String),
   isFlattened: Schema.Boolean,
-  blockFilterListbox: Listbox.Model,
+  blockFilterListbox: BlockFilterListboxBlock.Model,
   expandedPaths: Schema.HashSet(Schema.String),
   changedPaths: Schema.HashSet(Schema.String),
   affectedPaths: Schema.HashSet(Schema.String),
   copyStates: Schema.HashMap(Schema.String, CopyState),
   nextCopyRequestId: Schema.Number,
   maybePendingScrubIndex: Schema.Option(Schema.Number),
-  inspectorTabs: Tabs.Model,
+  inspectorTabs: InspectorTabsBlock.Model,
   activeInspectorTab: InspectorTab,
-  // NOTE: empirically, inlining `Slider.Model` here throws
+  // NOTE: empirically, inlining `Slider.SliderBlock.Model` here throws
   // "Cannot read properties of undefined (reading 'ast')" when running slider
   // tests, because slider imports html → runtime → overlay, and overlay
-  // references Slider.Model mid-cycle. Schema.suspend defers the read until after
-  // the cycle resolves. Inlining Listbox.Model works in practice but goes
+  // references Slider.SliderBlock.Model mid-cycle. Schema.suspend defers the read until after
+  // the cycle resolves. Inlining the Listbox Model works in practice but goes
   // through the same import chain; the exact cause of the asymmetry isn't
   // pinned down. Suspend is the conservative fix until the runtime ↔ overlay
   // cycle is broken at the source.
-  scrubberSlider: Schema.suspend((): typeof Slider.Model => Slider.Model),
+  scrubberSlider: Schema.suspend(
+    (): typeof Slider.SliderBlock.Model => Slider.SliderBlock.Model,
+  ),
   scrubberValue: Schema.Number,
 })
 type Model = typeof Model.Type
@@ -177,8 +179,6 @@ const Flags = Schema.Struct({
 })
 
 // MESSAGE
-
-// NOTE: suspend for the same init-order reason as scrubberSlider above.
 
 const Message = defineMessageUnion({
   ClickedToggle: {},
@@ -218,7 +218,6 @@ const Message = defineMessageUnion({
     requestId: Schema.Number,
   },
   TickedScrubFrame: {},
-  GotInspectorTabsMessage: { message: Tabs.Message },
   ReceivedStoreUpdate: {
     entries: Schema.Array(DisplayEntry),
     initCommands: Schema.Array(DisplayCommand),
@@ -226,10 +225,6 @@ const Message = defineMessageUnion({
     startIndex: Schema.Number,
     isPaused: Schema.Boolean,
     pausedAtIndex: Schema.Number,
-  },
-  GotBlockFilterMessage: { message: Listbox.Message },
-  GotScrubberSliderMessage: {
-    message: Schema.suspend((): typeof Slider.Message => Slider.Message),
   },
 })
 type Message = typeof Message.Type
@@ -391,15 +386,15 @@ const taggedPayload = (
 
 // UPDATE
 
-const ApplicationDefinition = defineApplication({
+const ApplicationDefinition = makeApplicationDefinition({
   Model,
   Message,
-  Startup: Flags,
+  ChildInitContext: Flags,
 })
 
-const foldInspectorTabsOutMessage = Tabs.OutMessage.match<
+const foldInspectorTabsOutMessage = InspectorTabsBlock.OutMessage.match<
   Update.Step<Model, Message>,
-  Tabs.OutMessage<InspectorTab>
+  typeof InspectorTabsBlock.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -408,16 +403,18 @@ const foldInspectorTabsOutMessage = Tabs.OutMessage.match<
     }),
 })
 
-const InspectorTabsBinding = ApplicationDefinition.bindChild(InspectorTabs, {
-  field: 'inspectorTabs',
-  init: { startupToArgs: () => [{ id: INSPECTOR_TABS_ID }] },
-  parentMessage: Message.GotInspectorTabsMessage,
-  outMessage: { fold: foldInspectorTabsOutMessage },
-})
+const InspectorTabsBinding = ApplicationDefinition.bindChild(
+  InspectorTabsBlock,
+  {
+    field: 'inspectorTabs',
+    init: { contextToArgs: () => [{ id: INSPECTOR_TABS_ID }] },
+    outMessage: { fold: foldInspectorTabsOutMessage },
+  },
+)
 
-const foldBlockFilterOutMessage = Listbox.OutMessage.match<
+const foldBlockFilterOutMessage = BlockFilterListboxBlock.OutMessage.match<
   Update.Step<Model, Message>,
-  Listbox.OutMessage<string>
+  typeof BlockFilterListboxBlock.OutMessage.Type
 >({
   Selected:
     ({ value }) =>
@@ -429,11 +426,10 @@ const foldBlockFilterOutMessage = Listbox.OutMessage.match<
 })
 
 const BlockFilterListboxBinding = ApplicationDefinition.bindChild(
-  BlockFilterListbox,
+  BlockFilterListboxBlock,
   {
     field: 'blockFilterListbox',
-    init: { startupToArgs: () => [{ id: BLOCK_FILTER_ID }] },
-    parentMessage: Message.GotBlockFilterMessage,
+    init: { contextToArgs: () => [{ id: BLOCK_FILTER_ID }] },
     outMessage: { fold: foldBlockFilterOutMessage },
   },
 )
@@ -441,7 +437,7 @@ const BlockFilterListboxBinding = ApplicationDefinition.bindChild(
 // NOTE: Pointer Messages update the thumb immediately, but jumping to and
 // inspecting the corresponding state is expensive. Keep only the latest host
 // index until TickedScrubFrame flushes one navigation on the next frame.
-const foldScrubberSliderOutMessage = Slider.OutMessage.match<
+const foldScrubberSliderOutMessage = Slider.SliderBlock.OutMessage.match<
   Update.Step<Model, Message>
 >({
   ChangedValue:
@@ -455,13 +451,15 @@ const foldScrubberSliderOutMessage = Slider.OutMessage.match<
     }),
 })
 
-type DevToolsScrubber = typeof scrubberSlider
+type DevToolsScrubberBlock = ReturnType<typeof Slider.forRoot>
 
-const makeApplicationComposition = (scrubberSlider: DevToolsScrubber) => {
-  const ScrubberBinding = ApplicationDefinition.bindChild(scrubberSlider, {
+const makeApplicationComposition = (
+  scrubberSliderBlock: DevToolsScrubberBlock,
+) => {
+  const ScrubberBinding = ApplicationDefinition.bindChild(scrubberSliderBlock, {
     field: 'scrubberSlider',
     init: {
-      startupToArgs: flags => [
+      contextToArgs: flags => [
         {
           id: SCRUBBER_SLIDER_ID,
           min: 0,
@@ -470,7 +468,6 @@ const makeApplicationComposition = (scrubberSlider: DevToolsScrubber) => {
         },
       ],
     },
-    parentMessage: Message.GotScrubberSliderMessage,
     outMessage: { fold: foldScrubberSliderOutMessage },
   })
 
@@ -480,7 +477,7 @@ const makeApplicationComposition = (scrubberSlider: DevToolsScrubber) => {
     ScrubberBinding,
   }
   const ApplicationComposition = ApplicationDefinition.makeComposition({
-    childBindings: Tuple.make(
+    bindings: Tuple.make(
       InspectorTabsBinding,
       BlockFilterListboxBinding,
       ScrubberBinding,
@@ -498,9 +495,9 @@ const getDevToolsShadowRoot = (): ShadowRoot => {
   return shadow
 }
 
-const scrubberSlider = Slider.forRoot(getDevToolsShadowRoot)
+const scrubberSliderBlock = Slider.forRoot(getDevToolsShadowRoot)
 const [bindings, ApplicationComposition] =
-  makeApplicationComposition(scrubberSlider)
+  makeApplicationComposition(scrubberSliderBlock)
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
@@ -805,7 +802,7 @@ const init = ApplicationComposition.makeInit((flags: typeof Flags.Type) => {
     : sliderMax
 
   return {
-    startup: flags,
+    childInitContext: flags,
     model: {
       screen: 'Messages',
       ...displayFlags,
@@ -2991,7 +2988,7 @@ export const createOverlay = (
       }
     })
 
-    const application = ApplicationComposition.makeElement({
+    const application = ApplicationComposition.assembleElement({
       init,
       update,
       view,

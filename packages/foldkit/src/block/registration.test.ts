@@ -3,8 +3,8 @@ import { expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
 import * as Update from '../update/index.js'
-import type { BindingRequirement } from './binding.js'
-import { define } from './define.js'
+import type { RequirementOfBinding } from './binding.js'
+import { makeNamespace } from './define.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 type ChildModel = typeof ChildModel.Type
@@ -16,18 +16,20 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 const ParentMessage = defineMessageUnion({
-  GotChildMessage: { message: Message },
   Advanced: {},
   Ignored: {},
 })
 
-const ChildOwner = define('RegistrationChild')
-const ChildDefinition = ChildOwner.define({ Model: ChildModel, Message })
+const ChildNamespace = makeNamespace('RegistrationChild')
+const ChildDefinition = ChildNamespace.makeDefinition({
+  Model: ChildModel,
+  Message,
+})
 const reset = ChildDefinition.step(_model => ({
   model: ChildModel.make({ count: 0 }),
 }))
 const ChildComposition = ChildDefinition.makeComposition()
-const ChildBlock = ChildComposition.makeBlock({
+const ChildBlock = ChildComposition.assembleBlock({
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
   update: ChildComposition.makeUpdate((model, message) =>
     Message.match(message, {
@@ -56,9 +58,9 @@ const makeParentModel = (child: ChildModel): ParentModel =>
 const makeParentModelWithChildOccurrence = (child: ChildModel): ParentModel =>
   ParentModel.make({ child, children: [child] })
 
-const RegisteredParentBaseDefinition = define(
+const RegisteredParentBaseDefinition = makeNamespace(
   'RegisteredPureChildParent',
-).define({
+).makeDefinition({
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -66,13 +68,14 @@ const ChildBinding = RegisteredParentBaseDefinition.bindChild(ChildBlock, {
   placement: 'child',
   read: (model: ParentModel) => Option.some(model.child),
   write: (model, nextChild) => ParentModel.make({ ...model, child: nextChild }),
-  parentMessage: ParentMessage.GotChildMessage,
 })
 
 const RegisteredParent = RegisteredParentBaseDefinition.makeComposition({
-  childBindings: [ChildBinding],
+  bindings: [ChildBinding],
 })
-const OmittedParentBaseDefinition = define('OmittedPureChildParent').define({
+const OmittedParentBaseDefinition = makeNamespace(
+  'OmittedPureChildParent',
+).makeDefinition({
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -81,15 +84,14 @@ const AlternateChildBinding = OmittedParentBaseDefinition.bindChild(
   {
     field: 'child',
     placement: 'alternate',
-    parentMessage: ParentMessage.GotChildMessage,
     init: false,
   },
 )
 const OmittedParent = OmittedParentBaseDefinition.makeComposition({
-  childBindings: [AlternateChildBinding],
+  bindings: [AlternateChildBinding],
 })
 
-const registeredFold = RegisteredParent.makeBlock({
+const registeredFold = RegisteredParent.assembleBlock({
   init: RegisteredParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -99,7 +101,7 @@ const registeredFold = RegisteredParent.makeBlock({
   EffectsLayer: Layer.empty,
 })
 // @ts-expect-error A pure fold may use only a registered child binding.
-const omittedFold = OmittedParent.makeBlock({
+const omittedFold = OmittedParent.assembleBlock({
   init: OmittedParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -110,7 +112,7 @@ const omittedFold = OmittedParent.makeBlock({
   EffectsLayer: Layer.empty,
 })
 
-const registeredStep = RegisteredParent.makeBlock({
+const registeredStep = RegisteredParent.assembleBlock({
   init: RegisteredParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -118,7 +120,7 @@ const registeredStep = RegisteredParent.makeBlock({
   EffectsLayer: Layer.empty,
 })
 // @ts-expect-error A pure Step may use only a registered child binding.
-const omittedStep = OmittedParent.makeBlock({
+const omittedStep = OmittedParent.assembleBlock({
   init: OmittedParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -129,7 +131,7 @@ const omittedStep = OmittedParent.makeBlock({
   EffectsLayer: Layer.empty,
 })
 
-const registeredCombinedStep = RegisteredParent.makeBlock({
+const registeredCombinedStep = RegisteredParent.assembleBlock({
   init: RegisteredParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -139,7 +141,7 @@ const registeredCombinedStep = RegisteredParent.makeBlock({
   EffectsLayer: Layer.empty,
 })
 // @ts-expect-error combine preserves the registration of every child Step.
-const omittedCombinedStep = OmittedParent.makeBlock({
+const omittedCombinedStep = OmittedParent.assembleBlock({
   init: OmittedParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -151,7 +153,7 @@ const omittedCombinedStep = OmittedParent.makeBlock({
 })
 
 const dynamicChildSteps = Array.map([ChildBinding.reset()], step => step)
-const registeredDynamicCombinedStep = RegisteredParent.makeBlock({
+const registeredDynamicCombinedStep = RegisteredParent.assembleBlock({
   init: RegisteredParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -161,7 +163,7 @@ const registeredDynamicCombinedStep = RegisteredParent.makeBlock({
   EffectsLayer: Layer.empty,
 })
 // @ts-expect-error A computed Step list retains its child registration.
-const omittedDynamicCombinedStep = OmittedParent.makeBlock({
+const omittedDynamicCombinedStep = OmittedParent.assembleBlock({
   init: OmittedParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -172,7 +174,7 @@ const omittedDynamicCombinedStep = OmittedParent.makeBlock({
   EffectsLayer: Layer.empty,
 })
 
-const registeredInit = RegisteredParent.makeBlock({
+const registeredInit = RegisteredParent.assembleBlock({
   init: RegisteredParent.makeInit(() =>
     ChildBinding.init({ args: [], toParentModel: makeParentModel }),
   ),
@@ -180,7 +182,7 @@ const registeredInit = RegisteredParent.makeBlock({
   EffectsLayer: Layer.empty,
 })
 // @ts-expect-error Forwarded init Commands retain their child registration.
-const omittedInit = OmittedParent.makeBlock({
+const omittedInit = OmittedParent.assembleBlock({
   init: OmittedParent.makeInit(() =>
     ChildBinding.init({ args: [], toParentModel: makeParentModel }),
   ),
@@ -191,7 +193,7 @@ const omittedInit = OmittedParent.makeBlock({
 const registeredDefinedUpdate = RegisteredParent.makeUpdate((model, message) =>
   ChildBinding.fold(model, message),
 )
-const registeredDefinitionUpdate = RegisteredParent.makeBlock({
+const registeredDefinitionUpdate = RegisteredParent.assembleBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
   update: registeredDefinedUpdate,
   EffectsLayer: Layer.empty,
@@ -201,7 +203,7 @@ const omittedDefinedUpdate = OmittedParent.makeUpdate((model, message) =>
   ChildBinding.fold(model, message),
 )
 // @ts-expect-error A defined update preserves the binding used by its result.
-const omittedDefinitionUpdate = OmittedParent.makeBlock({
+const omittedDefinitionUpdate = OmittedParent.assembleBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
   update: omittedDefinedUpdate,
   EffectsLayer: Layer.empty,
@@ -220,7 +222,7 @@ const branchUpdate = RegisteredParentBaseDefinition.step(
 const registeredBranchDefinedUpdate = RegisteredParent.makeUpdate(
   (model, message) => branchUpdate(model, message),
 )
-const registeredBranchUpdate = RegisteredParent.makeBlock({
+const registeredBranchUpdate = RegisteredParent.assembleBlock({
   init: RegisteredParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -232,7 +234,7 @@ const omittedBranchDefinedUpdate = OmittedParent.makeUpdate((model, message) =>
   branchUpdate(model, message),
 )
 // @ts-expect-error A union return retains registration from its child branch.
-const omittedBranchUpdate = OmittedParent.makeBlock({
+const omittedBranchUpdate = OmittedParent.assembleBlock({
   init: OmittedParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -267,13 +269,13 @@ const mappedChildInit = () => {
 mappedChildInit().model
 // @ts-expect-error A passive init recipe does not expose Commands before interpretation.
 mappedChildInit().commands
-const registeredMappedInit = RegisteredParent.makeBlock({
+const registeredMappedInit = RegisteredParent.assembleBlock({
   init: RegisteredParent.makeInit(mappedChildInit),
   update: RegisteredParent.makeUpdate(model => ({ model })),
   EffectsLayer: Layer.empty,
 })
 // @ts-expect-error mapMessages preserves child registration on the collection.
-const omittedMappedInit = OmittedParent.makeBlock({
+const omittedMappedInit = OmittedParent.assembleBlock({
   init: OmittedParent.makeInit(mappedChildInit),
   update: OmittedParent.makeUpdate(model => ({ model })),
   EffectsLayer: Layer.empty,
@@ -313,9 +315,9 @@ const modelOnlyChildInit = ChildBinding.init({
 // @ts-expect-error A passive init recipe cannot be narrowed to its future Model.
 modelOnlyChildInit.model
 
-const UnusedChildParentBaseDefinition = define(
+const UnusedChildParentBaseDefinition = makeNamespace(
   'UnusedRegisteredChildParent',
-).define({
+).makeDefinition({
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -326,38 +328,36 @@ const UnusedRegisteredChildBinding = UnusedChildParentBaseDefinition.bindChild(
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       ParentModel.make({ ...model, child: nextChild }),
-    parentMessage: ParentMessage.GotChildMessage,
   },
 )
 const UnusedChildParent = UnusedChildParentBaseDefinition.makeComposition({
-  childBindings: [UnusedRegisteredChildBinding],
+  bindings: [UnusedRegisteredChildBinding],
 })
-const RemovedUnusedChildParent = define('RemovedUnusedChildParent')
-  .define({
+const RemovedUnusedChildParent = makeNamespace('RemovedUnusedChildParent')
+  .makeDefinition({
     Model: ParentModel,
     Message,
   })
   .makeComposition()
-const unusedChild = UnusedChildParent.makeBlock({
+const unusedChild = UnusedChildParent.assembleBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
   update: model => ({ model }),
   EffectsLayer: Layer.empty,
 })
-const removedUnusedChild = RemovedUnusedChildParent.makeBlock({
+const removedUnusedChild = RemovedUnusedChildParent.assembleBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
   update: model => ({ model }),
   EffectsLayer: Layer.empty,
 })
 
 const KeyedParentMessage = defineMessageUnion({
-  GotChildrenMessage: { key: Schema.Number, message: Message },
   Advanced: {},
   Ignored: {},
 })
 
-const RegisteredKeyedParentBaseDefinition = define(
+const RegisteredKeyedParentBaseDefinition = makeNamespace(
   'RegisteredPureKeyedChildParent',
-).define({
+).makeDefinition({
   Model: ParentModel,
   Message: KeyedParentMessage,
 })
@@ -365,6 +365,7 @@ const ChildrenBinding = RegisteredKeyedParentBaseDefinition.bindChild(
   ChildBlock,
   {
     placement: 'children',
+    keySchema: Schema.Number,
     readAll: (model: ParentModel) => model.children,
     key: childModel => childModel.count,
     read: childModel => childModel,
@@ -375,22 +376,16 @@ const ChildrenBinding = RegisteredKeyedParentBaseDefinition.bindChild(
           childModel.count === key ? nextChild : childModel,
         ),
       }),
-    toParentMessage: (key, message) =>
-      KeyedParentMessage.GotChildrenMessage({ key, message }),
-    fromParentMessage: {
-      parentMessage: KeyedParentMessage.GotChildrenMessage,
-      args: (_model, { key, message }) => Option.some([key, message]),
-    },
   },
 )
 
 const RegisteredKeyedParent =
   RegisteredKeyedParentBaseDefinition.makeComposition({
-    childBindings: [ChildrenBinding],
+    bindings: [ChildrenBinding],
   })
-const OmittedKeyedParentBaseDefinition = define(
+const OmittedKeyedParentBaseDefinition = makeNamespace(
   'OmittedPureKeyedChildParent',
-).define({
+).makeDefinition({
   Model: ParentModel,
   Message: KeyedParentMessage,
 })
@@ -398,23 +393,18 @@ const AlternateChildrenBinding = OmittedKeyedParentBaseDefinition.bindChild(
   ChildBlock,
   {
     placement: 'alternate-children',
+    keySchema: Schema.Number,
     readAll: model => model.children,
     key: child => child.count,
     read: child => child,
     writeAt: model => model,
-    toParentMessage: (key, message) =>
-      KeyedParentMessage.GotChildrenMessage({ key, message }),
-    fromParentMessage: {
-      parentMessage: KeyedParentMessage.GotChildrenMessage,
-      args: (_model, { key, message }) => Option.some([key, message]),
-    },
   },
 )
 const OmittedKeyedParent = OmittedKeyedParentBaseDefinition.makeComposition({
-  childBindings: [AlternateChildrenBinding],
+  bindings: [AlternateChildrenBinding],
 })
 
-const registeredKeyedFold = RegisteredKeyedParent.makeBlock({
+const registeredKeyedFold = RegisteredKeyedParent.assembleBlock({
   init: RegisteredKeyedParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -424,7 +414,7 @@ const registeredKeyedFold = RegisteredKeyedParent.makeBlock({
   EffectsLayer: Layer.empty,
 })
 // @ts-expect-error A keyed pure fold requires its registered collection.
-const omittedKeyedFold = OmittedKeyedParent.makeBlock({
+const omittedKeyedFold = OmittedKeyedParent.assembleBlock({
   init: OmittedKeyedParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -435,7 +425,7 @@ const omittedKeyedFold = OmittedKeyedParent.makeBlock({
   EffectsLayer: Layer.empty,
 })
 
-const registeredKeyedStep = RegisteredKeyedParent.makeBlock({
+const registeredKeyedStep = RegisteredKeyedParent.assembleBlock({
   init: RegisteredKeyedParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -445,7 +435,7 @@ const registeredKeyedStep = RegisteredKeyedParent.makeBlock({
   EffectsLayer: Layer.empty,
 })
 // @ts-expect-error A keyed pure Step requires its registered collection.
-const omittedKeyedStep = OmittedKeyedParent.makeBlock({
+const omittedKeyedStep = OmittedKeyedParent.assembleBlock({
   init: OmittedKeyedParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -456,7 +446,7 @@ const omittedKeyedStep = OmittedKeyedParent.makeBlock({
   EffectsLayer: Layer.empty,
 })
 
-const registeredKeyedCombinedStep = RegisteredKeyedParent.makeBlock({
+const registeredKeyedCombinedStep = RegisteredKeyedParent.assembleBlock({
   init: RegisteredKeyedParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -466,7 +456,7 @@ const registeredKeyedCombinedStep = RegisteredKeyedParent.makeBlock({
   EffectsLayer: Layer.empty,
 })
 // @ts-expect-error combine preserves a keyed child Step's registration.
-const omittedKeyedCombinedStep = OmittedKeyedParent.makeBlock({
+const omittedKeyedCombinedStep = OmittedKeyedParent.assembleBlock({
   init: OmittedKeyedParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -477,7 +467,7 @@ const omittedKeyedCombinedStep = OmittedKeyedParent.makeBlock({
   EffectsLayer: Layer.empty,
 })
 
-const registeredKeyedInit = RegisteredKeyedParent.makeBlock({
+const registeredKeyedInit = RegisteredKeyedParent.assembleBlock({
   init: RegisteredKeyedParent.makeInit(() =>
     ChildrenBinding.init({
       key: 0,
@@ -489,7 +479,7 @@ const registeredKeyedInit = RegisteredKeyedParent.makeBlock({
   EffectsLayer: Layer.empty,
 })
 // @ts-expect-error Keyed init Commands retain their collection registration.
-const omittedKeyedInit = OmittedKeyedParent.makeBlock({
+const omittedKeyedInit = OmittedKeyedParent.assembleBlock({
   init: OmittedKeyedParent.makeInit(() =>
     ChildrenBinding.init({
       key: 0,
@@ -504,27 +494,29 @@ const omittedKeyedInit = OmittedKeyedParent.makeBlock({
 const PolicyOutMessage = defineMessageUnion({ RequestedSecondaryReset: {} })
 type PolicyOutMessage = typeof PolicyOutMessage.Type
 
-const PolicyChildDefinition = define('RegistrationPolicyChild').define({
-  Model: ChildModel,
-  Message,
-  OutMessage: PolicyOutMessage,
-})
-const PolicyChildBlock = PolicyChildDefinition.makeComposition().makeBlock({
-  init: () => ({ model: ChildModel.make({ count: 0 }) }),
-  update: model => ({
-    model,
-    outMessage: PolicyOutMessage.RequestedSecondaryReset(),
-  }),
-  EffectsLayer: Layer.empty,
-})
+const PolicyChildBlock = makeNamespace('RegistrationPolicyChild')
+  .makeDefinition({
+    Model: ChildModel,
+    Message,
+    OutMessage: PolicyOutMessage,
+  })
+  .makeComposition()
+  .assembleBlock({
+    init: () => ({ model: ChildModel.make({ count: 0 }) }),
+    update: model => ({
+      model,
+      outMessage: PolicyOutMessage.RequestedSecondaryReset(),
+    }),
+    EffectsLayer: Layer.empty,
+  })
 
 const PolicyParentMessage = defineMessageUnion({
-  GotPrimaryMessage: { message: Message },
-  GotSecondaryMessage: { message: Message },
   Advanced: {},
   Ignored: {},
 })
-const PolicyParentBaseDefinition = define('RegisteredPolicyParent').define({
+const PolicyParentBaseDefinition = makeNamespace(
+  'RegisteredPolicyParent',
+).makeDefinition({
   Model: ParentModel,
   Message: PolicyParentMessage,
 })
@@ -532,7 +524,6 @@ const SecondaryChildBinding = PolicyParentBaseDefinition.bindChild(ChildBlock, {
   placement: 'secondary-child',
   read: (model: ParentModel) => Option.some(model.child),
   write: (model, nextChild) => ParentModel.make({ ...model, child: nextChild }),
-  parentMessage: PolicyParentMessage.GotSecondaryMessage,
 })
 const unsupportedNestedRawChildStep = Update.foldChildStep({
   // @ts-expect-error A raw child fold cannot erase a binding operation's registration.
@@ -548,7 +539,6 @@ const PolicyChildBinding = PolicyParentBaseDefinition.bindChild(
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       ParentModel.make({ ...model, child: nextChild }),
-    parentMessage: PolicyParentMessage.GotPrimaryMessage,
     outMessage: {
       fold: (_outMessage: PolicyOutMessage) =>
         PolicyParentBaseDefinition.step(() => SecondaryChildBinding.reset()),
@@ -557,9 +547,11 @@ const PolicyChildBinding = PolicyParentBaseDefinition.bindChild(
 )
 
 const RegisteredPolicyParent = PolicyParentBaseDefinition.makeComposition({
-  childBindings: [PolicyChildBinding, SecondaryChildBinding],
+  bindings: [PolicyChildBinding, SecondaryChildBinding],
 })
-const OmittedPolicyParentBaseDefinition = define('OmittedPolicyParent').define({
+const OmittedPolicyParentBaseDefinition = makeNamespace(
+  'OmittedPolicyParent',
+).makeDefinition({
   Model: ParentModel,
   Message: PolicyParentMessage,
 })
@@ -569,7 +561,6 @@ const OmittedSecondaryChildBinding =
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       ParentModel.make({ ...model, child: nextChild }),
-    parentMessage: PolicyParentMessage.GotSecondaryMessage,
   })
 const OmittedPolicyChildBinding = OmittedPolicyParentBaseDefinition.bindChild(
   PolicyChildBlock,
@@ -578,7 +569,6 @@ const OmittedPolicyChildBinding = OmittedPolicyParentBaseDefinition.bindChild(
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       ParentModel.make({ ...model, child: nextChild }),
-    parentMessage: PolicyParentMessage.GotPrimaryMessage,
     outMessage: {
       fold: (_outMessage: PolicyOutMessage) =>
         OmittedPolicyParentBaseDefinition.step(() =>
@@ -591,14 +581,13 @@ const AlternateSecondaryChildBinding =
   OmittedPolicyParentBaseDefinition.bindChild(ChildBlock, {
     field: 'child',
     placement: 'alternate-secondary',
-    parentMessage: PolicyParentMessage.GotSecondaryMessage,
     init: false,
   })
 // @ts-expect-error An OutMessage policy retains nested child Step registration.
 const OmittedPolicyParent = OmittedPolicyParentBaseDefinition.makeComposition({
-  childBindings: [OmittedPolicyChildBinding, AlternateSecondaryChildBinding],
+  bindings: [OmittedPolicyChildBinding, AlternateSecondaryChildBinding],
 })
-const registeredPolicyFold = RegisteredPolicyParent.makeBlock({
+const registeredPolicyFold = RegisteredPolicyParent.assembleBlock({
   init: RegisteredPolicyParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -608,14 +597,12 @@ const registeredPolicyFold = RegisteredPolicyParent.makeBlock({
   EffectsLayer: Layer.empty,
 })
 const KeyedPolicyParentMessage = defineMessageUnion({
-  GotPrimaryMessage: { key: Schema.Number, message: Message },
-  GotSecondaryMessage: { key: Schema.Number, message: Message },
   Advanced: {},
   Ignored: {},
 })
-const KeyedPolicyParentBaseDefinition = define(
+const KeyedPolicyParentBaseDefinition = makeNamespace(
   'RegisteredKeyedPolicyParent',
-).define({
+).makeDefinition({
   Model: ParentModel,
   Message: KeyedPolicyParentMessage,
 })
@@ -624,6 +611,7 @@ const SecondaryChildrenBinding = KeyedPolicyParentBaseDefinition.bindChild(
   ChildBlock,
   {
     placement: 'secondary-children',
+    keySchema: Schema.Number,
     readAll: (model: ParentModel) => model.children,
     key: childModelKey,
     read: childModel => childModel,
@@ -634,18 +622,13 @@ const SecondaryChildrenBinding = KeyedPolicyParentBaseDefinition.bindChild(
           childModel.count === key ? nextChild : childModel,
         ),
       }),
-    toParentMessage: (key, message) =>
-      KeyedPolicyParentMessage.GotSecondaryMessage({ key, message }),
-    fromParentMessage: {
-      parentMessage: KeyedPolicyParentMessage.GotSecondaryMessage,
-      args: (_model, { key, message }) => Option.some([key, message]),
-    },
   },
 )
 const PolicyChildrenBinding = KeyedPolicyParentBaseDefinition.bindChild(
   PolicyChildBlock,
   {
     placement: 'policy-children',
+    keySchema: Schema.Number,
     readAll: (model: ParentModel) => model.children,
     key: childModelKey,
     read: childModel => childModel,
@@ -656,12 +639,6 @@ const PolicyChildrenBinding = KeyedPolicyParentBaseDefinition.bindChild(
           childModel.count === key ? nextChild : childModel,
         ),
       }),
-    toParentMessage: (key, message) =>
-      KeyedPolicyParentMessage.GotPrimaryMessage({ key, message }),
-    fromParentMessage: {
-      parentMessage: KeyedPolicyParentMessage.GotPrimaryMessage,
-      args: (_model, { key, message }) => Option.some([key, message]),
-    },
     outMessage: {
       fold: (_key: number, _outMessage: PolicyOutMessage) =>
         SecondaryChildrenBinding.reset(0),
@@ -671,17 +648,18 @@ const PolicyChildrenBinding = KeyedPolicyParentBaseDefinition.bindChild(
 
 const RegisteredKeyedPolicyParent =
   KeyedPolicyParentBaseDefinition.makeComposition({
-    childBindings: [PolicyChildrenBinding, SecondaryChildrenBinding],
+    bindings: [PolicyChildrenBinding, SecondaryChildrenBinding],
   })
-const OmittedKeyedPolicyParentBaseDefinition = define(
+const OmittedKeyedPolicyParentBaseDefinition = makeNamespace(
   'OmittedKeyedPolicyParent',
-).define({
+).makeDefinition({
   Model: ParentModel,
   Message: KeyedPolicyParentMessage,
 })
 const OmittedSecondaryChildrenBinding =
   OmittedKeyedPolicyParentBaseDefinition.bindChild(ChildBlock, {
     placement: 'secondary-children',
+    keySchema: Schema.Number,
     readAll: (model: ParentModel) => model.children,
     key: childModelKey,
     read: childModel => childModel,
@@ -692,16 +670,11 @@ const OmittedSecondaryChildrenBinding =
           childModel.count === key ? nextChild : childModel,
         ),
       }),
-    toParentMessage: (key, message) =>
-      KeyedPolicyParentMessage.GotSecondaryMessage({ key, message }),
-    fromParentMessage: {
-      parentMessage: KeyedPolicyParentMessage.GotSecondaryMessage,
-      args: (_model, { key, message }) => Option.some([key, message]),
-    },
   })
 const OmittedPolicyChildrenBinding =
   OmittedKeyedPolicyParentBaseDefinition.bindChild(PolicyChildBlock, {
     placement: 'policy-children',
+    keySchema: Schema.Number,
     readAll: (model: ParentModel) => model.children,
     key: childModelKey,
     read: childModel => childModel,
@@ -712,12 +685,6 @@ const OmittedPolicyChildrenBinding =
           childModel.count === key ? nextChild : childModel,
         ),
       }),
-    toParentMessage: (key, message) =>
-      KeyedPolicyParentMessage.GotPrimaryMessage({ key, message }),
-    fromParentMessage: {
-      parentMessage: KeyedPolicyParentMessage.GotPrimaryMessage,
-      args: (_model, { key, message }) => Option.some([key, message]),
-    },
     outMessage: {
       fold: (_key: number, _outMessage: PolicyOutMessage) =>
         OmittedSecondaryChildrenBinding.reset(0),
@@ -726,26 +693,18 @@ const OmittedPolicyChildrenBinding =
 const AlternateSecondaryChildrenBinding =
   OmittedKeyedPolicyParentBaseDefinition.bindChild(ChildBlock, {
     placement: 'alternate-secondary',
+    keySchema: Schema.Number,
     readAll: model => model.children,
     key: child => child.count,
     read: child => child,
     writeAt: model => model,
-    toParentMessage: (key, message) =>
-      KeyedPolicyParentMessage.GotSecondaryMessage({ key, message }),
-    fromParentMessage: {
-      parentMessage: KeyedPolicyParentMessage.GotSecondaryMessage,
-      args: (_model, { key, message }) => Option.some([key, message]),
-    },
   })
 const OmittedKeyedPolicyParent =
   // @ts-expect-error A keyed OutMessage policy retains child Step registration.
   OmittedKeyedPolicyParentBaseDefinition.makeComposition({
-    childBindings: [
-      OmittedPolicyChildrenBinding,
-      AlternateSecondaryChildrenBinding,
-    ],
+    bindings: [OmittedPolicyChildrenBinding, AlternateSecondaryChildrenBinding],
   })
-const registeredKeyedPolicyFold = RegisteredKeyedPolicyParent.makeBlock({
+const registeredKeyedPolicyFold = RegisteredKeyedPolicyParent.assembleBlock({
   init: RegisteredKeyedPolicyParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
@@ -754,9 +713,9 @@ const registeredKeyedPolicyFold = RegisteredKeyedPolicyParent.makeBlock({
   ),
   EffectsLayer: Layer.empty,
 })
-const FoldOutMessageParentBaseDefinition = define(
+const FoldOutMessageParentBaseDefinition = makeNamespace(
   'RegisteredFoldOutMessageInitParent',
-).define({
+).makeDefinition({
   Model: ParentModel,
   Message: PolicyParentMessage,
 })
@@ -767,7 +726,6 @@ const FoldOutMessageChildBinding = FoldOutMessageParentBaseDefinition.bindChild(
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       ParentModel.make({ ...model, child: nextChild }),
-    parentMessage: PolicyParentMessage.GotPrimaryMessage,
   },
 )
 const FoldOutMessageSecondaryChildBinding =
@@ -776,18 +734,14 @@ const FoldOutMessageSecondaryChildBinding =
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       ParentModel.make({ ...model, child: nextChild }),
-    parentMessage: PolicyParentMessage.GotSecondaryMessage,
   })
 const RegisteredFoldOutMessageParent =
   FoldOutMessageParentBaseDefinition.makeComposition({
-    childBindings: [
-      FoldOutMessageChildBinding,
-      FoldOutMessageSecondaryChildBinding,
-    ],
+    bindings: [FoldOutMessageChildBinding, FoldOutMessageSecondaryChildBinding],
   })
-const OmittedFoldOutMessageParentBaseDefinition = define(
+const OmittedFoldOutMessageParentBaseDefinition = makeNamespace(
   'OmittedFoldOutMessageInitParent',
-).define({
+).makeDefinition({
   Model: ParentModel,
   Message: PolicyParentMessage,
 })
@@ -797,38 +751,36 @@ const OmittedFoldOutMessageChildBinding =
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       ParentModel.make({ ...model, child: nextChild }),
-    parentMessage: PolicyParentMessage.GotPrimaryMessage,
   })
 const AlternateInitPrimaryBinding =
   OmittedFoldOutMessageParentBaseDefinition.bindChild(ChildBlock, {
     field: 'child',
     placement: 'alternate-primary',
-    parentMessage: PolicyParentMessage.GotPrimaryMessage,
     init: false,
   })
 const AlternateInitSecondaryBinding =
   OmittedFoldOutMessageParentBaseDefinition.bindChild(ChildBlock, {
     field: 'child',
     placement: 'alternate-secondary',
-    parentMessage: PolicyParentMessage.GotSecondaryMessage,
     init: false,
   })
 const OmittedFoldOutMessageParent =
   OmittedFoldOutMessageParentBaseDefinition.makeComposition({
-    childBindings: [AlternateInitPrimaryBinding, AlternateInitSecondaryBinding],
+    bindings: [AlternateInitPrimaryBinding, AlternateInitSecondaryBinding],
   })
-const registeredFoldOutMessageInit = RegisteredFoldOutMessageParent.makeBlock({
-  init: RegisteredFoldOutMessageParent.makeInit(() =>
-    FoldOutMessageChildBinding.init({
-      args: [],
-      toParentModel: makeParentModel,
-    }),
-  ),
-  update: RegisteredFoldOutMessageParent.makeUpdate(model => ({ model })),
-  EffectsLayer: Layer.empty,
-})
+const registeredFoldOutMessageInit =
+  RegisteredFoldOutMessageParent.assembleBlock({
+    init: RegisteredFoldOutMessageParent.makeInit(() =>
+      FoldOutMessageChildBinding.init({
+        args: [],
+        toParentModel: makeParentModel,
+      }),
+    ),
+    update: RegisteredFoldOutMessageParent.makeUpdate(model => ({ model })),
+    EffectsLayer: Layer.empty,
+  })
 // @ts-expect-error A passive init recipe requires its registered child Binding at completion.
-const omittedFoldOutMessageInit = OmittedFoldOutMessageParent.makeBlock({
+const omittedFoldOutMessageInit = OmittedFoldOutMessageParent.assembleBlock({
   init: OmittedFoldOutMessageParent.makeInit(() =>
     OmittedFoldOutMessageChildBinding.init({
       args: [],
@@ -865,8 +817,8 @@ RegisteredFoldOutMessageParent.makeInit(() =>
   ),
 )
 
-const LifecycleOwner = define('RegistrationLifecycleChild')
-const LifecycleDefinition = LifecycleOwner.define({
+const LifecycleNamespace = makeNamespace('RegistrationLifecycleChild')
+const LifecycleDefinition = LifecycleNamespace.makeDefinition({
   Model: ChildModel,
   Message: Schema.Never,
 })
@@ -878,15 +830,15 @@ const lifecycleSubscriptions = LifecycleDefinition.subscriptions(entry => ({
     },
   }),
 }))
-const LifecycleChild = LifecycleDefinition.makeComposition().makeBlock({
+const LifecycleChild = LifecycleDefinition.makeComposition().assembleBlock({
   init: () => ({ model: ChildModel.make({ count: 0 }) }),
   update: model => ({ model }),
   subscriptions: lifecycleSubscriptions,
   EffectsLayer: lifecycleSubscriptions.idle.layer,
 })
-const LifecycleOnlyParentBaseDefinition = define(
+const LifecycleOnlyParentBaseDefinition = makeNamespace(
   'LifecycleOnlyChildParent',
-).define({
+).makeDefinition({
   Model: ParentModel,
   Message,
 })
@@ -901,20 +853,20 @@ const LifecycleChildBinding = LifecycleOnlyParentBaseDefinition.bindChild(
 )
 
 const LifecycleOnlyParent = LifecycleOnlyParentBaseDefinition.makeComposition({
-  childBindings: [LifecycleChildBinding],
+  bindings: [LifecycleChildBinding],
 })
-const RemovedLifecycleParent = define('RemovedLifecycleChildParent')
-  .define({
+const RemovedLifecycleParent = makeNamespace('RemovedLifecycleChildParent')
+  .makeDefinition({
     Model: ParentModel,
     Message,
   })
   .makeComposition()
-const lifecycleOnlyChild = LifecycleOnlyParent.makeBlock({
+const lifecycleOnlyChild = LifecycleOnlyParent.assembleBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
   update: model => ({ model }),
   EffectsLayer: Layer.empty,
 })
-const removedLifecycleChild = RemovedLifecycleParent.makeBlock({
+const removedLifecycleChild = RemovedLifecycleParent.assembleBlock({
   init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
   update: model => ({ model }),
   EffectsLayer: Layer.empty,
@@ -967,13 +919,13 @@ void lifecycleOnlyChild
 void removedLifecycleChild
 
 it('keeps the declared child graph independent from operation use', () => {
-  expect(registeredFold.childBindings).toEqual([ChildBinding])
-  expect(removedUnusedChild.childBindings).toEqual([])
-  expect(lifecycleOnlyChild.childBindings).toEqual([LifecycleChildBinding])
-  expect(removedLifecycleChild.childBindings).toEqual([])
+  expect(registeredFold.bindings).toEqual([ChildBinding])
+  expect(removedUnusedChild.bindings).toEqual([])
+  expect(lifecycleOnlyChild.bindings).toEqual([LifecycleChildBinding])
+  expect(removedLifecycleChild.bindings).toEqual([])
   expectTypeOf<
     Update.RegistrationEvidenceOf<ReturnType<typeof childResultWithOutMessage>>
-  >().toEqualTypeOf<BindingRequirement<'child', typeof ChildBlock>>()
+  >().toEqualTypeOf<RequirementOfBinding<typeof ChildBinding>>()
   expectTypeOf<
     Update.RequirementsOf<typeof childResultWithOutMessage>
   >().toEqualTypeOf<never>()

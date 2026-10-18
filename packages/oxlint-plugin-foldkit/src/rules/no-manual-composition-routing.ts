@@ -21,16 +21,13 @@ import {
 } from '../guards.ts'
 
 const manualRoutingMessage =
-  'Do not handle a Got* child wrapper in an authored Composition update. Register its Binding and let Composition route it. Put parent coordination in the Binding OutMessage policy and use exposed operations for parent-driven child changes.'
+  'Do not handle a Got* child wrapper in an authored Composition update. Bind the completed child Block without an authored wrapper or Message mapper; Composition routes its generated envelope. Put parent coordination in the Binding OutMessage policy and use exposed operations for parent-driven child changes.'
 
 const hiddenChildInspectionMessage =
   'Do not inspect an internal child Message through the parent wrapper. Surface the child fact as an OutMessage and handle it in the Binding policy.'
 
-const disabledRoutingMessage =
-  'Do not disable incoming child Message routing with `fromParentMessage: false`. Declare the wrapper route, or omit Message mapping entirely when the child Message type is `never`.'
-
-const missingCustomRouteMessage =
-  'A custom `toParentMessage` mapping requires `fromParentMessage` with the exact wrapper constructor and fold arguments.'
+const authoredMappingMessage = (propertyName: string): string =>
+  `Remove the authored \`${propertyName}\` mapping. The registered Binding derives child delivery; use \`delivery.when\`, \`delivery.toUpdateContext\`, and keyed \`keySchema\` for parent policy.`
 
 const isNode = (value: unknown): value is ESTree.Node =>
   typeof value === 'object' &&
@@ -247,13 +244,13 @@ const isNestedChildTagRead = (
   })
 }
 
-/** Keeps registered child wrapper routing out of authored Composition updates. */
+/** Keeps child delivery routing out of authored Composition updates. */
 export const noManualCompositionRouting = Rule.define({
   name: 'no-manual-composition-routing',
   meta: Rule.meta({
     type: 'suggestion',
     description:
-      'Keep authored Composition updates local and let registered Bindings route child wrapper Messages.',
+      'Keep authored Composition updates local and let registered Bindings route generated child delivery.',
   }),
   create: function* () {
     const ctx = yield* RuleContext
@@ -270,61 +267,30 @@ export const noManualCompositionRouting = Rule.define({
             isOwnedDefinitionCall(node, 'bindChild', references)
           ) {
             const config = resolvedObject(node.arguments[1], references)
-            const optOut = config?.properties.find(
-              property =>
-                property.type === 'Property' &&
-                Option.contains(
-                  staticPropertyName(property),
-                  'fromParentMessage',
-                ) &&
-                property.value.type === 'Literal' &&
-                property.value.value === false,
-            )
-            if (optOut !== undefined) {
+            for (const property of config?.properties ?? []) {
+              if (property.type !== 'Property') {
+                continue
+              }
+
+              const propertyName = Option.getOrUndefined(
+                staticPropertyName(property),
+              )
+              if (
+                propertyName !== 'parentMessage' &&
+                propertyName !== 'toParentMessage' &&
+                propertyName !== 'fromParentMessage'
+              ) {
+                continue
+              }
+
               effects.push(
                 ctx.report(
                   Diagnostic.make({
-                    node: optOut,
-                    message: disabledRoutingMessage,
+                    node: property,
+                    message: authoredMappingMessage(propertyName),
                   }),
                 ),
               )
-            }
-
-            const inlineConfig = node.arguments[1]
-            if (
-              isObjectExpression(inlineConfig) &&
-              inlineConfig.properties.every(
-                property => property.type !== 'SpreadElement',
-              )
-            ) {
-              const toParentMessage = inlineConfig.properties.find(
-                property =>
-                  property.type === 'Property' &&
-                  Option.contains(
-                    staticPropertyName(property),
-                    'toParentMessage',
-                  ),
-              )
-              const hasFromParentMessage = inlineConfig.properties.some(
-                property =>
-                  property.type === 'Property' &&
-                  Option.contains(
-                    staticPropertyName(property),
-                    'fromParentMessage',
-                  ),
-              )
-
-              if (toParentMessage !== undefined && !hasFromParentMessage) {
-                effects.push(
-                  ctx.report(
-                    Diagnostic.make({
-                      node: toParentMessage,
-                      message: missingCustomRouteMessage,
-                    }),
-                  ),
-                )
-              }
             }
           }
 

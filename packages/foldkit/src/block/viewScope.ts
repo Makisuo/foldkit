@@ -13,7 +13,7 @@ export const withViewIdentity = <
 >(
   owner: NamedIdentity,
   mounts: ReadonlyArray<object>,
-  childBindings: ReadonlyArray<object>,
+  bindings: ReadonlyArray<object>,
   view: View,
 ): View => {
   const ownedView = (...args: ReadonlyArray<any>) => {
@@ -36,16 +36,15 @@ export const withViewIdentity = <
     }
     if (
       frame.viewIdentity !== undefined &&
-      childBindings.some(
-        childBinding =>
-          !frame.viewIdentity!.childBindings.includes(childBinding),
+      bindings.some(
+        childBinding => !frame.viewIdentity!.bindings.includes(childBinding),
       )
     ) {
       throw new Error(
         '[foldkit] This view uses child bindings that are not registered in its selected Block.',
       )
     }
-    pushFrame({ ...frame, viewIdentity: { owner, mounts, childBindings } })
+    pushFrame({ ...frame, viewIdentity: { owner, mounts, bindings } })
     try {
       return view(...args)
     } finally {

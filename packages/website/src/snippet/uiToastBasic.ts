@@ -33,10 +33,9 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// Embed the Toast Message in your parent Message, plus any domain Messages
-// that should push a toast:
+// Declare the parent-owned domain facts that should push a Toast. The
+// Composition derives Toast delivery from the Binding.
 const Message = defineMessageUnion({
-  GotToastMessage: { message: Toast.Message },
   ClickedSave: {},
 })
 type Message = typeof Message.Type
@@ -58,22 +57,21 @@ const foldToastOutMessage = Toast.OutMessage.match<Update.Step<Model, Message>>(
 
 // The Binding delegates Toast Messages, writes the next Toast Model, maps its
 // Commands, handles its OutMessages, and collects its Subscriptions.
-const NotificationsDefinition = Block.define('Notifications', {
+const NotificationsDefinition = Block.makeDefinition('Notifications', {
   Model,
   Message,
 })
 
 const ToastBinding = NotificationsDefinition.bindChild(Toast, {
   field: 'toast',
-  parentMessage: Message.GotToastMessage,
   init: {
-    startupToArgs: () => Tuple.make({ id: 'app-toast', swipeToDismiss: {} }),
+    contextToArgs: () => Tuple.make({ id: 'app-toast', swipeToDismiss: {} }),
   },
   outMessage: { fold: foldToastOutMessage },
 })
 
 const NotificationsComposition = NotificationsDefinition.makeComposition({
-  childBindings: [ToastBinding],
+  bindings: [ToastBinding],
 })
 
 // In your Composition init function, configure the fields the parent owns.
@@ -102,7 +100,7 @@ const update = NotificationsComposition.makeUpdate((model, message) =>
   }),
 )
 
-// Registering `ToastBinding` in `childBindings` collects the instance's pointer Subscriptions.
+// Registering `ToastBinding` in `bindings` collects the instance's pointer Subscriptions.
 
 // In your view, embed Toast via h.block once at the app root. The
 // entryToView callback lays out each entry from its payload. The

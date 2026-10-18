@@ -1,9 +1,9 @@
-import { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
 import { loginRouter } from '../../../route'
-import type { Message } from '../message'
+import type { LoggedOutViewBuilder } from '../composition'
 
-export const view = (h: HtmlBuilder<Message>): Html =>
+export const view = (h: LoggedOutViewBuilder): Html =>
   h.div(
     [h.Class('max-w-4xl mx-auto px-4')],
     [
@@ -57,7 +57,7 @@ export const view = (h: HtmlBuilder<Message>): Html =>
 const featureCard = (
   title: string,
   description: string,
-  h: HtmlBuilder<Message>,
+  h: LoggedOutViewBuilder,
 ): Html =>
   h.div(
     [h.Class('bg-white rounded-lg shadow-md p-6')],

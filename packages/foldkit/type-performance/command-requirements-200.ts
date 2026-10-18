@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import type { Element as ElementProgram } from 'foldkit/application'
 import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
@@ -12,9 +12,9 @@ const WarmupMessage = defineMessageUnion({ CompletedWarmup: {} })
 Effect.void
 Layer.empty
 Option.none()
-defineApplication({ Model: WarmupModel, Message: WarmupMessage })
+makeApplicationDefinition({ Model: WarmupModel, Message: WarmupMessage })
 Context.Service
-Block.define('TypePerformanceWarmup', {
+Block.makeDefinition('TypePerformanceWarmup', {
   Model: WarmupModel,
   Message: WarmupMessage,
 })
@@ -37,10 +37,13 @@ class Clock extends Context.Service<
 >()('TypePerformanceWorkerClock') {}
 const ClockLayer = Layer.succeed(Clock, { run: Effect.void })
 
-const TypePerformanceWorkerDefinition = Block.define('TypePerformanceWorker', {
-  Model: WorkerModel,
-  Message: WorkerMessage,
-})
+const TypePerformanceWorkerDefinition = Block.makeDefinition(
+  'TypePerformanceWorker',
+  {
+    Model: WorkerModel,
+    Message: WorkerMessage,
+  },
+)
 
 const Run001 = TypePerformanceWorkerDefinition.command('Run001', {
   messages: [WorkerMessage.CompletedRun],
@@ -2049,7 +2052,7 @@ const runAll = TypePerformanceWorkerDefinition.step(model => ({
 }))
 const TypePerformanceWorkerComposition =
   TypePerformanceWorkerDefinition.makeComposition()
-const Worker = TypePerformanceWorkerComposition.makeBlock({
+const Worker = TypePerformanceWorkerComposition.assembleBlock({
   init: TypePerformanceWorkerComposition.makeInit(() => ({
     model: WorkerModel.make({ value: 0 }),
   })),
@@ -2265,10 +2268,8 @@ const Worker = TypePerformanceWorkerComposition.makeBlock({
     Run200.layer,
   ),
 })
-const ApplicationMessage = defineMessageUnion({
-  GotWorkerMessage: { message: Worker.Message },
-})
-const ApplicationDefinition = defineApplication({
+const ApplicationMessage = Schema.Never
+const ApplicationDefinition = makeApplicationDefinition({
   Model: WorkerModel,
   Message: ApplicationMessage,
 })
@@ -2276,16 +2277,14 @@ const WorkerBinding = ApplicationDefinition.bindChild(Worker, {
   placement: 'worker',
   read: model => Option.some(model),
   write: (_model, nextWorker) => nextWorker,
-  parentMessage: ApplicationMessage.GotWorkerMessage,
-  fromParentMessage: { args: (_model, { message }) => Option.some([message]) },
 })
 const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [WorkerBinding],
+  bindings: [WorkerBinding],
 })
 const update = ApplicationComposition.makeUpdate()
 const view = ApplicationComposition.makeView((_model, h) => h.main([]))
 
-export const program = ApplicationComposition.makeElement({
+export const program = ApplicationComposition.assembleElement({
   container: null,
   init: ApplicationComposition.makeInit(() =>
     WorkerBinding.init({ args: [], toParentModel: model => model }),

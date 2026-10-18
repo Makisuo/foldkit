@@ -20,7 +20,6 @@ import * as Animation from '../animation/index.js'
 import {
   Message as AnimationMessage,
   OutMessage as AnimationOutMessage,
-  init as animationInit,
 } from '../animation/schema.js'
 import { defaultLeaveCommand as animationDefaultLeaveCommand } from '../animation/update.js'
 import {
@@ -111,7 +110,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   const ModelSchema = makeModel(payloadSchema)
   const MessageSchema = makeMessage(payloadSchema)
   const OutMessageSchema = makeOutMessage(payloadSchema)
-  const ToastDefinition = Block.define('Toast', {
+  const ToastDefinition = Block.makeDefinition('Toast', {
     Model: ModelSchema,
     Message: MessageSchema,
     OutMessage: OutMessageSchema,
@@ -297,21 +296,18 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         ),
     })
 
-  const EntryAnimationBinding = ToastDefinition.bindChild(Animation.block, {
-    field: 'entries',
-    key: 'id',
-    childField: 'animation',
-    toParentMessage: (entryId, message) =>
-      MessageSchema.GotAnimationMessage({ entryId, message }),
-    fromParentMessage: {
-      parentMessage: MessageSchema.GotAnimationMessage,
-      args: (_model, { entryId, message }) => Option.some([entryId, message]),
+  const EntryAnimationBinding = ToastDefinition.bindChild(
+    Animation.AnimationBlock,
+    {
+      field: 'entries',
+      key: 'id',
+      childField: 'animation',
+      outMessage: { fold: foldEntryAnimationOutMessage },
     },
-    outMessage: { fold: foldEntryAnimationOutMessage },
-  })
+  )
 
   const ToastComposition = ToastDefinition.makeComposition({
-    childBindings: [EntryAnimationBinding],
+    bindings: [EntryAnimationBinding],
   })
 
   const foldEntryAnimationShow = (entry: Entry) =>
@@ -334,7 +330,10 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     return {
       id: entryId,
       variant,
-      animation: animationInit({ id: entryId, isShowing: false }),
+      animation: Animation.AnimationBlock.init({
+        id: entryId,
+        isShowing: false,
+      }).model,
       maybeDuration: isSticky
         ? Option.none()
         : Option.orElse(maybeDuration, () =>
@@ -348,9 +347,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     }
   }
 
-  /** Creates an initial toast container model from a config. Starts empty
-   *  with swipe disabled unless `swipeToDismiss` opts in. */
-  const init = (config: InitConfig): Model => ({
+  const makeInitialModel = (config: InitConfig): Model => ({
     id: config.id,
     defaultDuration:
       config.defaultDuration === undefined
@@ -366,16 +363,16 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       })),
     ),
   })
-  const blockInit = ToastComposition.makeInit((config: InitConfig) => ({
-    model: init(config),
+  /** Creates an initial Toast Model and Commands from a config. Starts empty
+   *  with swipe disabled unless `swipeToDismiss` opts in. */
+  const init = ToastComposition.makeInit((config: InitConfig) => ({
+    model: makeInitialModel(config),
   }))
 
   const addEntry = (entry: Entry) => {
-    const appendEntry = ToastDefinition.step(model => ({
-      model: modifyFields(model, {
-        entries: entries => Array.append(entries, entry),
-        nextEntryKey: Number.increment,
-      }),
+    const appendEntry = ToastDefinition.stepFields(() => ({
+      entries: entries => Array.append(entries, entry),
+      nextEntryKey: Number.increment,
     }))
     const scheduleDismissal = ToastDefinition.step(model => ({
       model,
@@ -758,7 +755,6 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     Message: MessageSchema,
     OutMessage: OutMessageSchema,
     init,
-    blockInit,
     update,
     operations,
     subscriptions,

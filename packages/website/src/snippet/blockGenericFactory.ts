@@ -19,13 +19,13 @@ const makeMessage = <Value extends string>(Value: ValueSchema<Value>) =>
 const makeOutMessage = <Value extends string>(Value: ValueSchema<Value>) =>
   defineMessageUnion({ Selected: { value: Value } })
 
-const PickerDefinition = Block.define('Picker')
+const PickerNamespace = Block.makeNamespace('Picker')
 
 export const make = <Value extends string>(Value: ValueSchema<Value>) => {
   const Model = Schema.Struct({ selected: Schema.Option(Value) })
   const Message = makeMessage(Value)
   const OutMessage = makeOutMessage(Value)
-  const RefinedPicker = PickerDefinition.define({
+  const RefinedPicker = PickerNamespace.makeDefinition({
     Model,
     Message,
     OutMessage,
@@ -65,7 +65,7 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
     model: Model.make({ selected: Option.none() }),
   }))
 
-  return RefinedPickerComposition.makeBlock({
+  return RefinedPickerComposition.assembleBlock({
     init,
     update,
     view,
@@ -86,18 +86,15 @@ const ParentModel = Schema.Struct({
 })
 type ParentModel = typeof ParentModel.Type
 
-const ParentMessage = defineMessageUnion({
-  GotPickerMessage: { message: FruitPicker.Message },
-})
+const ParentMessage = defineMessageUnion({})
 
-const FruitSelectionDefinition = Block.define('FruitSelection', {
+const FruitSelectionDefinition = Block.makeDefinition('FruitSelection', {
   Model: ParentModel,
   Message: ParentMessage,
 })
 
 const PickerBinding = FruitSelectionDefinition.bindChild(FruitPicker, {
   field: 'picker',
-  parentMessage: ParentMessage.GotPickerMessage,
   outMessage: {
     fold: FruitPicker.OutMessage.match<
       Update.Step<ParentModel, typeof ParentMessage.Type>
@@ -116,7 +113,7 @@ const PickerBinding = FruitSelectionDefinition.bindChild(FruitPicker, {
 export const selectApple = PickerBinding.requestSelectValue('Apple')
 
 const FruitSelectionComposition = FruitSelectionDefinition.makeComposition({
-  childBindings: [PickerBinding],
+  bindings: [PickerBinding],
 })
 
 export const pickerView = FruitSelectionComposition.makeView((model, h) =>

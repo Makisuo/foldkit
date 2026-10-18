@@ -3,7 +3,7 @@ import type { Flags } from './flags'
 import { Submission } from './model'
 
 export const init = ApplicationComposition.makeInit((flags: Flags) => ({
-  startup: flags,
+  childInitContext: flags,
   model: {
     currentStep: 'PersonalInfo',
     isPreviewVisible: false,

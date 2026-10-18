@@ -1,4 +1,4 @@
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 
 const Model = Schema.Struct({
   posts: postsQuery.Model,
@@ -6,20 +6,18 @@ const Model = Schema.Struct({
 type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
-  GotPostsMessage: { message: postsQuery.Message },
   ClickedRefreshPosts: {},
 })
 type Message = typeof Message.Type
 
-const ApplicationDefinition = defineApplication({ Model, Message })
+const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
 
 const PostsBinding = ApplicationDefinition.bindChild(postsQuery, {
   field: 'posts',
-  parentMessage: Message.GotPostsMessage,
 })
 
 const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [PostsBinding],
+  bindings: [PostsBinding],
 })
 
 const init = ApplicationComposition.makeInit(() => ({

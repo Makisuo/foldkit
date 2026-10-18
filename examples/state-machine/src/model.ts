@@ -59,11 +59,11 @@ export const EDITIONS: ReadonlyArray<string> = [
 export const editionName = (isShippingRequired: boolean): string =>
   isShippingRequired ? HARDCOVER_EDITION : EBOOK_EDITION
 
-export const EditionRadioGroup = RadioGroup.create()
+export const EditionRadioGroupBlock = RadioGroup.create()
 
 export const Model = Schema.Struct({
   checkout: CheckoutState,
-  editionRadioGroup: RadioGroup.Model,
+  editionRadioGroup: EditionRadioGroupBlock.Model,
   transitionLog: Schema.Array(TransitionLogEntry),
   nextTransitionLogId: Schema.Number,
 })

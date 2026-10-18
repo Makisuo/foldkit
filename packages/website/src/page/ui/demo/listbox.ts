@@ -1,7 +1,6 @@
 import { Array, Option } from 'effect'
 import { childAttributes } from 'foldkit/html'
 
-import { Listbox } from '@foldkit/ui'
 import { type AnchorConfig, buttonId } from '@foldkit/ui/listbox'
 
 import { Icon } from '../../../icon'
@@ -11,8 +10,12 @@ import {
   ListboxGroupedDemoBinding,
   ListboxMultiDemoBinding,
 } from '../composition'
-import type { ListboxItem } from '../model'
-import { type Character } from './components'
+import type { ListboxItem } from '../domain/domain'
+import {
+  type Character,
+  ItemListboxBlock,
+  ItemMultiListboxBlock,
+} from './components'
 
 // DEMO CONTENT
 
@@ -63,7 +66,7 @@ const LISTBOX_ANCHOR: AnchorConfig = {
 }
 
 export const basicDemo = (
-  listboxModel: typeof Listbox.Model.Type,
+  listboxModel: typeof ItemListboxBlock.Model.Type,
   maybeSelectedItem: Option.Option<ListboxItem>,
   h: UiViewBuilder,
 ) => {
@@ -126,7 +129,7 @@ export const basicDemo = (
 }
 
 export const multiSelectDemo = (
-  listboxModel: typeof Listbox.Multi.Model.Type,
+  listboxModel: typeof ItemMultiListboxBlock.Model.Type,
   selectedItems: ReadonlyArray<ListboxItem>,
   h: UiViewBuilder,
 ) => {
@@ -192,7 +195,7 @@ export const multiSelectDemo = (
 }
 
 export const groupedDemo = (
-  listboxModel: typeof Listbox.Model.Type,
+  listboxModel: typeof ItemListboxBlock.Model.Type,
   maybeSelectedItem: Option.Option<string>,
   h: UiViewBuilder,
 ) => {

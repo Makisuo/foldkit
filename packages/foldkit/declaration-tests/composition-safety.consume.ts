@@ -10,7 +10,7 @@ import {
   EntryBinding,
   LoadParameterizedChild,
   OptionalContextBlock,
-  ParameterizedBlock,
+  ParentCommandsBinding,
   ParentMessage,
   ParentModel,
   PlainBinding,
@@ -38,6 +38,26 @@ type Equal<Left, Right> =
       : false
     : false
 type Expect<Value extends true> = Value
+type RecipeModel<Value> =
+  Value extends Update.ResultRecipe<
+    infer Model,
+    infer _Message,
+    infer _OutMessage,
+    infer _Requirements,
+    infer _Evidence
+  >
+    ? Model
+    : never
+type RecipeMessage<Value> =
+  Value extends Update.ResultRecipe<
+    infer _Model,
+    infer Message,
+    infer _OutMessage,
+    infer _Requirements,
+    infer _Evidence
+  >
+    ? Message
+    : never
 
 const initial = initialize()
 const parentMessage = ParentMessage.CompletedParentInitialization()
@@ -63,29 +83,32 @@ type EmittedParentCommandRegistrationIsExact = Expect<
     Update.RegistrationEvidenceOf<
       ReturnType<typeof initializePlainWithParentCommands>
     >,
-    | Block.BindingRequirement<'parentCommands', typeof PlainBlock>
-    | Block.BindingRequirement<'entries', typeof ParameterizedBlock>
+    | Block.RequirementOfBinding<typeof ParentCommandsBinding>
+    | Block.RequirementOfBinding<typeof EntryBinding>
   >
 >
 type EmittedEntryInitModelIsExact = Expect<
   Equal<
-    ReturnType<typeof initializeEntry>,
-    Update.ResultRecipe<
-      typeof ParentModel.Type,
-      typeof ParentMessage.Type,
-      never,
-      Block.Qualify<
-        'entries',
-        Command.HandlerOf<typeof LoadParameterizedChild>
-      >,
-      Block.BindingRequirement<'entries', typeof ParameterizedBlock>
-    >
+    RecipeModel<ReturnType<typeof initializeEntry>>,
+    typeof ParentModel.Type
+  >
+>
+type EmittedEntryInitMessageIsExact = Expect<
+  Equal<
+    RecipeMessage<ReturnType<typeof initializeEntry>>,
+    typeof ParentMessage.Type
+  >
+>
+type EmittedEntryInitRegistrationIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<typeof initializeEntry>>,
+    Block.RequirementOfBinding<typeof EntryBinding>
   >
 >
 type EmittedPlainInitRegistrationIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<typeof initializePlain>>,
-    Block.BindingRequirement<'plain', typeof PlainBlock>
+    Block.RequirementOfBinding<typeof PlainBinding>
   >
 >
 type EmittedParentCommandRecipeRequirementsAreExact = Expect<
@@ -99,7 +122,7 @@ type EmittedParentCommandRecipeRegistrationIsExact = Expect<
     Update.RegistrationEvidenceOf<
       ReturnType<typeof makeParentCommandInitRecipe>
     >,
-    Block.BindingRequirement<'parentCommands', typeof PlainBlock>
+    Block.RequirementOfBinding<typeof ParentCommandsBinding>
   >
 >
 
@@ -107,15 +130,15 @@ declare const useSecondField: boolean
 
 // @ts-expect-error Emitted accessor init projections retain one stable parent Model field.
 // oxfmt-ignore
-CompositionSafetyParentDefinition.bindChild(PlainBlock, { placement: 'emittedUnstableProjected', read: model => Option.some(model.first), write: (model, nextChild) => Struct.modifyFields(model, { first: () => nextChild }), parentMessage: ParentMessage.RoutedProjectedMessage, init: { startupToArgs: () => [], model: child => useSecondField ? { second: child } : { first: child } } })
+CompositionSafetyParentDefinition.bindChild(PlainBlock, { placement: 'emittedUnstableProjected', read: model => Option.some(model.first), write: (model, nextChild) => Struct.modifyFields(model, { first: () => nextChild }),  init: { contextToArgs: () => [], toParentFields: child => useSecondField ? { second: child } : { first: child } } })
 
-// @ts-expect-error Emitted optional update context requires an explicit incoming Message route.
+// @ts-expect-error Emitted optional update context requires an explicit delivery context mapper.
 // oxfmt-ignore
-CompositionSafetyParentDefinition.bindChild(OptionalContextBlock, { field: 'optionalContext', parentMessage: ParentMessage.RoutedOptionalContextMessage })
+CompositionSafetyParentDefinition.bindChild(OptionalContextBlock, { field: 'optionalContext', })
 
-// @ts-expect-error Emitted required rest update context requires an explicit incoming Message route.
+// @ts-expect-error Emitted required rest update context requires an explicit delivery context mapper.
 // oxfmt-ignore
-CompositionSafetyParentDefinition.bindChild(RestContextBlock, { field: 'restContext', parentMessage: ParentMessage.RoutedRestContextMessage })
+CompositionSafetyParentDefinition.bindChild(RestContextBlock, { field: 'restContext', })
 
 // @ts-expect-error Emitted connected initializers require their parent configuration.
 PlainBinding.init()
@@ -177,7 +200,7 @@ void erasedEmittedConnectedStep
 
 const EmittedMissingPlainBindingComposition =
   CompositionSafetyParentDefinition.makeComposition({
-    childBindings: [EntryBinding],
+    bindings: [EntryBinding],
   })
 EmittedMissingPlainBindingComposition.makeInit(() =>
   // @ts-expect-error A connected initializer cannot run without its registered Binding capability.
@@ -193,7 +216,7 @@ const emittedDirectConnectedInit =
     }),
   )
 // @ts-expect-error Emitted directly connected initializers retain their missing Binding evidence.
-EmittedMissingPlainBindingComposition.makeBlock({
+EmittedMissingPlainBindingComposition.assembleBlock({
   init: emittedDirectConnectedInit,
   update: EmittedMissingPlainBindingComposition.makeUpdate(model => ({
     model,
@@ -206,6 +229,8 @@ export type EmittedCompositionSafetyAssertions = [
   EmittedParentCommandRequirementsAreExact,
   EmittedParentCommandRegistrationIsExact,
   EmittedEntryInitModelIsExact,
+  EmittedEntryInitMessageIsExact,
+  EmittedEntryInitRegistrationIsExact,
   EmittedPlainInitRegistrationIsExact,
   EmittedParentCommandRecipeRequirementsAreExact,
   EmittedParentCommandRecipeRegistrationIsExact,

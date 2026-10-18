@@ -25,7 +25,7 @@ export const descriptionId = (id: string): string => `${id}-description`
 
 /** Renders an accessible fieldset by building ARIA attribute groups and delegating layout to the consumer's `toView` callback. */
 export const view = <Message>(
-  config: ViewConfig<Message>,
+  config: ViewConfig<NoInfer<Message>>,
   h: HtmlBuilder<Message>,
 ): Html => {
   const { toView, id, isDisabled = false, hasDescription = false } = config

@@ -10,10 +10,10 @@ import {
 import { afterEach, expect, it, vi } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
-import { define as defineApplication } from '../runtime/applicationPublic.js'
+import { makeDefinition as makeApplicationDefinition } from '../runtime/applicationPublic.js'
 import { __startProgram } from '../runtime/start.js'
 import { modifyFields } from '../struct/index.js'
-import { define } from './define.js'
+import { makeNamespace } from './define.js'
 
 type LifecycleEvent =
   | 'Mount acquired'
@@ -48,7 +48,7 @@ const buildGraph = (
         }),
     )
 
-  const ChildOwner = define('LifecycleChild')
+  const ChildNamespace = makeNamespace('LifecycleChild')
 
   const ChildModel = Schema.Struct({ id: Schema.String })
   type ChildModel = typeof ChildModel.Type
@@ -61,9 +61,9 @@ const buildGraph = (
   })
   type ChildMessage = typeof ChildMessage.Type
 
-  const Session = ChildOwner.resource<string>()('Session')
+  const Session = ChildNamespace.resource<string>()('Session')
 
-  const ChildChannelsDefinition = ChildOwner.define({
+  const ChildChannelsDefinition = ChildNamespace.makeDefinition({
     Model: ChildModel,
     Message: ChildMessage,
   })
@@ -132,7 +132,7 @@ const buildGraph = (
     }),
   }))
 
-  const ObservePanel = ChildOwner.mount('ObservePanel', {
+  const ObservePanel = ChildNamespace.mount('ObservePanel', {
     messages: [ChildMessage.CompletedObservePanel],
     handler: function* () {
       yield* trackHandler('Mount handler built', 'Mount handler released')
@@ -154,17 +154,16 @@ const buildGraph = (
     },
   })
 
-  const ChildBaseDefinition = ChildOwner.define({
+  const childComposition = ChildNamespace.makeDefinition({
     Model: ChildModel,
     Message: ChildMessage,
-  })
-  const childComposition = ChildBaseDefinition.makeComposition({
+  }).makeComposition({
     mounts: [ObservePanel],
   })
   const childView = childComposition.makeView((model, h) =>
     h.div([h.OnMount(ObservePanel())], [`child:${model.id}`]),
   )
-  const Child = childComposition.makeBlock({
+  const Child = childComposition.assembleBlock({
     view: childView,
     init: () => ({ model: ChildModel.make({ id: 'one' }) }),
     update: (model, message) =>
@@ -189,12 +188,11 @@ const buildGraph = (
   })
   type ParentModel = typeof ParentModel.Type
   const ParentMessage = defineMessageUnion({
-    GotChildMessage: { message: ChildMessage },
     RemovedChild: {},
   })
   type ParentMessage = typeof ParentMessage.Type
 
-  const ParentBaseDefinition = defineApplication({
+  const ParentBaseDefinition = makeApplicationDefinition({
     Model: ParentModel,
     Message: ParentMessage,
   })
@@ -204,7 +202,6 @@ const buildGraph = (
         placement: 'child',
         field: 'maybeChild',
         presentWhen: (model: ParentModel) => model.route === 'Home',
-        parentMessage: ParentMessage.GotChildMessage,
       })
     }
 
@@ -215,19 +212,17 @@ const buildGraph = (
         subscriptions: {
           when: (model: ParentModel) => model.route === 'Home',
         },
-        parentMessage: ParentMessage.GotChildMessage,
       })
     }
 
     return ParentBaseDefinition.bindChild(Child, {
       placement: 'child',
       field: 'maybeChild',
-      parentMessage: ParentMessage.GotChildMessage,
     })
   })()
 
   const composition = ParentBaseDefinition.makeComposition({
-    childBindings: [ChildBinding],
+    bindings: [ChildBinding],
   })
   const view = composition.makeView((model, h) =>
     h.div(
@@ -278,7 +273,7 @@ it.each(['Option', 'Route'] as const)(
     container.id = 'block-lifecycle-test'
     document.body.appendChild(container)
 
-    const provided = composition.makeElement({
+    const provided = composition.assembleElement({
       container,
       init,
       update,
@@ -356,7 +351,12 @@ it('gates only Subscription Streams while the direct-field child remains present
   const container = document.createElement('div')
   container.id = 'block-subscription-only-lifecycle-test'
   document.body.appendChild(container)
-  const application = composition.makeElement({ container, init, update, view })
+  const application = composition.assembleElement({
+    container,
+    init,
+    update,
+    view,
+  })
   const fiber = Effect.runFork(__startProgram(application, undefined, 'Fresh'))
 
   try {

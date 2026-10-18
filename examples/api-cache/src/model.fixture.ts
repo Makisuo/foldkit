@@ -1,10 +1,9 @@
 import { HashMap, Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import * as Tabs from '@foldkit/ui/tabs'
-
 import type { Post, PostDetail, Stats } from './data'
 import {
+  ApplicationTabsBlock,
   type Model,
   PostDetailData,
   PostsData,
@@ -41,7 +40,7 @@ export const fixtureStats: Stats = {
 }
 
 export const loadingPostsModel: Model = {
-  tabs: Tabs.init({ id: TABS_ID }),
+  tabs: ApplicationTabsBlock.init({ id: TABS_ID }).model,
   activeTab: 'Posts',
   posts: PostsData.Loading(),
   postDetailById: HashMap.empty(),

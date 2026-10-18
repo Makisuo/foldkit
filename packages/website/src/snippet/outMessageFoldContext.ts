@@ -1,10 +1,12 @@
 import type { Update } from 'foldkit'
 
 const foldLoginOutMessage = (
-  outMessage: Login.OutMessage,
-  { liftCommand }: Update.FoldContext<Login.Message, Message>,
+  outMessage: typeof Login.LoginBlock.OutMessage.Type,
+  {
+    liftCommand,
+  }: Update.FoldContext<typeof Login.LoginBlock.Message.Type, Message>,
 ) =>
-  Login.OutMessage.match(outMessage, {
+  Login.LoginBlock.OutMessage.match(outMessage, {
     RequestedMagicLink: ({ email }) =>
       Application.step(model => ({
         model,

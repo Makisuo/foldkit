@@ -1,5 +1,5 @@
 import { Tabs } from '@foldkit/ui'
 
-import type { DemoTab } from './model'
+import type { DemoTab } from './domain'
 
-export const DemoTabs = Tabs.create<DemoTab>()
+export const DemoTabsBlock = Tabs.create<DemoTab>()

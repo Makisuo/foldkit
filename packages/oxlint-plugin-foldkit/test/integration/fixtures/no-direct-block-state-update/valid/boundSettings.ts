@@ -9,8 +9,11 @@ export const Message = defineMessageUnion({
   InformedOfThemeChange: { theme: Schema.String },
 })
 export type Message = typeof Message.Type
-const BoundSettings = Block.define('BoundSettings', { Model, Message })
-const BoundSettingsComposition = BoundSettings.makeComposition()
+const BoundSettingsDefinition = Block.makeDefinition('BoundSettings', {
+  Model,
+  Message,
+})
+const BoundSettingsComposition = BoundSettingsDefinition.makeComposition()
 const init = BoundSettingsComposition.makeInit(() => ({
   model: Model.make({ theme: 'System' }),
 }))
@@ -21,7 +24,7 @@ const update = BoundSettingsComposition.makeUpdate((model, message) =>
     }),
   }),
 )
-export const Settings = BoundSettingsComposition.makeBlock({
+export const BoundSettingsBlock = BoundSettingsComposition.assembleBlock({
   init,
   update,
   operations: {

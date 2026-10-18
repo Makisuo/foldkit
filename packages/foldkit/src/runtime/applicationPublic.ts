@@ -1,5 +1,5 @@
-import { makeApplication, makeElement } from './application.js'
-import { makeDefine } from './applicationAuthoring.js'
+import { assembleApplication, assembleElement } from './application.js'
+import { makeDefinitionFactory } from './applicationAuthoring.js'
 
 export type { Application, Element, PendingApplication } from './application.js'
 export type {
@@ -10,14 +10,14 @@ export type {
 
 /**
  * Defines a passive Application authoring value with contextual Model and
- * Message types. Use `import { defineApplication } from 'foldkit'` or
- * `import { define } from 'foldkit/application'`. Establish its graph with
- * makeComposition, then complete it with makeApplication or makeElement.
+ * Message types. Use `import { makeApplicationDefinition } from 'foldkit'` or
+ * `import { makeDefinition } from 'foldkit/application'`. Establish its graph with
+ * makeComposition, then complete it with assembleApplication or assembleElement.
  *
  * Definition and completion perform configuration validation. Runtime.run or
  * Runtime.embed constructs the selected Layers and starts effects later.
  */
-export const define = makeDefine({
-  makeApplication,
-  makeElement,
+export const makeDefinition = makeDefinitionFactory({
+  assembleApplication,
+  assembleElement,
 })

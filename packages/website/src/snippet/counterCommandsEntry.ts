@@ -8,7 +8,7 @@ import {
   EffectsLayer,
 } from './application'
 
-const application = ApplicationComposition.makeApplication({
+const application = ApplicationComposition.assembleApplication({
   init,
   update,
   view,

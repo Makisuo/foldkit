@@ -1,9 +1,10 @@
 import { Option } from 'effect'
 import type { Html } from 'foldkit/html'
 
-import { Combobox, Dialog } from '@foldkit/ui'
+import { DialogBlock } from '@foldkit/ui'
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
+import { CityComboboxBlock } from '../combobox'
 import {
   DialogAnimatedDemoBinding,
   DialogDemoBinding,
@@ -14,8 +15,8 @@ import {
   UiComposition,
 } from '../composition'
 import type { UiViewBuilder } from '../composition'
+import type { City } from '../domain'
 import { Message } from '../message'
-import type { City } from '../model'
 import { comboboxInputs } from './combobox'
 
 const triggerClassName =
@@ -109,7 +110,7 @@ const confirmContent = (
 const editFiltersContent = (
   title: DialogRenderInfo['title'],
   description: DialogRenderInfo['description'],
-  comboboxModel: typeof Combobox.Model.Type,
+  comboboxModel: typeof CityComboboxBlock.Model.Type,
   maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
 ): ReadonlyArray<Html> => [
@@ -209,7 +210,10 @@ const dialogWithPanel = (
       : [],
   )
 
-const basicDemo = (dialogModel: typeof Dialog.Model.Type, h: UiViewBuilder) => {
+const basicDemo = (
+  dialogModel: typeof DialogBlock.Model.Type,
+  h: UiViewBuilder,
+) => {
   const basicDialogView = (render: DialogRenderInfo): Html =>
     dialogWithPanel(
       render,
@@ -234,7 +238,7 @@ const basicDemo = (dialogModel: typeof Dialog.Model.Type, h: UiViewBuilder) => {
 }
 
 const animatedDemo = (
-  dialogModel: typeof Dialog.Model.Type,
+  dialogModel: typeof DialogBlock.Model.Type,
   h: UiViewBuilder,
 ) => {
   const animatedDialogView = (render: DialogRenderInfo): Html =>
@@ -261,8 +265,8 @@ const animatedDemo = (
 }
 
 const overlayDemo = (
-  dialogModel: typeof Dialog.Model.Type,
-  comboboxModel: typeof Combobox.Model.Type,
+  dialogModel: typeof DialogBlock.Model.Type,
+  comboboxModel: typeof CityComboboxBlock.Model.Type,
   maybeSelectedCity: Option.Option<City>,
   h: UiViewBuilder,
 ): Html => {
@@ -301,8 +305,8 @@ const overlayDemo = (
 }
 
 const nestedDemo = (
-  parentDialogModel: typeof Dialog.Model.Type,
-  childDialogModel: typeof Dialog.Model.Type,
+  parentDialogModel: typeof DialogBlock.Model.Type,
+  childDialogModel: typeof DialogBlock.Model.Type,
   h: UiViewBuilder,
 ): Html => {
   const settingsDialogView = (render: DialogRenderInfo): Html =>

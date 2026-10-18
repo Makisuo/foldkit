@@ -1,37 +1,104 @@
-import { Array, Option, pipe } from 'effect'
+import { Array, Option } from 'effect'
 import { Validating } from 'foldkit/fieldValidation'
 import { Command, given, message, model, story } from 'foldkit/story'
 import { modifyFields } from 'foldkit/struct'
 import { describe, expect, test } from 'vitest'
 
-import { FileDrop, Menu, Tabs } from '@foldkit/ui'
-import { FocusMenuButton, FocusMenuItems } from '@foldkit/ui/menu'
-import { FocusTab } from '@foldkit/ui/tabs'
+import { FileDropBlock } from '@foldkit/ui'
+import { Menu, Tabs } from '@foldkit/ui'
 
 import { SubmitApplication } from './command'
+import {
+  AttachmentsBinding,
+  CoverLetterBinding,
+  EducationBinding,
+  PersonalInfoBinding,
+  SkillsBinding,
+  StepMenuBinding,
+  StepTabsBinding,
+  WorkHistoryBinding,
+} from './composition'
 import { Message } from './message'
 import { Submission } from './model'
-import { completeModel, initialModel } from './model.fixture'
+import { completeModel, initialModel, today } from './model.fixture'
+import { StepMenuBlock, StepTabsBlock } from './navigationComponents'
 import {
-  Attachments,
-  CoverLetter,
-  Education,
-  PersonalInfo,
-  Skills,
-  WorkHistory,
+  AttachmentsBlock,
+  CoverLetterBlock,
+  EducationBlock,
+  EducationEntryBlock,
+  PersonalInfoBlock,
+  SkillsBlock,
+  SkillsEntryBlock,
+  WorkHistoryBlock,
+  WorkHistoryEntryBlock,
 } from './step'
+import { ResumeDropBinding } from './step/attachments/composition'
 import { update } from './update'
 
 const givenInitial = given(initialModel)
+const emptyStepMenuView = StepMenuBlock.makeView((_model, h) => h.empty)
+const emptyStepTabsView = StepTabsBlock.makeView((_model, h) => h.empty)
+const emptyFileDropView = FileDropBlock.makeView((_model, h) => h.empty)
+
+const personalInfoMessage = (message: typeof PersonalInfoBlock.Message.Type) =>
+  PersonalInfoBinding.embedView({
+    slotId: 'personalInfo',
+    model: initialModel.personalInfo,
+  }).toParentMessage(message)
+
+const workHistoryMessage = (message: typeof WorkHistoryBlock.Message.Type) =>
+  WorkHistoryBinding.embedView({
+    slotId: 'workHistory',
+    model: initialModel.workHistory,
+  }).toParentMessage(message)
+
+const educationMessage = (message: typeof EducationBlock.Message.Type) =>
+  EducationBinding.embedView({
+    slotId: 'education',
+    model: initialModel.education,
+  }).toParentMessage(message)
+
+const skillsMessage = (message: typeof SkillsBlock.Message.Type) =>
+  SkillsBinding.embedView({
+    slotId: 'skills',
+    model: initialModel.skills,
+  }).toParentMessage(message)
+
+const coverLetterMessage = (message: typeof CoverLetterBlock.Message.Type) =>
+  CoverLetterBinding.embedView({
+    slotId: 'coverLetter',
+    model: initialModel.coverLetter,
+  }).toParentMessage(message)
+
+const attachmentsMessage = (message: typeof AttachmentsBlock.Message.Type) =>
+  AttachmentsBinding.embedView({
+    slotId: 'attachments',
+    model: initialModel.attachments,
+  }).toParentMessage(message)
+
+const stepMenuMessage = (message: typeof StepMenuBlock.Message.Type) =>
+  StepMenuBinding.embedView({
+    slotId: 'stepMenu',
+    model: initialModel.stepMenu,
+    view: emptyStepMenuView,
+  }).toParentMessage(message)
+
+const stepTabsMessage = (message: typeof StepTabsBlock.Message.Type) =>
+  StepTabsBinding.embedView({
+    slotId: 'stepTabs',
+    model: initialModel.stepTabs,
+    view: emptyStepTabsView,
+  }).toParentMessage(message)
 
 const resolveFocusTab = Command.resolve(
-  FocusTab,
-  Tabs.Message.CompletedFocusTab(),
+  Tabs.test.FocusTab,
+  StepTabsBlock.Message.CompletedFocusTab(),
 )
 
 const resolveFocusMenuButton = Command.resolve(
-  FocusMenuButton,
-  Menu.Message.CompletedFocusMenuButton(),
+  Menu.test.FocusMenuButton,
+  StepMenuBlock.Message.CompletedFocusMenuButton(),
 )
 
 describe('update', () => {
@@ -81,14 +148,14 @@ describe('update', () => {
       )
     })
 
-    test('GotStepTabsMessage selects the matching step', () => {
+    test('a generated Tabs Message selects the matching step', () => {
       story(
         update,
         givenInitial,
         message(
-          Message.GotStepTabsMessage({
-            message: Tabs.Message.SelectedTab({ index: 6, value: 'Review' }),
-          }),
+          stepTabsMessage(
+            StepTabsBlock.Message.SelectedTab({ index: 6, value: 'Review' }),
+          ),
         ),
         model(model => {
           expect(model.currentStep).toBe('Review')
@@ -97,25 +164,28 @@ describe('update', () => {
       )
     })
 
-    test('GotStepMenuMessage selects the matching step', () => {
+    test('a generated Menu Message selects the matching step', () => {
       story(
         update,
         givenInitial,
         message(
-          Message.GotStepMenuMessage({
-            message: Menu.Message.Opened({
+          stepMenuMessage(
+            StepMenuBlock.Message.Opened({
               maybeActiveItemIndex: Option.none(),
             }),
-          }),
+          ),
         ),
-        Command.resolve(FocusMenuItems, Menu.Message.CompletedFocusMenuItems()),
+        Command.resolve(
+          Menu.test.FocusMenuItems,
+          StepMenuBlock.Message.CompletedFocusMenuItems(),
+        ),
         message(
-          Message.GotStepMenuMessage({
-            message: Menu.Message.SelectedItem({
+          stepMenuMessage(
+            StepMenuBlock.Message.SelectedItem({
               index: 5,
               item: 'Attachments',
             }),
-          }),
+          ),
         ),
         model(model => {
           expect(model.currentStep).toBe('Attachments')
@@ -143,14 +213,14 @@ describe('update', () => {
   })
 
   describe('child folding', () => {
-    test('GotPersonalInfoMessage writes through to personalInfo', () => {
+    test('a generated PersonalInfo Message writes through', () => {
       story(
         update,
         givenInitial,
         message(
-          Message.GotPersonalInfoMessage({
-            message: PersonalInfo.Message.UpdatedFirstName({ value: 'Jane' }),
-          }),
+          personalInfoMessage(
+            PersonalInfoBlock.Message.UpdatedFirstName({ value: 'Jane' }),
+          ),
         ),
         model(model => {
           expect(model.personalInfo.firstName.value).toBe('Jane')
@@ -158,16 +228,16 @@ describe('update', () => {
       )
     })
 
-    test('GotWorkHistoryMessage writes through to workHistory', () => {
+    test('a generated WorkHistory Message writes through', () => {
       story(
         update,
         givenInitial,
         message(
-          Message.GotWorkHistoryMessage({
-            message: WorkHistory.Message.SucceededGenerateWorkHistoryEntryId({
+          workHistoryMessage(
+            WorkHistoryBlock.Message.SucceededGenerateWorkHistoryEntryId({
               entryId: 'test-work-1',
             }),
-          }),
+          ),
         ),
         model(model => {
           expect(model.workHistory.entries).toHaveLength(2)
@@ -175,16 +245,16 @@ describe('update', () => {
       )
     })
 
-    test('GotEducationMessage writes through to education', () => {
+    test('a generated Education Message writes through', () => {
       story(
         update,
         givenInitial,
         message(
-          Message.GotEducationMessage({
-            message: Education.Message.SucceededGenerateEducationEntryId({
+          educationMessage(
+            EducationBlock.Message.SucceededGenerateEducationEntryId({
               entryId: 'test-edu-1',
             }),
-          }),
+          ),
         ),
         model(model => {
           expect(model.education.entries).toHaveLength(2)
@@ -192,16 +262,16 @@ describe('update', () => {
       )
     })
 
-    test('GotSkillsMessage writes through to skills', () => {
+    test('a generated Skills Message writes through', () => {
       story(
         update,
         givenInitial,
         message(
-          Message.GotSkillsMessage({
-            message: Skills.Message.SucceededGenerateSkillsEntryId({
+          skillsMessage(
+            SkillsBlock.Message.SucceededGenerateSkillsEntryId({
               entryId: 'test-skill-1',
             }),
-          }),
+          ),
         ),
         model(model => {
           expect(model.skills.entries).toHaveLength(2)
@@ -209,16 +279,16 @@ describe('update', () => {
       )
     })
 
-    test('GotCoverLetterMessage writes through to coverLetter', () => {
+    test('a generated CoverLetter Message writes through', () => {
       story(
         update,
         givenInitial,
         message(
-          Message.GotCoverLetterMessage({
-            message: CoverLetter.Message.UpdatedContent({
+          coverLetterMessage(
+            CoverLetterBlock.Message.UpdatedContent({
               value: 'I love the Elm Architecture.',
             }),
-          }),
+          ),
         ),
         model(model => {
           expect(model.coverLetter.content).toBe('I love the Elm Architecture.')
@@ -226,7 +296,7 @@ describe('update', () => {
       )
     })
 
-    test('GotAttachmentsMessage writes through to attachments', () => {
+    test('a nested generated FileDrop Message writes through', () => {
       const resume = new globalThis.File(['pdf-bytes'], 'resume.pdf', {
         type: 'application/pdf',
       })
@@ -235,11 +305,15 @@ describe('update', () => {
         update,
         givenInitial,
         message(
-          Message.GotAttachmentsMessage({
-            message: Attachments.Message.GotResumeDropMessage({
-              message: FileDrop.Message.DroppedFiles({ files: [resume] }),
-            }),
-          }),
+          attachmentsMessage(
+            ResumeDropBinding.embedView({
+              slotId: 'resumeDrop',
+              model: initialModel.attachments.resumeDrop,
+              view: emptyFileDropView,
+            }).toParentMessage(
+              FileDropBlock.Message.DroppedFiles({ files: [resume] }),
+            ),
+          ),
         ),
         model(model => {
           expect(model.attachments.maybeResume._tag).toBe('Some')
@@ -266,10 +340,32 @@ describe('update', () => {
       )
     })
 
-    test('ClickedSubmit on an incomplete application reveals errors and does not submit', () => {
+    test('ClickedSubmit reveals errors through every section and nested entry without submitting', () => {
+      const modelWithMultipleEntries = modifyFields(initialModel, {
+        currentStep: () => 'Review',
+        workHistory: workHistory =>
+          modifyFields(workHistory, {
+            entries: Array.append(
+              WorkHistoryEntryBlock.init('work-history-entry-2', today).model,
+            ),
+          }),
+        education: education =>
+          modifyFields(education, {
+            entries: Array.append(
+              EducationEntryBlock.init('education-entry-2').model,
+            ),
+          }),
+        skills: skills =>
+          modifyFields(skills, {
+            entries: Array.append(
+              SkillsEntryBlock.init('skills-entry-2').model,
+            ),
+          }),
+      })
+
       story(
         update,
-        given(modifyFields(initialModel, { currentStep: () => 'Review' })),
+        given(modelWithMultipleEntries),
         message(Message.ClickedSubmit()),
         Command.expectNone(),
         model(model => {
@@ -279,29 +375,28 @@ describe('update', () => {
           expect(model.personalInfo.lastName._tag).toBe('Invalid')
           expect(model.personalInfo.email._tag).toBe('Invalid')
           expect(
-            pipe(
-              model.workHistory.entries,
-              Array.head,
-              Option.map(entry => entry.company._tag),
-              Option.getOrThrow,
-            ),
-          ).toBe('Invalid')
-          expect(
-            pipe(
+            Array.every(
               model.education.entries,
-              Array.head,
-              Option.map(entry => entry.school._tag),
-              Option.getOrThrow,
+              entry =>
+                entry.school._tag === 'Invalid' &&
+                entry.degree._tag === 'Invalid' &&
+                entry.fieldOfStudy._tag === 'Invalid',
             ),
-          ).toBe('Invalid')
+          ).toBe(true)
           expect(
-            pipe(
-              model.skills.entries,
-              Array.head,
-              Option.map(entry => entry.name._tag),
-              Option.getOrThrow,
+            Array.every(
+              model.workHistory.entries,
+              entry =>
+                entry.company._tag === 'Invalid' &&
+                entry.title._tag === 'Invalid',
             ),
-          ).toBe('Invalid')
+          ).toBe(true)
+          expect(
+            Array.every(
+              model.skills.entries,
+              entry => entry.name._tag === 'Invalid',
+            ),
+          ).toBe(true)
         }),
       )
     })

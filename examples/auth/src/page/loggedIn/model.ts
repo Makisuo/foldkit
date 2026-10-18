@@ -9,9 +9,3 @@ export const Model = taggedStruct('LoggedIn', {
 })
 
 export type Model = typeof Model.Type
-
-export const init = (route: LoggedInRoute, session: Session): Model =>
-  Model({
-    route,
-    session,
-  })

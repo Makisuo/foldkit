@@ -3,9 +3,9 @@ import { AsyncData } from 'foldkit'
 
 import { ChartMode, PackageId, Period, Telemetry } from './domain'
 import {
-  ChartModeRadioGroup,
-  PackageRadioGroup,
-  PeriodRadioGroup,
+  ChartModeRadioGroupBlock,
+  PackageRadioGroupBlock,
+  PeriodRadioGroupBlock,
 } from './radioGroups'
 
 export const TelemetryAsyncData = AsyncData.Schema(Telemetry, Schema.String)
@@ -13,11 +13,11 @@ export const TelemetryAsyncData = AsyncData.Schema(Telemetry, Schema.String)
 export const Model = Schema.Struct({
   telemetry: TelemetryAsyncData.schema,
   chartMode: ChartMode,
-  chartModeRadioGroup: ChartModeRadioGroup.Model,
+  chartModeRadioGroup: ChartModeRadioGroupBlock.Model,
   selectedPackageId: PackageId,
-  packageRadioGroup: PackageRadioGroup.Model,
+  packageRadioGroup: PackageRadioGroupBlock.Model,
   period: Period,
-  periodRadioGroup: PeriodRadioGroup.Model,
+  periodRadioGroup: PeriodRadioGroupBlock.Model,
   maybeChartHostId: Schema.Option(Schema.String),
   maybeChartError: Schema.Option(Schema.String),
   maybeSelectedDatumId: Schema.Option(Schema.String),

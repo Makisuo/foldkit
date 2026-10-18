@@ -1,10 +1,9 @@
 import { Effect, Option } from 'effect'
 import { load } from 'foldkit/navigation'
-import { modifyFields } from 'foldkit/struct'
 
 import { ApplicationDefinition } from '../definition'
 import { Message } from '../message'
-import { Home } from '../page'
+import { HomeBlock } from '../page'
 import { ExampleSlug } from '../page/example/meta'
 import { playgroundRouter } from '../route'
 
@@ -26,23 +25,20 @@ const loadPlaygroundExample = (exampleSlug: ExampleSlug) =>
   }))
 
 const updateNewsletterEmail = (value: string) =>
-  ApplicationDefinition.step(model => ({
-    model: modifyFields(model, { newsletterEmail: () => value }),
-  }))
+  ApplicationDefinition.stepFields(() => ({ newsletterEmail: () => value }))
 
-const foldHomeOutMessage = Home.OutMessage.match({
+const foldHomeOutMessage = HomeBlock.OutMessage.match({
   SelectedPlaygroundExample: ({ exampleSlug }) =>
     loadPlaygroundExample(exampleSlug),
   UpdatedNewsletterEmail: ({ value }) => updateNewsletterEmail(value),
 })
 
-export const HomeBinding = ApplicationDefinition.bindChild(Home.block, {
+export const HomeBinding = ApplicationDefinition.bindChild(HomeBlock, {
   field: 'maybeHome',
   init: {
-    startupToArgs: ({ route }) =>
+    contextToArgs: ({ route }) =>
       route._tag === 'Home' ? Option.some([]) : Option.none(),
   },
-  parentMessage: Message.GotHomeMessage,
   outMessage: {
     fold: foldHomeOutMessage,
   },

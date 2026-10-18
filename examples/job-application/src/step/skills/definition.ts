@@ -2,10 +2,10 @@ import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import * as Entry from './entry/definition'
+import { SkillsEntryBlock } from './entry'
 
 export const Model = Schema.Struct({
-  entries: Schema.Array(Entry.Model),
+  entries: Schema.Array(SkillsEntryBlock.Model),
 })
 export type Model = typeof Model.Type
 
@@ -14,16 +14,13 @@ export const Message = defineMessageUnion({
   SucceededGenerateSkillsEntryId: { entryId: Schema.String },
   FailedGenerateSkillsEntryId: {},
   RemovedEntry: { entryId: Schema.String },
-  GotEntryMessage: {
-    entryId: Schema.String,
-    message: Entry.Message,
-  },
+  RequestedRevealErrors: {},
 })
 
 export type Message = typeof Message.Type
 
-export const SkillsDefinition = Block.define('Skills', {
+export const SkillsDefinition = Block.makeDefinition('Skills', {
   Model,
   Message,
-  Startup: Schema.String,
+  ChildInitContext: Schema.String,
 })

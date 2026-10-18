@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
 import { inspectBinding } from './binding.js'
-import { define } from './define.js'
+import { makeDefinition, makeNamespace } from './define.js'
 import { identityOf } from './identity.js'
 import {
   invocationContext,
@@ -24,17 +24,14 @@ class ValueSource extends Context.Service<
 >()('ScopeTest/ValueSource') {}
 
 const ScopeParentModel = Schema.Struct({})
-const ScopeParentMessage = defineMessageUnion({
-  GotChildMessage: { message: Message },
-})
-const ScopeParent = define('ScopeTestParent', {
+const ScopeParent = makeDefinition('ScopeTestParent', {
   Model: ScopeParentModel,
-  Message: ScopeParentMessage,
+  Message: Schema.Never,
 })
 
 const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
-  const Feature = define(id)
-  const ReadValue = Feature.command('ReadValue', {
+  const FeatureNamespace = makeNamespace(id)
+  const ReadValue = FeatureNamespace.command('ReadValue', {
     messages: [Message.CompletedReadValue],
     handler: function* () {
       const source = yield* ValueSource
@@ -44,16 +41,16 @@ const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
         Effect.succeed(Message.CompletedReadValue({ value: source.value }))
     },
   })
-  const FeatureDefinition = Feature.define({
+
+  const composition = FeatureNamespace.makeDefinition({
     Model: Schema.Struct({}),
     Message,
-  })
-  const composition = FeatureDefinition.makeComposition()
+  }).makeComposition()
   const update = composition.makeUpdate(model => ({
     model,
     commands: [ReadValue()],
   }))
-  const block = composition.makeBlock({
+  const block = composition.assembleBlock({
     init: () => ({ model: {} }),
     update,
     EffectsLayer: ReadValue.layer,
@@ -63,14 +60,8 @@ const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
       placement,
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
-      toParentMessage: message =>
-        ScopeParentMessage.GotChildMessage({ message }),
-      fromParentMessage: {
-        parentMessage: ScopeParentMessage.GotChildMessage,
-        args: (_model, { message }) => Option.some([message]),
-      },
     })
-  return { Feature, ReadValue, block, bind }
+  return { FeatureNamespace, ReadValue, block, bind }
 }
 
 const execute = <Services, Error, Message>(
@@ -96,19 +87,26 @@ describe('Block capability contexts', () => {
     const LeftBinding = feature.bind('Left')
     const RightBinding = feature.bind('Right')
     const LeftComposition = ScopeParent.makeComposition({
-      childBindings: [LeftBinding],
+      bindings: [LeftBinding],
     })
     const RightComposition = ScopeParent.makeComposition({
-      childBindings: [RightBinding],
+      bindings: [RightBinding],
     })
     const foldLeft = LeftComposition.makeUpdate()
     const foldRight = RightComposition.makeUpdate()
     const model = { child: {} }
-    const requestedValue = ScopeParentMessage.GotChildMessage({
+    const leftCommand = foldLeft(model, {
+      _tag: 'GotLeftMessage',
+      placement: 'Left',
+      generation: 0,
       message: Message.RequestedValue(),
-    })
-    const leftCommand = foldLeft(model, requestedValue).commands!
-    const rightCommand = foldRight(model, requestedValue).commands!
+    }).commands!
+    const rightCommand = foldRight(model, {
+      _tag: 'GotRightMessage',
+      placement: 'Right',
+      generation: 0,
+      message: Message.RequestedValue(),
+    }).commands!
     const layer = Layer.merge(
       inspectBinding(LeftBinding).EffectsLayer,
       inspectBinding(RightBinding).EffectsLayer,
@@ -128,12 +126,18 @@ describe('Block capability contexts', () => {
 
     expect(constructions).toBe(1)
     expect(results).toEqual([
-      ScopeParentMessage.GotChildMessage({
+      {
+        _tag: 'GotLeftMessage',
+        placement: 'Left',
+        generation: 0,
         message: Message.CompletedReadValue({ value: 'shared' }),
-      }),
-      ScopeParentMessage.GotChildMessage({
+      },
+      {
+        _tag: 'GotRightMessage',
+        placement: 'Right',
+        generation: 0,
         message: Message.CompletedReadValue({ value: 'shared' }),
-      }),
+      },
     ])
     expect(leftCommand.map(command => command.name)).toEqual(['Left/ReadValue'])
     expect(rightCommand.map(command => command.name)).toEqual([
@@ -152,12 +156,6 @@ describe('Block capability contexts', () => {
       placement: 'Left',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
-      toParentMessage: message =>
-        ScopeParentMessage.GotChildMessage({ message }),
-      fromParentMessage: {
-        parentMessage: ScopeParentMessage.GotChildMessage,
-        args: (_model, { message }) => Option.some([message]),
-      },
     })
     const rightBlock = feature.block.replaceEffectsLayer(
       feature.ReadValue.layer.pipe(
@@ -168,18 +166,12 @@ describe('Block capability contexts', () => {
       placement: 'Right',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
-      toParentMessage: message =>
-        ScopeParentMessage.GotChildMessage({ message }),
-      fromParentMessage: {
-        parentMessage: ScopeParentMessage.GotChildMessage,
-        args: (_model, { message }) => Option.some([message]),
-      },
     })
     const LeftComposition = ScopeParent.makeComposition({
-      childBindings: [LeftBinding],
+      bindings: [LeftBinding],
     })
     const RightComposition = ScopeParent.makeComposition({
-      childBindings: [RightBinding],
+      bindings: [RightBinding],
     })
     const foldLeft = LeftComposition.makeUpdate()
     const foldRight = RightComposition.makeUpdate()
@@ -187,44 +179,55 @@ describe('Block capability contexts', () => {
       inspectBinding(LeftBinding).EffectsLayer,
       inspectBinding(RightBinding).EffectsLayer,
     )
-    const commands = [
-      ...(foldLeft(
+    const leftCommands =
+      foldLeft(
         {},
-        ScopeParentMessage.GotChildMessage({
+        {
+          _tag: 'GotLeftMessage',
+          placement: 'Left',
+          generation: 0,
           message: Message.RequestedValue(),
-        }),
-      ).commands ?? []),
-      ...(foldRight(
+        },
+      ).commands ?? []
+    const rightCommands =
+      foldRight(
         {},
-        ScopeParentMessage.GotChildMessage({
+        {
+          _tag: 'GotRightMessage',
+          placement: 'Right',
+          generation: 0,
           message: Message.RequestedValue(),
-        }),
-      ).commands ?? []),
-    ]
+        },
+      ).commands ?? []
 
     const results = await Effect.runPromise(
       Effect.scoped(
         Effect.gen(function* () {
           const context = yield* Layer.build(layer)
-          return yield* Effect.forEach(commands, command => {
-            const effect: Effect.Effect<
-              typeof ScopeParentMessage.Type,
-              never,
-              Layer.Success<typeof layer>
-            > = command.effect
-            return Effect.provideContext(effect, context)
-          })
+          const leftResults = yield* Effect.forEach(leftCommands, command =>
+            Effect.provideContext(command.effect, context),
+          )
+          const rightResults = yield* Effect.forEach(rightCommands, command =>
+            Effect.provideContext(command.effect, context),
+          )
+          return [...leftResults, ...rightResults]
         }),
       ),
     )
 
     expect(results).toEqual([
-      ScopeParentMessage.GotChildMessage({
+      {
+        _tag: 'GotLeftMessage',
+        placement: 'Left',
+        generation: 0,
         message: Message.CompletedReadValue({ value: 'left' }),
-      }),
-      ScopeParentMessage.GotChildMessage({
+      },
+      {
+        _tag: 'GotRightMessage',
+        placement: 'Right',
+        generation: 0,
         message: Message.CompletedReadValue({ value: 'right' }),
-      }),
+      },
     ])
   })
 
@@ -242,23 +245,20 @@ describe('Block capability contexts', () => {
       placement: 'Selected',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
-      toParentMessage: message =>
-        ScopeParentMessage.GotChildMessage({ message }),
-      fromParentMessage: {
-        parentMessage: ScopeParentMessage.GotChildMessage,
-        args: (_model, { message }) => Option.some([message]),
-      },
     })
     const composition = ScopeParent.makeComposition({
-      childBindings: [SelectedBinding],
+      bindings: [SelectedBinding],
     })
     const foldSelected = composition.makeUpdate()
     const commands =
       foldSelected(
         {},
-        ScopeParentMessage.GotChildMessage({
+        {
+          _tag: 'GotSelectedMessage',
+          placement: 'Selected',
+          generation: 0,
           message: Message.RequestedValue(),
-        }),
+        },
       ).commands ?? []
     const result = await Effect.runPromise(
       Effect.scoped(
@@ -278,9 +278,12 @@ describe('Block capability contexts', () => {
       ),
     )
     expect(result).toEqual([
-      ScopeParentMessage.GotChildMessage({
+      {
+        _tag: 'GotSelectedMessage',
+        placement: 'Selected',
+        generation: 0,
         message: Message.CompletedReadValue({ value: 'selected' }),
-      }),
+      },
     ])
   })
 
@@ -291,7 +294,7 @@ describe('Block capability contexts', () => {
       'Left',
       selectLayer(
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-        left.Feature as never,
+        left.FeatureNamespace as never,
         left.ReadValue.layer.pipe(
           Layer.provide(Layer.succeed(ValueSource, { value: 'left' })),
         ),
@@ -301,7 +304,7 @@ describe('Block capability contexts', () => {
       'Right',
       selectLayer(
         /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-        right.Feature as never,
+        right.FeatureNamespace as never,
         right.ReadValue.layer.pipe(
           Layer.provide(Layer.succeed(ValueSource, { value: 'right' })),
         ),
@@ -335,9 +338,9 @@ describe('Block capability contexts', () => {
   })
 
   it('uses independent resource slots for repeated placements while sharing the handler', async () => {
-    const Feature = define('ResourceScope')
-    const Value = Feature.resource<string>()('Value')
-    const ReadValue = Feature.command('ReadValue', {
+    const FeatureNamespace = makeNamespace('ResourceScope')
+    const Value = FeatureNamespace.resource<string>()('Value')
+    const ReadValue = FeatureNamespace.command('ReadValue', {
       messages: [Message.CompletedReadValue],
       handler: function* () {
         return () =>
@@ -350,7 +353,7 @@ describe('Block capability contexts', () => {
       },
     })
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-    const selected = selectLayer(Feature as never, ReadValue.layer)
+    const selected = selectLayer(FeatureNamespace as never, ReadValue.layer)
     const layer = Layer.merge(
       qualifyLayer('Left', selected),
       qualifyLayer('Right', selected),
@@ -410,8 +413,8 @@ describe('Block capability contexts', () => {
   it('projects ordinary Services, local capabilities, and descendant capabilities while isolating siblings', () => {
     const feature = makeFeature('ProjectedScope')
     const sibling = makeFeature('SiblingScope')
-    const ResourceScope = define('ProjectedResourceScope')
-    const Value = ResourceScope.resource<string>()('Value')
+    const ResourceScopeNamespace = makeNamespace('ProjectedResourceScope')
+    const Value = ResourceScopeNamespace.resource<string>()('Value')
     const service = identityOf(feature.ReadValue)!.service
     const siblingService = identityOf(sibling.ReadValue)!.service
     const source = { value: 'shared' }
@@ -514,11 +517,11 @@ describe('Block capability contexts', () => {
   })
 
   it('rejects ManagedResource access from an arbitrary Layer in a handler recipe', async () => {
-    const Feature = define('ConstructionScope')
-    const Value = Feature.resource<string>()('Value')
+    const FeatureNamespace = makeNamespace('ConstructionScope')
+    const Value = FeatureNamespace.resource<string>()('Value')
     const layer = selectLayer(
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      Feature as never,
+      FeatureNamespace as never,
       Layer.effect(
         ValueSource,
         Value.get.pipe(Effect.map(value => ({ value }))),

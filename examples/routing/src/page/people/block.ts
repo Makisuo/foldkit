@@ -6,12 +6,9 @@ import { Message } from './message'
 import { init, update } from './update'
 import { view } from './view'
 
-export const EffectsLayer = Layer.mergeAll(
-  PushSearchUrl.layer,
-  FetchPeople.layer,
-)
+const EffectsLayer = Layer.mergeAll(PushSearchUrl.layer, FetchPeople.layer)
 
-export const block = PeopleComposition.makeBlock({
+export const PeopleBlock = PeopleComposition.assembleBlock({
   init,
   update,
   view,

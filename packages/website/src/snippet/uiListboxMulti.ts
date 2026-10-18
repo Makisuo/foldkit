@@ -28,10 +28,8 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-// Wrap Listbox's Messages so they can flow through your update:
-const Message = defineMessageUnion({
-  GotListboxMultiMessage: { message: PeopleListbox.Message },
-})
+// This excerpt has no parent-owned facts. The Composition derives delivery.
+const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
 // At module scope, fold the OutMessage into your own Model. `Selected` carries
@@ -56,22 +54,21 @@ const foldListboxMultiOutMessage = PeopleListbox.OutMessage.match<
 
 // The Binding wires the completed child Block into the parent: it delegates keyboard
 // navigation, typeahead, and open/close to PeopleListbox.update, writes the
-// next Listbox Model back, maps the Block's Commands into your Message
-// type, and hands any OutMessage to the OutMessage fold.
-const PeoplePickerDefinition = Block.define('PeoplePicker', {
+// next Listbox Model back, routes generated delivery and Command results, and
+// hands any OutMessage to the OutMessage fold.
+const PeoplePickerDefinition = Block.makeDefinition('PeoplePicker', {
   Model,
   Message,
 })
 
 const PeopleListboxBinding = PeoplePickerDefinition.bindChild(PeopleListbox, {
   field: 'listboxMulti',
-  parentMessage: Message.GotListboxMultiMessage,
-  init: { startupToArgs: () => Tuple.make({ id: 'people' }) },
+  init: { contextToArgs: () => Tuple.make({ id: 'people' }) },
   outMessage: { fold: foldListboxMultiOutMessage },
 })
 
 const PeoplePickerComposition = PeoplePickerDefinition.makeComposition({
-  childBindings: [PeopleListboxBinding],
+  bindings: [PeopleListboxBinding],
 })
 
 // Initialize the fields the parent owns. The Composition initializes the

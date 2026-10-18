@@ -34,7 +34,7 @@ export const update = PeopleComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const block = PeopleComposition.makeBlock({
+export const PeopleBlock = PeopleComposition.assembleBlock({
   init,
   update,
   operations: { informRouteChanged },

@@ -24,7 +24,7 @@ scene(
 )
 ```
 
-For a lifted Subscription, emit its declared child Message. Scene applies the Subscription's child-to-parent mappings before passing the Message to update. Parent wrapper Messages must not be fabricated to bypass the child's declared Message contract. Preserve inferred registration records and use direct aggregation so their exact Message declarations remain available to the Scene type.
+For a lifted Subscription, emit its declared child Message. Scene replays the entry's generated delivery through every child boundary before passing the complete Message to update. Generated envelopes must not be fabricated to bypass the child's declared Message contract. Preserve inferred registration records and use direct aggregation so their exact Message declarations remain available to the Scene type.
 
 Migrate tests that used `Subscription.emit` to simulate a DOM interaction or Command result to the appropriate interaction or `Command.resolve` step.
 

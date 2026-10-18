@@ -94,24 +94,19 @@ Bind each completed Query through its owning parent Definition. Its attached han
 
 Query's local `Fetch` Command belongs to its named Block. Parent Bindings qualify it by placement, so unrelated Blocks can use the same local Command name. Construct alternatives through the original Query's `toLayer` to preserve its handler identity.
 
-Query and KeyedQuery are completed viewless Blocks. Bind them through the owning parent Definition and list the Binding under `childBindings`:
+Query and KeyedQuery are completed viewless Blocks. Bind them through the owning parent Definition and list the Binding under `bindings`:
 
 ```ts
-import { defineApplication } from 'foldkit'
-
+import { makeApplicationDefinition } from 'foldkit'
 import { Message } from './message'
 import { Model } from './model'
 import { postsQuery } from './query'
-
-const ApplicationDefinition = defineApplication({ Model, Message })
-
+const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
 const PostsBinding = ApplicationDefinition.bindChild(postsQuery, {
   field: 'posts',
-  parentMessage: Message.GotPostsMessage,
 })
-
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [PostsBinding],
+  bindings: [PostsBinding],
 })
 ```
 

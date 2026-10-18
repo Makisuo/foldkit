@@ -4,9 +4,9 @@ import { CalendarDate } from 'foldkit/calendar'
 import { Field } from 'foldkit/fieldValidation'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { DatePicker, Listbox } from '@foldkit/ui'
+import { DatePickerBlock, Listbox } from '@foldkit/ui'
 
-export const PronounsListbox = Listbox.create()
+export const PronounsListboxBlock = Listbox.create()
 
 export const Model = Schema.Struct({
   firstName: Field(Schema.String),
@@ -14,11 +14,11 @@ export const Model = Schema.Struct({
   email: Field(Schema.String),
   emailValidationId: Schema.Number,
   phone: Field(Schema.String),
-  pronouns: PronounsListbox.Model,
+  pronouns: PronounsListboxBlock.Model,
   maybeSelectedPronoun: Schema.Option(Schema.String),
   customPronouns: Schema.String,
   portfolioUrl: Field(Schema.String),
-  availableDate: DatePicker.Model,
+  availableDate: DatePickerBlock.Model,
   maybeAvailableDate: Schema.Option(CalendarDate),
 })
 export type Model = typeof Model.Type
@@ -32,16 +32,15 @@ export const Message = defineMessageUnion({
     field: Field(Schema.String),
   },
   UpdatedPhone: { value: Schema.String },
-  GotPronounsMessage: { message: PronounsListbox.Message },
+  RequestedRevealErrors: {},
   UpdatedCustomPronouns: { value: Schema.String },
   UpdatedPortfolioUrl: { value: Schema.String },
-  GotAvailableDateMessage: { message: DatePicker.Message },
 })
 
 export type Message = typeof Message.Type
 
-export const PersonalInfoDefinition = Block.define('PersonalInfo', {
+export const PersonalInfoDefinition = Block.makeDefinition('PersonalInfo', {
   Model,
   Message,
-  Startup: CalendarDate,
+  ChildInitContext: CalendarDate,
 })

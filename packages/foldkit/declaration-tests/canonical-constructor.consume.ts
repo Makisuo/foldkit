@@ -2,9 +2,11 @@ import { Block, Update } from 'foldkit'
 import type { Command } from 'foldkit/command'
 
 import {
+  AlternativeBinding,
   CanonicalBinding,
-  DistinctSchemaMapperBinding,
-  MappedBinding,
+  DeclarationCanonicalConstructorParentComposition,
+  type ExpectedAlternativeEnvelope,
+  type ExpectedEnvelope,
   ParentMessage,
 } from './canonical-constructor.accepted.js'
 
@@ -39,24 +41,42 @@ type Expect<Value extends true> = Value
 export type CanonicalMessageIsExact = Expect<
   Equal<
     CommandMessageOf<ReturnType<typeof CanonicalBinding.fold>>,
-    typeof ParentMessage.GotChildMessage.Type
+    ExpectedEnvelope
   >
 >
-export type MappedMessageIsExact = Expect<
+export type AlternativePlacementMessageIsExact = Expect<
   Equal<
-    CommandMessageOf<ReturnType<typeof MappedBinding.fold>>,
-    typeof ParentMessage.GotOtherMessage.Type
-  >
->
-export type DistinctSchemaMapperReturnIsPreserved = Expect<
-  Equal<
-    CommandMessageOf<ReturnType<typeof DistinctSchemaMapperBinding.fold>>,
-    typeof ParentMessage.GotOtherMessage.Type
+    CommandMessageOf<ReturnType<typeof AlternativeBinding.fold>>,
+    ExpectedAlternativeEnvelope
   >
 >
 export type CanonicalRegistrationIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<typeof CanonicalBinding.fold>>,
     Block.RequirementOfBinding<typeof CanonicalBinding>
+  >
+>
+export type LocalConstructorIsRetained = Expect<
+  Equal<
+    typeof DeclarationCanonicalConstructorParentComposition.Message.ReceivedPayload,
+    typeof ParentMessage.ReceivedPayload
+  >
+>
+export type CompleteMessageIsExact = Expect<
+  Equal<
+    typeof DeclarationCanonicalConstructorParentComposition.Message.Type,
+    typeof ParentMessage.Type | ExpectedEnvelope
+  >
+>
+export type CompleteDecodingServicesAreNotErased = Expect<
+  Equal<
+    typeof DeclarationCanonicalConstructorParentComposition.Message.DecodingServices,
+    unknown
+  >
+>
+export type CompleteEncodingServicesAreNotWidened = Expect<
+  Equal<
+    typeof DeclarationCanonicalConstructorParentComposition.Message.EncodingServices,
+    never
   >
 >

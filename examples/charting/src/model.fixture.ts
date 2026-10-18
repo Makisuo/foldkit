@@ -1,8 +1,6 @@
 import { DateTime, Option } from 'effect'
 import { modifyFields } from 'foldkit/struct'
 
-import { RadioGroup } from '@foldkit/ui'
-
 import {
   ContributorSummary,
   DependencyEdge,
@@ -15,8 +13,11 @@ import {
 import { Model, TelemetryAsyncData } from './model'
 import {
   CHART_MODE_RADIO_GROUP_ID,
+  ChartModeRadioGroupBlock,
   PACKAGE_RADIO_GROUP_ID,
   PERIOD_RADIO_GROUP_ID,
+  PackageRadioGroupBlock,
+  PeriodRadioGroupBlock,
 } from './radioGroups'
 
 export const sampleTelemetry = Telemetry.make({
@@ -112,11 +113,17 @@ export const sampleTelemetry = Telemetry.make({
 export const loadingModel = Model.make({
   telemetry: TelemetryAsyncData.Loading(),
   chartMode: 'Adoption',
-  chartModeRadioGroup: RadioGroup.init({ id: CHART_MODE_RADIO_GROUP_ID }),
+  chartModeRadioGroup: ChartModeRadioGroupBlock.init({
+    id: CHART_MODE_RADIO_GROUP_ID,
+  }).model,
   selectedPackageId: 'Core',
-  packageRadioGroup: RadioGroup.init({ id: PACKAGE_RADIO_GROUP_ID }),
+  packageRadioGroup: PackageRadioGroupBlock.init({
+    id: PACKAGE_RADIO_GROUP_ID,
+  }).model,
   period: 'LastSixteenWeeks',
-  periodRadioGroup: RadioGroup.init({ id: PERIOD_RADIO_GROUP_ID }),
+  periodRadioGroup: PeriodRadioGroupBlock.init({
+    id: PERIOD_RADIO_GROUP_ID,
+  }).model,
   maybeChartHostId: Option.none(),
   maybeChartError: Option.none(),
   maybeSelectedDatumId: Option.none(),

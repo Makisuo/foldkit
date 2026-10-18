@@ -1,17 +1,16 @@
 import clsx from 'clsx'
 import { Option, String } from 'effect'
-import { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
-import { DragAndDrop } from '@foldkit/ui'
-import { draggable, maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
+import { type RenderInfo, maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 
+import type { ApplicationViewBuilder } from '../composition'
 import { Card } from '../domain'
-import type { Message } from '../message'
 import type { Model } from '../model'
 
 const cardContent = (
   card: Card.Card,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ): ReadonlyArray<Html> => [
   h.span([h.Class('text-sm font-medium text-gray-900')], [card.title]),
   ...(String.isNonEmpty(card.description)
@@ -29,8 +28,8 @@ export const cardView = (
   card: Card.Card,
   columnId: string,
   index: number,
-  toParentMessage: (message: typeof DragAndDrop.Message.Type) => Message,
-  h: HtmlBuilder<Message>,
+  draggable: RenderInfo['draggable'],
+  h: ApplicationViewBuilder,
 ): Html => {
   const isThisCardBeingDragged = Option.exists(
     maybeDraggedItemId(model.dragAndDrop),
@@ -54,22 +53,16 @@ export const cardView = (
             !isPointerDragged && !isKeyboardDragged,
         }),
       ),
-      ...draggable(
-        {
-          model: model.dragAndDrop,
-          toParentMessage,
-          itemId: card.id,
-          containerId: columnId,
-          index,
-        },
-        h,
-      ),
+      ...draggable({ itemId: card.id, containerId: columnId, index }),
     ],
     cardContent(card, h),
   )
 }
 
-export const ghostCardView = (card: Card.Card, h: HtmlBuilder<Message>): Html =>
+export const ghostCardView = (
+  card: Card.Card,
+  h: ApplicationViewBuilder,
+): Html =>
   h.div(
     [
       h.Class(

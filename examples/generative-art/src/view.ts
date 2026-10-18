@@ -1,6 +1,6 @@
 import { Array, Option, pipe } from 'effect'
 import { Canvas } from 'foldkit'
-import { Html, HtmlBuilder } from 'foldkit/html'
+import type { Html } from 'foldkit/html'
 
 import { Button } from '@foldkit/ui'
 import type { ViewInputs as SliderViewInputs } from '@foldkit/ui/slider'
@@ -296,7 +296,7 @@ const slider = (
   label: string,
   value: number,
   render: (viewInputs: SliderViewInputs) => Html,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ): Html =>
   render({
     value,
@@ -337,7 +337,7 @@ const slider = (
 const controlButton = (
   label: string,
   onClick: Message,
-  h: HtmlBuilder<Message>,
+  h: ApplicationViewBuilder,
 ): Html =>
   Button.view(
     {
@@ -411,7 +411,7 @@ const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
     ],
   )
 
-const headerView = (h: HtmlBuilder<Message>): Html =>
+const headerView = (h: ApplicationViewBuilder): Html =>
   h.div(
     [h.Class('flex flex-col items-center mb-6 text-center')],
     [

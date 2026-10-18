@@ -2,10 +2,9 @@ import { Cart, Item } from './domain'
 import { Products } from './page'
 
 // Access a feature namespace
-Products.Model
-Products.Message
-Products.block
-Products.OutMessage.match
+Products.ProductsBlock.Model
+Products.ProductsBlock.Message
+Products.ProductsBlock.OutMessage.match
 
 // Access domain modules
 Cart.addItem(item)(cart)

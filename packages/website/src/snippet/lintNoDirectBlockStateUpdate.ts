@@ -1,14 +1,15 @@
 import { modifyFields } from 'foldkit/struct'
 
 import { ApplicationDefinition } from './definition'
-import { Message } from './message'
 import { Model } from './model'
 import * as Settings from './settings'
 
-const SettingsBinding = ApplicationDefinition.bindChild(Settings.block, {
-  field: 'settings',
-  parentMessage: Message.GotSettingsMessage,
-})
+const SettingsBinding = ApplicationDefinition.bindChild(
+  Settings.SettingsBlock,
+  {
+    field: 'settings',
+  },
+)
 
 // ❌ Bad: the parent changes a child field without running Settings.update.
 const badReset = (model: Model) => ({

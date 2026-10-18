@@ -6,15 +6,15 @@ import { modifyFields } from 'foldkit/struct'
 import {
   Message,
   Model,
-  NoteDurationRadioGroup,
+  NoteDurationRadioGroupBlock,
   NotePlayerDemoDefinition,
 } from './definition'
 import { prependToLog } from './messageLog'
 
 const foldNoteDurationRadioGroupOutMessage =
-  NoteDurationRadioGroup.OutMessage.match<
+  NoteDurationRadioGroupBlock.OutMessage.match<
     Update.Step<Model, Message>,
-    typeof NoteDurationRadioGroup.OutMessage.Type
+    typeof NoteDurationRadioGroupBlock.OutMessage.Type
   >({
     Selected:
       ({ value }) =>
@@ -27,18 +27,17 @@ const foldNoteDurationRadioGroupOutMessage =
   })
 
 export const NoteDurationRadioGroupBinding = NotePlayerDemoDefinition.bindChild(
-  NoteDurationRadioGroup,
+  NoteDurationRadioGroupBlock,
   {
     field: 'noteDurationRadioGroup',
-    parentMessage: Message.GotNoteDurationMessage,
     outMessage: { fold: foldNoteDurationRadioGroupOutMessage },
-    init: { startupToArgs: () => Tuple.make({ id: 'note-duration' }) },
+    init: { contextToArgs: () => Tuple.make({ id: 'note-duration' }) },
   },
 )
 
 export const NotePlayerDemoComposition =
   NotePlayerDemoDefinition.makeComposition({
-    childBindings: [NoteDurationRadioGroupBinding],
+    bindings: [NoteDurationRadioGroupBinding],
   })
 export type NotePlayerDemoViewBuilder = Block.ViewBuilderFor<
   typeof NotePlayerDemoComposition

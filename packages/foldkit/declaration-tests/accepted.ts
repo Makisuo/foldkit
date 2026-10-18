@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Option, Record, Schema, Tuple } from 'effect'
-import { defineApplication } from 'foldkit'
+import { makeApplicationDefinition } from 'foldkit'
 import {
   type Application as ApplicationProgram,
   type Element as ElementProgram,
@@ -26,15 +26,20 @@ export class Clock extends Context.Service<
   Readonly<{ now: Effect.Effect<number> }>
 >()('DeclarationTestsClock') {}
 
-const DeclarationTestsChildDefinition = Block.define('DeclarationTestsChild')
+const DeclarationTestsChildNamespace = Block.makeNamespace(
+  'DeclarationTestsChild',
+)
 
 // eslint-disable-next-line foldkit/block-name-matches-variable
-const SingleColonOwnerDefinition = Block.define('DeclarationTests:SingleColon')
+const SingleColonOwnerNamespace = Block.makeNamespace(
+  'DeclarationTests:SingleColon',
+)
 // eslint-disable-next-line foldkit/block-name-matches-variable
-export const SingleColonBlockDefinition = SingleColonOwnerDefinition.define({
-  Model: Schema.Struct({ value: Schema.Number }),
-  Message: defineMessageUnion({ RequestedWork: {} }),
-})
+export const SingleColonBlockDefinition =
+  SingleColonOwnerNamespace.makeDefinition({
+    Model: Schema.Struct({ value: Schema.Number }),
+    Message: defineMessageUnion({ RequestedWork: {} }),
+  })
 
 export const ChildModel = Schema.Struct({ value: Schema.Number })
 export type ChildModel = typeof ChildModel.Type
@@ -49,7 +54,7 @@ export type ChildMessage = typeof ChildMessage.Type
 const handlerConstruction: Effect.Effect<void, 'HandlerUnavailable'> =
   Effect.void
 
-export const ReadCount = DeclarationTestsChildDefinition.command('ReadCount', {
+export const ReadCount = DeclarationTestsChildNamespace.command('ReadCount', {
   messages: [ChildMessage.CompletedRead],
   handler: function* () {
     const clock = yield* Clock
@@ -60,7 +65,7 @@ export const ReadCount = DeclarationTestsChildDefinition.command('ReadCount', {
   },
 })
 
-export const Measure = DeclarationTestsChildDefinition.mount('Measure', {
+export const Measure = DeclarationTestsChildNamespace.mount('Measure', {
   messages: [ChildMessage.CompletedMeasure],
   handler: function* () {
     return ({ element }) =>
@@ -73,7 +78,7 @@ export const Measure = DeclarationTestsChildDefinition.mount('Measure', {
 })
 
 // eslint-disable-next-line foldkit/block-name-matches-variable
-export const ChildDefinition = DeclarationTestsChildDefinition.define({
+export const ChildDefinition = DeclarationTestsChildNamespace.makeDefinition({
   Model: ChildModel,
   Message: ChildMessage,
 })
@@ -124,7 +129,6 @@ const childParameterizedInitSource = (
   model: ChildModel.make({
     value: value + offset + increments.length,
   }),
-  value,
 })
 
 const makeChildInitSource =
@@ -133,7 +137,6 @@ const makeChildInitSource =
     model: ChildModel.make({
       value: value + offset + increments.length,
     }),
-    value,
   })
 
 const childLiteralInitSource = makeChildInitSource(1)
@@ -196,7 +199,7 @@ export type CompletedChild = Block.Completed<
   typeof childImplementation
 >
 
-export const ChildBlock = ChildComposition.makeBlock(childImplementation)
+export const ChildBlock = ChildComposition.assembleBlock(childImplementation)
 
 type CompletedChildIsExact = Expect<Equal<CompletedChild, typeof ChildBlock>>
 
@@ -217,7 +220,7 @@ export const DirectMessage = defineMessageUnion({
 })
 export type DirectMessage = typeof DirectMessage.Type
 
-const DeclarationTestsDirectDefinition = Block.define(
+const DeclarationTestsDirectDefinition = Block.makeDefinition(
   'DeclarationTestsDirect',
   {
     Model: DirectModel,
@@ -275,7 +278,7 @@ export const refreshDirectValue = DeclarationTestsDirectDefinition.step(
   }),
 )
 
-export const Direct = DeclarationTestsDirectComposition.makeBlock({
+export const Direct = DeclarationTestsDirectComposition.assembleBlock({
   init: DeclarationTestsDirectComposition.makeInit(() => ({
     model: DirectModel.make({ value: 0 }),
   })),
@@ -286,10 +289,13 @@ export const Direct = DeclarationTestsDirectComposition.makeBlock({
   EffectsLayer: ReadDirectValue.layer,
 })
 
-const DeclarationTestsPureDefinition = Block.define('DeclarationTestsPure', {
-  Model: DirectModel,
-  Message: DirectMessage,
-})
+const DeclarationTestsPureDefinition = Block.makeDefinition(
+  'DeclarationTestsPure',
+  {
+    Model: DirectModel,
+    Message: DirectMessage,
+  },
+)
 export const PureDefinition = DeclarationTestsPureDefinition
 const DeclarationTestsPureComposition =
   DeclarationTestsPureDefinition.makeComposition()
@@ -308,7 +314,7 @@ export type CompletedPure = Block.Completed<
   typeof pureImplementation
 >
 
-export const Pure = PureComposition.makeBlock(pureImplementation)
+export const Pure = PureComposition.assembleBlock(pureImplementation)
 
 type CompletedPureIsExact = Expect<Equal<CompletedPure, typeof Pure>>
 
@@ -318,17 +324,15 @@ export const ParentModel = Schema.Struct({ child: ChildModel })
 export type ParentModel = typeof ParentModel.Type
 
 export const ParentMessage = defineMessageUnion({
-  // eslint-disable-next-line foldkit/got-prefix-requires-block-payload
-  GotChildMessage: { message: ChildMessage },
   RequestedRefresh: {},
 })
 export type ParentMessage = typeof ParentMessage.Type
 
-const DeclarationTestsDirectInitDefinition = Block.define(
+const DeclarationTestsDirectInitDefinition = Block.makeDefinition(
   'DeclarationTestsDirectInit',
   {
     Model: ChildModel,
-    Message: ParentMessage,
+    Message: Schema.Never,
   },
 )
 export const DirectInitChildBinding =
@@ -336,11 +340,10 @@ export const DirectInitChildBinding =
     placement: 'direct-init-child',
     read: model => Option.some(model),
     write: (_model, nextChild) => nextChild,
-    parentMessage: ParentMessage.GotChildMessage,
   })
 const DeclarationTestsDirectInitComposition =
   DeclarationTestsDirectInitDefinition.makeComposition({
-    childBindings: [DirectInitChildBinding],
+    bindings: [DirectInitChildBinding],
   })
 export const directResultInit = DeclarationTestsDirectInitComposition.makeInit(
   () =>
@@ -349,18 +352,17 @@ export const directResultInit = DeclarationTestsDirectInitComposition.makeInit(
       toParentModel: child => child,
     }),
 )
-const directInitUpdate = DeclarationTestsDirectInitComposition.makeUpdate(
-  model => ({ model }),
-)
-export const DirectInitBlock = DeclarationTestsDirectInitComposition.makeBlock({
-  init: directResultInit,
-  update: directInitUpdate,
-})
+const directInitUpdate = DeclarationTestsDirectInitComposition.makeUpdate()
+export const DirectInitBlock =
+  DeclarationTestsDirectInitComposition.assembleBlock({
+    init: directResultInit,
+    update: directInitUpdate,
+  })
 
 type DirectResultInitEvidenceIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<typeof directResultInit>>,
-    Block.BindingRequirement<'direct-init-child', typeof ChildBlock>
+    Block.RequirementOfBinding<typeof DirectInitChildBinding>
   >
 >
 type DirectResultInitRequirementsAreExact = Expect<
@@ -375,9 +377,9 @@ export type DirectResultInitAssertions = [
   DirectResultInitRequirementsAreExact,
 ]
 
-const DeclarationTestsParentDefinition = Block.define(
+const DeclarationTestsParentDefinition = Block.makeNamespace(
   'DeclarationTestsParent',
-).define({
+).makeDefinition({
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -388,7 +390,6 @@ export const ChildBinding = DeclarationTestsParentDefinition.bindChild(
     placement: 'child',
     read: model => Option.some(model.child),
     write: (_model, nextChild) => ParentModel.make({ child: nextChild }),
-    parentMessage: ParentMessage.GotChildMessage,
   },
 )
 
@@ -396,8 +397,6 @@ export const DirectChildBinding = DeclarationTestsParentDefinition.bindChild(
   ChildBlock,
   {
     field: 'child',
-    parentMessage: ParentMessage.GotChildMessage,
-
     init: false,
   },
 )
@@ -419,7 +418,7 @@ type BoundRefreshEvidenceIsExact = Expect<
     Update.RegistrationEvidenceOf<
       ReturnType<ReturnType<typeof ChildBinding.refresh>>
     >,
-    Block.BindingRequirement<'child', typeof ChildBlock>
+    Block.RequirementOfBinding<typeof ChildBinding>
   >
 >
 type ChildBindingStringKeysAreExact = Expect<
@@ -449,7 +448,7 @@ export const ObserveParent = DeclarationTestsParentDefinition.mount(
 )
 const DeclarationTestsParentComposition =
   DeclarationTestsParentDefinition.makeComposition({
-    childBindings: [ChildBinding],
+    bindings: [ChildBinding],
     mounts: [ObserveParent],
   })
 export const ParentComposition = DeclarationTestsParentComposition
@@ -505,7 +504,7 @@ export const contextualRefreshChild = DeclarationTestsParentDefinition.step(
   (_model, _context?: RefreshContext) => ChildBinding.refresh(),
 )
 
-export const Parent = ParentComposition.makeBlock({
+export const Parent = ParentComposition.assembleBlock({
   init: ParentComposition.makeInit(() =>
     ChildBinding.init({
       args: [],
@@ -537,7 +536,9 @@ export type ParentAssertions = [
   ParentErrorIsExact,
 ]
 
-const DeclarationTestsChoiceDefinition = Block.define('DeclarationTestsChoice')
+const DeclarationTestsChoiceNamespace = Block.makeNamespace(
+  'DeclarationTestsChoice',
+)
 
 const makeChoiceParts = <const Values extends ReadonlyArray<string>>(
   Value: Schema.Literals<Values>,
@@ -547,7 +548,7 @@ const makeChoiceParts = <const Values extends ReadonlyArray<string>>(
   const Message = Schema.TaggedStruct('SelectedValue', { value: Value })
   const OutMessage = Schema.TaggedStruct('SelectedValue', { value: Value })
   // eslint-disable-next-line foldkit/block-name-matches-variable
-  const ChoiceDefinition = DeclarationTestsChoiceDefinition.define({
+  const ChoiceDefinition = DeclarationTestsChoiceNamespace.makeDefinition({
     Model,
     Message,
     OutMessage,
@@ -594,7 +595,7 @@ const makeChoice = <const Values extends ReadonlyArray<string>>(
 ): CompletedChoice<Values> => {
   const { composition, implementation } = makeChoiceParts(Value)
 
-  return composition.makeBlock(implementation)
+  return composition.assembleBlock(implementation)
 }
 
 export const RefinedChoice = makeChoice(Schema.Literals(['One', 'Two']))
@@ -611,12 +612,9 @@ type CompletedChoiceIsExact = Expect<
 
 const ChoiceParentModel = Schema.Struct({ choice: RefinedChoice.Model })
 type ChoiceParentModel = typeof ChoiceParentModel.Type
-const ChoiceParentMessage = defineMessageUnion({
-  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture deliberately probes reserved Got* routing through a structurally exact or invalid constructor.
-  GotChoiceMessage: { message: RefinedChoice.Message },
-})
+const ChoiceParentMessage = Schema.Never
 type ChoiceParentMessage = typeof ChoiceParentMessage.Type
-const DeclarationTestsChoiceParentDefinition = Block.define(
+const DeclarationTestsChoiceParentDefinition = Block.makeDefinition(
   'DeclarationTestsChoiceParent',
   {
     Model: ChoiceParentModel,
@@ -630,14 +628,13 @@ export const RefinedChoiceBinding = ChoiceParent.bindChild(RefinedChoice, {
   placement: 'refined-choice',
   read: model => Option.some(model.choice),
   write: (_model, nextChoice) => ChoiceParentModel.make({ choice: nextChoice }),
-  parentMessage: ChoiceParentMessage.GotChoiceMessage,
   outMessage: {
     fold: outMessage => ChoiceParent.step(model => ({ model, outMessage })),
   },
 })
 
 const RefinedChoiceParentComposition = ChoiceParent.makeComposition({
-  childBindings: [RefinedChoiceBinding],
+  bindings: [RefinedChoiceBinding],
 })
 export const refinedChoiceParentUpdate =
   RefinedChoiceParentComposition.makeUpdate()
@@ -712,20 +709,19 @@ export const provisionPorts = {
   outbound: { valueRead: Port.outbound(Schema.Number) },
 }
 
-export const ApplicationDefinition = defineApplication({
+export const ApplicationDefinition = makeApplicationDefinition({
   Model: ParentModel,
   Message: ParentMessage,
 })
 const PureMessage = defineMessageUnion({ RequestedRefresh: {} })
 type PureMessage = typeof PureMessage.Type
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct Block or Application identity for type coverage.
-const PureApplicationDefinition = defineApplication({
+
+// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct Block or Application identity for type coverage.
+export const PureApplicationComposition = makeApplicationDefinition({
   Model: ParentModel,
   Message: PureMessage,
-})
-// oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct Block or Application identity for type coverage.
-export const PureApplicationComposition =
-  PureApplicationDefinition.makeComposition()
+}).makeComposition()
 const preserveFunction = <Args extends ReadonlyArray<unknown>, ReturnValue>(
   fn: (...args: Args) => ReturnValue,
 ) => ({ fn })
@@ -749,7 +745,7 @@ const pureDocumentView = PureApplicationComposition.makeView((_model, h) => ({
   body: h.main([]),
 }))
 const pureElementProgram: ElementProgram<undefined, never, never, never> =
-  PureApplicationComposition.makeElement({
+  PureApplicationComposition.assembleElement({
     container: null,
     init: pureInit,
     update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
@@ -761,7 +757,7 @@ const purePageProgram: ApplicationProgram<
   never,
   never,
   never
-> = PureApplicationComposition.makeApplication({
+> = PureApplicationComposition.assembleApplication({
   container: null,
   init: pureInit,
   update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
@@ -788,7 +784,7 @@ export const StreamApplicationValue = ApplicationDefinition.mountStream(
   },
 )
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  childBindings: [DirectChildBinding],
+  bindings: [DirectChildBinding],
 })
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
@@ -842,7 +838,7 @@ const applicationInit = ApplicationComposition.makeInit(() =>
 type ApplicationInitEvidenceIsExact = Expect<
   Equal<
     Update.RegistrationEvidenceOf<ReturnType<typeof applicationInit>>,
-    Block.BindingRequirement<'child', typeof ChildBlock>
+    Block.RequirementOfBinding<typeof DirectChildBinding>
   >
 >
 
@@ -863,7 +859,7 @@ export const provisionRoutingInit = PureApplicationComposition.makeInit(
 const makeInferredProvisionPageAwaitingDependency = (
   container: HTMLElement | null,
 ) =>
-  PureApplicationComposition.makeApplication({
+  PureApplicationComposition.assembleApplication({
     Flags: ProvisionFlags,
     container,
     init: PureApplicationComposition.makeInit(
@@ -898,7 +894,7 @@ export const makeProvisionPageAwaitingDependency: (
 ) => ProvisionPage = makeInferredProvisionPageAwaitingDependency
 
 const makeInferredProvisionElement = (container: HTMLElement | null) =>
-  PureApplicationComposition.makeElement({
+  PureApplicationComposition.assembleElement({
     container,
     init: pureInit,
     ports: provisionPorts,
@@ -928,21 +924,21 @@ const provisionAssertions: ProvisionAssertions = [true, true]
 void provisionAssertions
 
 export const makeProgram = (container: HTMLElement) =>
-  ApplicationComposition.makeElement({
+  ApplicationComposition.assembleElement({
     ...applicationImplementation,
     container,
     view: applicationElementView,
   }).provide(ClockLayer)
 
 export const makePageProgram = (container: HTMLElement | null) =>
-  ApplicationComposition.makeApplication({
+  ApplicationComposition.assembleApplication({
     ...applicationImplementation,
     container,
     view: applicationDocumentView,
   }).provide(ClockLayer)
 
 export const makeRoutedFlagsPage = (container: HTMLElement | null) =>
-  PureApplicationComposition.makeApplication({
+  PureApplicationComposition.assembleApplication({
     Flags: ProvisionFlags,
     container,
     init: provisionRoutingInit,
@@ -967,20 +963,19 @@ export const RecordModel = Schema.Record(Schema.String, Schema.Boolean)
 export const RecordMessage = defineMessageUnion({
   ToggledDisclosure: { id: Schema.String, isOpen: Schema.Boolean },
 })
-const DisclosuresDefinition = Block.define('Disclosures', {
+
+export const DisclosuresComposition = Block.makeDefinition('Disclosures', {
   Model: RecordModel,
   Message: RecordMessage,
-})
-export const DisclosuresComposition = DisclosuresDefinition.makeComposition()
+}).makeComposition()
 export const recordUpdate = DisclosuresComposition.makeUpdate(
   (model, { id, isOpen }) => ({ model: Record.set(model, id, isOpen) }),
 )
 export const RecordApplicationComposition = (() => {
-  const ApplicationDefinition = defineApplication({
+  const ApplicationComposition = makeApplicationDefinition({
     Model: RecordModel,
     Message: RecordMessage,
-  })
-  const ApplicationComposition = ApplicationDefinition.makeComposition()
+  }).makeComposition()
 
   return ApplicationComposition
 })()

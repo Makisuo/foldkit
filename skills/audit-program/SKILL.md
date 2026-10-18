@@ -84,7 +84,7 @@ Before deep review, build a model of the audited code:
    - Tier 5 → `${CLAUDE_SKILL_DIR}/../../examples/kanban/src/`
    - Tier 6 → `${CLAUDE_SKILL_DIR}/../../examples/auth/src/`, `${CLAUDE_SKILL_DIR}/../../examples/job-application/src/`
    - Tier 7 → `${CLAUDE_SKILL_DIR}/../../packages/typing-game/client/src/page/room/`
-5. **Foldkit UI integration**. If anything is imported from `@foldkit/ui`, also read `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/composition.ts`, `update.ts`, and `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/` for the wiring pattern. Verify that each stateful component enters through `ParentDefinition.bindChild(Feature.block, config)` and is included in the parent's Composition `childBindings`. Trace the staged root from `const ApplicationDefinition = defineApplication({ Model, Message })` through `ApplicationDefinition.makeComposition(...)` as `ApplicationComposition`, then `ApplicationComposition.makeInit`, `ApplicationComposition.makeUpdate`, the explicit completion fields, and `application.provide(ApplicationLayer)`. A canonical unkeyed `parentMessage` wrapper routes automatically. Custom, keyed, and contextful delivery declares `fromParentMessage`, whose `args` returns native fold arguments or `Option.none()` for stale or inactive delivery. Check that the canonical view uses the Composition's `makeView` or `makeView.withInputs` with an inferred `h`, and that child views render through `h.block(binding.embedView(...))`.
+5. **Foldkit UI integration**. If anything is imported from `@foldkit/ui`, also read `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/composition.ts`, `update.ts`, and `${CLAUDE_SKILL_DIR}/../../examples/ui-showcase/src/ui/` for the wiring pattern. Verify that each stateful component enters through `ParentDefinition.bindChild(FeatureBlock, config)` and is included in the parent's Composition `bindings`. Ordinary features export a completed `FooBlock`; generic component factories return an exact completed Block named locally. Trace the staged root from `const ApplicationDefinition = makeApplicationDefinition({ Model, Message })` through `ApplicationDefinition.makeComposition(...)` as `ApplicationComposition`, then `ApplicationComposition.makeInit`, `ApplicationComposition.makeUpdate`, the explicit completion fields, and `application.provide(ApplicationLayer)`. Verify generated delivery uses `delivery.when`, `delivery.toUpdateContext`, and `keySchema` where their policies apply, without an authored parent `Got*` wrapper or Message mapper. Check that the canonical view uses the Composition's `makeView` or `makeView.withInputs` with an inferred `h`, and that child views render through `h.block(binding.embedView(...))`.
 
 The exemplar is the comparison target. When you find a pattern that smells off, ask: **does the exemplar do this differently?** If yes, flag it.
 
@@ -94,8 +94,8 @@ The exemplar is the comparison target. When you find a pattern that smells off, 
 
 `@foldkit/oxlint-plugin` ships 24 AST rules covering much of what this audit
 grades: keyed mapped rows, no array-index keys, hard-coded route strings,
-empty-object tagged calls, `Rel` on external links, spread inside `modifyFields`, `Got*`
-wrapping of child output, PascalCase named Command definitions, Mount handler
+empty-object tagged calls, `Rel` on external links, spread inside `modifyFields`,
+parent construction of child-owned Messages, PascalCase named Command definitions, Mount handler
 factories that ignore their element, module-level mutable state, and `NoOp` Messages.
 They parse the code, so they catch what a grep misses.
 
@@ -162,7 +162,7 @@ Run the canonical greps from the **Mechanical scans** block in [`../generate-pro
 For every hit, decide:
 
 - Is there a `// NOTE:` above it justifying the deviation?
-- If yes, evaluate the justification. Is it real, or defensive rationalization? Common false-justifications: "would require duplicate state" (most `@foldkit/ui` components have small inline-constructable models, and the controlled render helpers have none at all), "the interaction is too custom" (the `toView` callback handles arbitrary HTML), "we don't want to wire toParentMessage" (that's the unavoidable cost of a11y-correct interactive widgets, paid once per use).
+- If yes, evaluate the justification. Is it real, or defensive rationalization? Common false-justifications: "would require duplicate state" (most `@foldkit/ui` components have small inline-constructable models, and the controlled render helpers have none at all), "the interaction is too custom" (the `toView` callback handles arbitrary HTML), or "the child is too hard to bind" (generated delivery removes parent-authored Message wiring).
 - If no NOTE, it's a finding.
 
 Mechanical scans catch the cheap stuff. They're the floor of the audit, not the ceiling.
@@ -312,7 +312,7 @@ Blind spots are named by their slug in [`../generate-program/blindSpots.md`](../
 | `routing`       | A + routing-specific (bidirectional parser usage, route views as identity boundaries with no keyed route branches, `urlToString` in `Internal` case) | `hard-coded-route-paths`, `data-derived-keys`                                                                                                                                                                   |
 | `subscriptions` | A + subscription-specific (`Subscription.make` shape, name-only entries for always-active Layer-backed Streams, message mapping inside `Stream.map`) | `state-machine-edges`                                                                                                                                                                                           |
 | `testing`       | E                                                                                                                                                    | `missing-scene-test`                                                                                                                                                                                            |
-| `blocks`        | A + block-specific (Got\* wrapping, optional `outMessage` returns, parent ↔ child Message isolation)                                                 | `manual-update-return-unpacking`, `flat-parent-message-union`, `view-named-after-namespace`                                                                                                                     |
+| `blocks`        | A + block-specific (generated delivery policy, optional `outMessage` returns, parent ↔ child Message isolation)                                      | `manual-update-return-unpacking`, `authored-child-delivery-message`, `view-named-after-namespace`                                                                                                               |
 | `types`         | (inline) type-shape and aliasing                                                                                                                     | `manual-update-return-unpacking`, `array-type-syntax`, `unearned-type-aliases`, `hand-rolled-async-state`                                                                                                       |
 
 For focused audits, skip Phase 4's full grep block and run only the greps relevant to the focus (e.g. for `a11y`, run `label without For`, `outline-none without focus-visible`, and the `_blank` scan, reading each hit's attribute block for `Rel`).

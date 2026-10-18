@@ -6,6 +6,7 @@ import {
   CurrentInstance,
 } from '../block/instanceContext.js'
 import type { AnyMountHandler } from '../mount/index.js'
+import { liftChildMessage } from '../runtime/childOrigin.js'
 import { type VNode, memoizedVNodes } from '../vdom.js'
 import {
   type BoundaryRegistry,
@@ -23,6 +24,7 @@ import {
   type DispatchSync,
   type Frame,
   clearRuntime,
+  currentFrame,
   getCurrentFrame,
   pushBoundary,
   pushFrame,
@@ -429,6 +431,45 @@ const walkForFunctions = (
   }
 }
 
+const bindFunctionFieldsToFrame = (value: unknown, frame: Frame): unknown => {
+  if (!isPlainObject(value)) {
+    return value
+  }
+
+  const keys = Reflect.ownKeys(value)
+  if (
+    !keys.some(key => {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key)
+      return descriptor !== undefined && typeof descriptor.value === 'function'
+    })
+  ) {
+    return value
+  }
+
+  const bound: object = Object.create(Object.getPrototypeOf(value))
+  Object.defineProperties(bound, Object.getOwnPropertyDescriptors(value))
+  for (const key of keys) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key)
+    if (descriptor === undefined || typeof descriptor.value !== 'function') {
+      continue
+    }
+
+    const field = descriptor.value
+    Object.defineProperty(bound, key, {
+      ...descriptor,
+      value: function (this: unknown, ...args: ReadonlyArray<unknown>) {
+        pushFrame(frame)
+        try {
+          return Reflect.apply(field, this, args)
+        } finally {
+          clearRuntime()
+        }
+      },
+    })
+  }
+  return bound
+}
+
 const wrapViewInputsForOuterBoundary = <ViewInputs>(
   viewInputs: ViewInputs,
   outerFrame: Frame,
@@ -441,6 +482,7 @@ const wrapViewInputsForOuterBoundary = <ViewInputs>(
   for (const key of Object.keys(viewInputs)) {
     const value = viewInputs[key]
     if (typeof value === 'function') {
+      let childFrame: Frame | undefined
       // Capture the parent's full frame (dispatch, context, registry,
       // boundaryId) at wrap time. The slot callback uses `pushFrame` to
       // replay that exact frame on every invocation, regardless of what
@@ -448,13 +490,24 @@ const wrapViewInputsForOuterBoundary = <ViewInputs>(
       // callback invoked from a deferred context (setTimeout, stored
       // callback) would inherit from whatever render's frame was active,
       // silently mis-binding dispatch and registry.
-      wrapped[key] = (...args: ReadonlyArray<unknown>) => {
+      wrapped[key] = function (this: unknown, ...args: ReadonlyArray<unknown>) {
+        const activeFrame = currentFrame()
+        if (
+          activeFrame !== undefined &&
+          activeFrame.boundaryId !== outerFrame.boundaryId
+        ) {
+          childFrame = activeFrame
+        }
+        const argumentFrame = childFrame
+        const boundArgs =
+          argumentFrame === undefined
+            ? args
+            : args.map(argument =>
+                bindFunctionFieldsToFrame(argument, argumentFrame),
+              )
         pushFrame(outerFrame)
         try {
-          /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-          return (value as (...args: ReadonlyArray<unknown>) => unknown)(
-            ...args,
-          )
+          return Reflect.apply(value, this, boundArgs)
         } finally {
           clearRuntime()
         }
@@ -537,19 +590,37 @@ export const block = <View extends AnyBlockView>(
   }
   if (
     scope !== undefined &&
-    !parentFrame.viewIdentity?.childBindings.includes(scope.binding)
+    !parentFrame.viewIdentity?.bindings.includes(scope.binding)
   ) {
     throw new Error(
-      `[foldkit] Block binding "${scope.placement}" is not registered in this view's childBindings.`,
+      `[foldkit] Block binding "${scope.placement}" is not registered in this view's bindings.`,
     )
   }
   const registry = parentFrame.boundaryRegistry
   const childBoundaryId = composeBoundary(parentFrame.boundaryId, config.slotId)
   let instance: ActiveInstance | undefined
+  /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+  const legacyLift = config.toParentMessage as WrapBlock['toParentMessage']
   const block: WrapBlock = {
-    toParentMessage:
-      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-      config.toParentMessage as WrapBlock['toParentMessage'],
+    toParentMessage: message => {
+      if (scope === undefined) {
+        return legacyLift(message)
+      }
+      if (instance === undefined) {
+        if (parentFrame.mountRenderOwner === 'Replay') {
+          return legacyLift(message)
+        }
+        throw new Error(
+          `[foldkit] Block binding "${scope.placement}" emitted before its occurrence was captured.`,
+        )
+      }
+      return liftChildMessage(
+        instance,
+        message,
+        legacyLift,
+        parentFrame.mountRenderOwner === 'Replay' ? 0 : undefined,
+      )
+    },
     ...(scope === undefined
       ? {}
       : { isCurrent: () => instance === undefined || instance.isActive }),

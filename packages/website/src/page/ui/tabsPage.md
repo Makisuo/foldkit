@@ -65,7 +65,7 @@ The tab list receives `role="tablist"` with `aria-orientation` and `aria-label`.
 
 ### InitConfig {#init-config}
 
-Configuration object passed to `Tabs.init()`.
+Configuration passed to the Binding for the completed Block returned by `Tabs.create<Tab>()`.
 
 | Name             | Type                      | Default       | Description                                                                                                                      |
 | ---------------- | ------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------- |

@@ -62,7 +62,7 @@ In [Story tests](/testing/story), use `DragAndDrop.test` to resolve keyboard dra
 
 ### InitConfig {#init-config}
 
-Configuration object passed to `DragAndDrop.init()`.
+Configuration passed to the DragAndDrop Binding's child initializer. Direct completed Block calls use `DragAndDrop.DragAndDropBlock.init()`.
 
 | Name                  | Type                         | Default      | Description                                                                                        |
 | --------------------- | ---------------------------- | ------------ | -------------------------------------------------------------------------------------------------- |

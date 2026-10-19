@@ -1,0 +1,68 @@
+import { Layer, Option, Schema } from 'effect'
+import { Block, makeApplicationDefinition } from 'foldkit'
+import { defineMessageUnion } from 'foldkit/message'
+import { modifyFields } from 'foldkit/struct'
+
+const RoomModel = Schema.Struct({ title: Schema.String })
+const RoomMessage = defineMessageUnion({
+  RequestedRename: { title: Schema.String },
+})
+const RoomDefinition = Block.makeDefinition('Room', {
+  Model: RoomModel,
+  Message: RoomMessage,
+})
+const RoomComposition = RoomDefinition.makeComposition()
+const RoomBlock = RoomComposition.assembleBlock({
+  init: RoomComposition.makeInit((title: string) => ({ model: { title } })),
+  update: RoomComposition.makeUpdate((model, message) =>
+    RoomMessage.match(message, {
+      RequestedRename: ({ title }) => ({
+        model: modifyFields(model, { title: () => title }),
+      }),
+    }),
+  ),
+  operations: { requestRename: RoomMessage.RequestedRename },
+  EffectsLayer: Layer.empty,
+})
+
+const RoomInstance = Schema.Struct({
+  roomId: Schema.String,
+  model: RoomBlock.Model,
+  access: Schema.Literals(['Owner', 'Guest']),
+})
+const Model = Schema.Struct({
+  maybeRoomInstance: Schema.Option(RoomInstance),
+})
+const Message = defineMessageUnion({
+  RequestedOpenRoom: { roomId: Schema.String, title: Schema.String },
+})
+const ApplicationDefinition = makeApplicationDefinition({
+  Model,
+  Message,
+})
+
+const RoomBinding = ApplicationDefinition.bindChild(RoomBlock, {
+  field: 'maybeRoomInstance',
+  key: 'roomId',
+  childField: 'model',
+})
+const ApplicationComposition = ApplicationDefinition.makeComposition({
+  bindings: [RoomBinding],
+})
+
+export const update = ApplicationComposition.makeUpdate((model, message) =>
+  Message.match(message, {
+    RequestedOpenRoom: ({ roomId, title }) =>
+      RoomBinding.init({
+        key: roomId,
+        args: [title],
+        toParentModel: room =>
+          modifyFields(model, {
+            maybeRoomInstance: () =>
+              Option.some(
+                RoomInstance.make({ roomId, model: room, access: 'Owner' }),
+              ),
+          }),
+      }),
+  }),
+)

@@ -3,6 +3,7 @@ import { Array, type Effect, Function, Option, pipe } from 'effect'
 import { type AsyncData } from '../asyncData/index.js'
 import { type Command, mapMessage, mapMessages } from '../command/index.js'
 import {
+  assertResolvedStep,
   isResultRecipe,
   makeResultRecipe,
   resolveOperationOutput,
@@ -849,31 +850,34 @@ type CombinedStepRecipe<
   CombinedStepRegistrationEvidence<Steps>
 >
 
-/** Composes a list of update steps into one. Each step runs against the
- *  Model the previous step produced, and every step's Commands are
- *  concatenated into a single batch, in step order.
+/**
+ * Composes a list of update Steps into one. Each Step runs against the Model
+ * the previous Step produced. Their Commands form one batch for the Runtime,
+ * which runs them independently. Array order does not sequence their effects
+ * or completion.
  *
- *  Dual: call it data-first with the Model to run the steps now
- *  (`combine(model, steps)` returns a {@link Return}), or data-last with
- *  only the steps to build a composable {@link Step} that runs later
- *  (`combine(steps)`, for a `pipe` or a nested step list).
+ * Dual: call it data-first with the Model to run the Steps now
+ * (`combine(model, steps)` returns a {@link Return}), or data-last with
+ * only the Steps to build a composable {@link Step} that runs later
+ * (`combine(steps)`, for a `pipe` or a nested Step list).
  *
- *  Steps only ever accumulate Commands; a step cannot cancel or replace
- *  another step's Commands, and no Command runs during the fold. The
- *  runtime runs the batch after update returns. `combine([])` returns
- *  `{ model }`.
+ * Steps only ever accumulate Commands; a Step cannot cancel or replace
+ * another Step's Commands, and no Command runs during the fold. The
+ * Runtime runs the batch after update returns. `combine([])` returns
+ * `{ model }`.
  *
- *  ```ts
- *  SucceededUpdateNote: ({ note }) =>
- *    combine(model, [
- *      replaceNoteInCaches(note),
- *      refreshNote(note.id),
- *      refreshAllNotes,
- *      refreshNotebookNotes(note.maybeNotebookId),
- *      ...Array.filter([refreshNotebookNotes(previousNotebookId)], () => hasMoved),
- *      showToast('Success', `Updated ${note.title}`),
- *    ])
- *  ``` */
+ * ```ts
+ * SucceededUpdateNote: ({ note }) =>
+ *   combine(model, [
+ *     replaceNoteInCaches(note),
+ *     refreshNote(note.id),
+ *     refreshAllNotes,
+ *     refreshNotebookNotes(note.maybeNotebookId),
+ *     ...Array.filter([refreshNotebookNotes(previousNotebookId)], () => hasMoved),
+ *     showToast('Success', `Updated ${note.title}`),
+ *   ])
+ * ```
+ */
 export const combine: {
   <const Steps extends NonEmptySteps>(
     steps: Steps &
@@ -1076,6 +1080,9 @@ export const combine: {
       const next = resolvePending
         ? resolveOperationOutput(output, current.model)
         : output
+      if (!resolvePending) {
+        assertResolvedStep(next)
+      }
       current = {
         model: next.model,
         commands: [...(current.commands ?? []), ...(next.commands ?? [])],

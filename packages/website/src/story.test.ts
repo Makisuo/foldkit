@@ -7,7 +7,11 @@ import { describe, expect, test } from 'vitest'
 import { DialogBlock } from '@foldkit/ui'
 import { test as DialogTest } from '@foldkit/ui/dialog'
 
-import { ScrollSidebarActiveLinkIntoView, ScrollToTop } from './command'
+import {
+  ScrollSidebarActiveLinkIntoView,
+  ScrollToAnchor,
+  ScrollToTop,
+} from './command'
 import {
   ApplicationComposition,
   HomeBinding,
@@ -92,7 +96,7 @@ const resolvePathChangeCommands = () => [
   ),
 ]
 describe('application', () => {
-  test('cold startup preserves the established Command ordering', () => {
+  test('cold startup collects root Commands before initialized child Commands', () => {
     const initialization = init(
       { ...flags, deployment: Deployment.Production() },
       counterExampleUrl,
@@ -101,10 +105,27 @@ describe('application', () => {
       'Application/LoadBrowserEnvironment',
       'Application/InjectAnalytics',
       'Application/InjectSpeedInsights',
+      'Application/ScrollSidebarActiveLinkIntoView',
       'apiReference/LoadApiData',
       'exampleDetail/LoadExampleSources',
-      'Application/ScrollSidebarActiveLinkIntoView',
     ])
+  })
+  test('startup includes the initial anchor in its root Commands', () => {
+    const initialization = init(flags, counterExampleUrlWithHash)
+
+    expect(initialization.commands?.map(command => command.name)).toEqual([
+      'Application/LoadBrowserEnvironment',
+      ScrollSidebarActiveLinkIntoView.name,
+      ScrollToAnchor.name,
+      'apiReference/LoadApiData',
+      'exampleDetail/LoadExampleSources',
+    ])
+    expect(initialization.commands).toContainEqual(
+      expect.objectContaining({
+        name: ScrollToAnchor.name,
+        args: { hash: 'application' },
+      }),
+    )
   })
   test('navigation opens an existing closed sidebar group', () => {
     const initialModel = initAt(homeUrl)

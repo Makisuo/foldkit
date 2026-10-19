@@ -81,7 +81,7 @@ The group element receives `role="radiogroup"` and `aria-orientation`, plus `ari
 
 ### InitConfig {#init-config}
 
-Configuration object passed to `RadioGroup.init()`.
+Configuration passed to the Binding for the completed Block returned by `RadioGroup.create<Value>()`.
 
 | Name | Type     | Default | Description                                                                               |
 | ---- | -------- | ------- | ----------------------------------------------------------------------------------------- |

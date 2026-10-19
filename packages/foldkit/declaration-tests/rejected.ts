@@ -306,20 +306,20 @@ const applicationInputView = InvalidApplicationComposition.makeView.withInputs<
   Readonly<{ label: string }>
 >((_model, { label }, h) => h.main([], [label]))
 
-// @ts-expect-error An Application's primary view cannot require parent-supplied inputs.
 InvalidApplicationComposition.assembleElement({
   ...invalidApplicationImplementation,
   container: null,
+  // @ts-expect-error An Application's primary view cannot require parent-supplied inputs.
   view: applicationInputView,
 })
 
 // @ts-expect-error Application Composition no longer carries a render helper.
 InvalidApplicationComposition.render
 
-// @ts-expect-error A plain view helper cannot complete an Application as its branded view.
 InvalidApplicationComposition.assembleElement({
   ...invalidApplicationImplementation,
   container: null,
+  // @ts-expect-error A plain view helper cannot complete an Application as its branded view.
   view: applicationViewHelper,
 })
 
@@ -389,17 +389,17 @@ programWithProvisionContract.provide(ConflictingProvisionContract.layer)
 // @ts-expect-error A later provider cannot require a conflicting handler contract.
 programWithProvisionContract.provide(RequiresConflictingProvisionContract)
 
-// @ts-expect-error Page Applications require a Document view.
 InvalidApplicationComposition.assembleApplication({
   ...invalidApplicationImplementation,
   container: null,
+  // @ts-expect-error Page Applications require a Document view.
   view: invalidElementView,
 })
 
-// @ts-expect-error Element Applications require an HTML view.
 InvalidApplicationComposition.assembleElement({
   ...invalidApplicationImplementation,
   container: null,
+  // @ts-expect-error Element Applications require an HTML view.
   view: invalidDocumentView,
 })
 

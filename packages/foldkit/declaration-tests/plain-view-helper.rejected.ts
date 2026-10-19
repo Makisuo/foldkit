@@ -116,7 +116,6 @@ const applicationHelperWithOmittedMount = (h: OmittedApplicationViewBuilder) =>
 // @ts-expect-error Application Composition no longer carries a render helper.
 ApplicationComposition.render
 
-// @ts-expect-error A plain view helper cannot complete an Application as its branded view.
 ApplicationComposition.assembleElement({
   container: null,
   init: ApplicationComposition.makeInit(() => ({
@@ -125,6 +124,7 @@ ApplicationComposition.assembleElement({
     }),
   })),
   update: ApplicationComposition.makeUpdate(model => ({ model })),
+  // @ts-expect-error A plain view helper cannot complete an Application as its branded view.
   view: applicationViewHelper,
 })
 

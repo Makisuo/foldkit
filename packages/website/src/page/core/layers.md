@@ -197,6 +197,12 @@ A Block passes its local bundle to `FeatureComposition.assembleBlock({ EffectsLa
 
 A feature can provide a business service it owns beneath its local `EffectsLayer`. Leave concrete environment providers open for the root to select. Those ordinary requirements flow through parents until `application.provide(ApplicationLayer)` satisfies them. `ServicesLayer` is a useful name for an intermediate service bundle when root composition needs one.
 
+### Share Services Across Owners
+
+Reuse one Command Definition across transitions owned by the same Block. The [state machine example](https://github.com/foldkit/foldkit/tree/main/examples/state-machine/src) defines `PlaceOrder` on `ApplicationDefinition`; the checkout Machine returns it from an Edge, and its result remains an Application Message handled by that same state machine.
+
+When separate Blocks need the same HTTP, storage, or domain operation, share an Effect Service instead. Each Block defines its own Command and result Messages against that Service, then includes the Command's handler recipe in its own `EffectsLayer`. The root supplies the shared Service implementation once. This keeps each result in the Message union and update function that own the transition while reusing the external capability.
+
 ::Snippet{name="layersMultiple" label="Multiple shared services"}
 
 Keep a small feature bundle in `block.ts`, or beside root Command definitions in `command.ts`. Extract `layer.ts` when composition is substantial or reused. Root `services.ts` exports `ApplicationLayer`; `entry.ts` completes the Application and supplies it. [Project Organization](/patterns/project-organization#composing-handler-layers) shows the complete compact and split layouts.

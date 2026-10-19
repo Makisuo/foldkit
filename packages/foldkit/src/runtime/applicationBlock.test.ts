@@ -761,11 +761,11 @@ const checkAssemblyTypes = (container: HTMLElement) => {
   })
   // @ts-expect-error Shared Service requirements must be provided before running.
   run(application)
-  // @ts-expect-error ApplicationComposition.assembleApplication requires a Document view.
   composition.assembleApplication({
     container,
     init,
     update,
+    // @ts-expect-error ApplicationComposition.assembleApplication requires a Document view.
     view,
     EffectsLayer: Layer.empty,
   })

@@ -6,6 +6,7 @@ import * as Tooltip from '@foldkit/ui/tooltip'
 
 import {
   DialogBinding,
+  KeyedToastBinding,
   Picker,
   PickerBinding,
   RootSlider,
@@ -26,6 +27,7 @@ type Equal<Left, Right> =
 type Expect<Value extends true> = Value
 
 export type RelocatedAssertions = [
+  Expect<Equal<Parameters<typeof KeyedToastBinding.fold>[1], 'Primary'>>,
   Expect<Equal<Parameters<typeof DialogBinding.requestOpen>, []>>,
   Expect<
     Equal<

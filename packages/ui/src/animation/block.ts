@@ -28,7 +28,8 @@ export {
 
 /** Per-render view inputs passed to `view` via `h.block`'s `viewInputs` field. */
 export type ViewInputs = Readonly<{
-  content: Html
+  /** Renders content in the boundary that embeds Animation. */
+  toView: () => Html
   className?: string
   attributes?: ReadonlyArray<ChildAttribute>
   element?: Exclude<TagName, 'textarea'>
@@ -51,7 +52,7 @@ export const view = AnimationComposition.makeView.withInputs<ViewInputs>(
   (model, viewInputs, h) => {
     const { id, isShowing, transitionState } = model
     const {
-      content,
+      toView,
       className,
       attributes = [],
       element = 'div',
@@ -119,7 +120,7 @@ export const view = AnimationComposition.makeView.withInputs<ViewInputs>(
                   ...(className ? [h.Class(className)] : []),
                   ...attributes,
                 ],
-                [content],
+                [toView()],
               ),
             ],
           ),
@@ -139,7 +140,7 @@ export const view = AnimationComposition.makeView.withInputs<ViewInputs>(
         ...(className ? [h.Class(className)] : []),
         ...attributes,
       ],
-      [content],
+      [toView()],
     )
   },
 )

@@ -9,7 +9,7 @@ import { ApplicationDefinition } from '../definition'
 import { Message } from '../message'
 import { RoomInstance } from '../model'
 import { HomeBlock } from '../page'
-import { roomRouter } from '../route'
+import { ApplicationRoute, roomRouter } from '../route'
 import { RoomBinding } from './room'
 
 export const NavigateToRoom = ApplicationDefinition.command('NavigateToRoom', {
@@ -56,6 +56,6 @@ const foldHomeOutMessage = HomeBlock.OutMessage.match({
 
 export const HomeBinding = ApplicationDefinition.bindChild(HomeBlock, {
   field: 'home',
-  presentWhen: model => model.route._tag === 'Home',
+  presentWhen: model => ApplicationRoute.guards.Home(model.route),
   outMessage: { fold: foldHomeOutMessage },
 })

@@ -126,13 +126,16 @@ Choose the narrowest storage form that describes the parent Model:
 | Exact Struct field containing `Child.Model` or `Option<Child.Model>`                 | `field`                                          |
 | Exact array of child Models with a declared stable string or finite-number key field | `field` and string `key`                         |
 | Exact array of closed wrappers around the child Model                                | `field`, string `key`, and distinct `childField` |
+| Exact `Option` of one closed wrapper around the child Model                          | `field`, string `key`, and distinct `childField` |
 | Tagged, nested, opaque, union, open, or custom static storage                        | `read` and `write`                               |
 | Custom keyed storage or enumeration                                                  | `readAll`, function `key`, `read`, and `writeAt` |
 
-The generated wrapped-array writer replaces only the matched `childField`; it
-preserves wrapper metadata, order, and unmatched references, and it never
-inserts a missing item. The parent remains responsible for collection
-membership.
+The generated wrapped writer replaces only the matched `childField`. For an
+array, it preserves order, wrapper metadata, and unmatched references. For an
+Option, it preserves wrapper metadata only when the stored key matches. `None`
+and a different key leave the exact parent Model unchanged. Neither form
+inserts a missing occurrence. The parent remains responsible for presence and
+collection membership.
 
 An unkeyed direct field Binding defaults placement to the field name. Every
 keyed Binding and every static accessor Binding defaults placement to the child
@@ -228,6 +231,28 @@ function result when assigning it to a method that returns `void`; outside the
 exact graph, invoking that method only constructs and discards passive
 configuration and executes no child work.
 
+## Test a composed graph
+
+Story and Scene Command and Mount matchers take the original Definition or an
+instance. A Definition matches its source identity through placement-qualified
+runtime names; an instance also checks exact args, and a bound instance selects
+its composition path. Do not
+compare a pending definition's displayed `name` with a string or with
+`Definition.name`.
+
+Resolve child Commands and Mounts with the child's raw result Message. Their
+pending instances retain the generated delivery chain, so the test runner
+replays every parent boundary. Do not construct a generated `Got*` envelope.
+For `@foldkit/ui`, take matcher Definitions from the component's public `test`
+namespace and result Messages from its completed Block.
+
+A Scene that emits a Subscription Message registers
+`Scene.subscriptions(ApplicationComposition, localSubscriptions?)`, passes the
+registry in its config, and calls `Subscription.emit(entry, rawMessage)`. The
+selected entry must declare that raw Message. Keep `*.test.ts` and `*.test.tsx`
+files inside the project's TypeScript `include` coverage so signature changes
+fail during the normal typecheck.
+
 ## Initialize children
 
 Choose startup policy from the storage and child initializer:
@@ -238,6 +263,7 @@ Choose startup policy from the storage and child initializer:
 | Required exact direct field; child init needs arguments               | `init: { contextToArgs }`                                                                                                              |
 | Parent supplies a required direct field itself                        | `init: false`                                                                                                                          |
 | Optional direct field                                                 | Omit `init` when the parent supplies the `Option`; use `init.contextToArgs` when Composition should create `Some(child)` automatically |
+| Exact Option of one keyed wrapper                                     | Parent-owned; use `Binding.init({ key, args, toParentModel })` for creation                                                            |
 | Exact keyed array                                                     | `init.instances` plus `init.toItem`                                                                                                    |
 | Accessor or custom storage                                            | Parent-owned unless initialized explicitly                                                                                             |
 
@@ -254,12 +280,12 @@ contains only parent-owned fields. Composition initializes children once in
 `bindings` order and applies `steps` afterward.
 
 Parent Commands come first, retained child init Commands follow, and Step
-Commands come last. Collection order does not order asynchronous completion.
+Commands come last. Collection order does not sequence their effects or completion.
 Foldkit drops init Commands for occurrences absent or `presentWhen`-inactive in
 the final Model. `subscriptions.when` gates Streams and does not gate init.
 
 Use the exact registered `Binding.init({ key?, args, toParentModel,
-commands? })` for custom storage, deliberate Command interleaving, or dynamic
+commands? })` for custom storage or dynamic
 creation. It returns a passive, noncallable recipe that retains the arguments,
 mapping, key, and optional parent Commands. Return the recipe directly from the
 owning Composition's `makeInit` or `makeUpdate`, or preserve it through the
@@ -278,6 +304,11 @@ args and the parent metadata needed by `toItem`, such as an ID or server
 revision. Use `Binding.init` when an update adds one instance later, or when
 startup needs custom interleaving or writes beyond that collection. Both paths
 retain and lift the child initializer's Commands; never take only its Model.
+
+`init.instances` accepts keyed arrays only. An Option-wrapped keyed occurrence
+uses `Binding.init({ key, args, toParentModel })`; `toParentModel` chooses
+`Some(wrapper)` or another complete parent result. Folds and operations never
+create the occurrence when that field is `None`.
 
 `toItem` receives the planned `{ key, args }` and initialized child, not the full
 parent ChildInitContext value. If wrapper metadata comes from ChildInitContext, make it available

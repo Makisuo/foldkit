@@ -940,11 +940,11 @@ if (false) {
   })
     .makeComposition()
     .assembleElement({
-      // @ts-expect-error A reusable Block cannot become an application root.
       block: erasedBlock,
       container: null,
       init: homeInit,
       update: homeUpdate,
+      // @ts-expect-error A reusable Block view cannot become an application root.
       view: homeView,
       EffectsLayer: CreateRoom.layer,
     })

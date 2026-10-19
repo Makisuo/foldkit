@@ -409,6 +409,30 @@ const checks: ReadonlyArray<
   }>
 > = [
   {
+    name: 'optional-wrapped-keyed',
+    accepted: ['optional-wrapped-keyed.accepted.ts'],
+    rejected: ['optional-wrapped-keyed.rejected.ts'],
+    consumers: ['optional-wrapped-keyed.consume.ts'],
+  },
+  {
+    name: 'view-inputs',
+    accepted: ['view-inputs.accepted.ts'],
+    rejected: ['view-inputs.rejected.ts'],
+    consumers: ['view-inputs.consume.ts'],
+  },
+  {
+    name: 'assembly-view',
+    accepted: ['assembly-view.accepted.ts'],
+    rejected: ['assembly-view.rejected.ts'],
+    consumers: ['assembly-view.consume.ts'],
+  },
+  {
+    name: 'composed-init',
+    accepted: ['composed-init.accepted.ts'],
+    rejected: ['composed-init.rejected.ts'],
+    consumers: ['composed-init.consume.ts'],
+  },
+  {
     name: 'field-steps',
     accepted: ['field-steps.accepted.ts'],
     rejected: ['field-steps.rejected.ts'],

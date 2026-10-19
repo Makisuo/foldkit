@@ -132,8 +132,8 @@ const EmptyApplicationComposition = ApplicationDefinition.makeComposition()
 // @ts-expect-error Nested init keeps root Binding registration evidence.
 EmptyApplicationComposition.assembleElement({
   init,
-  update,
-  view,
+  update: EmptyApplicationComposition.makeUpdate(model => ({ model })),
+  view: EmptyApplicationComposition.makeView((_model, h) => h.empty),
   container: null,
 })
 

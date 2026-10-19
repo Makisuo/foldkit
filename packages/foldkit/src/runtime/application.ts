@@ -17,7 +17,7 @@ import type {
   ValidateRootHandlerAssembly,
 } from '../block/requirements.js'
 import { qualifyLayer } from '../block/scope.js'
-import type { Document } from '../html/index.js'
+import type { Document, HtmlBuilder } from '../html/index.js'
 import type {
   ServicesOf as ManagedResourceServicesOf,
   ManagedResources,
@@ -914,6 +914,17 @@ type AcceptsExactly<
 
 type RootViewKind = 'Document' | 'Element'
 
+type RootViewCandidate<
+  CompositionValue extends AnyComposition,
+  Kind extends RootViewKind,
+> = (
+  model: CompositionModel<CompositionValue>,
+  h: HtmlBuilder<
+    CompositionMessage<CompositionValue>,
+    CompositionViewRequirements<CompositionValue>
+  >,
+) => Kind extends 'Document' ? Document : VNode | null
+
 type ValidateRootView<
   CompositionValue extends AnyComposition,
   View extends AnyRootFunction,
@@ -973,10 +984,10 @@ type ValidateRootView<
             'Application view must use its composition Model': ViewModel
           }>
       : Readonly<{
-          'Application view must be authored by its definition': ViewOwner
+          'Application view must be authored with its Composition.makeView': ViewOwner
         }>
     : Readonly<{
-        'Application view must be authored by its definition': View
+        'Application view must be authored with its Composition.makeView': View
       }>
 
 type NormalizedRootConfig<Config extends AnyRootConfig> = Readonly<{
@@ -1107,7 +1118,7 @@ type PageRootInput<
    * The canonical owned view. Its child and Mount requirements must be
    * registered in this Composition.
    */
-  view: View
+  view: View & NoInfer<ValidateRootView<CompositionValue, View, 'Document'>>
   /**
    * Local root Subscription declarations. Omit when there are none;
    * registered children supply their own declarations automatically. The
@@ -1218,7 +1229,7 @@ type ElementRootInput<
    * The canonical owned view. Its child and Mount requirements must be
    * registered in this Composition.
    */
-  view: View
+  view: View & NoInfer<ValidateRootView<CompositionValue, View, 'Element'>>
   /**
    * Local root Subscription declarations. Omit when there are none;
    * registered children supply their own declarations automatically. The
@@ -1368,7 +1379,7 @@ export interface AssembleApplication<CompositionValue extends AnyComposition> {
   <
     const Init extends AnyRootFunction,
     const UpdateFunction extends AnyRootFunction,
-    const View extends AnyRootFunction,
+    const View extends RootViewCandidate<CompositionValue, 'Document'>,
     const SubscriptionsValue extends
       | RootSubscriptions<CompositionValue>
       | undefined,
@@ -1456,7 +1467,7 @@ export interface AssembleElement<CompositionValue extends AnyComposition> {
   <
     const Init extends AnyRootFunction,
     const UpdateFunction extends AnyRootFunction,
-    const View extends AnyRootFunction,
+    const View extends RootViewCandidate<CompositionValue, 'Element'>,
     const SubscriptionsValue extends
       | RootSubscriptions<CompositionValue>
       | undefined,

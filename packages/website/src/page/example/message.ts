@@ -4,10 +4,6 @@ import { defineMessageUnion } from 'foldkit/message'
 import { ExampleSources } from './sources'
 
 export const Message = defineMessageUnion({
-  RequestedLoadInitialSources: {
-    maybeInitialSlug: Schema.Option(Schema.String),
-    maybeExampleSources: Schema.Option(ExampleSources),
-  },
   InformedOfRouteChange: { slug: Schema.String },
   ChangedExampleUrl: { url: Schema.String },
   ToggledLivePreview: { isOpen: Schema.Boolean },

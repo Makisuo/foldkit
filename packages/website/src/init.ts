@@ -3,17 +3,12 @@ import { type Url } from 'foldkit/url'
 import { githubStarCount } from 'virtual:landing-data'
 
 import * as Command from './command'
-import {
-  ApiReferenceBinding,
-  ApplicationComposition,
-  ExampleDetailBinding,
-} from './composition'
-import { ApplicationDefinition } from './definition'
+import { ApplicationComposition } from './composition'
 import { type Deployment, isTelemetryEnabled } from './deployment'
 import { findActiveSectionKeyForRoute } from './docsNav'
 import { type Flags } from './flags'
 import { type ResolvedTheme, type ThemePreference } from './message'
-import { maybeExampleSlugForRoute, urlToApplicationRoute } from './route'
+import { urlToApplicationRoute } from './route'
 import { initialSidebarGroups } from './sidebarStorage'
 
 const browserStartupCommands = (deployment: Deployment) => [
@@ -24,17 +19,13 @@ const browserStartupCommands = (deployment: Deployment) => [
   ),
 ]
 
-const scrollToInitialLocation = (url: Url) =>
-  ApplicationDefinition.step(model => ({
-    model,
-    commands: [
-      Command.ScrollSidebarActiveLinkIntoView(),
-      ...Option.match(url.hash, {
-        onNone: () => [],
-        onSome: hash => [Command.ScrollToAnchor({ hash })],
-      }),
-    ],
-  }))
+const initialScrollCommands = (url: Url) => [
+  Command.ScrollSidebarActiveLinkIntoView(),
+  ...Option.match(url.hash, {
+    onNone: () => [],
+    onSome: hash => [Command.ScrollToAnchor({ hash })],
+  }),
+]
 
 export const init = ApplicationComposition.makeInit(
   (flags: Flags, url: Url) => {
@@ -43,7 +34,12 @@ export const init = ApplicationComposition.makeInit(
     const systemTheme: ResolvedTheme = 'Light'
 
     return {
-      childInitContext: { route, today: flags.today },
+      childInitContext: {
+        route,
+        today: flags.today,
+        maybeApiData: flags.maybeApiData,
+        maybeExampleSources: flags.maybeExampleSources,
+      },
       model: {
         route,
         url,
@@ -63,14 +59,9 @@ export const init = ApplicationComposition.makeInit(
         systemTheme,
         resolvedTheme: systemTheme,
       },
-      commands: browserStartupCommands(flags.deployment),
-      steps: [
-        ApiReferenceBinding.requestLoadInitialData(flags.maybeApiData),
-        ExampleDetailBinding.requestLoadInitialSources(
-          maybeExampleSlugForRoute(route),
-          flags.maybeExampleSources,
-        ),
-        scrollToInitialLocation(url),
+      commands: [
+        ...browserStartupCommands(flags.deployment),
+        ...initialScrollCommands(url),
       ],
     }
   },

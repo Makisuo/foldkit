@@ -152,6 +152,34 @@ const noMessageElementView = NoMessageComposition.makeView(
 )
 
 const typecheckRootCompletion = (): void => {
+  NoMessageComposition.assembleApplication({
+    container: null,
+    init: noMessageInit,
+    update: noMessageUpdate,
+    // @ts-expect-error Inline views still require Composition.makeView ownership.
+    view: (model, h) => {
+      expectTypeOf(model).toEqualTypeOf<null>()
+      expectTypeOf(h).toEqualTypeOf<
+        ViewBuilderFor<typeof NoMessageComposition>
+      >()
+      return { title: 'Unowned Document', body: h.div([]) }
+    },
+  })
+
+  NoMessageComposition.assembleElement({
+    container: null,
+    init: noMessageInit,
+    update: noMessageUpdate,
+    // @ts-expect-error Inline views still require Composition.makeView ownership.
+    view: (model, h) => {
+      expectTypeOf(model).toEqualTypeOf<null>()
+      expectTypeOf(h).toEqualTypeOf<
+        ViewBuilderFor<typeof NoMessageComposition>
+      >()
+      return h.div([])
+    },
+  })
+
   // @ts-expect-error An Application Definition does not author the primary view.
   ApplicationDefinition.makeView
   // @ts-expect-error An Application Definition does not expose the Composition-owned init helper.
@@ -226,38 +254,38 @@ const typecheckRootCompletion = (): void => {
     view: noMessageElementView,
   })
 
-  // @ts-expect-error assembleApplication requires the registered Document view.
   composition.assembleApplication({
     container: null,
     init,
     update,
+    // @ts-expect-error assembleApplication requires the registered Document view.
     view,
     EffectsLayer: ReadRootValue.layer,
   })
 
-  // @ts-expect-error assembleElement requires the registered Element view.
   composition.assembleElement({
     container: null,
     init,
     update,
+    // @ts-expect-error assembleElement requires the registered Element view.
     view: documentView,
     EffectsLayer: ReadRootValue.layer,
   })
 
-  // @ts-expect-error The graphless Composition has not registered the child used by this view.
   ApplicationDefinition.makeComposition().assembleElement({
     container: null,
     init,
     update,
+    // @ts-expect-error The graphless Composition has not registered the child used by this view.
     view,
     EffectsLayer: ReadRootValue.layer,
   })
 
-  // @ts-expect-error The graphless Composition has not registered the Mount used by this view.
   ApplicationDefinition.makeComposition().assembleElement({
     container: null,
     init,
     update,
+    // @ts-expect-error The graphless Composition has not registered the Mount used by this view.
     view: mountedView,
     EffectsLayer: Layer.merge(ReadRootValue.layer, ObserveRoot.layer),
   })

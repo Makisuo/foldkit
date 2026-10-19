@@ -117,7 +117,7 @@ Spreading the `arrow` bundle supplies the arrow id in application markup. A Scen
 
 ### InitConfig {#init-config}
 
-Configuration object passed to `Popover.init()`.
+Configuration passed to the Popover Binding's child initializer. Direct completed Block calls use `Popover.PopoverBlock.init()`.
 
 | Name           | Type      | Default | Description                                                                                                                                                                             |
 | -------------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

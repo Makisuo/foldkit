@@ -73,7 +73,7 @@ Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 ### InitConfig {#init-config}
 
-Configuration object passed to `DatePicker.init()`. Calendar constraints (min/max, disabled dates) are forwarded to the embedded Calendar block.
+Configuration passed to the DatePicker Binding's child initializer. Direct completed Block calls use `DatePicker.DatePickerBlock.init()`. Calendar constraints (min/max, disabled dates) are forwarded to the embedded Calendar Block.
 
 | Name                 | Type                          | Default                | Description                                                                                                                                                                                      |
 | -------------------- | ----------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -89,7 +89,7 @@ Configuration object passed to `DatePicker.init()`. Calendar constraints (min/ma
 
 ### Model
 
-The DatePicker Model. Stored on your parent Model and threaded through `DatePicker.update()` and `DatePicker.view()`.
+The DatePicker Model. Store `DatePicker.DatePickerBlock.Model` on the parent Model; the registered Binding routes update and embeds the completed Block's view.
 
 | Name       | Type                  | Default | Description                                                                                                                                                                                                   |
 | ---------- | --------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

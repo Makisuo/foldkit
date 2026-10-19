@@ -1,17 +1,26 @@
+import * as Animation from '@foldkit/ui/animation'
 import * as Popover from '@foldkit/ui/popover'
 import * as Slider from '@foldkit/ui/slider'
+import * as Toast from '@foldkit/ui/toast'
 import * as Tooltip from '@foldkit/ui/tooltip'
 
 import {
   ApplicationDefinition,
   DialogBinding,
+  KeyedToastBinding,
   MenuPicker,
+  OtherToastBinding,
   Picker,
   PickerBinding,
   RootSlider,
+  ToastBinding,
   ToastBlock,
   helper,
 } from './generic-composition.accepted.js'
+
+// @ts-expect-error Animation content must be rendered through the caller-scoped slot.
+const invalidAnimationViewInputs: Animation.ViewInputs = { content: null }
+void invalidAnimationViewInputs
 
 // @ts-expect-error The connected Dialog operation takes no arguments.
 DialogBinding.requestOpen('unexpected')
@@ -57,6 +66,33 @@ ToastBlock.operations.requestShow(
     duration: false,
   },
 )
+ToastBlock.test.drainEntry({
+  // @ts-expect-error The helper requires a Binding of this completed Toast factory.
+  binding: OtherToastBinding,
+  entryId: 'toast-entry-0',
+})
+// @ts-expect-error A keyed fixture must select its occurrence.
+ToastBlock.test.drainEntry({
+  binding: KeyedToastBinding,
+  entryId: 'toast-entry-0',
+})
+ToastBlock.test.drainEntry({
+  binding: KeyedToastBinding,
+  // @ts-expect-error The occurrence key retains the literal parent Schema type.
+  key: 'Secondary',
+  entryId: 'toast-entry-0',
+})
+ToastBlock.test.drainEntry({
+  binding: ToastBinding,
+  // @ts-expect-error An unkeyed fixture cannot receive an occurrence key.
+  key: 'Primary',
+  entryId: 'toast-entry-0',
+})
+// @ts-expect-error Toast test helpers are bound to each completed factory.
+Toast.test.drainEntry({
+  binding: OtherToastBinding,
+  entryId: 'toast-entry-0',
+})
 Slider.SliderBlock.operations.informRangeChanged(
   Slider.SliderBlock.init({ id: 'invalid-range', min: 0, max: 100, step: 1 })
     .model,

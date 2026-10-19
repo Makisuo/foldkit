@@ -98,7 +98,7 @@ When parent-owned configuration changes the minimum or maximum, call `SliderBind
 
 ### InitConfig {#init-config}
 
-Configuration object passed to `Slider.init()`.
+Configuration passed to the Slider Binding's child initializer. Direct completed Block calls use `Slider.SliderBlock.init()`.
 
 | Name   | Type     | Default | Description                                                                                                                   |
 | ------ | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |

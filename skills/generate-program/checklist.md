@@ -326,6 +326,10 @@ Foldkit ships these; reaching past them is a finding, not a style choice.
       a completed operation may dispatch a Message whose update branch
       returns the recipe.
       Its exact arguments and complete parent Model are checked there.
+- [ ] An exact `Option` of one closed keyed wrapper uses the `field`, `key`, and
+      `childField` shorthand. `None`, a missing key, and a different key never
+      create or replace an occurrence. Dynamic creation uses `Binding.init`;
+      `init.instances` is reserved for keyed arrays.
 - [ ] A connected Binding fold or named operation is applied to the contextual
       Model inside `Composition.makeUpdate`, included in `Composition.makeInit`
       startup, or preserved through the parent's `step` producer. Its opaque
@@ -465,6 +469,8 @@ Each confirmed miss is a concrete a11y bug a screen reader user would hit.
 - [ ] At least one multi-step test that chains Messages and Command resolutions
 - [ ] Block tests assert `outMessage` when the child signals to parent
 - [ ] Story tests use `Command.resolve(Definition, resultMessage)` and never run Command Effects directly. Whole-application execution tests keep the real handler Layers and replace their dependency providers
+- [ ] Command and Mount matchers use the original Definition's source identity instead of comparing displayed names or `Definition.name`. Child results are supplied as raw child Messages; tests do not fabricate generated `Got*` envelopes. UI matcher Definitions come from the component's public `test` namespace and result Messages from its completed Block
+- [ ] The TypeScript project includes `*.test.ts` and `*.test.tsx`, so Story and Scene API changes fail during the normal typecheck
 - [ ] All tests pass with the project's test script
 
 **Scene tests** (REQUIRED at Tier 3+; strongly encouraged at Tier 2):

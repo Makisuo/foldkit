@@ -81,7 +81,7 @@ Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 ### InitConfig {#init-config}
 
-Configuration object passed to `Menu.init()`.
+Configuration passed to the Binding for the completed Block returned by `Menu.create()`.
 
 | Name         | Type      | Default | Description                                                 |
 | ------------ | --------- | ------- | ----------------------------------------------------------- |

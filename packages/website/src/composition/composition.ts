@@ -12,7 +12,7 @@ import {
   PlaygroundBlock,
   UiBlock,
 } from '../page'
-import { ApplicationRoute } from '../route'
+import { ApplicationRoute, maybeExampleSlugForRoute } from '../route'
 import { SearchBlock } from '../search'
 import { SnippetCopyBlock } from '../snippetCopy'
 import { SnippetDisclosureBlock } from '../snippetDisclosure'
@@ -42,6 +42,12 @@ export const ExampleDetailBinding = ApplicationDefinition.bindChild(
   ExampleDetailBlock,
   {
     field: 'exampleDetail',
+    init: {
+      contextToArgs: ({ route, maybeExampleSources }) => [
+        maybeExampleSlugForRoute(route),
+        maybeExampleSources,
+      ],
+    },
   },
 )
 
@@ -69,6 +75,7 @@ export const ApiReferenceBinding = ApplicationDefinition.bindChild(
   ApiReferenceBlock,
   {
     field: 'apiReference',
+    init: { contextToArgs: ({ maybeApiData }) => [maybeApiData] },
   },
 )
 

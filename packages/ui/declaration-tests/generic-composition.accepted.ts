@@ -3,6 +3,7 @@ import { Block, Message, Struct, makeApplicationDefinition } from 'foldkit'
 import type * as Application from 'foldkit/application'
 import { childAttributes } from 'foldkit/html'
 
+import * as Animation from '@foldkit/ui/animation'
 import * as Combobox from '@foldkit/ui/combobox'
 import * as Dialog from '@foldkit/ui/dialog'
 import * as Listbox from '@foldkit/ui/listbox'
@@ -65,6 +66,75 @@ export const ToastPayload = Schema.Struct({
   kind: Schema.Literals(['Saved', 'Failed']),
 })
 export const ToastBlock = Toast.make(ToastPayload)
+export const OtherToastBlock = Toast.make(
+  Schema.Struct({ count: Schema.Number }),
+)
+const ToastFixtureModel = Schema.Struct({
+  toast: ToastBlock.Model,
+  otherToast: OtherToastBlock.Model,
+})
+const ToastFixtureDefinition = Block.makeDefinition('ToastFixture', {
+  Model: ToastFixtureModel,
+  Message: Schema.Never,
+})
+export const ToastBinding = ToastFixtureDefinition.bindChild(ToastBlock, {
+  placement: 'Toast',
+  read: model => Option.some(model.toast),
+  write: (model, toast) => Struct.modifyFields(model, { toast: () => toast }),
+  outMessage: {
+    fold: ToastBlock.OutMessage.match({
+      DismissedToast: () => ToastFixtureDefinition.step(model => ({ model })),
+    }),
+  },
+})
+export const OtherToastBinding = ToastFixtureDefinition.bindChild(
+  OtherToastBlock,
+  {
+    placement: 'OtherToast',
+    read: model => Option.some(model.otherToast),
+    write: (model, otherToast) =>
+      Struct.modifyFields(model, { otherToast: () => otherToast }),
+    outMessage: {
+      fold: OtherToastBlock.OutMessage.match({
+        DismissedToast: () => ToastFixtureDefinition.step(model => ({ model })),
+      }),
+    },
+  },
+)
+export const drainToastEntry = ToastBlock.test.drainEntry({
+  binding: ToastBinding,
+  entryId: 'toast-entry-0',
+})
+const ToastInstance = Schema.Struct({
+  id: Schema.Literal('Primary'),
+  model: ToastBlock.Model,
+})
+const KeyedToastFixtureDefinition = Block.makeDefinition('KeyedToastFixture', {
+  Model: Schema.Struct({ toasts: Schema.Array(ToastInstance) }),
+  Message: Schema.Never,
+})
+export const KeyedToastBinding = KeyedToastFixtureDefinition.bindChild(
+  ToastBlock,
+  {
+    field: 'toasts',
+    key: 'id',
+    childField: 'model',
+    outMessage: {
+      fold: (_key, outMessage) =>
+        ToastBlock.OutMessage.match(outMessage, {
+          DismissedToast: () => KeyedToastFixtureDefinition.stepNoop(),
+        }),
+    },
+  },
+)
+export const drainKeyedToastEntry = ToastBlock.test.drainEntry({
+  binding: KeyedToastBinding,
+  key: 'Primary',
+  entryId: 'toast-entry-0',
+})
+export const animationViewInputs: Animation.ViewInputs = {
+  toView: () => null,
+}
 export const Model = Schema.Struct({
   dialog: Dialog.DialogBlock.Model,
   picker: Picker.Model,

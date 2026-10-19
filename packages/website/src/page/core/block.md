@@ -23,6 +23,8 @@ Definitions, Compositions, Bindings, and assembled programs are passive. `makeIn
 
 A Binding lets Foldkit use one parent-owned policy across update, view, Subscriptions, ManagedResources, Mounts, and handler collection. The parent still decides where the child Model lives, what child facts mean, when the child exists, and where it renders.
 
+If you are converting an existing suite alongside these production boundaries, the [testing migration cookbook](/testing#migrate-an-existing-test-suite) shows Command identity, generated child results, Subscription registries, and completed UI Block contracts before and after.
+
 :::Info{label="Complete application"}
 The [Typing Terminal application](/example-apps/typing-terminal) composes Home and Room as Blocks. Its [client source](https://github.com/foldkit/foldkit/tree/main/packages/typing-game/client/src) shows Definitions split across files, parent Bindings, route gates, OutMessages, and root service provision.
 :::
@@ -139,7 +141,7 @@ Use `init: { contextToArgs }` when another child needs inputs, or `init: false` 
 
 ::Snippet{name="blockFoldChildInit" label="Assembling an initial child Model"}
 
-The parent init callback returns only parent-owned fields. Composition calls the selected child initializer, stores its Model, and retains its Commands. See [Init & Flags](/core/init-and-flags#child-initialization) for optional children, keyed occurrences, custom storage, Command order, and initial Steps.
+The parent init callback returns only parent-owned fields. Composition calls the selected child initializer, stores its Model, and retains its Commands. See [Init & Flags](/core/init-and-flags#child-initialization) for optional children, keyed occurrences, custom storage, Command batching, and initial Steps.
 
 Block init cannot emit an OutMessage. Author it through the Block Composition, then pass that same `init` function to `FeatureComposition.assembleBlock`. An optional `boot` helper is an ordinary initial Step listed in the parent's init plan after the child Model exists; Foldkit has no special Runtime boot phase. When an existing domain operation such as `requestRestore` or `requestOpen` already describes the transition, declare that Message-producing operation and call it through the Binding. The same operation may run later from update. Do not create a separate startup-only Message when an existing Message already records the transition.
 
@@ -160,6 +162,12 @@ For per-render data owned by the parent, define the child view with the owning `
 ::Snippet{name="blockParentViewInputs" label="Embedding a view with inputs"}
 
 The Model owns persistent state. `viewInputs` carries render-only data and callbacks selected by the parent.
+
+Let `makeView` infer the primary view's builder. For an extracted helper on the same rendering path, derive an owner-specific alias with `Block.ViewBuilderFor<typeof FeatureComposition>`. It retains the Composition's complete Message, Mount, and child embedding capabilities; `HtmlBuilder<LocalMessage>` does not describe that graph.
+
+The local `Message` union remains the right type for authored update logic. Derive `typeof FeatureComposition.Message.Type` only at a boundary that consumes the complete dispatch contract, such as a root `Runtime.CrashContext`. Do not add a parallel complete Message alias to every feature.
+
+::Snippet{name="blockCompositionTypes" label="Composition-specific builder and dispatch types"}
 
 ## Handle Child Facts with OutMessages {#surfacing-facts}
 
@@ -203,7 +211,7 @@ The server runs init and view. It does not construct browser handler Layers or s
 
 A child view builds handlers for the child's Message union. A top-level callback in `viewInputs`, such as `toView`, runs in the parent's boundary. Handlers built by that callback reach the parent update directly. Foldkit preserves that boundary when the child invokes the callback.
 
-Keep callbacks at the top level of `viewInputs`. A function nested inside a plain object or array is rejected during view construction because Foldkit cannot infer which boundary should own it.
+Keep callbacks at the top level of `viewInputs`. View authoring rejects statically visible functions nested inside records, arrays, tuples, unions, or `Option` values because Foldkit cannot infer which boundary should own them. Generic views retain that check when their inputs become concrete. Runtime validation also checks dynamically typed inputs.
 
 ### Publish child attributes {#child-attributes}
 
@@ -262,7 +270,11 @@ This parent opens the selected Room when Home reports `SelectedRoom`. When Room 
 
 ::Snippet{name="blockSiblingCoordination" label="Coordinating sibling Blocks in both directions"}
 
-## Keyed Collections {#fold-child-at}
+When the decision depends on parent state from before the child update, take `FoldContext` as the policy's second parameter and read `context.modelBeforeUpdate`. Return the selected sibling Binding operation directly. The returned Step runs against the parent Model after the source child's next Model has been written, so the parent does not need to copy a snapshot into either child or add another Message stage.
+
+::Snippet{name="blockParentAwareSiblingPolicy" label="Choosing a sibling operation from parent state"}
+
+## Keyed Children {#fold-child-at}
 
 When a parent field is an array of child Models and each child has its stable key in a direct field, pass both field names:
 
@@ -278,7 +290,15 @@ This form requires an exact parent Struct whose `field` is a required `Schema.Ar
 
 When Foldkit writes a child result, it replaces only `childField` in the matching wrapper. It preserves array order, wrapper metadata, and every unmatched wrapper reference. If the key has been removed, it leaves the array unchanged instead of inserting a wrapper.
 
-Use the general keyed form when the parent or wrapper Schema is opaque, wrappers are a union or use open/index-signature storage such as `Schema.StructWithRest`, the collection is derived from a zero-or-one `Option<RoomInstance>`, or writing a child requires other parent changes. `readAll` enumerates the items, `key` selects stable identity, `read` selects the child Model, and `writeAt` stores its next value. Supply `keySchema` for this general form so the complete Message Schema can validate and serialize the selected key. Array field shorthands derive that Schema from the declared key field.
+An exact `Schema.Option` field can hold zero or one keyed wrapper with the same `field`, `key`, and `childField` shorthand:
+
+::Snippet{name="blockOptionalKeyedInstance" label="Binding an optional keyed child instance"}
+
+The Option must be required on the parent Struct, and its value must be one closed Struct wrapper. The key and child fields follow the same rules as wrapped arrays. `None` means the occurrence is absent. A fold or operation replaces only the child Model when the stored key matches, preserves the wrapper's other fields, and never creates a missing occurrence. A different key leaves the exact parent Model unchanged. The Binding defaults placement to the child Block ID.
+
+The parent owns optional presence. Use `RoomBinding.init({ key, args, toParentModel })` when an update or custom startup path creates the occurrence. Automatic `init.instances` applies only to keyed arrays and is rejected for Option storage.
+
+Use the general keyed form when the parent or wrapper Schema is opaque, wrappers are a union or use open/index-signature storage such as `Schema.StructWithRest`, a zero-or-one occurrence does not use the exact Option wrapper shape above, or writing a child requires other parent changes. `readAll` enumerates the items, `key` selects stable identity, `read` selects the child Model, and `writeAt` stores its next value. Supply `keySchema` for this general form so the complete Message Schema can validate and serialize the selected key. Field shorthands derive that Schema from the declared key field.
 
 Each active key gets independent Subscription, ManagedResource, and Mount scopes. `fold`, operations, `init`, and `embedView` take the key first. The key must be a stable string or finite number and must be unique in the current collection.
 
@@ -286,7 +306,7 @@ Removing a key synchronously makes its dispatchers stale and starts lifecycle cl
 
 Keyed Bindings do not reconcile the collection itself. Application update remains responsible for adding, removing, and ordering items in the parent Model. An explicit `Binding.init({ key, args, toParentModel })` must place exactly one initialized occurrence under the requested key. A child fold or operation cannot change that key. In the wrapped array form, the wrapper key stays fixed while child folds and operations replace only the child field. The parent changes occurrence identity by removing one item and adding another under its own update logic.
 
-A keyed Binding can also represent one optional child whose domain identity changes. Enumerate zero or one item from an `Option`, and store its ID beside the child Model.
+A keyed Binding can also represent one optional child whose domain identity changes. Prefer the exact Option wrapper shorthand above when the Schema has that shape. Use general keyed accessors for every other storage representation.
 
 For example, in [Typing Terminal](/example-apps/typing-terminal), the Room Binding captures `roomId` as the generated `GotRoomMessage` envelope's key for views, Command results, and Subscription emissions. Navigating to another room replaces the keyed occurrence and initializes a fresh Room Model. A delayed result keeps its original room ID; the parent does not infer its origin from the current Route. Local child Messages such as `ChangedUserText` need no additional room ID.
 

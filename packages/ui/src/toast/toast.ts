@@ -3,6 +3,7 @@ import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 
 import { Position, SwipeState, Variant } from './schema.js'
 import { isSwipeExcludedTarget } from './swipeTarget.js'
+import { type ToastTest, makeTest } from './test.js'
 import { makeRuntime } from './update.js'
 
 export type {
@@ -22,8 +23,6 @@ export type {
   SwipeToDismissConfig,
 } from './schema.js'
 export type { ShowInput } from './update.js'
-
-export * as test from './test.js'
 
 export {
   Message,
@@ -305,7 +304,7 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
             slotId: entry.id,
             model: entry.animation,
             viewInputs: {
-              content: entryToView(entry, handlers),
+              toView: () => entryToView(entry, handlers),
               attributes: childAttributes(itemAttributes),
             },
           }),
@@ -328,12 +327,24 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     subscriptions: toastRuntime.subscriptions,
     EffectsLayer: toastRuntime.EffectsLayer,
   })
+  const test = makeTest({
+    block,
+    entryAnimationBinding: EntryAnimationBinding,
+    waitBeforeDismissal: toastRuntime.WaitBeforeDismissal,
+  })
+  const publicTest: ToastTest<typeof block> = {
+    drainEntry: test.drainEntry,
+  }
+  const completedBlock = Object.assign(block, {
+    test: publicTest,
+  })
 
   return {
     ...toastRuntime,
     ...block.operations,
     view,
-    block,
+    test,
+    block: completedBlock,
   }
 }
 

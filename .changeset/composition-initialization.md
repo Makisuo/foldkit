@@ -5,15 +5,65 @@
 
 Declare direct child init context beside Bindings and assemble their initial Models and Commands through the owning Composition. A completed Block already carries its initializer; the parent now supplies the child initialization policy without repeating Model placement and Command collection.
 
-A required exact direct field initializes automatically when the child's initializer can be called without arguments. Use `init: { contextToArgs }` when it needs inputs, or `init: false` when the parent supplies the initial field. Optional, keyed, and accessor storage remains parent-owned when `init` is omitted. Select automatic optional presence with `Option<tuple>` and initial keyed membership with `init.instances`. Ordinary tuple literals retain the child's exact contextual argument types.
+A required exact direct field initializes automatically when the child's initializer can be called without arguments. Use `init: { contextToArgs }` when it needs inputs, or `init: false` when the parent supplies the initial field. An unkeyed optional field remains parent-owned when `init` is omitted; select automatic optional presence with `Option<tuple>`. Exact keyed arrays use `init.instances` for initial membership. An exact Option-wrapped keyed occurrence and general accessor storage stay explicit through `Binding.init`. Ordinary tuple literals retain the child's exact contextual argument types.
 
 `init.contextToArgs` maps shared child init context to direct child initializer arguments. It does not map the current Block's own init arguments. Keep `args` for concrete tuples in `Binding.init({ args, toParentModel })` and keyed occurrence records. The context selector has no `init.args` alias; `init.instances` still selects whole keyed collections.
 
-Each storage shape has one initialization adapter. A direct field needs only `contextToArgs`. An accessor adds `init.toParentFields`, which projects the exact initialized child into one required parent Struct field before the parent Model is constructed. A keyed field uses `init.instances` and `init.toItem`. Dynamic initialization from a Composition init or update keeps `Binding.init({ args, key?, toParentModel })`, where `toParentModel` constructs the complete parent Model for that one initialized child.
+Each storage shape has one initialization adapter. A direct field needs only `contextToArgs`. An accessor adds `init.toParentFields`, which projects the exact initialized child into one required parent Struct field before the parent Model is constructed. A keyed array uses `init.instances` and `init.toItem`. Dynamic initialization from a Composition init or update keeps `Binding.init({ args, key?, toParentModel })`, where `toParentModel` constructs the complete parent Model for that one initialized child. The same explicit operation creates an Option-wrapped keyed occurrence because `init.instances` accepts arrays only.
 
 Author the complete startup plan with `ApplicationComposition.makeInit` or `FeatureComposition.makeInit`. Add a `ChildInitContext` Schema to the parent Definition when Binding selectors share decoded context for direct child initializers. The callback supplies that value through `childInitContext`, returns fields owned by the parent, and may list Commands and startup Steps. This remains the existing Composition startup boundary; it does not add a Runtime phase, construct Layers, or execute Commands.
 
 An initialization plan supports `model`, `commands`, `steps`, and `childInitContext`. Unknown string fields are rejected during authoring and at runtime so a misspelled context field cannot silently change which children initialize. Definition contracts and Composition graph configuration also reject unsupported fields at runtime, including for JavaScript callers.
+
+## Move child startup into child init
+
+Keep the initial state transition and Command with the child that owns them. The parent Binding selects child init arguments from `ChildInitContext`; the root does not expose a startup-only child operation and call it through `steps`.
+
+For example, the website's API Reference and Example Detail Bindings select their prerendered inputs in the root Composition:
+
+```ts
+const ApiReferenceBinding = ApplicationDefinition.bindChild(ApiReferenceBlock, {
+  field: 'apiReference',
+  init: { contextToArgs: ({ maybeApiData }) => [maybeApiData] },
+})
+
+const ExampleDetailBinding = ApplicationDefinition.bindChild(
+  ExampleDetailBlock,
+  {
+    field: 'exampleDetail',
+    init: {
+      contextToArgs: ({ route, maybeExampleSources }) => [
+        maybeExampleSlugForRoute(route),
+        maybeExampleSources,
+      ],
+    },
+  },
+)
+```
+
+Each child `makeInit` owns its initial loading state and returns its initial load Command when needed. Root init supplies the shared context and keeps root-owned scrolling as ordinary Commands because those Commands do not require a preceding Model transition:
+
+```ts
+const init = ApplicationComposition.makeInit((flags: Flags, url: Url) => {
+  const route = urlToApplicationRoute(url)
+
+  return {
+    childInitContext: {
+      route,
+      today: flags.today,
+      maybeApiData: flags.maybeApiData,
+      maybeExampleSources: flags.maybeExampleSources,
+    },
+    model: parentOwnedFields(flags, url, route),
+    commands: [
+      ...browserStartupCommands(flags.deployment),
+      ...initialScrollCommands(url),
+    ],
+  }
+})
+```
+
+Use `steps` when one startup transition must receive the Model produced by an earlier transition. Do not add a Step only to return independent root Commands or to run startup logic that belongs in a child's initializer.
 
 ## Declare child init context beside the Binding
 
@@ -118,7 +168,7 @@ const SearchBinding = ApplicationDefinition.bindChild(SearchBlock, {
 })
 ```
 
-Use `init: false` when that required direct field is parent-owned at startup. Omit `init` for parent-owned optional, keyed, and accessor storage. Use the explicit selector forms when Composition should choose optional presence or keyed occurrences automatically.
+Use `init: false` when that required direct field is parent-owned at startup. Omit `init` for parent-owned optional, keyed, and accessor storage. Use `init.contextToArgs` when Composition should choose unkeyed optional presence, and use `init.instances` only when it should construct an exact keyed array.
 
 ## Select initial keyed instances
 

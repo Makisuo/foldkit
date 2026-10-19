@@ -21,6 +21,7 @@ import {
   type HtmlBuilder,
   defineView as defineHtmlView,
 } from '../html/index.js'
+import type { ValidViewInputs } from '../html/viewInputs.js'
 import * as ManagedResource from '../managedResource/index.js'
 import * as Mount from '../mount/index.js'
 import * as Subscription from '../subscription/subscription.js'
@@ -191,24 +192,35 @@ type IsAny<Value> = 0 extends 1 & Value ? true : false
 type IsUnknown<Value> =
   IsAny<Value> extends true ? false : unknown extends Value ? true : false
 
-type ValidViewInputs<ViewInputs> =
+declare const InvalidViewInputsTypeId: unique symbol
+
+/** @internal Retains invalid generic ViewInputs as a required input instead of
+ * allowing `never` to collapse a Block view to its two-argument form. */
+export interface InvalidViewInputs<ViewInputs> {
+  readonly [InvalidViewInputsTypeId]: ViewInputs
+}
+
+/** @internal Preserves deferred generic validation in authored view types. */
+export type AuthoredViewInputs<ViewInputs> = [
+  ValidViewInputs<ViewInputs>,
+] extends [never]
+  ? InvalidViewInputs<ViewInputs>
+  : ValidViewInputs<ViewInputs>
+
+type ViewWithInputs<Model, Message, ViewInputs, RequiredViewRequirements> =
   IsAny<ViewInputs> extends true
     ? never
     : [ViewInputs] extends [never]
       ? never
       : [ViewInputs] extends [void]
         ? never
-        : ViewInputs
-
-type ViewWithInputs<Model, Message, ViewInputs, RequiredViewRequirements> = [
-  ValidViewInputs<ViewInputs>,
-] extends [never]
-  ? never
-  : (
-      model: Model,
-      viewInputs: NoInfer<ValidViewInputs<ViewInputs>>,
-      h: HtmlBuilder<Message, RequiredViewRequirements>,
-    ) => VNode | null
+        : [ViewInputs] extends [ValidViewInputs<ViewInputs>]
+          ? (
+              model: Model,
+              viewInputs: NoInfer<ViewInputs>,
+              h: HtmlBuilder<Message, RequiredViewRequirements>,
+            ) => VNode | null
+          : never
 
 type OwnedReturn<Model, Message, OutMessage> = Readonly<{
   model: Model
@@ -343,7 +355,7 @@ export type RefineViewInputs<View extends AnyBlockView, ViewInputs> =
         BlockView<
           Model,
           Message,
-          ValidViewInputs<ViewInputs>,
+          AuthoredViewInputs<ViewInputs>,
           RequiredViewRequirements
         >,
         OwnerValue,
@@ -389,18 +401,12 @@ export interface DefineView<
   /** Authors a view with explicit parent-owned values or callbacks supplied for
    * each render. View inputs do not become part of the child Model. */
   readonly withInputs: <ViewInputs = never>(
-    view: [ValidViewInputs<ViewInputs>] extends [never]
-      ? never
-      : (
-          model: Model,
-          viewInputs: NoInfer<ValidViewInputs<ViewInputs>>,
-          h: HtmlBuilder<Message, RequiredViewRequirements>,
-        ) => VNode | null,
+    view: ViewWithInputs<Model, Message, ViewInputs, RequiredViewRequirements>,
   ) => OwnedAuthoredView<
     BlockView<
       Model,
       Message,
-      ValidViewInputs<ViewInputs>,
+      AuthoredViewInputs<ViewInputs>,
       RequiredViewRequirements
     >,
     OwnerValue,
@@ -3527,7 +3533,7 @@ const makeDefineView = <
     BlockView<
       Model,
       Message,
-      ValidViewInputs<ViewInputs>,
+      AuthoredViewInputs<ViewInputs>,
       RequiredViewRequirements
     >,
     OwnerValue,
@@ -3541,7 +3547,7 @@ const makeDefineView = <
       BlockView<
         Model,
         Message,
-        ValidViewInputs<ViewInputs>,
+        AuthoredViewInputs<ViewInputs>,
         RequiredViewRequirements
       >,
       OwnerValue,

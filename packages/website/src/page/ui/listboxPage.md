@@ -117,7 +117,7 @@ Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 ### InitConfig {#init-config}
 
-Configuration object passed to `Listbox.init()` or `Listbox.Multi.init()`.
+Configuration passed to the Binding for the completed Block returned by `Listbox.create(Item)` or `Listbox.Multi.create(Item)`.
 
 | Name          | Type                         | Default      | Description                                                                                                                                          |
 | ------------- | ---------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |

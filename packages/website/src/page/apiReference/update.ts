@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct'
 
 import { ApiReferenceComposition } from './composition'
 import { ApiReferenceDefinition } from './definition'
-import { type ApiData, ApiDataAsyncData, ParsedApiReference } from './domain'
+import { ApiDataAsyncData, ParsedApiReference } from './domain'
 import { Message } from './message'
 import { disclosuresForApiData } from './model'
 
@@ -49,21 +49,6 @@ export const LoadApiData = ApiReferenceDefinition.command('LoadApiData', {
 
 export const EffectsLayer = LoadApiData.layer
 
-const loadInitialData = ApiReferenceDefinition.step(
-  (model, maybeApiData: Option.Option<ApiData>) => ({
-    model: Option.match(maybeApiData, {
-      onNone: () =>
-        modifyFields(model, { apiData: () => ApiDataAsyncData.Loading() }),
-      onSome: apiData =>
-        modifyFields(model, {
-          apiData: () => ApiDataAsyncData.Refreshing({ data: apiData }),
-          disclosures: () => disclosuresForApiData(apiData),
-        }),
-    }),
-    commands: [LoadApiData()],
-  }),
-)
-
 const refreshApiData = ApiReferenceDefinition.step(model =>
   Option.match(
     AsyncData.isStale(model.apiData)
@@ -81,9 +66,6 @@ const refreshApiData = ApiReferenceDefinition.step(model =>
 
 export const update = ApiReferenceComposition.makeUpdate((model, message) =>
   Message.match(message, {
-    RequestedLoadInitialData: ({ maybeApiData }) =>
-      loadInitialData(model, maybeApiData),
-
     InformedOfRouteChange: () => refreshApiData(model),
 
     SucceededLoadApiData: ({ apiData }) => ({

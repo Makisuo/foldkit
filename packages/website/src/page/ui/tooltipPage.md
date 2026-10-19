@@ -50,7 +50,7 @@ Two ViewInputs fields cover the cases a `<label for>` does not. Pass `ariaLabel`
 
 ### InitConfig {#init-config}
 
-Configuration object passed to `Tooltip.init()`.
+Configuration passed to the Tooltip Binding's child initializer. Direct completed Block calls use `Tooltip.TooltipBlock.init()`.
 
 | Name        | Type             | Default                | Description                                                                                                                                                                                                         |
 | ----------- | ---------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

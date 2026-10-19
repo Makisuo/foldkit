@@ -35,7 +35,7 @@ The hidden `<input type="file">` stays in the DOM but visually hidden via the `s
 
 ### InitConfig {#init-config}
 
-Configuration object passed to `FileDrop.init()`.
+Configuration passed to the FileDrop Binding's child initializer. Direct completed Block calls use `FileDrop.FileDropBlock.init()`.
 
 | Name | Type     | Default | Description                                                                                               |
 | ---- | -------- | ------- | --------------------------------------------------------------------------------------------------------- |

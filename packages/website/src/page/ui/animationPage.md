@@ -117,7 +117,7 @@ Call the bound `AnimationBinding.requestToggle()` operation to start the enter o
 
 ### InitConfig {#init-config}
 
-Configuration object passed to `Animation.init()`.
+Configuration passed to the Animation Binding's child initializer. Direct completed Block calls use `Animation.AnimationBlock.init()`.
 
 | Name        | Type      | Default | Description                           |
 | ----------- | --------- | ------- | ------------------------------------- |
@@ -134,11 +134,11 @@ Call the Binding-projected `AnimationBinding.requestFinish(generation)` operatio
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the Animation Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass the child Model as `model` and these fields as `viewInputs` to the Animation Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the embedding view boundary so its handlers use the parent dispatcher. Use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name          | Type                            | Default | Description                                                                                                                                        |
 | ------------- | ------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `content`     | `Html`                          | —       | The content to animate in and out.                                                                                                                 |
+| `toView`      | `() => Html`                    | —       | Renders the content to animate in and out.                                                                                                         |
 | `animateSize` | `boolean`                       | `false` | Animates height collapse/expand using CSS grid. When true, the element stays in the DOM with grid-template-rows transitioning between 0fr and 1fr. |
 | `className`   | `string`                        | —       | CSS class for the animation wrapper.                                                                                                               |
 | `attributes`  | `ReadonlyArray<ChildAttribute>` | —       | Additional attributes for the wrapper.                                                                                                             |

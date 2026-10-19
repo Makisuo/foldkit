@@ -895,9 +895,17 @@ type ValidateStaticInitialPolicy<
       toItem: infer ToItem extends (...args: ReadonlyArray<any>) => any
     }>
   }>
-    ? ValidationResult<
-        ValidateInitialResolver<Instances> & ValidateWrappedToItem<ToItem>
-      >
+    ? Config extends Readonly<{
+        field: infer Field extends keyof ParentModel
+      }>
+      ? ParentModel[Field] extends Option.Option<unknown>
+        ? InvalidBindChildConfig<'Option-wrapped keyed child initialization remains parent-owned; use Binding.init with toParentModel'>
+        : ValidationResult<
+            ValidateInitialResolver<Instances> & ValidateWrappedToItem<ToItem>
+          >
+      : ValidationResult<
+          ValidateInitialResolver<Instances> & ValidateWrappedToItem<ToItem>
+        >
     : Config extends Readonly<{ key: unknown; init: unknown }>
       ? InvalidBindChildConfig<'Keyed child initialization requires an instances policy'>
       : Config extends Readonly<{
@@ -1298,7 +1306,17 @@ type KeySchemaForConfig<
                 ? ItemFields[KeyField]
                 : never
               : never
-            : never
+            : ParentFields[Field] extends Schema.Option<
+                  infer ItemSchema extends Schema.Top
+                >
+              ? ItemSchema extends Readonly<{
+                  fields: infer ItemFields extends Schema.Struct.Fields
+                }>
+                ? KeyField extends keyof ItemFields
+                  ? ItemFields[KeyField]
+                  : never
+                : never
+              : never
           : never
         : never
       : Config extends Readonly<{ key: infer KeyField extends string }>

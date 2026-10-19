@@ -122,7 +122,7 @@ const view = AnimationExampleComposition.makeView((model, h) =>
             animateSize: true,
             className:
               'transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
-            content: h.p([], ['This content animates in and out.']),
+            toView: () => h.p([], ['This content animates in and out.']),
           },
         }),
       ),

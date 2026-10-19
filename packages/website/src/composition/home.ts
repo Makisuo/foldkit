@@ -27,7 +27,7 @@ const loadPlaygroundExample = (exampleSlug: ExampleSlug) =>
 const updateNewsletterEmail = (value: string) =>
   ApplicationDefinition.stepFields(() => ({ newsletterEmail: () => value }))
 
-const foldHomeOutMessage = HomeBlock.OutMessage.match({
+const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(HomeBlock, {
   SelectedPlaygroundExample: ({ exampleSlug }) =>
     loadPlaygroundExample(exampleSlug),
   UpdatedNewsletterEmail: ({ value }) => updateNewsletterEmail(value),

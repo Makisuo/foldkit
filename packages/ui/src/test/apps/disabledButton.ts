@@ -3,7 +3,6 @@ import { Block } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
-import * as Update from 'foldkit/update'
 
 import * as Dialog from '../../dialog/index.js'
 
@@ -33,13 +32,14 @@ const DisabledButtonTestDefinition = Block.makeDefinition(
 
 // UPDATE
 
-const foldDialogOutMessage = Dialog.DialogBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => DisabledButtonTestDefinition.stepNoop(),
-  Closed: () => DisabledButtonTestDefinition.stepNoop(),
-  CompletedClose: () => DisabledButtonTestDefinition.stepNoop(),
-})
+const foldDialogOutMessage = DisabledButtonTestDefinition.makeOutMessageFold(
+  Dialog.DialogBlock,
+  {
+    Opened: () => DisabledButtonTestDefinition.stepNoop(),
+    Closed: () => DisabledButtonTestDefinition.stepNoop(),
+    CompletedClose: () => DisabledButtonTestDefinition.stepNoop(),
+  },
+)
 
 const DialogBinding = DisabledButtonTestDefinition.bindChild(
   Dialog.DialogBlock,

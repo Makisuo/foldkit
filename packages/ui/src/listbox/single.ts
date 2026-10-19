@@ -94,6 +94,7 @@ const makeBlockParts = <Item, Value extends string>() => {
   })
   const itemUpdate = makeUpdate(
     ListboxDefinition.bindChild,
+    ListboxDefinition.makeOutMessageFold,
     ListboxDefinition.step,
     'CloseWithFocus',
     (model, item) => ({

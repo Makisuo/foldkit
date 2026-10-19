@@ -1,9 +1,8 @@
 import { Effect } from 'effect'
-import type { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { SaveTheme } from './blockDefinition'
-import { ApplicationDefinition, Message, Model } from './blockProfileContract'
+import { ApplicationDefinition } from './blockProfileContract'
 import * as Settings from './blockSettings'
 
 const SettingsDemo = Settings.SettingsBlock.replaceEffectsLayer(
@@ -14,15 +13,16 @@ const SettingsDemo = Settings.SettingsBlock.replaceEffectsLayer(
   ),
 )
 
-const foldSettingsOutMessage = Settings.SettingsBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ChangedTheme:
-    ({ theme }) =>
-    model => ({
-      model: modifyFields(model, { previewTheme: () => theme }),
-    }),
-})
+const foldSettingsOutMessage = ApplicationDefinition.makeOutMessageFold(
+  SettingsDemo,
+  {
+    ChangedTheme:
+      ({ theme }) =>
+      model => ({
+        model: modifyFields(model, { previewTheme: () => theme }),
+      }),
+  },
+)
 
 export const SettingsBinding = ApplicationDefinition.bindChild(SettingsDemo, {
   field: 'settings',

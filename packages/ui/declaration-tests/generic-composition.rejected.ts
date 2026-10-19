@@ -8,6 +8,7 @@ import {
   ApplicationDefinition,
   DialogBinding,
   KeyedToastBinding,
+  MenuFoldFixtureDefinition,
   MenuPicker,
   OtherToastBinding,
   Picker,
@@ -17,6 +18,20 @@ import {
   ToastBlock,
   helper,
 } from './generic-composition.accepted.js'
+
+MenuFoldFixtureDefinition.makeOutMessageFold(MenuPicker, {
+  Selected: ({ value }) => {
+    // @ts-expect-error Parent-owned folds preserve the generic Menu payload.
+    const _wrong: 'Banana' = value
+    return MenuFoldFixtureDefinition.stepNoop()
+  },
+  Closed: () => MenuFoldFixtureDefinition.stepNoop(),
+})
+
+// @ts-expect-error Parent-owned folds require every generic Menu OutMessage variant.
+MenuFoldFixtureDefinition.makeOutMessageFold(MenuPicker, {
+  Selected: () => MenuFoldFixtureDefinition.stepNoop(),
+})
 
 // @ts-expect-error Animation content must be rendered through the caller-scoped slot.
 const invalidAnimationViewInputs: Animation.ViewInputs = { content: null }

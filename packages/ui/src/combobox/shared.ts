@@ -417,6 +417,11 @@ export const makeUpdate = <
     MessageSchema<Item, ItemEncoded>,
     ParentOutMessageSchema
   >,
+  makeOutMessageFold: Block.MakeOutMessageFold<
+    BaseModel,
+    Message<Item>,
+    OutMessage<Item>
+  >,
   step: Block.DefineStep<BaseModel, Message<Item>, OutMessage<Item>>,
   selectionBehavior: 'CloseWithFocus' | 'KeepOpen',
   handlers: Readonly<{
@@ -439,22 +444,16 @@ export const makeUpdate = <
 ) => {
   type Model = BaseModel
 
-  const detectMovementOrAnimationEnd = (generation: number) =>
-    step(model => ({
+  const detectMovementOrAnimationEnd =
+    (generation: number) => (model: Model) => ({
       model,
       commands: [DetectMovementOrAnimationEnd({ id: model.id, generation })],
-    }))
+    })
 
-  type AnimationOutMessageStep = ReturnType<typeof detectMovementOrAnimationEnd>
-
-  const ignoreTransitionedOut = step(model => ({ model }))
-
-  const foldAnimationOutMessage = Animation.AnimationBlock.OutMessage.match<
-    AnimationOutMessageStep | typeof ignoreTransitionedOut
-  >({
+  const foldAnimationOutMessage = makeOutMessageFold(Animation.AnimationBlock, {
     StartedLeaveAnimating: ({ generation }) =>
       detectMovementOrAnimationEnd(generation),
-    TransitionedOut: () => ignoreTransitionedOut,
+    TransitionedOut: () => model => ({ model }),
   })
 
   const AnimationBinding = bindChild(Animation.AnimationBlock, {

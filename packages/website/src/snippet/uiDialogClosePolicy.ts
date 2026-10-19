@@ -7,19 +7,19 @@ import {
   EditorComposition,
   EditorDefinition,
   Message,
-  Model,
 } from './editor/definition'
 
-const foldDialogOutMessage = Dialog.DialogBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => EditorDefinition.stepNoop(),
-  Closed: () =>
-    EditorDefinition.stepFields(() => ({
-      route: () => '/projects',
-    })),
-  CompletedClose: () => EditorDefinition.stepNoop(),
-})
+const foldDialogOutMessage = EditorDefinition.makeOutMessageFold(
+  Dialog.DialogBlock,
+  {
+    Opened: () => EditorDefinition.stepNoop(),
+    Closed: () =>
+      EditorDefinition.stepFields(() => ({
+        route: () => '/projects',
+      })),
+    CompletedClose: () => EditorDefinition.stepNoop(),
+  },
+)
 
 export const DialogBinding = EditorDefinition.bindChild(Dialog.DialogBlock, {
   field: 'dialog',

@@ -200,9 +200,14 @@ Use `Agent` with `subagent_type: general-purpose`. Suggested fan-out:
   assembly before Runtime start.
 
   Preserve inferred Command requirements in Composition update and owned Steps.
-  Use a direct exhaustive OutMessage matcher when no other dispatch context is
-  needed; retain a function or factory when policy needs a key, previous Model,
-  payload, or `FoldContext`. Whole-feature recipe replacement happens before
+  Build a local child fold with the parent Definition's `makeOutMessageFold`
+  and the whole completed child Block. Require direct named variant handlers,
+  no repeated Step or payload types, and an inferred second handler argument
+  only where `FoldContext` is used. Retain a purposeful keyed factory or adapter
+  when policy needs call-site context. Allow a child union matcher when a
+  same-Binding or reciprocal-operation return causes a TypeScript
+  recursive-initializer cycle, provided returned Steps use the parent Definition
+  and registration still validates the completed policy. Whole-feature recipe replacement happens before
   binding, while ordinary execution tests replace Service providers beneath
   real handlers.
 

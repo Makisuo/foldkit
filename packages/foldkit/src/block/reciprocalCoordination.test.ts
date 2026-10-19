@@ -137,46 +137,41 @@ const Application = Block.makeDefinition('ReciprocalApplication', {
   Message,
 })
 
-const foldRoomOutMessage = (
-  _roomId: string,
-  outMessage: typeof RoomOutMessage.Type,
-) =>
-  RoomOutMessage.match(outMessage, {
-    LeftRoom: () =>
-      Update.combine([
-        Application.step(model => ({
-          model: modifyFields(model, {
-            route: () => ApplicationRoute.Home(),
-            maybeRoomInstance: () => Option.none(),
-          }),
-        })),
-        HomeBinding.resetJoinForm(''),
-      ]),
-  })
+const foldRoomOutMessage = Application.makeOutMessageFold(RoomBlock, {
+  LeftRoom: () =>
+    Update.combine([
+      Application.step(model => ({
+        model: modifyFields(model, {
+          route: () => ApplicationRoute.Home(),
+          maybeRoomInstance: () => Option.none(),
+        }),
+      })),
+      HomeBinding.resetJoinForm(''),
+    ]),
+})
 
-const foldHomeOutMessage = (outMessage: typeof HomeOutMessage.Type) =>
-  HomeOutMessage.match(outMessage, {
-    JoinedRoom: ({ roomId, username }) =>
-      Update.combine([
-        Application.step(model =>
-          RoomBinding.init({
-            key: roomId,
-            args: [],
-            toParentModel: room =>
-              modifyFields(model, {
-                maybeRoomInstance: () =>
-                  Option.some(RoomInstance.make({ roomId, model: room })),
-              }),
-          }),
-        ),
-        RoomBinding.informJoined(roomId, username, { roomId }),
-        Application.step(model => ({
-          model: modifyFields(model, {
-            route: () => ApplicationRoute.Room({ roomId }),
-          }),
-        })),
-      ]),
-  })
+const foldHomeOutMessage = Application.makeOutMessageFold(HomeBlock, {
+  JoinedRoom: ({ roomId, username }) =>
+    Update.combine([
+      Application.step(model =>
+        RoomBinding.init({
+          key: roomId,
+          args: [],
+          toParentModel: room =>
+            modifyFields(model, {
+              maybeRoomInstance: () =>
+                Option.some(RoomInstance.make({ roomId, model: room })),
+            }),
+        }),
+      ),
+      RoomBinding.informJoined(roomId, username, { roomId }),
+      Application.step(model => ({
+        model: modifyFields(model, {
+          route: () => ApplicationRoute.Room({ roomId }),
+        }),
+      })),
+    ]),
+})
 
 const HomeBinding = Application.bindChild(HomeBlock, {
   field: 'home',
@@ -206,7 +201,7 @@ const RoomBinding = Application.bindChild(RoomBlock, {
     toUpdateContext: (_model, roomId) => [{ roomId }],
   },
   outMessage: {
-    fold: foldRoomOutMessage,
+    fold: (_roomId, outMessage) => foldRoomOutMessage(outMessage),
   },
 })
 

@@ -20,22 +20,22 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message: Schema.Never,
 })
 
-const foldDialogOutMessage = (outMessage: typeof Dialog.OutMessage.Type) =>
-  ApplicationDefinition.step(model =>
-    Dialog.OutMessage.match(outMessage, {
-      Opened: () => ({
-        model: modifyFields(model, {
-          dialogEvents: Array.append(DialogEvent.make('Opened')),
-        }),
+const foldDialogOutMessage = ApplicationDefinition.makeOutMessageFold(
+  Dialog.DialogBlock,
+  {
+    Opened: () => model => ({
+      model: modifyFields(model, {
+        dialogEvents: Array.append(DialogEvent.make('Opened')),
       }),
-      Closed: () => ({
-        model: modifyFields(model, {
-          dialogEvents: Array.append(DialogEvent.make('Closed')),
-        }),
-      }),
-      CompletedClose: () => ({ model }),
     }),
-  )
+    Closed: () => model => ({
+      model: modifyFields(model, {
+        dialogEvents: Array.append(DialogEvent.make('Closed')),
+      }),
+    }),
+    CompletedClose: () => model => ({ model }),
+  },
+)
 
 const DialogBinding = ApplicationDefinition.bindChild(Dialog.DialogBlock, {
   field: 'dialog',

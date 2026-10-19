@@ -415,17 +415,25 @@ Use `Update.combine` when a later Step should receive the Model produced by an e
 
 When the OutMessage is already known while constructing a new result, include it directly: `{ model, commands, outMessage }`. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper: `pipe(dialogClose, Update.withOutMessage(outMessage))`. When constructing the plain return in the same expression, pass it first: `Update.withOutMessage({ model, commands }, outMessage)`. Add `outMessage.forward` only when at least one child OutMessage should continue to the current Block's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit `outMessage.forward` when every variant stops here. `outMessage.fold` still handles each variant locally, including variants that continue upward. Never write `outMessage.forward: () => undefined`.
 
-Bind an exhaustive child OutMessage matcher directly as
-`fold<Child>OutMessage` when it needs only the OutMessage. Do not wrap it in a
-function that only forwards its argument to `Child.OutMessage.match`. Keep a
-function or factory when matcher branches consume other per-dispatch context,
-including a collection key, previous Model state, an entry payload, or
-`FoldContext` lifters. Use the same direct matcher form for a
-`outMessage.forward` mapper that needs only the OutMessage. Name every variant,
-including a singleton union. Pass a generic child's refined OutMessage type as
-the matcher's second generic. When a branch returns a Command-producing
-`FeatureDefinition.step`, preserve its inferred Command requirements instead of
-constraining the matcher to a requirement-free `Update.Step`.
+Build a parent-owned `fold<Child>OutMessage` with
+`FeatureDefinition.makeOutMessageFold(WholeChildBlock, handlers)`. Name every
+variant directly, including a singleton union. The whole completed child
+preserves exact Message and factory-refined OutMessage contracts, while the
+parent Definition supplies its Model, Message, and OutMessage contracts. Command
+requirements and sibling Binding evidence are inferred from the returned Steps
+and checked by Composition. Do not repeat Step or payload generics or
+wrap a data-first child matcher. Take the inferred `FoldContext` as a handler's
+second argument only when it uses `liftCommand` or `modelBeforeUpdate`; the fold
+stays unary otherwise. Keep a purposeful keyed factory or adapter when policy
+uses call-site context. An `outMessage.forward` mapper still uses the child
+union's direct exhaustive matcher.
+
+Keep a local fold on the child union's exhaustive matcher when returning an
+operation from the same Binding being defined, or a reciprocal Binding pair,
+causes a TypeScript recursive-initializer cycle. Author returned Steps with the
+parent Definition and rely on Binding registration to validate the completed
+policy. Reciprocal policies that infer normally still use
+`makeOutMessageFold`.
 
 Use `FeatureDefinition.stepFields(callback)` for an actual unary Model-only
 field Step; its callback returns only field transformers. Use

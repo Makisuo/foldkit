@@ -93,11 +93,14 @@ export const CoreBlockPageBinding = ApplicationDefinition.bindChild(
   },
 )
 
-const foldMobileMenuDialogOutMessage = DialogBlock.OutMessage.match({
-  Opened: () => ApplicationDefinition.stepNoop(),
-  Closed: () => ApplicationDefinition.stepNoop(),
-  CompletedClose: () => ApplicationDefinition.stepNoop(),
-})
+const foldMobileMenuDialogOutMessage = ApplicationDefinition.makeOutMessageFold(
+  DialogBlock,
+  {
+    Opened: () => ApplicationDefinition.stepNoop(),
+    Closed: () => ApplicationDefinition.stepNoop(),
+    CompletedClose: () => ApplicationDefinition.stepNoop(),
+  },
+)
 
 export const MobileMenuDialogBinding = ApplicationDefinition.bindChild(
   DialogBlock,
@@ -108,10 +111,13 @@ export const MobileMenuDialogBinding = ApplicationDefinition.bindChild(
   },
 )
 
-const foldThemeMenuOutMessage = ThemeMenu.ThemeMenuBlock.OutMessage.match({
-  Selected: ({ value }) => selectThemePreference(value),
-  Closed: () => ApplicationDefinition.stepNoop(),
-})
+const foldThemeMenuOutMessage = ApplicationDefinition.makeOutMessageFold(
+  ThemeMenu.ThemeMenuBlock,
+  {
+    Selected: ({ value }) => selectThemePreference(value),
+    Closed: () => ApplicationDefinition.stepNoop(),
+  },
+)
 
 export const ThemeMenuBinding = ApplicationDefinition.bindChild(
   ThemeMenu.ThemeMenuBlock,

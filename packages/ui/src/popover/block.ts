@@ -314,16 +314,14 @@ const detectPopoverMovementOrAnimationEnd = (generation: number) =>
     ],
   }))
 
-type AnimationOutMessageStep = ReturnType<
-  typeof detectPopoverMovementOrAnimationEnd
->
-
-const foldAnimationOutMessage =
-  Animation.AnimationBlock.OutMessage.match<AnimationOutMessageStep>({
+const foldAnimationOutMessage = PopoverDefinition.makeOutMessageFold(
+  Animation.AnimationBlock,
+  {
     StartedLeaveAnimating: ({ generation }) =>
       detectPopoverMovementOrAnimationEnd(generation),
     TransitionedOut: () => PopoverDefinition.stepNoop(),
-  })
+  },
+)
 
 const AnimationBinding = PopoverDefinition.bindChild(Animation.AnimationBlock, {
   field: 'animation',

@@ -52,7 +52,7 @@ The context rule is exact: `update(message)(model, ...context)`. `Update.combine
 
 ::Snippet{name="updateCurriedContext" label="Adapting a contextual update for combine"}
 
-`Update.defineStep` does the same inference for a standalone Step producer. Annotate its Model parameter and let the helper infer the returned Command requirements and OutMessage. A pure OutMessage fold can use `OutMessage.match<Update.Step<Model, Message>>` directly; the matcher types its Model parameter without a Step helper. Callers can then compose that Step with pure Steps through `Update.combine` without naming a service union by hand.
+`Update.defineStep` does the same inference for a standalone Step producer. Annotate its Model parameter and let the helper infer the returned Command requirements and OutMessage. Build a parent-owned child OutMessage fold with `ParentDefinition.makeOutMessageFold(ChildBlock, handlers)` so the completed child and parent Definition supply the handler payloads, Model, result channels, and optional `FoldContext`. Callers can compose the returned Steps through `Update.combine` without naming a service union by hand.
 
 `Update.RequirementsOf<typeof update>` extracts the inferred handler service union from an update. Use it when a parent or exported type needs to name those requirements. Application assembly reads the requirements from the update return type directly.
 

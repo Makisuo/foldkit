@@ -1,5 +1,5 @@
 import { Array, Schema, Tuple } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -16,32 +16,31 @@ const Model = Schema.Struct({
   selectedCities: Schema.Array(City),
   comboboxMulti: CitiesCombobox.Model,
 })
-type Model = typeof Model.Type
 
 const Message = defineMessageUnion({})
-type Message = typeof Message.Type
-
-// The parent toggles the committed value in the selection it owns.
-const foldComboboxMultiOutMessage = CitiesCombobox.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        selectedCities: selectedCities =>
-          Array.contains(selectedCities, value)
-            ? Array.filter(selectedCities, city => city !== value)
-            : Array.append(selectedCities, value),
-      }),
-    }),
-  ClearedSelection: () => CitiesPickerDefinition.stepNoop(),
-})
 
 const CitiesPickerDefinition = Block.makeDefinition('CitiesPicker', {
   Model,
   Message,
 })
+
+// The parent toggles the committed value in the selection it owns.
+const foldComboboxMultiOutMessage = CitiesPickerDefinition.makeOutMessageFold(
+  CitiesCombobox,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, {
+          selectedCities: selectedCities =>
+            Array.contains(selectedCities, value)
+              ? Array.filter(selectedCities, city => city !== value)
+              : Array.append(selectedCities, value),
+        }),
+      }),
+    ClearedSelection: () => CitiesPickerDefinition.stepNoop(),
+  },
+)
 
 const ComboboxBinding = CitiesPickerDefinition.bindChild(CitiesCombobox, {
   field: 'comboboxMulti',

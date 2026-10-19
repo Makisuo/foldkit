@@ -1,5 +1,5 @@
 import { Array, Option, Schema, Tuple, pipe } from 'effect'
-import { Block, Calendar, Update } from 'foldkit'
+import { Block, Calendar } from 'foldkit'
 import { defineTaggedUnion } from 'foldkit/schema'
 import { modifyFields } from 'foldkit/struct'
 
@@ -31,7 +31,6 @@ import {
 } from './demo/components'
 import { ToastBlock } from './demo/toastModule'
 import { type DemoCard, type DemoColumn } from './domain/domain'
-import { Message } from './message'
 import { Model } from './model'
 import { VirtualListChatDemoBinding } from './virtualListChat'
 
@@ -188,41 +187,35 @@ const maybeDragAndDropDemoKeyboardAnnouncement = (
 
 // CHILD FOLDS
 
-const foldDialogOutMessage = DialogBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
+const foldDialogOutMessage = UiDefinition.makeOutMessageFold(DialogBlock, {
   Opened: () => UiDefinition.stepNoop(),
   Closed: () => UiDefinition.stepNoop(),
   CompletedClose: () => UiDefinition.stepNoop(),
 })
 
-const foldMenuOutMessage = DemoMenuBlock.OutMessage.match<
-  Update.Step<Model, Message>,
-  typeof DemoMenuBlock.OutMessage.Type
->({
+const foldMenuOutMessage = UiDefinition.makeOutMessageFold(DemoMenuBlock, {
   Selected: () => UiDefinition.stepNoop(),
   Closed: () => UiDefinition.stepNoop(),
 })
 
-const foldPopoverOutMessage = PopoverBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
+const foldPopoverOutMessage = UiDefinition.makeOutMessageFold(PopoverBlock, {
   Opened: () => UiDefinition.stepNoop(),
   Closed: () => UiDefinition.stepNoop(),
 })
 
-const foldCalendarBasicDemoOutMessage = CalendarBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  SelectedDate:
-    ({ date }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeCalendarBasicDemoSelectedDate: () => Option.some(date),
+const foldCalendarBasicDemoOutMessage = UiDefinition.makeOutMessageFold(
+  CalendarBlock,
+  {
+    SelectedDate:
+      ({ date }) =>
+      model => ({
+        model: modifyFields(model, {
+          maybeCalendarBasicDemoSelectedDate: () => Option.some(date),
+        }),
       }),
-    }),
-  ChangedViewMonth: () => UiDefinition.stepNoop(),
-})
+    ChangedViewMonth: () => UiDefinition.stepNoop(),
+  },
+)
 
 export const CalendarBasicDemoBinding = UiDefinition.bindChild(CalendarBlock, {
   field: 'calendarBasicDemo',
@@ -238,23 +231,24 @@ export const CalendarBasicDemoBinding = UiDefinition.bindChild(CalendarBlock, {
   },
 })
 
-const foldDatePickerBasicDemoOutMessage = DatePickerBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  SelectedDate:
-    ({ date }) =>
-    model => ({
+const foldDatePickerBasicDemoOutMessage = UiDefinition.makeOutMessageFold(
+  DatePickerBlock,
+  {
+    SelectedDate:
+      ({ date }) =>
+      model => ({
+        model: modifyFields(model, {
+          maybeDatePickerBasicDemoSelectedDate: () => Option.some(date),
+        }),
+      }),
+    ClearedDate: () => model => ({
       model: modifyFields(model, {
-        maybeDatePickerBasicDemoSelectedDate: () => Option.some(date),
+        maybeDatePickerBasicDemoSelectedDate: () => Option.none(),
       }),
     }),
-  ClearedDate: () => model => ({
-    model: modifyFields(model, {
-      maybeDatePickerBasicDemoSelectedDate: () => Option.none(),
-    }),
-  }),
-  ChangedViewMonth: () => UiDefinition.stepNoop(),
-})
+    ChangedViewMonth: () => UiDefinition.stepNoop(),
+  },
+)
 
 export const DatePickerBasicDemoBinding = UiDefinition.bindChild(
   DatePickerBlock,
@@ -273,19 +267,19 @@ export const DatePickerBasicDemoBinding = UiDefinition.bindChild(
   },
 )
 
-const foldComboboxDemoOutMessage = CityComboboxBlock.OutMessage.match<
-  Update.Step<Model, Message>,
-  typeof CityComboboxBlock.OutMessage.Type
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeComboboxDemoSelectedCity: () => Option.some(value),
+const foldComboboxDemoOutMessage = UiDefinition.makeOutMessageFold(
+  CityComboboxBlock,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, {
+          maybeComboboxDemoSelectedCity: () => Option.some(value),
+        }),
       }),
-    }),
-  ClearedSelection: () => UiDefinition.stepNoop(),
-})
+    ClearedSelection: () => UiDefinition.stepNoop(),
+  },
+)
 
 export const ComboboxDemoBinding = UiDefinition.bindChild(CityComboboxBlock, {
   field: 'comboboxDemo',
@@ -293,11 +287,9 @@ export const ComboboxDemoBinding = UiDefinition.bindChild(CityComboboxBlock, {
   init: { contextToArgs: () => Tuple.make({ id: 'combobox-demo' }) },
 })
 
-const foldComboboxPlacementLockDemoOutMessage =
-  CityComboboxBlock.OutMessage.match<
-    Update.Step<Model, Message>,
-    typeof CityComboboxBlock.OutMessage.Type
-  >({
+const foldComboboxPlacementLockDemoOutMessage = UiDefinition.makeOutMessageFold(
+  CityComboboxBlock,
+  {
     Selected:
       ({ value }) =>
       model => ({
@@ -306,7 +298,8 @@ const foldComboboxPlacementLockDemoOutMessage =
         }),
       }),
     ClearedSelection: () => UiDefinition.stepNoop(),
-  })
+  },
+)
 
 export const ComboboxPlacementLockDemoBinding = UiDefinition.bindChild(
   CityComboboxBlock,
@@ -319,27 +312,27 @@ export const ComboboxPlacementLockDemoBinding = UiDefinition.bindChild(
   },
 )
 
-const foldComboboxNullableDemoOutMessage = CityComboboxBlock.OutMessage.match<
-  Update.Step<Model, Message>,
-  typeof CityComboboxBlock.OutMessage.Type
->({
-  Selected:
-    ({ value }) =>
-    model => ({
+const foldComboboxNullableDemoOutMessage = UiDefinition.makeOutMessageFold(
+  CityComboboxBlock,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, {
+          maybeComboboxNullableDemoSelectedCity:
+            maybeComboboxNullableDemoSelectedCity =>
+              Option.contains(maybeComboboxNullableDemoSelectedCity, value)
+                ? Option.none()
+                : Option.some(value),
+        }),
+      }),
+    ClearedSelection: () => model => ({
       model: modifyFields(model, {
-        maybeComboboxNullableDemoSelectedCity:
-          maybeComboboxNullableDemoSelectedCity =>
-            Option.contains(maybeComboboxNullableDemoSelectedCity, value)
-              ? Option.none()
-              : Option.some(value),
+        maybeComboboxNullableDemoSelectedCity: () => Option.none(),
       }),
     }),
-  ClearedSelection: () => model => ({
-    model: modifyFields(model, {
-      maybeComboboxNullableDemoSelectedCity: () => Option.none(),
-    }),
-  }),
-})
+  },
+)
 
 export const ComboboxNullableDemoBinding = UiDefinition.bindChild(
   CityComboboxBlock,
@@ -353,25 +346,25 @@ export const ComboboxNullableDemoBinding = UiDefinition.bindChild(
   },
 )
 
-const foldComboboxMultiDemoOutMessage = CityMultiComboboxBlock.OutMessage.match<
-  Update.Step<Model, Message>,
-  typeof CityMultiComboboxBlock.OutMessage.Type
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        comboboxMultiDemoSelectedCities: comboboxMultiDemoSelectedCities =>
-          Array.contains(comboboxMultiDemoSelectedCities, value)
-            ? Array.filter(
-                comboboxMultiDemoSelectedCities,
-                city => city !== value,
-              )
-            : Array.append(comboboxMultiDemoSelectedCities, value),
+const foldComboboxMultiDemoOutMessage = UiDefinition.makeOutMessageFold(
+  CityMultiComboboxBlock,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, {
+          comboboxMultiDemoSelectedCities: comboboxMultiDemoSelectedCities =>
+            Array.contains(comboboxMultiDemoSelectedCities, value)
+              ? Array.filter(
+                  comboboxMultiDemoSelectedCities,
+                  city => city !== value,
+                )
+              : Array.append(comboboxMultiDemoSelectedCities, value),
+        }),
       }),
-    }),
-  ClearedSelection: () => UiDefinition.stepNoop(),
-})
+    ClearedSelection: () => UiDefinition.stepNoop(),
+  },
+)
 
 export const ComboboxMultiDemoBinding = UiDefinition.bindChild(
   CityMultiComboboxBlock,
@@ -382,11 +375,9 @@ export const ComboboxMultiDemoBinding = UiDefinition.bindChild(
   },
 )
 
-const foldComboboxSelectOnFocusDemoOutMessage =
-  CityComboboxBlock.OutMessage.match<
-    Update.Step<Model, Message>,
-    typeof CityComboboxBlock.OutMessage.Type
-  >({
+const foldComboboxSelectOnFocusDemoOutMessage = UiDefinition.makeOutMessageFold(
+  CityComboboxBlock,
+  {
     Selected:
       ({ value }) =>
       model => ({
@@ -395,7 +386,8 @@ const foldComboboxSelectOnFocusDemoOutMessage =
         }),
       }),
     ClearedSelection: () => UiDefinition.stepNoop(),
-  })
+  },
+)
 
 export const ComboboxSelectOnFocusDemoBinding = UiDefinition.bindChild(
   CityComboboxBlock,
@@ -433,19 +425,19 @@ export const OverlayDialogDemoBinding = UiDefinition.bindChild(DialogBlock, {
   init: { contextToArgs: () => Tuple.make({ id: 'overlay-dialog-demo' }) },
 })
 
-const foldOverlayComboboxDemoOutMessage = CityComboboxBlock.OutMessage.match<
-  Update.Step<Model, Message>,
-  typeof CityComboboxBlock.OutMessage.Type
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeOverlayComboboxDemoSelectedCity: () => Option.some(value),
+const foldOverlayComboboxDemoOutMessage = UiDefinition.makeOutMessageFold(
+  CityComboboxBlock,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, {
+          maybeOverlayComboboxDemoSelectedCity: () => Option.some(value),
+        }),
       }),
-    }),
-  ClearedSelection: () => UiDefinition.stepNoop(),
-})
+    ClearedSelection: () => UiDefinition.stepNoop(),
+  },
+)
 
 export const OverlayComboboxDemoBinding = UiDefinition.bindChild(
   CityComboboxBlock,
@@ -478,18 +470,18 @@ export const NestedDialogChildDemoBinding = UiDefinition.bindChild(
   },
 )
 
-const foldListboxDemoOutMessage = ItemListboxBlock.OutMessage.match<
-  Update.Step<Model, Message>,
-  typeof ItemListboxBlock.OutMessage.Type
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeListboxDemoSelectedItem: () => Option.some(value),
+const foldListboxDemoOutMessage = UiDefinition.makeOutMessageFold(
+  ItemListboxBlock,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, {
+          maybeListboxDemoSelectedItem: () => Option.some(value),
+        }),
       }),
-    }),
-})
+  },
+)
 
 export const ListboxDemoBinding = UiDefinition.bindChild(ItemListboxBlock, {
   field: 'listboxDemo',
@@ -497,24 +489,24 @@ export const ListboxDemoBinding = UiDefinition.bindChild(ItemListboxBlock, {
   init: { contextToArgs: () => Tuple.make({ id: 'listbox-demo' }) },
 })
 
-const foldListboxMultiDemoOutMessage = ItemMultiListboxBlock.OutMessage.match<
-  Update.Step<Model, Message>,
-  typeof ItemMultiListboxBlock.OutMessage.Type
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        listboxMultiDemoSelectedItems: listboxMultiDemoSelectedItems =>
-          Array.contains(listboxMultiDemoSelectedItems, value)
-            ? Array.filter(
-                listboxMultiDemoSelectedItems,
-                item => item !== value,
-              )
-            : Array.append(listboxMultiDemoSelectedItems, value),
+const foldListboxMultiDemoOutMessage = UiDefinition.makeOutMessageFold(
+  ItemMultiListboxBlock,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, {
+          listboxMultiDemoSelectedItems: listboxMultiDemoSelectedItems =>
+            Array.contains(listboxMultiDemoSelectedItems, value)
+              ? Array.filter(
+                  listboxMultiDemoSelectedItems,
+                  item => item !== value,
+                )
+              : Array.append(listboxMultiDemoSelectedItems, value),
+        }),
       }),
-    }),
-})
+  },
+)
 
 export const ListboxMultiDemoBinding = UiDefinition.bindChild(
   ItemMultiListboxBlock,
@@ -525,18 +517,18 @@ export const ListboxMultiDemoBinding = UiDefinition.bindChild(
   },
 )
 
-const foldListboxGroupedDemoOutMessage = CharacterListboxBlock.OutMessage.match<
-  Update.Step<Model, Message>,
-  typeof CharacterListboxBlock.OutMessage.Type
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeListboxGroupedDemoSelectedItem: () => Option.some(value),
+const foldListboxGroupedDemoOutMessage = UiDefinition.makeOutMessageFold(
+  CharacterListboxBlock,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, {
+          maybeListboxGroupedDemoSelectedItem: () => Option.some(value),
+        }),
       }),
-    }),
-})
+  },
+)
 
 export const ListboxGroupedDemoBinding = UiDefinition.bindChild(
   CharacterListboxBlock,
@@ -606,15 +598,16 @@ export const PopoverNestedChildDemoBinding = UiDefinition.bindChild(
   },
 )
 
-const foldSliderRatingDemoOutMessage = SliderBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ChangedValue:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { sliderRatingValue: () => value }),
-    }),
-})
+const foldSliderRatingDemoOutMessage = UiDefinition.makeOutMessageFold(
+  SliderBlock,
+  {
+    ChangedValue:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, { sliderRatingValue: () => value }),
+      }),
+  },
+)
 
 export const SliderRatingDemoBinding = UiDefinition.bindChild(SliderBlock, {
   field: 'sliderRatingDemo',
@@ -625,15 +618,16 @@ export const SliderRatingDemoBinding = UiDefinition.bindChild(SliderBlock, {
   },
 })
 
-const foldSliderVolumeDemoOutMessage = SliderBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ChangedValue:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { sliderVolumeValue: () => value }),
-    }),
-})
+const foldSliderVolumeDemoOutMessage = UiDefinition.makeOutMessageFold(
+  SliderBlock,
+  {
+    ChangedValue:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, { sliderVolumeValue: () => value }),
+      }),
+  },
+)
 
 export const SliderVolumeDemoBinding = UiDefinition.bindChild(SliderBlock, {
   field: 'sliderVolumeDemo',
@@ -644,16 +638,16 @@ export const SliderVolumeDemoBinding = UiDefinition.bindChild(SliderBlock, {
   },
 })
 
-const foldHorizontalTabsDemoOutMessage = DemoTabsBlock.OutMessage.match<
-  Update.Step<Model, Message>,
-  typeof DemoTabsBlock.OutMessage.Type
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { horizontalTabsDemoTab: () => value }),
-    }),
-})
+const foldHorizontalTabsDemoOutMessage = UiDefinition.makeOutMessageFold(
+  DemoTabsBlock,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, { horizontalTabsDemoTab: () => value }),
+      }),
+  },
+)
 
 export const HorizontalTabsDemoBinding = UiDefinition.bindChild(DemoTabsBlock, {
   field: 'horizontalTabsDemo',
@@ -661,16 +655,16 @@ export const HorizontalTabsDemoBinding = UiDefinition.bindChild(DemoTabsBlock, {
   init: { contextToArgs: () => Tuple.make({ id: 'horizontal-tabs-demo' }) },
 })
 
-const foldVerticalTabsDemoOutMessage = DemoTabsBlock.OutMessage.match<
-  Update.Step<Model, Message>,
-  typeof DemoTabsBlock.OutMessage.Type
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { verticalTabsDemoTab: () => value }),
-    }),
-})
+const foldVerticalTabsDemoOutMessage = UiDefinition.makeOutMessageFold(
+  DemoTabsBlock,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, { verticalTabsDemoTab: () => value }),
+      }),
+  },
+)
 
 export const VerticalTabsDemoBinding = UiDefinition.bindChild(DemoTabsBlock, {
   field: 'verticalTabsDemo',
@@ -678,9 +672,7 @@ export const VerticalTabsDemoBinding = UiDefinition.bindChild(DemoTabsBlock, {
   init: { contextToArgs: () => Tuple.make({ id: 'vertical-tabs-demo' }) },
 })
 
-const foldTooltipOutMessage = TooltipBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
+const foldTooltipOutMessage = UiDefinition.makeOutMessageFold(TooltipBlock, {
   Shown: () => UiDefinition.stepNoop(),
   Hidden: () => UiDefinition.stepNoop(),
 })
@@ -691,12 +683,13 @@ export const TooltipDemoBinding = UiDefinition.bindChild(TooltipBlock, {
   init: { contextToArgs: () => Tuple.make({ id: 'tooltip-demo' }) },
 })
 
-const foldHoverIntentOutMessage = HoverIntentBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => UiDefinition.stepNoop(),
-  Closed: () => UiDefinition.stepNoop(),
-})
+const foldHoverIntentOutMessage = UiDefinition.makeOutMessageFold(
+  HoverIntentBlock,
+  {
+    Opened: () => UiDefinition.stepNoop(),
+    Closed: () => UiDefinition.stepNoop(),
+  },
+)
 
 export const HoverIntentCardDemoBinding = UiDefinition.bindChild(
   HoverIntentBlock,
@@ -714,9 +707,7 @@ export const HoverIntentMenuDemoBinding = UiDefinition.bindChild(
   },
 )
 
-const foldToastDemoOutMessage = ToastBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
+const foldToastDemoOutMessage = UiDefinition.makeOutMessageFold(ToastBlock, {
   DismissedToast:
     ({ payload }) =>
     model => ({
@@ -734,20 +725,17 @@ export const ToastDemoBinding = UiDefinition.bindChild(ToastBlock, {
   },
 })
 
-const foldAnimationDemoOutMessage = (
-  outMessage: typeof AnimationBlock.OutMessage.Type,
+const foldAnimationDemoOutMessage = UiDefinition.makeOutMessageFold(
+  AnimationBlock,
   {
-    liftCommand,
-  }: Update.FoldContext<typeof AnimationBlock.Message.Type, Message>,
-) =>
-  AnimationBlock.OutMessage.match(outMessage, {
-    StartedLeaveAnimating: () =>
+    StartedLeaveAnimating: (_, { liftCommand }) =>
       UiDefinition.step(model => ({
         model,
         commands: [liftCommand(defaultLeaveCommand(model.animationDemo))],
       })),
     TransitionedOut: () => UiDefinition.stepNoop(),
-  })
+  },
+)
 
 export const AnimationDemoBinding = UiDefinition.bindChild(AnimationBlock, {
   field: 'animationDemo',
@@ -755,18 +743,19 @@ export const AnimationDemoBinding = UiDefinition.bindChild(AnimationBlock, {
   init: { contextToArgs: () => Tuple.make({ id: 'animation-demo' }) },
 })
 
-const foldFileDropBasicDemoOutMessage = FileDropBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ReceivedFiles:
-    ({ files }) =>
-    model => ({
-      model: modifyFields(model, {
-        fileDropBasicDemoFiles: Array.appendAll(files),
+const foldFileDropBasicDemoOutMessage = UiDefinition.makeOutMessageFold(
+  FileDropBlock,
+  {
+    ReceivedFiles:
+      ({ files }) =>
+      model => ({
+        model: modifyFields(model, {
+          fileDropBasicDemoFiles: Array.appendAll(files),
+        }),
       }),
-    }),
-  RejectedNonFiles: () => UiDefinition.stepNoop(),
-})
+    RejectedNonFiles: () => UiDefinition.stepNoop(),
+  },
+)
 
 export const FileDropBasicDemoBinding = UiDefinition.bindChild(FileDropBlock, {
   field: 'fileDropBasicDemo',
@@ -774,51 +763,52 @@ export const FileDropBasicDemoBinding = UiDefinition.bindChild(FileDropBlock, {
   init: { contextToArgs: () => Tuple.make({ id: 'file-drop-basic-demo' }) },
 })
 
-const foldDragAndDropDemoOutMessage = DragAndDropBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Reordered:
-    ({ itemId, fromContainerId, toContainerId, toIndex }) =>
-    model => {
-      const label = findDragAndDropDemoCardLabel(
-        model.dragAndDropDemoColumns,
-        itemId,
-      )
-      const columnLabel = findDragAndDropDemoColumnLabel(
-        model.dragAndDropDemoColumns,
-        toContainerId,
-      )
+const foldDragAndDropDemoOutMessage = UiDefinition.makeOutMessageFold(
+  DragAndDropBlock,
+  {
+    Reordered:
+      ({ itemId, fromContainerId, toContainerId, toIndex }) =>
+      model => {
+        const label = findDragAndDropDemoCardLabel(
+          model.dragAndDropDemoColumns,
+          itemId,
+        )
+        const columnLabel = findDragAndDropDemoColumnLabel(
+          model.dragAndDropDemoColumns,
+          toContainerId,
+        )
 
-      return {
-        model: modifyFields(model, {
-          dragAndDropDemoColumns: dragAndDropDemoColumns =>
-            reorderColumns(
-              dragAndDropDemoColumns,
-              itemId,
-              fromContainerId,
-              toContainerId,
-              toIndex,
-            ),
-          dragAndDropDemoAnnouncement: () =>
-            dragAndDropDemoAnnouncementToText(
-              DragAndDropDemoAnnouncement.Dropped({
-                label,
-                columnLabel,
-                position: toIndex + 1,
-              }),
-            ),
-        }),
-      }
-    },
-  Cancelled: () => model => ({
-    model: modifyFields(model, {
-      dragAndDropDemoAnnouncement: () =>
-        dragAndDropDemoAnnouncementToText(
-          DragAndDropDemoAnnouncement.Cancelled(),
-        ),
+        return {
+          model: modifyFields(model, {
+            dragAndDropDemoColumns: dragAndDropDemoColumns =>
+              reorderColumns(
+                dragAndDropDemoColumns,
+                itemId,
+                fromContainerId,
+                toContainerId,
+                toIndex,
+              ),
+            dragAndDropDemoAnnouncement: () =>
+              dragAndDropDemoAnnouncementToText(
+                DragAndDropDemoAnnouncement.Dropped({
+                  label,
+                  columnLabel,
+                  position: toIndex + 1,
+                }),
+              ),
+          }),
+        }
+      },
+    Cancelled: () => model => ({
+      model: modifyFields(model, {
+        dragAndDropDemoAnnouncement: () =>
+          dragAndDropDemoAnnouncementToText(
+            DragAndDropDemoAnnouncement.Cancelled(),
+          ),
+      }),
     }),
-  }),
-})
+  },
+)
 
 export const DragAndDropDemoBinding = UiDefinition.bindChild(DragAndDropBlock, {
   read: model => Option.some(model.dragAndDropDemo),
@@ -841,11 +831,12 @@ export const DragAndDropDemoBinding = UiDefinition.bindChild(DragAndDropBlock, {
   outMessage: { fold: foldDragAndDropDemoOutMessage },
 })
 
-const foldVirtualListOutMessage = ActivityVirtualListBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ObservedContainerScroll: () => UiDefinition.stepNoop(),
-})
+const foldVirtualListOutMessage = UiDefinition.makeOutMessageFold(
+  ActivityVirtualListBlock,
+  {
+    ObservedContainerScroll: () => UiDefinition.stepNoop(),
+  },
+)
 
 export const VirtualListDemoBinding = UiDefinition.bindChild(
   ActivityVirtualListBlock,
@@ -871,11 +862,9 @@ export const VirtualListVariableDemoBinding = UiDefinition.bindChild(
   },
 )
 
-const foldVerticalRadioGroupDemoOutMessage =
-  PlanRadioGroupBlock.OutMessage.match<
-    Update.Step<Model, Message>,
-    typeof PlanRadioGroupBlock.OutMessage.Type
-  >({
+const foldVerticalRadioGroupDemoOutMessage = UiDefinition.makeOutMessageFold(
+  PlanRadioGroupBlock,
+  {
     Selected:
       ({ value }) =>
       model => ({
@@ -883,7 +872,8 @@ const foldVerticalRadioGroupDemoOutMessage =
           verticalRadioGroupDemoValue: () => Option.some(value),
         }),
       }),
-  })
+  },
+)
 
 export const VerticalRadioGroupDemoBinding = UiDefinition.bindChild(
   PlanRadioGroupBlock,
@@ -896,11 +886,9 @@ export const VerticalRadioGroupDemoBinding = UiDefinition.bindChild(
   },
 )
 
-const foldHorizontalRadioGroupDemoOutMessage =
-  PlanRadioGroupBlock.OutMessage.match<
-    Update.Step<Model, Message>,
-    typeof PlanRadioGroupBlock.OutMessage.Type
-  >({
+const foldHorizontalRadioGroupDemoOutMessage = UiDefinition.makeOutMessageFold(
+  PlanRadioGroupBlock,
+  {
     Selected:
       ({ value }) =>
       model => ({
@@ -908,7 +896,8 @@ const foldHorizontalRadioGroupDemoOutMessage =
           horizontalRadioGroupDemoValue: () => Option.some(value),
         }),
       }),
-  })
+  },
+)
 
 export const HorizontalRadioGroupDemoBinding = UiDefinition.bindChild(
   PlanRadioGroupBlock,

@@ -77,7 +77,7 @@ Export the completed value as `SettingsBlock`. Parents import that value and bin
 
 Export the completed `SettingsBlock` as the feature boundary. Keep small features together; split them when separate files make the responsibilities easier to navigate. [Project Organization](/patterns/project-organization) shows compact and split layouts, Composition assembly, and import direction.
 
-Keep the feature barrel limited to `SettingsBlock`. A parent reads its contracts through `SettingsBlock.Model`, `SettingsBlock.Message`, and `SettingsBlock.OutMessage.match`. Put shared domain Schemas and selectors in a separate `domain/` barrel. Internal implementation files import their own contracts and Composition directly, avoiding a cycle through the completed Block:
+Keep the feature barrel limited to `SettingsBlock`. A parent reads its contracts through `SettingsBlock.Model`, `SettingsBlock.Message`, and `SettingsBlock.OutMessage`, and passes that completed Block to its Definition's Binding and OutMessage fold helpers. Put shared domain Schemas and selectors in a separate `domain/` barrel. Internal implementation files import their own contracts and Composition directly, avoiding a cycle through the completed Block:
 
 ::Snippet{name="blockFeatureExports" label="Exporting a completed feature"}
 
@@ -179,11 +179,28 @@ Every Binding for a Block with OutMessages must declare an explicit policy.
 - `outMessage.forward` translates selected facts into the current Block's own OutMessage.
 - A Binding may do both. A derived OutMessage from the local fold takes precedence for that dispatch.
 
-Build an OutMessage fold directly from the child's exhaustive matcher:
+Build a parent-owned OutMessage fold with the parent Definition and the whole
+completed child Block:
 
 ::Snippet{name="blockOutMessagePolicy" label="Handling a child OutMessage"}
 
-The parent configures integration policy in its child Binding. That policy executes during the pure child fold or operation. The flow is parent update → child fold or operation → parent OutMessage handling → parent result. Keep a substantial policy in a named parent fold beside that child's Binding, extracting both to `composition/<child>.ts` when the policy becomes substantial. An OutMessage fold receives `FoldContext` when it needs to lift a child Command or compare the transition with parent state from before the child update. `modelBeforeUpdate` is that previous parent Model. The Step returned by the fold still receives the parent Model after the next child Model has been written.
+`ParentDefinition.makeOutMessageFold(ChildBlock, handlers)` supplies the parent's
+Model, Message, and OutMessage contracts and infers the child's exact Message
+and OutMessage payloads. Returned Steps retain their Command requirements and
+sibling Binding registration evidence, which Composition checks when the graph
+is assembled. Name each child OutMessage
+variant directly in `handlers`; a missing or extra variant fails type checking.
+Each handler returns the parent Step for that fact, without a repeated
+`Update.Step` annotation or refined OutMessage type argument.
+
+When a handler returns an operation from the same Binding being defined, or a
+reciprocal pair makes TypeScript report a recursive initializer, keep that
+local fold on the child union's exhaustive `OutMessage.match`. Author any
+returned Steps with the owning parent Definition. Binding registration still
+checks the completed policies. Ordinary reciprocal policies that infer without
+a cycle continue to use `makeOutMessageFold`.
+
+The parent configures integration policy in its child Binding. That policy executes during the pure child fold or operation. The flow is parent update → child fold or operation → parent OutMessage handling → parent result. Keep a substantial policy in a named parent fold beside that child's Binding, extracting both to `composition/<child>.ts` when the policy becomes substantial. A handler takes the exact `FoldContext` as its second argument only when it needs to lift a child Command or compare the transition with parent state from before the child update. A fold whose handlers omit that argument remains unary. `modelBeforeUpdate` is the previous parent Model. The Step returned by the handler still receives the parent Model after the next child Model has been written.
 
 ## Complete the Application
 
@@ -270,7 +287,7 @@ This parent opens the selected Room when Home reports `SelectedRoom`. When Room 
 
 ::Snippet{name="blockSiblingCoordination" label="Coordinating sibling Blocks in both directions"}
 
-When the decision depends on parent state from before the child update, take `FoldContext` as the policy's second parameter and read `context.modelBeforeUpdate`. Return the selected sibling Binding operation directly. The returned Step runs against the parent Model after the source child's next Model has been written, so the parent does not need to copy a snapshot into either child or add another Message stage.
+When the decision depends on parent state from before the child update, take the inferred `FoldContext` as that variant handler's second parameter and read `modelBeforeUpdate`. Return the selected sibling Binding operation directly. The returned Step runs against the parent Model after the source child's next Model has been written, so the parent does not need to copy a snapshot into either child or add another Message stage.
 
 ::Snippet{name="blockParentAwareSiblingPolicy" label="Choosing a sibling operation from parent state"}
 
@@ -432,6 +449,10 @@ For a generic factory that shares definitions, `Block.makeNamespace(id)` supplie
 `FeatureDefinition.stepFields(callback)` authors a unary Model-only Step from field transformers. The callback receives the current Model and returns the same record accepted by `modifyFields`; omit the parameter when the transformers do not need another field. `FeatureDefinition.stepNoop()` authors a Step that preserves the exact incoming Model, which is useful when a named child OutMessage intentionally leaves the parent unchanged.
 
 `FeatureDefinition.step(producer)` handles parameterized, Command-producing, OutMessage-producing, connected Binding, initialization, delegated, conditional, and composed results. It preserves or wraps a connected value until a Composition interprets it under the registered graph, and infers the operation's arguments, result Messages, Command requirements, and Binding requirements. Ordinary update branches continue to return `{ model: modifyFields(...) }`; do not create and immediately invoke a Step solely to use the field helpers. Public operations belong in the completed Block's `operations` record as local Message constructors or Message tuple producers.
+
+### ParentDefinition.makeOutMessageFold
+
+`ParentDefinition.makeOutMessageFold(ChildBlock, handlers)` authors an exhaustive parent policy for a completed child's OutMessages. Named variant handlers infer the child's precise payload and the parent Model. Each returns a parent Step, preserving its Command requirements and connected sibling obligations. A handler that needs Command lifters or the previous parent Model takes the inferred `FoldContext` as its second argument; only those folds require context at invocation.
 
 ### Declaring operations
 

@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Option, Schema, Tuple } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -28,6 +28,11 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type // ...united with your others
 
+const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
+  Model,
+  Message,
+})
+
 const plans: ReadonlyArray<Plan> = ['Startup', 'Business', 'Enterprise']
 
 const descriptions: Record<Plan, string> = {
@@ -38,26 +43,22 @@ const descriptions: Record<Plan, string> = {
 
 // At module scope, fold the OutMessage into your own Model. The `Selected`
 // arm carries the chosen value (typed as `Plan`) and its index, and returns
-// an Update.Step. This arm is also where the parent updates its own state or
+// a parent Step. This arm is also where the parent updates its own state or
 // dispatches Commands, for example to persist the choice or price the order.
-const foldPlanRadioGroupOutMessage = PlanRadioGroup.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { maybePlan: () => Option.some(value) }),
-    }),
-})
+const foldPlanRadioGroupOutMessage = PlanPickerDefinition.makeOutMessageFold(
+  PlanRadioGroup,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, { maybePlan: () => Option.some(value) }),
+      }),
+  },
+)
 
 // The Binding wires the completed child Block into the parent: it runs the child update,
 // writes the child Model back, routes generated delivery and Command results,
 // and hands any OutMessage to the OutMessage fold.
-const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
-  Model,
-  Message,
-})
-
 const PlanRadioGroupBinding = PlanPickerDefinition.bindChild(PlanRadioGroup, {
   field: 'planRadioGroup',
   init: { contextToArgs: () => Tuple.make({ id: 'plan' }) },

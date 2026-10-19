@@ -363,16 +363,14 @@ const detectMenuMovementOrAnimationEnd = (generation: number) =>
     commands: [DetectMenuMovementOrAnimationEnd({ id: model.id, generation })],
   }))
 
-type AnimationOutMessageStep = ReturnType<
-  typeof detectMenuMovementOrAnimationEnd
->
-
-const foldAnimationOutMessage =
-  Animation.AnimationBlock.OutMessage.match<AnimationOutMessageStep>({
+const foldAnimationOutMessage = MenuDefinition.makeOutMessageFold(
+  Animation.AnimationBlock,
+  {
     StartedLeaveAnimating: ({ generation }) =>
       detectMenuMovementOrAnimationEnd(generation),
     TransitionedOut: () => MenuDefinition.stepNoop(),
-  })
+  },
+)
 
 const AnimationBinding = MenuDefinition.bindChild(Animation.AnimationBlock, {
   field: 'animation',
@@ -1343,12 +1341,20 @@ const makeBlockParts = <Item extends string>() => {
     Message,
     OutMessage: RefinedOutMessage,
   })
+  const foldItemAnimationOutMessage = MenuDefinition.makeOutMessageFold(
+    Animation.AnimationBlock,
+    {
+      StartedLeaveAnimating: ({ generation }) =>
+        detectMenuMovementOrAnimationEnd(generation),
+      TransitionedOut: () => MenuDefinition.stepNoop(),
+    },
+  )
   const ItemAnimationBinding = MenuDefinition.bindChild(
     Animation.AnimationBlock,
     {
       field: 'animation',
       init: false,
-      outMessage: { fold: foldAnimationOutMessage },
+      outMessage: { fold: foldItemAnimationOutMessage },
     },
   )
   const itemUpdate = internalUpdate(ItemAnimationBinding)

@@ -76,18 +76,17 @@ const FruitComboboxTestDefinition = Block.makeDefinition('FruitComboboxTest', {
   Message: FruitParentMessage,
 })
 
-const foldFruitComboboxOutMessage = FruitCombobox.OutMessage.match<
-  Update.Step<FruitParentModel, FruitParentMessage>
->({
-  Selected: ({ value }) =>
-    FruitComboboxTestDefinition.step(model => ({
-      model: modifyFields(model, {
-        maybeSelectedFruit: () => Option.some(value),
+const foldFruitComboboxOutMessage =
+  FruitComboboxTestDefinition.makeOutMessageFold(FruitCombobox, {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, {
+          maybeSelectedFruit: () => Option.some(value),
+        }),
       }),
-    })),
-  ClearedSelection: () =>
-    FruitComboboxTestDefinition.step(model => ({ model })),
-})
+    ClearedSelection: () => model => ({ model }),
+  })
 
 const FruitComboboxBinding = FruitComboboxTestDefinition.bindChild(
   FruitCombobox,

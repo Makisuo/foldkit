@@ -1,5 +1,4 @@
 import { Array, Match, Option, pipe } from 'effect'
-import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { DragAndDropBlock } from '@foldkit/ui'
@@ -8,7 +7,6 @@ import { maybeDraggedItemId } from '@foldkit/ui/dragAndDrop'
 import { SaveBoard } from '../command'
 import { ApplicationDefinition } from '../definition'
 import { Column } from '../domain'
-import { Message } from '../message'
 import { Model } from '../model'
 
 const findCardTitle = (
@@ -93,9 +91,10 @@ const screenReaderTextForDrop = (
       }),
   })
 
-const foldDragAndDropOutMessage = (previousModel: Model) =>
-  DragAndDropBlock.OutMessage.match({
-    Reordered: outMessage =>
+const foldDragAndDropOutMessage = ApplicationDefinition.makeOutMessageFold(
+  DragAndDropBlock,
+  {
+    Reordered: (outMessage, { modelBeforeUpdate }) =>
       ApplicationDefinition.step(model => {
         const { itemId, fromContainerId, toContainerId, toIndex } = outMessage
         const nextColumns = Column.reorder(
@@ -109,27 +108,18 @@ const foldDragAndDropOutMessage = (previousModel: Model) =>
           model: modifyFields(model, {
             columns: () => nextColumns,
             announcement: () =>
-              screenReaderTextForDrop(previousModel, outMessage),
+              screenReaderTextForDrop(modelBeforeUpdate, outMessage),
           }),
           commands: [SaveBoard({ columns: nextColumns })],
         }
       }),
-    Cancelled: outMessage =>
+    Cancelled: (outMessage, { modelBeforeUpdate }) =>
       ApplicationDefinition.stepFields(() => ({
-        announcement: () => screenReaderTextForDrop(previousModel, outMessage),
+        announcement: () =>
+          screenReaderTextForDrop(modelBeforeUpdate, outMessage),
       })),
-  })
-
-const dragAndDropOutMessagePolicy = {
-  fold: (
-    outMessage: typeof DragAndDropBlock.OutMessage.Type,
-    context: Update.FoldContext<
-      typeof DragAndDropBlock.Message.Type,
-      Message,
-      Model
-    >,
-  ) => foldDragAndDropOutMessage(context.modelBeforeUpdate)(outMessage),
-}
+  },
+)
 
 export const DragAndDropBinding = ApplicationDefinition.bindChild(
   DragAndDropBlock,
@@ -144,6 +134,6 @@ export const DragAndDropBinding = ApplicationDefinition.bindChild(
       contextToArgs: () => [{ id: 'kanban' }],
       toParentFields: dragAndDrop => ({ dragAndDrop }),
     },
-    outMessage: dragAndDropOutMessagePolicy,
+    outMessage: { fold: foldDragAndDropOutMessage },
   },
 )

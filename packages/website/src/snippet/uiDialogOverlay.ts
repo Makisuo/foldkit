@@ -2,7 +2,7 @@ import { Option, Schema, Tuple } from 'effect'
 // Pseudocode walkthrough of the Foldkit integration points. Each labeled
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -28,36 +28,36 @@ const Model = Schema.Struct({
   maybeCity: Schema.Option(City),
   // ...your other fields
 })
-type Model = typeof Model.Type
 
 // This excerpt has no parent-owned facts. The two Bindings derive distinct
 // generated delivery for Dialog and Combobox.
 const Message = defineMessageUnion({})
-type Message = typeof Message.Type
-
-const foldDialogOutMessage = Dialog.DialogBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => FilterDialogDefinition.stepNoop(),
-  Closed: () => FilterDialogDefinition.stepNoop(),
-  CompletedClose: () => FilterDialogDefinition.stepNoop(),
-})
-
-const foldComboboxOutMessage = CityCombobox.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { maybeCity: () => Option.some(value) }),
-    }),
-  ClearedSelection: () => FilterDialogDefinition.stepNoop(),
-})
 
 const FilterDialogDefinition = Block.makeDefinition('FilterDialog', {
   Model,
   Message,
 })
+
+const foldDialogOutMessage = FilterDialogDefinition.makeOutMessageFold(
+  Dialog.DialogBlock,
+  {
+    Opened: () => FilterDialogDefinition.stepNoop(),
+    Closed: () => FilterDialogDefinition.stepNoop(),
+    CompletedClose: () => FilterDialogDefinition.stepNoop(),
+  },
+)
+
+const foldComboboxOutMessage = FilterDialogDefinition.makeOutMessageFold(
+  CityCombobox,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, { maybeCity: () => Option.some(value) }),
+      }),
+    ClearedSelection: () => FilterDialogDefinition.stepNoop(),
+  },
+)
 
 const DialogBinding = FilterDialogDefinition.bindChild(Dialog.DialogBlock, {
   field: 'dialog',

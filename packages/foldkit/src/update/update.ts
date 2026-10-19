@@ -884,23 +884,25 @@ export const combine: {
       StepsForModel<Steps, OperationStepModel<Steps>> &
       RequireOperationStep<Steps> &
       StepsWithoutOutMessage<NoInfer<Steps>>,
-  ): (
-    model: GraphInput<
-      OperationStepModel<Steps>,
-      CombinedGraphRequirement<Steps>
-    >,
-  ) => CombinedStepRecipe<OperationStepModel<Steps>, Steps>
+  ): NoInfer<
+    (
+      model: GraphInput<
+        OperationStepModel<Steps>,
+        CombinedGraphRequirement<Steps>
+      >,
+    ) => CombinedStepRecipe<OperationStepModel<Steps>, Steps>
+  >
   <ModelInput, const Steps extends NonEmptySteps>(
     model: ModelInput &
       GraphInput<
         GraphModelOfValue<ModelInput>,
-        CombinedGraphRequirement<Steps>
+        NoInfer<CombinedGraphRequirement<Steps>>
       >,
     steps: Steps &
       StepsForModel<Steps, GraphModelOfValue<ModelInput>> &
       RequireOperationStep<Steps> &
       StepsWithoutOutMessage<NoInfer<Steps>>,
-  ): CombinedStepRecipe<GraphModelOfValue<ModelInput>, Steps>
+  ): NoInfer<CombinedStepRecipe<GraphModelOfValue<ModelInput>, Steps>>
   <StepValue>(
     steps: ReadonlyArray<StepValue> &
       StepsForModel<
@@ -909,25 +911,27 @@ export const combine: {
       > &
       RequireOperationStep<CommonOperationSteps<StepValue>> &
       StepsWithoutOutMessage<ReadonlyArray<StepValue>>,
-  ): (
-    model: GraphInput<
-      OperationStepModel<CommonOperationSteps<StepValue>>,
-      CombinedGraphRequirement<CommonOperationSteps<StepValue>>
-    >,
-  ) =>
-    | CombinedStepOutputFor<
+  ): NoInfer<
+    (
+      model: GraphInput<
         OperationStepModel<CommonOperationSteps<StepValue>>,
-        CommonOperationSteps<StepValue>
-      >
-    | CombinedStepRecipe<
-        OperationStepModel<CommonOperationSteps<StepValue>>,
-        CommonOperationSteps<StepValue>
-      >
+        CombinedGraphRequirement<CommonOperationSteps<StepValue>>
+      >,
+    ) =>
+      | CombinedStepOutputFor<
+          OperationStepModel<CommonOperationSteps<StepValue>>,
+          CommonOperationSteps<StepValue>
+        >
+      | CombinedStepRecipe<
+          OperationStepModel<CommonOperationSteps<StepValue>>,
+          CommonOperationSteps<StepValue>
+        >
+  >
   <ModelInput, StepValue>(
     model: ModelInput &
       GraphInput<
         GraphModelOfValue<ModelInput>,
-        CombinedGraphRequirement<CommonOperationSteps<StepValue>>
+        NoInfer<CombinedGraphRequirement<CommonOperationSteps<StepValue>>>
       >,
     steps: ReadonlyArray<StepValue> &
       StepsForModel<
@@ -936,7 +940,7 @@ export const combine: {
       > &
       RequireOperationStep<CommonOperationSteps<StepValue>> &
       StepsWithoutOutMessage<ReadonlyArray<StepValue>>,
-  ):
+  ): NoInfer<
     | CombinedStepOutputFor<
         GraphModelOfValue<ModelInput>,
         CommonOperationSteps<StepValue>
@@ -945,6 +949,7 @@ export const combine: {
         GraphModelOfValue<ModelInput>,
         CommonOperationSteps<StepValue>
       >
+  >
   <const Steps extends NonEmptySteps>(
     steps: Steps &
       StepsForModel<Steps, FirstStepModel<Steps>> &

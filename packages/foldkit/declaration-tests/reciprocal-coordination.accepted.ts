@@ -199,28 +199,24 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message: ApplicationMessage,
 })
 
-const foldRoomOutMessage = (
-  _roomId: string,
-  outMessage: typeof RoomOutMessage.Type,
-) =>
-  RoomOutMessage.match(outMessage, {
-    LeftRoom: () =>
-      Update.combine([
-        ApplicationDefinition.step(model => ({
-          model: Struct.modifyFields(model, {
-            route: () => ApplicationRoute.Home(),
-            maybeRoomInstance: () => Option.none(),
-          }),
-        })),
-        HomeBinding.resetJoinForm(''),
-      ]),
-  })
+const foldRoomOutMessage = ApplicationDefinition.makeOutMessageFold(RoomBlock, {
+  LeftRoom: () =>
+    Update.combine([
+      ApplicationDefinition.step(model => ({
+        model: Struct.modifyFields(model, {
+          route: () => ApplicationRoute.Home(),
+          maybeRoomInstance: () => Option.none(),
+        }),
+      })),
+      HomeBinding.resetJoinForm(''),
+    ]),
+})
 
 export const HomeBinding = ApplicationDefinition.bindChild(HomeBlock, {
   field: 'home',
   presentWhen: model => model.route._tag === 'Home',
   outMessage: {
-    fold: HomeOutMessage.match({
+    fold: ApplicationDefinition.makeOutMessageFold(HomeBlock, {
       JoinedRoom: ({ roomId, username }) => {
         return Update.combine([
           ApplicationDefinition.step(model =>
@@ -264,7 +260,9 @@ export const RoomBinding = ApplicationDefinition.bindChild(RoomBlock, {
       model.route._tag === 'Room' && model.route.roomId === roomId,
     toUpdateContext: (_model, roomId) => [{ roomId }],
   },
-  outMessage: { fold: foldRoomOutMessage },
+  outMessage: {
+    fold: (_roomId, outMessage) => foldRoomOutMessage(outMessage),
+  },
 })
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({

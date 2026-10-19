@@ -1,21 +1,15 @@
 import { Tuple } from 'effect'
 import type { Block } from 'foldkit'
-import { Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import {
-  Message,
-  Model,
   NoteDurationRadioGroupBlock,
   NotePlayerDemoDefinition,
 } from './definition'
 import { prependToLog } from './messageLog'
 
 const foldNoteDurationRadioGroupOutMessage =
-  NoteDurationRadioGroupBlock.OutMessage.match<
-    Update.Step<Model, Message>,
-    typeof NoteDurationRadioGroupBlock.OutMessage.Type
-  >({
+  NotePlayerDemoDefinition.makeOutMessageFold(NoteDurationRadioGroupBlock, {
     Selected:
       ({ value }) =>
       model => ({

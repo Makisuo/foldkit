@@ -257,7 +257,7 @@ The authored parent Message Schema contains only local facts. Composition derive
 Register that route and its OutMessage policy on the Binding:
 
 ```ts
-import { Block, type Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { DialogBlock } from './dialog'
 import { Message } from './message'
 import { Model } from './model'
@@ -266,13 +266,14 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const foldDialogOutMessage = DialogBlock.OutMessage.match<
-  Update.Step<typeof Model.Type, typeof Message.Type>
->({
-  Opened: () => model => ({ model }),
-  Closed: () => model => ({ model }),
-  CompletedClose: () => resetSearch,
-})
+const foldDialogOutMessage = ApplicationDefinition.makeOutMessageFold(
+  DialogBlock,
+  {
+    Opened: () => model => ({ model }),
+    Closed: () => model => ({ model }),
+    CompletedClose: () => resetSearch,
+  },
+)
 const DialogBinding = ApplicationDefinition.bindChild(DialogBlock, {
   field: 'dialog',
   outMessage: { fold: foldDialogOutMessage },
@@ -307,7 +308,7 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const foldHomeOutMessage = HomeBlock.OutMessage.match({
+const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(HomeBlock, {
   SelectedArticle: ({ articleId }) => openArticle(articleId),
 })
 export const HomeBinding = ApplicationDefinition.bindChild(HomeBlock, {

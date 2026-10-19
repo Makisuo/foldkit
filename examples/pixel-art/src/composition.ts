@@ -17,7 +17,6 @@ import {
 import { DEFAULT_COLOR_INDEX } from './constant'
 import { ApplicationDefinition } from './definition'
 import { createEmptyGrid, isGridEmpty } from './grid'
-import { Message } from './message'
 import {
   Model,
   type PaletteIndex,
@@ -26,15 +25,16 @@ import {
 } from './model'
 import { PALETTE_THEMES } from './palette'
 
-const foldErrorDialogOutMessage = DialogBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => ApplicationDefinition.stepNoop(),
-  Closed: () => model => ({
-    model: modifyFields(model, { maybeExportError: () => Option.none() }),
-  }),
-  CompletedClose: () => ApplicationDefinition.stepNoop(),
-})
+const foldErrorDialogOutMessage = ApplicationDefinition.makeOutMessageFold(
+  DialogBlock,
+  {
+    Opened: () => ApplicationDefinition.stepNoop(),
+    Closed: () => model => ({
+      model: modifyFields(model, { maybeExportError: () => Option.none() }),
+    }),
+    CompletedClose: () => ApplicationDefinition.stepNoop(),
+  },
+)
 
 export const ErrorDialogBinding = ApplicationDefinition.bindChild(DialogBlock, {
   field: 'errorDialog',
@@ -42,15 +42,14 @@ export const ErrorDialogBinding = ApplicationDefinition.bindChild(DialogBlock, {
   outMessage: { fold: foldErrorDialogOutMessage },
 })
 
-const foldGridSizeConfirmDialogOutMessage = DialogBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => ApplicationDefinition.stepNoop(),
-  Closed: () => model => ({
-    model: modifyFields(model, { maybePendingGridSize: () => Option.none() }),
-  }),
-  CompletedClose: () => ApplicationDefinition.stepNoop(),
-})
+const foldGridSizeConfirmDialogOutMessage =
+  ApplicationDefinition.makeOutMessageFold(DialogBlock, {
+    Opened: () => ApplicationDefinition.stepNoop(),
+    Closed: () => model => ({
+      model: modifyFields(model, { maybePendingGridSize: () => Option.none() }),
+    }),
+    CompletedClose: () => ApplicationDefinition.stepNoop(),
+  })
 
 export const GridSizeConfirmDialogBinding = ApplicationDefinition.bindChild(
   DialogBlock,
@@ -72,10 +71,13 @@ export const selectColor = (model: Model, colorIndex: PaletteIndex) => {
   return { model: nextModel, commands: [saveCanvas(nextModel)] }
 }
 
-const foldToolRadioGroupOutMessage = ToolRadioGroupBlock.OutMessage.match({
-  Selected: ({ value }) =>
-    ApplicationDefinition.step(model => selectTool(model, value)),
-})
+const foldToolRadioGroupOutMessage = ApplicationDefinition.makeOutMessageFold(
+  ToolRadioGroupBlock,
+  {
+    Selected: ({ value }) =>
+      ApplicationDefinition.step(model => selectTool(model, value)),
+  },
+)
 
 export const ToolRadioGroupBinding = ApplicationDefinition.bindChild(
   ToolRadioGroupBlock,
@@ -118,7 +120,7 @@ export const requestGridSizeChange = (size: number) =>
   })
 
 const foldGridSizeRadioGroupOutMessage =
-  GridSizeRadioGroupBlock.OutMessage.match({
+  ApplicationDefinition.makeOutMessageFold(GridSizeRadioGroupBlock, {
     Selected: ({ value }) => requestGridSizeChange(Number(value)),
   })
 
@@ -131,8 +133,8 @@ export const GridSizeRadioGroupBinding = ApplicationDefinition.bindChild(
   },
 )
 
-const foldPaletteRadioGroupOutMessage = PaletteRadioGroupBlock.OutMessage.match(
-  {
+const foldPaletteRadioGroupOutMessage =
+  ApplicationDefinition.makeOutMessageFold(PaletteRadioGroupBlock, {
     Selected: ({ value }) =>
       ApplicationDefinition.step(model =>
         selectColor(
@@ -140,8 +142,7 @@ const foldPaletteRadioGroupOutMessage = PaletteRadioGroupBlock.OutMessage.match(
           paletteIndexFromValue(value, model.selectedColorIndex),
         ),
       ),
-  },
-)
+  })
 
 export const PaletteRadioGroupBinding = ApplicationDefinition.bindChild(
   PaletteRadioGroupBlock,
@@ -152,21 +153,24 @@ export const PaletteRadioGroupBinding = ApplicationDefinition.bindChild(
   },
 )
 
-const foldThemeListboxOutMessage = ThemeListboxBlock.OutMessage.match({
-  Selected: ({ value }) =>
-    ApplicationDefinition.step(model => {
-      const themeIndex = Number(value)
-      const maybeNextTheme = Array.get(PALETTE_THEMES, themeIndex)
-      if (Option.isNone(maybeNextTheme)) {
-        return { model }
-      }
-      const nextModel = modifyFields(model, {
-        paletteThemeIndex: () => themeIndex,
-        selectedColorIndex: () => DEFAULT_COLOR_INDEX,
-      })
-      return { model: nextModel, commands: [saveCanvas(nextModel)] }
-    }),
-})
+const foldThemeListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
+  ThemeListboxBlock,
+  {
+    Selected: ({ value }) =>
+      ApplicationDefinition.step(model => {
+        const themeIndex = Number(value)
+        const maybeNextTheme = Array.get(PALETTE_THEMES, themeIndex)
+        if (Option.isNone(maybeNextTheme)) {
+          return { model }
+        }
+        const nextModel = modifyFields(model, {
+          paletteThemeIndex: () => themeIndex,
+          selectedColorIndex: () => DEFAULT_COLOR_INDEX,
+        })
+        return { model: nextModel, commands: [saveCanvas(nextModel)] }
+      }),
+  },
+)
 
 export const ThemeListboxBinding = ApplicationDefinition.bindChild(
   ThemeListboxBlock,

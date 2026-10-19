@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit each into your own Model, init, Message,
 // update, view, and subscription definitions.
 import { Schema, Tuple } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -17,35 +17,35 @@ const Model = Schema.Struct({
   ratingDemo: Slider.SliderBlock.Model,
   // ...your other fields
 })
-type Model = typeof Model.Type
 
 // This excerpt has no parent-owned facts. The Composition derives delivery.
 const Message = defineMessageUnion({})
-type Message = typeof Message.Type
 
-// At module scope, fold the OutMessage into your own Model. `ChangedValue`
-// carries the new number. Lift it to domain state, validate, or persist on
-// each commit. The arm returns an Update.Step over the parent Model, which
-// already has the next Slider Model written back:
-const foldSliderOutMessage = Slider.SliderBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  // The child has emitted `ChangedValue`. Store the new value in the field
-  // you own. This arm is also where the parent can validate, persist, or
-  // trigger a downstream Command.
-  ChangedValue:
-    ({ value }) =>
-    model => ({ model: modifyFields(model, { ratingValue: () => value }) }),
-})
-
-// The Binding wires the completed child Block into the parent: it runs Slider.SliderBlock.update,
-// writes the next Slider Model back, routes generated delivery and Command
-// results, and hands any OutMessage to the OutMessage fold.
 const VolumeSliderDefinition = Block.makeDefinition('VolumeSlider', {
   Model,
   Message,
 })
 
+// At module scope, fold the OutMessage into your own Model. `ChangedValue`
+// carries the new number. Lift it to domain state, validate, or persist on
+// each commit. The arm returns an Update.Step over the parent Model, which
+// already has the next Slider Model written back. The parent Definition
+// checks the complete child union and infers the handler's Model:
+const foldSliderOutMessage = VolumeSliderDefinition.makeOutMessageFold(
+  Slider.SliderBlock,
+  {
+    // The child has emitted `ChangedValue`. Store the new value in the field
+    // you own. This arm is also where the parent can validate, persist, or
+    // trigger a downstream Command.
+    ChangedValue:
+      ({ value }) =>
+      model => ({ model: modifyFields(model, { ratingValue: () => value }) }),
+  },
+)
+
+// The Binding wires the completed child Block into the parent: it runs Slider.SliderBlock.update,
+// writes the next Slider Model back, routes generated delivery and Command
+// results, and hands any OutMessage to the OutMessage fold.
 const SliderBinding = VolumeSliderDefinition.bindChild(Slider.SliderBlock, {
   field: 'ratingDemo',
   init: {

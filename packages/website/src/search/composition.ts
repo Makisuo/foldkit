@@ -1,17 +1,12 @@
 import { Tuple } from 'effect'
 import type { Block } from 'foldkit'
-import { Update } from 'foldkit'
 
 import { DialogBlock } from '@foldkit/ui'
 
 import { clearSearchQuery } from './clear'
 import { SearchDefinition } from './definition'
-import { Message } from './message'
-import { Model } from './model'
 
-const foldDialogOutMessage = DialogBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
+const foldDialogOutMessage = SearchDefinition.makeOutMessageFold(DialogBlock, {
   Opened: () => SearchDefinition.stepNoop(),
   Closed: () => SearchDefinition.stepNoop(),
   CompletedClose: () => clearSearchQuery,

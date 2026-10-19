@@ -1,21 +1,12 @@
-import { type Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
-import {
-  Message,
-  type Model,
-  ProficiencyRadioGroup,
-  SkillsEntryDefinition,
-} from './definition'
+import { ProficiencyRadioGroup, SkillsEntryDefinition } from './definition'
 
 const proficiencyRadioGroupId = (entryId: string): string =>
   `${entryId}-proficiency`
 
 const foldProficiencyRadioGroupOutMessage =
-  ProficiencyRadioGroup.OutMessage.match<
-    Update.Step<Model, Message>,
-    typeof ProficiencyRadioGroup.OutMessage.Type
-  >({
+  SkillsEntryDefinition.makeOutMessageFold(ProficiencyRadioGroup, {
     Selected:
       ({ value }) =>
       model => ({

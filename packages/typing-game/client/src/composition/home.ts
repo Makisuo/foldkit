@@ -49,7 +49,7 @@ const enterJoinedRoom = (roomId: string, player: Shared.Player) =>
     navigateToRoom(roomId),
   ])
 
-const foldHomeOutMessage = HomeBlock.OutMessage.match({
+const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(HomeBlock, {
   CreatedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
   JoinedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
 })

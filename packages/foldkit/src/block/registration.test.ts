@@ -153,24 +153,24 @@ const omittedCombinedStep = OmittedParent.assembleBlock({
 })
 
 const dynamicChildSteps = Array.map([ChildBinding.reset()], step => step)
+const registeredDynamicCombinedUpdate = RegisteredParent.makeUpdate(model =>
+  Update.combine(model, dynamicChildSteps),
+)
 const registeredDynamicCombinedStep = RegisteredParent.assembleBlock({
   init: RegisteredParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
-  update: RegisteredParent.makeUpdate(model =>
-    Update.combine(model, dynamicChildSteps),
-  ),
+  update: registeredDynamicCombinedUpdate,
   EffectsLayer: Layer.empty,
 })
-// @ts-expect-error A computed Step list retains its child registration.
+// @ts-expect-error A computed Step list cannot execute without its registered Binding.
+OmittedParent.makeUpdate(model => Update.combine(model, dynamicChildSteps))
 const omittedDynamicCombinedStep = OmittedParent.assembleBlock({
   init: OmittedParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
-  update: OmittedParent.makeUpdate(model =>
-    // @ts-expect-error A computed Step list cannot execute without its registered Binding.
-    Update.combine(model, dynamicChildSteps),
-  ),
+  // @ts-expect-error A computed Step list retains its child registration and generated dispatch Schema.
+  update: registeredDynamicCombinedUpdate,
   EffectsLayer: Layer.empty,
 })
 
@@ -229,16 +229,14 @@ const registeredBranchUpdate = RegisteredParent.assembleBlock({
   update: registeredBranchDefinedUpdate,
   EffectsLayer: Layer.empty,
 })
-const omittedBranchDefinedUpdate = OmittedParent.makeUpdate((model, message) =>
-  // @ts-expect-error A conditional child Step cannot execute without its registered Binding.
-  branchUpdate(model, message),
-)
-// @ts-expect-error A union return retains registration from its child branch.
+// @ts-expect-error A conditional child Step cannot execute without its registered Binding.
+OmittedParent.makeUpdate((model, message) => branchUpdate(model, message))
 const omittedBranchUpdate = OmittedParent.assembleBlock({
   init: OmittedParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
-  update: omittedBranchDefinedUpdate,
+  // @ts-expect-error A union return retains registration from its child branch and its dispatch Schema.
+  update: registeredBranchDefinedUpdate,
   EffectsLayer: Layer.empty,
 })
 

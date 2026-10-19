@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Effect, Match, Option, Schema, Tuple } from 'effect'
-import { Block, Calendar, Update } from 'foldkit'
+import { Block, Calendar } from 'foldkit'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -43,40 +43,42 @@ const flags = Effect.gen(function* () {
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-// At module scope, fold the OutMessage into your own Model. When the user
-// commits a date (click, Enter, or Space) it carries `SelectedDate({ date })`.
-// `ChangedViewMonth` fires when navigation shifts the visible month without
-// selecting a date. Each arm returns an Update.Step over the parent Model,
-// which already has the next Calendar Model written back:
-const foldCalendarOutMessage = UiCalendar.CalendarBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  // The child has emitted `SelectedDate`. This is where the parent lifts
-  // the committed date into its own field. That field is then passed back
-  // to the calendar as `maybeSelectedDate`, so the parent stays the single
-  // source of truth for the selection.
-  SelectedDate:
-    ({ date }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeSelectedDate: () => Option.some(date),
-      }),
-    }),
-  // The child has emitted `ChangedViewMonth`. In this arm the parent can
-  // update its own state or dispatch its own Commands, for example
-  // prefetch month data, fire analytics, or trigger a downstream Command.
-  ChangedViewMonth: () => CalendarExampleDefinition.stepNoop(),
-})
-
-// The Binding wires the completed child Block into the parent: it delegates navigation,
-// focus, and picker-mode transitions to UiCalendar.CalendarBlock.update, writes the next
-// Calendar Model back, routes generated delivery and Command results,
-// and hands any OutMessage to the OutMessage fold.
 const CalendarExampleDefinition = Block.makeDefinition('CalendarExample', {
   Model,
   Message,
 })
 
+// At module scope, fold the OutMessage into your own Model. When the user
+// commits a date (click, Enter, or Space) it carries `SelectedDate({ date })`.
+// `ChangedViewMonth` fires when navigation shifts the visible month without
+// selecting a date. Each arm returns an Update.Step over the parent Model,
+// which already has the next Calendar Model written back. The parent
+// Definition checks every named variant and infers the parent Step:
+const foldCalendarOutMessage = CalendarExampleDefinition.makeOutMessageFold(
+  UiCalendar.CalendarBlock,
+  {
+    // The child has emitted `SelectedDate`. This is where the parent lifts
+    // the committed date into its own field. That field is then passed back
+    // to the calendar as `maybeSelectedDate`, so the parent stays the single
+    // source of truth for the selection.
+    SelectedDate:
+      ({ date }) =>
+      model => ({
+        model: modifyFields(model, {
+          maybeSelectedDate: () => Option.some(date),
+        }),
+      }),
+    // The child has emitted `ChangedViewMonth`. In this arm the parent can
+    // update its own state or dispatch its own Commands, for example
+    // prefetch month data, fire analytics, or trigger a downstream Command.
+    ChangedViewMonth: () => CalendarExampleDefinition.stepNoop(),
+  },
+)
+
+// The Binding wires the completed child Block into the parent: it delegates navigation,
+// focus, and picker-mode transitions to UiCalendar.CalendarBlock.update, writes the next
+// Calendar Model back, routes generated delivery and Command results,
+// and hands any OutMessage to the OutMessage fold.
 const CalendarBinding = CalendarExampleDefinition.bindChild(
   UiCalendar.CalendarBlock,
   {

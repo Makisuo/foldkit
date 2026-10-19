@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Option, Schema, Tuple } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -29,35 +29,37 @@ const Model = Schema.Struct({
   listbox: CharacterListbox.Model,
   // ...your other fields
 })
-type Model = typeof Model.Type
 
 // This excerpt has no parent-owned facts. The Composition derives delivery.
 const Message = defineMessageUnion({})
-type Message = typeof Message.Type
 
-// At module scope, fold the OutMessage into your own Model. On selection, the
-// `Selected` variant carries the chosen item's string value (the result of
-// `itemToValue`). The arm returns an Update.Step over the parent Model, which
-// already has the next Listbox Model written back:
-const foldListboxOutMessage = CharacterListbox.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { maybeCharacter: () => Option.some(value) }),
-    }),
-})
-
-// The Binding wires the completed child Block into the parent: it delegates keyboard
-// navigation, typeahead, and open/close to CharacterListbox.update, writes the
-// next Listbox Model back, routes generated delivery and Command results, and
-// hands any OutMessage to the OutMessage fold.
 const CharacterPickerDefinition = Block.makeDefinition('CharacterPicker', {
   Model,
   Message,
 })
 
+// At module scope, fold the OutMessage into your own Model. On selection, the
+// `Selected` variant carries the chosen item's string value (the result of
+// `itemToValue`). The arm returns an Update.Step over the parent Model, which
+// already has the next Listbox Model written back. The whole child Block
+// preserves the refined string payload without repeated Step types:
+const foldListboxOutMessage = CharacterPickerDefinition.makeOutMessageFold(
+  CharacterListbox,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, {
+          maybeCharacter: () => Option.some(value),
+        }),
+      }),
+  },
+)
+
+// The Binding wires the completed child Block into the parent: it delegates keyboard
+// navigation, typeahead, and open/close to CharacterListbox.update, writes the
+// next Listbox Model back, routes generated delivery and Command results, and
+// hands any OutMessage to the OutMessage fold.
 const CharacterListboxBinding = CharacterPickerDefinition.bindChild(
   CharacterListbox,
   {

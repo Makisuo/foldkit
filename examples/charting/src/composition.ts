@@ -69,7 +69,7 @@ const selectedControl =
   }
 
 const foldChartModeRadioGroupOutMessage =
-  ChartModeRadioGroupBlock.OutMessage.match({
+  ApplicationDefinition.makeOutMessageFold(ChartModeRadioGroupBlock, {
     Selected: ({ value }) =>
       selectedControl(modifyFields({ chartMode: () => value })),
   })
@@ -83,10 +83,13 @@ export const ChartModeRadioGroupBinding = ApplicationDefinition.bindChild(
   },
 )
 
-const foldPeriodRadioGroupOutMessage = PeriodRadioGroupBlock.OutMessage.match({
-  Selected: ({ value }) =>
-    selectedControl(modifyFields({ period: () => value })),
-})
+const foldPeriodRadioGroupOutMessage = ApplicationDefinition.makeOutMessageFold(
+  PeriodRadioGroupBlock,
+  {
+    Selected: ({ value }) =>
+      selectedControl(modifyFields({ period: () => value })),
+  },
+)
 
 export const PeriodRadioGroupBinding = ApplicationDefinition.bindChild(
   PeriodRadioGroupBlock,
@@ -97,12 +100,11 @@ export const PeriodRadioGroupBinding = ApplicationDefinition.bindChild(
   },
 )
 
-const foldPackageRadioGroupOutMessage = PackageRadioGroupBlock.OutMessage.match(
-  {
+const foldPackageRadioGroupOutMessage =
+  ApplicationDefinition.makeOutMessageFold(PackageRadioGroupBlock, {
     Selected: ({ value }) =>
       selectedControl(modifyFields({ selectedPackageId: () => value })),
-  },
-)
+  })
 
 export const PackageRadioGroupBinding = ApplicationDefinition.bindChild(
   PackageRadioGroupBlock,

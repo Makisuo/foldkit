@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Option, Schema, Tuple } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -31,29 +31,31 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
-// At module scope, fold the OutMessage into your own Model. When the user
-// commits a selection it carries `Selected({ value })` where `value: Plan`.
-// The arm returns an Update.Step over the parent Model, which already has the
-// next Listbox Model written back:
-const foldListboxOutMessage = PlanListbox.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { maybePlan: () => Option.some(value) }),
-    }),
-})
-
-// The Binding wires the completed child Block into the parent: it delegates keyboard
-// navigation, typeahead, and open/close to PlanListbox.update, writes the next
-// Listbox Model back, routes generated delivery and Command results, and
-// hands any OutMessage to the OutMessage fold.
 const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
   Model,
   Message,
 })
 
+// At module scope, fold the OutMessage into your own Model. When the user
+// commits a selection it carries `Selected({ value })` where `value: Plan`.
+// The arm returns an Update.Step over the parent Model, which already has the
+// next Listbox Model written back. Passing the completed child Block preserves
+// the factory's refined `Plan` payload without a repeated type argument:
+const foldListboxOutMessage = PlanPickerDefinition.makeOutMessageFold(
+  PlanListbox,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, { maybePlan: () => Option.some(value) }),
+      }),
+  },
+)
+
+// The Binding wires the completed child Block into the parent: it delegates keyboard
+// navigation, typeahead, and open/close to PlanListbox.update, writes the next
+// Listbox Model back, routes generated delivery and Command results, and
+// hands any OutMessage to the OutMessage fold.
 const PlanListboxBinding = PlanPickerDefinition.bindChild(PlanListbox, {
   field: 'listbox',
   init: { contextToArgs: () => Tuple.make({ id: 'plan' }) },

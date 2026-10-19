@@ -1,28 +1,30 @@
 import { ApplicationDefinition } from './definition'
 
-const foldSearchOutMessage = Search.SearchBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  RestoredQuery:
-    ({ query }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeRestoredQuery: () => Option.some(query),
+const foldSearchOutMessage = ApplicationDefinition.makeOutMessageFold(
+  Search.SearchBlock,
+  {
+    RestoredQuery:
+      ({ query }) =>
+      model => ({
+        model: modifyFields(model, {
+          maybeRestoredQuery: () => Option.some(query),
+        }),
       }),
-    }),
-})
+  },
+)
 
-const foldEditorOutMessage = Editor.EditorBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  RestoredDraft:
-    ({ documentId }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeRestoredDocumentId: () => Option.some(documentId),
+const foldEditorOutMessage = ApplicationDefinition.makeOutMessageFold(
+  Editor.EditorBlock,
+  {
+    RestoredDraft:
+      ({ documentId }) =>
+      model => ({
+        model: modifyFields(model, {
+          maybeRestoredDocumentId: () => Option.some(documentId),
+        }),
       }),
-    }),
-})
+  },
+)
 
 const SearchBinding = ApplicationDefinition.bindChild(Search.SearchBlock, {
   field: 'search',

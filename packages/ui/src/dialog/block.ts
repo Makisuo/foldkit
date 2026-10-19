@@ -261,7 +261,6 @@ const isOpenOrAnimating = (model: Model): boolean =>
   model.isOpen || model.animation.transitionState !== 'Idle'
 
 type AnimationMessage = typeof Animation.AnimationBlock.Message.Type
-type AnimationOutMessage = typeof Animation.AnimationBlock.OutMessage.Type
 
 const foldStartedLeaveAnimating = (
   liftCommand: Update.FoldContext<AnimationMessage, Message>['liftCommand'],
@@ -276,18 +275,14 @@ const foldTransitionedOut = DialogDefinition.step(model => ({
   commands: [CloseDialog({ id: model.id })],
 }))
 
-type FoldAnimationStep =
-  | ReturnType<typeof foldStartedLeaveAnimating>
-  | typeof foldTransitionedOut
-
-const foldAnimationOutMessage = (
-  outMessage: AnimationOutMessage,
-  { liftCommand }: Update.FoldContext<AnimationMessage, Message>,
-): FoldAnimationStep =>
-  Animation.AnimationBlock.OutMessage.match<FoldAnimationStep>(outMessage, {
-    StartedLeaveAnimating: () => foldStartedLeaveAnimating(liftCommand),
+const foldAnimationOutMessage = DialogDefinition.makeOutMessageFold(
+  Animation.AnimationBlock,
+  {
+    StartedLeaveAnimating: (_outMessage, { liftCommand }) =>
+      foldStartedLeaveAnimating(liftCommand),
     TransitionedOut: () => foldTransitionedOut,
-  })
+  },
+)
 
 const AnimationBinding = DialogDefinition.bindChild(Animation.AnimationBlock, {
   field: 'animation',

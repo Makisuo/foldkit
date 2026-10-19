@@ -14,9 +14,12 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const foldToastOutMessage = ToastBlock.OutMessage.match({
-  DismissedToast: () => ApplicationDefinition.stepNoop(),
-})
+const foldToastOutMessage = ApplicationDefinition.makeOutMessageFold(
+  ToastBlock,
+  {
+    DismissedToast: () => ApplicationDefinition.stepNoop(),
+  },
+)
 const ToastBinding = ApplicationDefinition.bindChild(ToastBlock, {
   field: 'toast',
   init: {

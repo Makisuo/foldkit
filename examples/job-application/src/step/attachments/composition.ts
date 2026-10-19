@@ -1,24 +1,25 @@
 import { Array, Option } from 'effect'
-import { type Block, type Update } from 'foldkit'
+import type { Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { FileDropBlock } from '@foldkit/ui'
 
-import { AttachmentsDefinition, Message, type Model } from './definition'
+import { AttachmentsDefinition } from './definition'
 
-const foldResumeDropOutMessage = FileDropBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ReceivedFiles:
-    ({ files }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeResume: () =>
-          Option.orElse(Array.head(files), () => model.maybeResume),
+const foldResumeDropOutMessage = AttachmentsDefinition.makeOutMessageFold(
+  FileDropBlock,
+  {
+    ReceivedFiles:
+      ({ files }) =>
+      model => ({
+        model: modifyFields(model, {
+          maybeResume: () =>
+            Option.orElse(Array.head(files), () => model.maybeResume),
+        }),
       }),
-    }),
-  RejectedNonFiles: () => AttachmentsDefinition.stepNoop(),
-})
+    RejectedNonFiles: () => AttachmentsDefinition.stepNoop(),
+  },
+)
 
 export const ResumeDropBinding = AttachmentsDefinition.bindChild(
   FileDropBlock,
@@ -29,18 +30,17 @@ export const ResumeDropBinding = AttachmentsDefinition.bindChild(
   },
 )
 
-const foldAdditionalFilesDropOutMessage = FileDropBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ReceivedFiles:
-    ({ files }) =>
-    model => ({
-      model: modifyFields(model, {
-        additionalFiles: Array.appendAll(files),
+const foldAdditionalFilesDropOutMessage =
+  AttachmentsDefinition.makeOutMessageFold(FileDropBlock, {
+    ReceivedFiles:
+      ({ files }) =>
+      model => ({
+        model: modifyFields(model, {
+          additionalFiles: Array.appendAll(files),
+        }),
       }),
-    }),
-  RejectedNonFiles: () => AttachmentsDefinition.stepNoop(),
-})
+    RejectedNonFiles: () => AttachmentsDefinition.stepNoop(),
+  })
 
 export const AdditionalFilesDropBinding = AttachmentsDefinition.bindChild(
   FileDropBlock,

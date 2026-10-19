@@ -5,13 +5,16 @@ import { ApplicationDefinition } from '../definition'
 import { LoggedInBlock, LoggedOutBlock } from '../page'
 import { ApplicationRoute } from '../route'
 
-const foldLoggedOutOutMessage = LoggedOutBlock.OutMessage.match({
-  SucceededLogin: ({ session }) =>
-    ApplicationDefinition.step(() => ({
-      model: LoggedInBlock.init(ApplicationRoute.Dashboard(), session).model,
-      commands: [SaveSession({ session }), RedirectToDashboard()],
-    })),
-})
+const foldLoggedOutOutMessage = ApplicationDefinition.makeOutMessageFold(
+  LoggedOutBlock,
+  {
+    SucceededLogin: ({ session }) =>
+      ApplicationDefinition.step(() => ({
+        model: LoggedInBlock.init(ApplicationRoute.Dashboard(), session).model,
+        commands: [SaveSession({ session }), RedirectToDashboard()],
+      })),
+  },
+)
 
 export const LoggedOutBinding = ApplicationDefinition.bindChild(
   LoggedOutBlock,

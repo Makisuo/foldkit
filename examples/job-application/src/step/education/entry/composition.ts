@@ -1,16 +1,13 @@
 import { Option } from 'effect'
-import { type Update } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import {
   EducationEntryDefinition,
   GraduationYearListboxBlock,
-  Message,
-  type Model,
 } from './definition'
 
 const foldGraduationYearListboxOutMessage =
-  GraduationYearListboxBlock.OutMessage.match<Update.Step<Model, Message>>({
+  EducationEntryDefinition.makeOutMessageFold(GraduationYearListboxBlock, {
     Selected:
       ({ value }) =>
       model => ({

@@ -50,6 +50,7 @@ export type InitConfig = BaseInitConfig
  *  emits `ClearedSelection` when it closes with an empty input. */
 const defaultUpdate = makeUpdate(
   ComboboxDefinition.bindChild,
+  ComboboxDefinition.makeOutMessageFold,
   ComboboxDefinition.step,
   'CloseWithFocus',
   {
@@ -151,6 +152,7 @@ const makeBlockParts = <Item extends string, ItemEncoded>(
   })
   const itemUpdate = makeUpdate(
     ComboboxDefinition.bindChild,
+    ComboboxDefinition.makeOutMessageFold,
     ComboboxDefinition.step,
     'CloseWithFocus',
     {

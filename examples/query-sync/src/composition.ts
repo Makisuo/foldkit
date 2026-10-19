@@ -19,21 +19,24 @@ const selectionToParam = <A extends string>(
   )
 }
 
-const foldDietListboxOutMessage = DietListboxBlock.OutMessage.match({
-  Selected: ({ value }) =>
-    ApplicationDefinition.step(model => {
-      const fields = routeToBrowseFields(model.route)
-      return {
-        model,
-        commands: [
-          ReplaceFilters({
-            ...fields,
-            diet: selectionToParam(Option.some(value), Diet),
-          }),
-        ],
-      }
-    }),
-})
+const foldDietListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
+  DietListboxBlock,
+  {
+    Selected: ({ value }) =>
+      ApplicationDefinition.step(model => {
+        const fields = routeToBrowseFields(model.route)
+        return {
+          model,
+          commands: [
+            ReplaceFilters({
+              ...fields,
+              diet: selectionToParam(Option.some(value), Diet),
+            }),
+          ],
+        }
+      }),
+  },
+)
 
 export const DietListboxBinding = ApplicationDefinition.bindChild(
   DietListboxBlock,
@@ -44,21 +47,24 @@ export const DietListboxBinding = ApplicationDefinition.bindChild(
   },
 )
 
-const foldPeriodListboxOutMessage = PeriodListboxBlock.OutMessage.match({
-  Selected: ({ value }) =>
-    ApplicationDefinition.step(model => {
-      const fields = routeToBrowseFields(model.route)
-      return {
-        model,
-        commands: [
-          ReplaceFilters({
-            ...fields,
-            period: selectionToParam(Option.some(value), Period),
-          }),
-        ],
-      }
-    }),
-})
+const foldPeriodListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
+  PeriodListboxBlock,
+  {
+    Selected: ({ value }) =>
+      ApplicationDefinition.step(model => {
+        const fields = routeToBrowseFields(model.route)
+        return {
+          model,
+          commands: [
+            ReplaceFilters({
+              ...fields,
+              period: selectionToParam(Option.some(value), Period),
+            }),
+          ],
+        }
+      }),
+  },
+)
 
 export const PeriodListboxBinding = ApplicationDefinition.bindChild(
   PeriodListboxBlock,

@@ -1,5 +1,5 @@
 import { Array, Schema, Tuple } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -15,12 +15,10 @@ const Model = Schema.Struct({
   messages: Schema.Array(ChatMessage),
   messageList: MessageList.Model,
 })
-type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   ReceivedMessage: { message: ChatMessage },
 })
-type Message = typeof Message.Type
 
 const initialMessages: ReadonlyArray<typeof ChatMessage.Type> = []
 
@@ -32,11 +30,10 @@ const MessageListExampleDefinition = Block.makeDefinition(
   },
 )
 
-const foldMessageListOutMessage = MessageList.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ObservedContainerScroll: () => MessageListExampleDefinition.stepNoop(),
-})
+const foldMessageListOutMessage =
+  MessageListExampleDefinition.makeOutMessageFold(MessageList, {
+    ObservedContainerScroll: () => MessageListExampleDefinition.stepNoop(),
+  })
 
 const MessageListBinding = MessageListExampleDefinition.bindChild(MessageList, {
   field: 'messageList',

@@ -409,6 +409,12 @@ const checks: ReadonlyArray<
   }>
 > = [
   {
+    name: 'outmessage-fold',
+    accepted: ['outmessage-fold.accepted.ts'],
+    rejected: ['outmessage-fold.rejected.ts'],
+    consumers: ['outmessage-fold.consume.ts'],
+  },
+  {
     name: 'program-server',
     accepted: ['program-server.accepted.ts'],
     rejected: ['program-server.rejected.ts'],

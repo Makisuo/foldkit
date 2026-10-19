@@ -17,7 +17,11 @@ const SliderBinding = ApplicationDefinition.bindChild(Slider.SliderBlock, {
   init: {
     contextToArgs: () => [{ id: 'volume', min: 0, max: 10, step: 1 }],
   },
-  outMessage: { fold: () => ApplicationDefinition.stepNoop() },
+  outMessage: {
+    fold: ApplicationDefinition.makeOutMessageFold(Slider.SliderBlock, {
+      ChangedValue: () => ApplicationDefinition.stepNoop(),
+    }),
+  },
 })
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [SliderBinding],

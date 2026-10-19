@@ -1,23 +1,25 @@
 import { Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import * as Scene from 'foldkit/scene'
-import * as Update from 'foldkit/update'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
 
 import { AnchorTooltip, Model, TooltipBlock, triggerId } from './block.js'
-import { Message, OutMessage } from './message.js'
+import { Message } from './message.js'
 
 const TooltipSceneDefinition = Block.makeDefinition('TooltipScene', {
   Model,
   Message: Schema.Never,
 })
 
-const foldTooltipOutMessage = OutMessage.match<Update.Step<Model, never>>({
-  Shown: () => TooltipSceneDefinition.step(model => ({ model })),
-  Hidden: () => TooltipSceneDefinition.step(model => ({ model })),
-})
+const foldTooltipOutMessage = TooltipSceneDefinition.makeOutMessageFold(
+  TooltipBlock,
+  {
+    Shown: () => model => ({ model }),
+    Hidden: () => model => ({ model }),
+  },
+)
 
 const TooltipBinding = TooltipSceneDefinition.bindChild(TooltipBlock, {
   read: model => Option.some(model),

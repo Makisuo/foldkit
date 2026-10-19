@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Schema, Tuple } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 import { Popover } from '@foldkit/ui'
@@ -14,24 +14,23 @@ const Model = Schema.Struct({
   accountDetailsPopover: Popover.PopoverBlock.Model,
   // ...your other fields
 })
-type Model = typeof Model.Type
 
 // This excerpt has no parent-owned facts. Each Binding derives distinct
 // generated Popover delivery.
 const Message = defineMessageUnion({})
-type Message = typeof Message.Type
-
-const foldPopoverOutMessage = Popover.PopoverBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => AccountMenuDefinition.stepNoop(),
-  Closed: () => AccountMenuDefinition.stepNoop(),
-})
 
 const AccountMenuDefinition = Block.makeDefinition('AccountMenu', {
   Model,
   Message,
 })
+
+const foldPopoverOutMessage = AccountMenuDefinition.makeOutMessageFold(
+  Popover.PopoverBlock,
+  {
+    Opened: () => AccountMenuDefinition.stepNoop(),
+    Closed: () => AccountMenuDefinition.stepNoop(),
+  },
+)
 
 const AccountPopoverBinding = AccountMenuDefinition.bindChild(
   Popover.PopoverBlock,

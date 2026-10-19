@@ -382,6 +382,7 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
     typeof Message,
     ParentOutMessageSchema
   >,
+  makeOutMessageFold: Block.MakeOutMessageFold<BaseModel, Message, OutMessage>,
   step: Block.DefineStep<BaseModel, Message, OutMessage>,
   selectionBehavior: 'CloseWithFocus' | 'KeepOpen',
   handleSelectedItem: (
@@ -392,26 +393,18 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
   type Model = BaseModel
   type RoutedMessage = Message
 
-  const detectListboxMovementOrAnimationEnd = (generation: number) =>
-    step(model => ({
+  const detectListboxMovementOrAnimationEnd =
+    (generation: number) => (model: Model) => ({
       model,
       commands: [
         DetectListboxMovementOrAnimationEnd({ id: model.id, generation }),
       ],
-    }))
+    })
 
-  type AnimationOutMessageStep = ReturnType<
-    typeof detectListboxMovementOrAnimationEnd
-  >
-
-  const ignoreTransitionedOut = step(model => ({ model }))
-
-  const foldAnimationOutMessage = Animation.AnimationBlock.OutMessage.match<
-    AnimationOutMessageStep | typeof ignoreTransitionedOut
-  >({
+  const foldAnimationOutMessage = makeOutMessageFold(Animation.AnimationBlock, {
     StartedLeaveAnimating: ({ generation }) =>
       detectListboxMovementOrAnimationEnd(generation),
-    TransitionedOut: () => ignoreTransitionedOut,
+    TransitionedOut: () => model => ({ model }),
   })
 
   const AnimationBinding = bindChild(Animation.AnimationBlock, {

@@ -209,7 +209,7 @@ Pass the child Model as `model` and these fields as `viewInputs` to the composed
 
 ### OutMessage {#out-message}
 
-The child update and programmatic API return these facts through their optional `outMessage` field. Handle the complete union with the completed Block’s `OutMessage.match` in the Binding’s `outMessage.fold`, or provide an exhaustive `outMessage.forward` policy when facts continue to the current Block’s parent. The same union is exposed by `Combobox.Multi.create(Item)`.
+The child update and programmatic API return these facts through their optional `outMessage` field. Build the Binding's local fold with `ParentDefinition.makeOutMessageFold(ComboboxBlock, handlers)`, or provide an exhaustive `outMessage.forward` policy when facts continue to the current Block’s parent. Passing the whole completed Block preserves the exact item type returned by `Combobox.create(Item)` or `Combobox.Multi.create(Item)`.
 
 | Name               | Type              | Default | Description                                                                                                                                                                                                                                                                                                                                                               |
 | ------------------ | ----------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

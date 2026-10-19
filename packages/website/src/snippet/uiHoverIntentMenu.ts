@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Schema } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 import { HoverIntent } from '@foldkit/ui'
@@ -12,24 +12,23 @@ const Model = Schema.Struct({
   hoverMenu: HoverIntent.HoverIntentBlock.Model,
   // ...your other fields
 })
-type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   ClickedHoverMenuItem: {},
-})
-type Message = typeof Message.Type
-
-const foldHoverMenuOutMessage = HoverIntent.HoverIntentBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => HoverMenuDefinition.stepNoop(),
-  Closed: () => HoverMenuDefinition.stepNoop(),
 })
 
 const HoverMenuDefinition = Block.makeDefinition('HoverMenu', {
   Model,
   Message,
 })
+
+const foldHoverMenuOutMessage = HoverMenuDefinition.makeOutMessageFold(
+  HoverIntent.HoverIntentBlock,
+  {
+    Opened: () => HoverMenuDefinition.stepNoop(),
+    Closed: () => HoverMenuDefinition.stepNoop(),
+  },
+)
 
 const HoverMenuBinding = HoverMenuDefinition.bindChild(
   HoverIntent.HoverIntentBlock,

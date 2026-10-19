@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Schema, Tuple } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -28,6 +28,11 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({})
 type Message = typeof Message.Type
 
+const TabsExampleDefinition = Block.makeDefinition('TabsExample', {
+  Model,
+  Message,
+})
+
 const frameworks: ReadonlyArray<Framework> = ['Foldkit', 'React', 'Elm']
 
 const descriptions: Record<Framework, string> = {
@@ -40,28 +45,27 @@ const descriptions: Record<Framework, string> = {
 // carries the chosen value (typed as `Framework`) and its index. Fold the
 // value into your own Model so it flows back in as selectedValue. The arm
 // returns an Update.Step over the parent Model, which already has the next
-// Tabs Model written back:
-const foldTabsOutMessage = FrameworkTabs.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  // The child has emitted `Selected`. Store the selected value as the new
-  // active tab. In this arm the parent can also update its own state or
-  // dispatch Commands, for example route to a new URL, persist the
-  // selection, or trigger a panel content fetch.
-  Selected:
-    ({ value }) =>
-    model => ({ model: modifyFields(model, { activeFramework: () => value }) }),
-})
+// Tabs Model written back. Passing the whole child lets the parent Definition
+// infer the refined `Framework` OutMessage and parent Step:
+const foldTabsOutMessage = TabsExampleDefinition.makeOutMessageFold(
+  FrameworkTabs,
+  {
+    // The child has emitted `Selected`. Store the selected value as the new
+    // active tab. In this arm the parent can also update its own state or
+    // dispatch Commands, for example route to a new URL, persist the
+    // selection, or trigger a panel content fetch.
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, { activeFramework: () => value }),
+      }),
+  },
+)
 
 // The Binding wires the completed child Block into the parent: it runs
 // FrameworkTabs.update, writes the next Tabs Model back, maps the Block's
 // Commands into your Message type, and hands any OutMessage to
 // the OutMessage fold.
-const TabsExampleDefinition = Block.makeDefinition('TabsExample', {
-  Model,
-  Message,
-})
-
 const TabsBinding = TabsExampleDefinition.bindChild(FrameworkTabs, {
   field: 'tabs',
   init: { contextToArgs: () => Tuple.make({ id: 'framework-tabs' }) },

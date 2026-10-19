@@ -36,6 +36,31 @@ export const MultiPicker = Combobox.Multi.create(Item)
 export const ListPicker = Listbox.create<'Apple' | 'Pear'>()
 export const MultiListPicker = Listbox.Multi.create<'Apple' | 'Pear'>()
 export const MenuPicker = Menu.create<'Apple' | 'Pear'>()
+const MenuFoldModel = Schema.Struct({ selected: Item })
+export const MenuFoldFixtureDefinition = Block.makeDefinition(
+  'MenuFoldFixture',
+  {
+    Model: MenuFoldModel,
+    Message: Schema.Never,
+  },
+)
+export const foldMenuChoice = MenuFoldFixtureDefinition.makeOutMessageFold(
+  MenuPicker,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: Struct.modifyFields(model, { selected: () => value }),
+      }),
+    Closed: () => MenuFoldFixtureDefinition.stepNoop(),
+  },
+)
+export type FoldedMenuModel = Expect<
+  Equal<
+    ReturnType<ReturnType<typeof foldMenuChoice>>['model']['selected'],
+    'Apple' | 'Pear'
+  >
+>
 export const matchMenuOutMessage = MenuPicker.OutMessage.match<
   'Apple' | 'Pear' | 'Closed'
 >({
@@ -81,8 +106,8 @@ export const ToastBinding = ToastFixtureDefinition.bindChild(ToastBlock, {
   read: model => Option.some(model.toast),
   write: (model, toast) => Struct.modifyFields(model, { toast: () => toast }),
   outMessage: {
-    fold: ToastBlock.OutMessage.match({
-      DismissedToast: () => ToastFixtureDefinition.step(model => ({ model })),
+    fold: ToastFixtureDefinition.makeOutMessageFold(ToastBlock, {
+      DismissedToast: () => ToastFixtureDefinition.stepNoop(),
     }),
   },
 })
@@ -94,8 +119,8 @@ export const OtherToastBinding = ToastFixtureDefinition.bindChild(
     write: (model, otherToast) =>
       Struct.modifyFields(model, { otherToast: () => otherToast }),
     outMessage: {
-      fold: OtherToastBlock.OutMessage.match({
-        DismissedToast: () => ToastFixtureDefinition.step(model => ({ model })),
+      fold: ToastFixtureDefinition.makeOutMessageFold(OtherToastBlock, {
+        DismissedToast: () => ToastFixtureDefinition.stepNoop(),
       }),
     },
   },
@@ -112,6 +137,12 @@ const KeyedToastFixtureDefinition = Block.makeDefinition('KeyedToastFixture', {
   Model: Schema.Struct({ toasts: Schema.Array(ToastInstance) }),
   Message: Schema.Never,
 })
+const foldKeyedToastOutMessage = KeyedToastFixtureDefinition.makeOutMessageFold(
+  ToastBlock,
+  {
+    DismissedToast: () => KeyedToastFixtureDefinition.stepNoop(),
+  },
+)
 export const KeyedToastBinding = KeyedToastFixtureDefinition.bindChild(
   ToastBlock,
   {
@@ -119,10 +150,7 @@ export const KeyedToastBinding = KeyedToastFixtureDefinition.bindChild(
     key: 'id',
     childField: 'model',
     outMessage: {
-      fold: (_key, outMessage) =>
-        ToastBlock.OutMessage.match(outMessage, {
-          DismissedToast: () => KeyedToastFixtureDefinition.stepNoop(),
-        }),
+      fold: (_key, outMessage) => foldKeyedToastOutMessage(outMessage),
     },
   },
 )
@@ -154,10 +182,10 @@ export const DialogBinding = ApplicationDefinition.bindChild(
     field: 'dialog',
     init: { contextToArgs: () => [{ id: 'details' }] },
     outMessage: {
-      fold: Dialog.DialogBlock.OutMessage.match({
-        Opened: () => ApplicationDefinition.step(model => ({ model })),
-        Closed: () => ApplicationDefinition.step(model => ({ model })),
-        CompletedClose: () => ApplicationDefinition.step(model => ({ model })),
+      fold: ApplicationDefinition.makeOutMessageFold(Dialog.DialogBlock, {
+        Opened: () => ApplicationDefinition.stepNoop(),
+        Closed: () => ApplicationDefinition.stepNoop(),
+        CompletedClose: () => ApplicationDefinition.stepNoop(),
       }),
     },
   },
@@ -167,7 +195,7 @@ export const PickerBinding = ApplicationDefinition.bindChild(Picker, {
   field: 'picker',
   init: { contextToArgs: () => [{ id: 'fruit' }] },
   outMessage: {
-    fold: Picker.OutMessage.match({
+    fold: ApplicationDefinition.makeOutMessageFold(Picker, {
       Selected: ({ value }) =>
         ApplicationDefinition.step(model => ({
           model: Struct.modifyFields(model, {
@@ -190,9 +218,9 @@ export const PopoverBinding = ApplicationDefinition.bindChild(
     field: 'popover',
     init: { contextToArgs: () => [{ id: 'help' }] },
     outMessage: {
-      fold: Popover.PopoverBlock.OutMessage.match({
-        Opened: () => ApplicationDefinition.step(model => ({ model })),
-        Closed: () => ApplicationDefinition.step(model => ({ model })),
+      fold: ApplicationDefinition.makeOutMessageFold(Popover.PopoverBlock, {
+        Opened: () => ApplicationDefinition.stepNoop(),
+        Closed: () => ApplicationDefinition.stepNoop(),
       }),
     },
   },

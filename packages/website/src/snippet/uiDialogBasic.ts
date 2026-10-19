@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Schema, Tuple } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 import { Dialog } from '@foldkit/ui'
@@ -13,29 +13,28 @@ const Model = Schema.Struct({
   dialog: Dialog.DialogBlock.Model,
   // ...your other fields
 })
-type Model = typeof Model.Type
 
 // A fact for the trigger, plus the Dialog Message embedded in your parent
 // Message for the block delegation:
 const Message = defineMessageUnion({
   ClickedOpenDialog: {},
 })
-type Message = typeof Message.Type
-
-// One boundary handles Dialog Messages, Commands, and OutMessages. Replace
-// either no-op arm with the parent transition that should follow that event.
-const foldDialogOutMessage = Dialog.DialogBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => DialogExampleDefinition.stepNoop(),
-  Closed: () => DialogExampleDefinition.stepNoop(),
-  CompletedClose: () => DialogExampleDefinition.stepNoop(),
-})
 
 const DialogExampleDefinition = Block.makeDefinition('DialogExample', {
   Model,
   Message,
 })
+
+// One boundary handles Dialog Messages, Commands, and OutMessages. Replace
+// either no-op arm with the parent transition that should follow that event.
+const foldDialogOutMessage = DialogExampleDefinition.makeOutMessageFold(
+  Dialog.DialogBlock,
+  {
+    Opened: () => DialogExampleDefinition.stepNoop(),
+    Closed: () => DialogExampleDefinition.stepNoop(),
+    CompletedClose: () => DialogExampleDefinition.stepNoop(),
+  },
+)
 
 const DialogBinding = DialogExampleDefinition.bindChild(Dialog.DialogBlock, {
   field: 'dialog',

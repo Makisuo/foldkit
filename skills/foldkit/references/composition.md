@@ -188,25 +188,33 @@ update owns the transition. Render through
 
 ## OutMessages and sibling policy
 
-Keep each local OutMessage fold as a standalone exhaustive matcher. Name every
-variant, including the only variant in a union. If the matcher needs only the
-OutMessage, bind the matcher directly. Keep a function or factory when it also
-needs a key, the previous parent Model, another payload, or `FoldContext`.
+Keep each local OutMessage fold as a standalone value built with
+`ParentDefinition.makeOutMessageFold(WholeChildBlock, handlers)`. Name every
+variant directly in the handler record, including the only variant in a union.
+Missing and extra handlers fail type checking. Passing the whole completed
+child preserves the exact factory-refined OutMessage payload and child Message
+contract. The parent Definition supplies the parent Model, Message, and
+OutMessage contracts. The returned Steps retain inferred Command requirements
+and sibling Binding evidence for Composition to check, so do not repeat Step
+or payload type arguments.
 
-For a generic child, pass its refined OutMessage type as the matcher's second
-type argument. Let Command-producing Steps infer their requirements through
-the owning `step` helper; an explicit requirement-free `Update.Step` can erase
-them. Use `FoldContext.liftCommand` when parent policy returns a Command whose
-result is a child Message.
+A handler takes the inferred `FoldContext` as its second parameter only when it
+uses `liftCommand` or `modelBeforeUpdate`. The resulting fold stays unary when
+every handler omits that parameter. Keep a purposeful factory or adapter when a
+keyed fold uses the collection key or other call-site context. Let
+Command-producing and parent-OutMessage-producing handlers keep the channels
+inferred by the owning Definition.
 
-Use `Update.StepWithOutMessage` when an explicitly typed fold derives a parent
-OutMessage. `Update.Step` describes a result without one. Keep the keyed fold's
-key parameter when policy uses it, and let the returned Step receive the parent
-Model.
+When a handler returns an operation from the same Binding being defined, or a
+reciprocal pair makes TypeScript report a recursive initializer, keep that
+local fold on the child union's exhaustive `OutMessage.match`. Author returned
+Steps with the parent Definition. Binding registration still checks the
+completed policy. Reciprocal policies that infer normally continue to use
+`makeOutMessageFold`.
 
 `outMessage.fold` applies parent policy locally. Add `outMessage.forward` only
 when at least one variant continues through the current Block's OutMessage.
-Match every variant and return `undefined` for named variants that stop. Local
+Match every variant with the child union's direct matcher and return `undefined` for named variants that stop. Local
 handling still runs for a forwarded variant, and a derived parent OutMessage
 takes precedence for that dispatch.
 

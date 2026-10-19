@@ -1,9 +1,7 @@
-import { type Block, Update } from 'foldkit'
+import type { Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { ApplicationDefinition } from './definition'
-import { Message } from './message'
-import { Model } from './model'
 import { StepMenuBlock, StepTabsBlock } from './navigationComponents'
 import {
   AttachmentsBlock,
@@ -69,17 +67,17 @@ export const AttachmentsBinding = ApplicationDefinition.bindChild(
   },
 )
 
-const foldStepMenuOutMessage = StepMenuBlock.OutMessage.match<
-  Update.Step<Model, Message>,
-  typeof StepMenuBlock.OutMessage.Type
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { currentStep: () => value }),
-    }),
-  Closed: () => ApplicationDefinition.stepNoop(),
-})
+const foldStepMenuOutMessage = ApplicationDefinition.makeOutMessageFold(
+  StepMenuBlock,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, { currentStep: () => value }),
+      }),
+    Closed: () => ApplicationDefinition.stepNoop(),
+  },
+)
 
 export const StepMenuBinding = ApplicationDefinition.bindChild(StepMenuBlock, {
   field: 'stepMenu',
@@ -87,16 +85,16 @@ export const StepMenuBinding = ApplicationDefinition.bindChild(StepMenuBlock, {
   init: { contextToArgs: () => [{ id: 'step-menu' }] },
 })
 
-const foldStepTabsOutMessage = StepTabsBlock.OutMessage.match<
-  Update.Step<Model, Message>,
-  typeof StepTabsBlock.OutMessage.Type
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { currentStep: () => value }),
-    }),
-})
+const foldStepTabsOutMessage = ApplicationDefinition.makeOutMessageFold(
+  StepTabsBlock,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, { currentStep: () => value }),
+      }),
+  },
+)
 
 export const StepTabsBinding = ApplicationDefinition.bindChild(StepTabsBlock, {
   field: 'stepTabs',

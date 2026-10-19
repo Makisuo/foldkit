@@ -63,8 +63,8 @@ const AlternativeChildBinding = ParentDefinition.bindChild(ChildBlock, {
 const OmittedComposition = ParentDefinition.makeComposition({
   bindings: [AlternativeChildBinding],
 })
+// @ts-expect-error An update from another child graph carries that graph's generated dispatch Schema.
 const omittedDirectUpdate = OmittedComposition.makeUpdate((current, _message) =>
-  // @ts-expect-error An update from another child graph carries that graph's generated dispatch Schema.
   parentUpdate(parentMessage)(current),
 )
 const omittedComposedUpdate = OmittedComposition.makeUpdate(

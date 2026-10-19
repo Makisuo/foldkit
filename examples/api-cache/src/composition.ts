@@ -57,9 +57,12 @@ const activateTab = (tab: Tab) => (model: Model) => {
   )
 }
 
-const foldTabsOutMessage = ApplicationTabsBlock.OutMessage.match({
-  Selected: ({ value }) => ApplicationDefinition.step(activateTab(value)),
-})
+const foldTabsOutMessage = ApplicationDefinition.makeOutMessageFold(
+  ApplicationTabsBlock,
+  {
+    Selected: ({ value }) => ApplicationDefinition.step(activateTab(value)),
+  },
+)
 
 export const TabsBinding = ApplicationDefinition.bindChild(
   ApplicationTabsBlock,

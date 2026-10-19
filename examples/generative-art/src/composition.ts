@@ -1,4 +1,4 @@
-import { type Block, Update } from 'foldkit'
+import type { Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { SliderBlock } from '@foldkit/ui'
@@ -12,18 +12,14 @@ import {
   NOISE_SCALE_STEP,
 } from './constant'
 import { ApplicationDefinition } from './definition'
-import { Message } from './message'
-import { Model } from './model'
-
-const foldFlowStrengthSliderOutMessage = SliderBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ChangedValue:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { flowStrength: () => value }),
-    }),
-})
+const foldFlowStrengthSliderOutMessage =
+  ApplicationDefinition.makeOutMessageFold(SliderBlock, {
+    ChangedValue:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, { flowStrength: () => value }),
+      }),
+  })
 
 export const FlowStrengthSliderBinding = ApplicationDefinition.bindChild(
   SliderBlock,
@@ -43,15 +39,16 @@ export const FlowStrengthSliderBinding = ApplicationDefinition.bindChild(
   },
 )
 
-const foldNoiseScaleSliderOutMessage = SliderBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ChangedValue:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { noiseScale: () => value }),
-    }),
-})
+const foldNoiseScaleSliderOutMessage = ApplicationDefinition.makeOutMessageFold(
+  SliderBlock,
+  {
+    ChangedValue:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, { noiseScale: () => value }),
+      }),
+  },
+)
 
 export const NoiseScaleSliderBinding = ApplicationDefinition.bindChild(
   SliderBlock,

@@ -30,9 +30,12 @@ const activateTab = (tab: Tab) => {
   return Update.combine([selectTab, loadTab])
 }
 
-const foldTabsOutMessage = AppTabsBlock.OutMessage.match({
-  Selected: ({ value }) => activateTab(value),
-})
+const foldTabsOutMessage = ApplicationDefinition.makeOutMessageFold(
+  AppTabsBlock,
+  {
+    Selected: ({ value }) => activateTab(value),
+  },
+)
 
 export const TabsBinding = ApplicationDefinition.bindChild(AppTabsBlock, {
   field: 'tabs',

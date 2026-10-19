@@ -9,16 +9,15 @@ import {
 } from './model'
 import { stepMachine } from './transition'
 
-const foldEditionRadioGroupOutMessage = EditionRadioGroupBlock.OutMessage.match(
-  {
+const foldEditionRadioGroupOutMessage =
+  ApplicationDefinition.makeOutMessageFold(EditionRadioGroupBlock, {
     Selected: ({ value }) =>
       stepMachine(
         Message.SelectedEdition({
           isShippingRequired: value === HARDCOVER_EDITION,
         }),
       ),
-  },
-)
+  })
 
 export const EditionRadioGroupBinding = ApplicationDefinition.bindChild(
   EditionRadioGroupBlock,

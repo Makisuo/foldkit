@@ -36,17 +36,15 @@ const ToastFixtureParentDefinition = Block.makeDefinition(
   },
 )
 
-const foldFirstToastOutMessage = FirstToast.OutMessage.match<
-  Update.Step<ParentModel, ParentMessage>
->({
-  DismissedToast: () => ToastFixtureParentDefinition.step(model => ({ model })),
-})
+const foldFirstToastOutMessage =
+  ToastFixtureParentDefinition.makeOutMessageFold(FirstToast, {
+    DismissedToast: () => model => ({ model }),
+  })
 
-const foldSecondToastOutMessage = SecondToast.OutMessage.match<
-  Update.Step<ParentModel, ParentMessage>
->({
-  DismissedToast: () => ToastFixtureParentDefinition.step(model => ({ model })),
-})
+const foldSecondToastOutMessage =
+  ToastFixtureParentDefinition.makeOutMessageFold(SecondToast, {
+    DismissedToast: () => model => ({ model }),
+  })
 
 const LeftToastBinding = ToastFixtureParentDefinition.bindChild(FirstToast, {
   placement: 'LeftToast',
@@ -118,6 +116,10 @@ const KeyedToastFixtureParentDefinition = Block.makeDefinition(
     Message: KeyedParentMessage,
   },
 )
+const foldKeyedToastOutMessage =
+  KeyedToastFixtureParentDefinition.makeOutMessageFold(FirstToast, {
+    DismissedToast: () => model => ({ model }),
+  })
 const KeyedToastBinding = KeyedToastFixtureParentDefinition.bindChild(
   FirstToast,
   {
@@ -133,11 +135,7 @@ const KeyedToastBinding = KeyedToastFixtureParentDefinition.bindChild(
         ),
       }),
     outMessage: {
-      fold: (_key, outMessage) =>
-        FirstToast.OutMessage.match(outMessage, {
-          DismissedToast: () =>
-            KeyedToastFixtureParentDefinition.step(model => ({ model })),
-        }),
+      fold: (_key, outMessage) => foldKeyedToastOutMessage(outMessage),
     },
   },
 )

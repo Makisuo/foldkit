@@ -91,6 +91,10 @@ import { makeInit } from './initializationRuntime.js'
 import { isOperationMessageConstructor, prepareOperation } from './operation.js'
 import { withOperationGraph } from './operationGraph.js'
 import { makeOperationMessageValidator } from './operationMessage.js'
+import {
+  type MakeOutMessageFold,
+  makeOutMessageFold,
+} from './outMessageFold.js'
 import type { Owner } from './owner.js'
 import { makeOwnedName } from './ownerName.js'
 import type { ValidateBindingPolicies } from './policyEvidence.js'
@@ -448,17 +452,19 @@ export interface DefineStep<Model, Message, OutMessage> {
     step: ((model: Model, ...context: Context) => Output) &
       ValidateDeferredStepOutput<Model, Message, OutMessage, Output> &
       ValidateAnnotatedContext<Context>,
-  ): DefinedStep<
-    Model,
-    DeferredStepMessage<Message, Output>,
-    Context,
-    OutMessageOfReturn<DeferredStepReturn<Output>>,
-    CommandRequirements<DeferredStepReturn<Output>>,
-    | Update.RegistrationEvidenceOf<DeferredStepReturn<Output>>
-    | Update.GraphRequirementOf<Extract<Output, AnyFunction>>,
-    DeferredStepKind<Output>,
-    | Update.ResultEvidenceChannelOf<DeferredStepReturn<Output>>
-    | Update.GraphRequirementOf<Extract<Output, AnyFunction>>
+  ): NoInfer<
+    DefinedStep<
+      Model,
+      DeferredStepMessage<Message, Output>,
+      Context,
+      OutMessageOfReturn<DeferredStepReturn<Output>>,
+      CommandRequirements<DeferredStepReturn<Output>>,
+      | Update.RegistrationEvidenceOf<DeferredStepReturn<Output>>
+      | Update.GraphRequirementOf<Extract<Output, AnyFunction>>,
+      DeferredStepKind<Output>,
+      | Update.ResultEvidenceChannelOf<DeferredStepReturn<Output>>
+      | Update.GraphRequirementOf<Extract<Output, AnyFunction>>
+    >
   >
 }
 
@@ -579,6 +585,10 @@ type ValidateDeferredStepOutput<Model, Message, OutMessage, Output> =
       : Output extends Update.AnyResultRecipe
         ? ValidateResultRecipe<Model, Message, OutMessage, Output>
         : ValidateDeferredReturn<Model, Message, OutMessage, Output>
+
+/** @internal Validates one inferred output through the Definition Step contract. */
+export type ValidateDefinitionStepOutput<Model, Message, OutMessage, Output> =
+  ValidateDeferredStepOutput<Model, Message, OutMessage, Output>
 
 type EmittedMessage<Messages extends ReadonlyArray<Schema.Top>> =
   Messages[number]['Type']
@@ -3325,6 +3335,15 @@ export type Definition<
       ? OutMessageSchema['Type']
       : never
   >
+  /** Builds an exhaustive child OutMessage fold against this Definition's
+   * Model, Message, and optional OutMessage contracts. */
+  makeOutMessageFold: MakeOutMessageFold<
+    ModelSchema['Type'],
+    MessageSchema['Type'],
+    OutMessageSchema extends Schema.Codec<any, any, any, any>
+      ? OutMessageSchema['Type']
+      : never
+  >
   /** Authors a Model-only Step from transformations of this Block's fields. */
   stepFields: DefineStepFields<ModelSchema['Type']>
   /** Creates a Step preserving the incoming Model, with no Commands or OutMessage. */
@@ -3704,17 +3723,19 @@ const makeDefineStep = <Model, Message, OutMessage>(): DefineStep<
     step: ((model: Model, ...context: Context) => Output) &
       ValidateDeferredStepOutput<Model, Message, OutMessage, Output> &
       ValidateAnnotatedContext<Context>,
-  ): DefinedStep<
-    Model,
-    DeferredStepMessage<Message, Output>,
-    Context,
-    OutMessageOfReturn<DeferredStepReturn<Output>>,
-    CommandRequirements<DeferredStepReturn<Output>>,
-    | Update.RegistrationEvidenceOf<DeferredStepReturn<Output>>
-    | Update.GraphRequirementOf<Extract<Output, AnyFunction>>,
-    DeferredStepKind<Output>,
-    | Update.ResultEvidenceChannelOf<DeferredStepReturn<Output>>
-    | Update.GraphRequirementOf<Extract<Output, AnyFunction>>
+  ): NoInfer<
+    DefinedStep<
+      Model,
+      DeferredStepMessage<Message, Output>,
+      Context,
+      OutMessageOfReturn<DeferredStepReturn<Output>>,
+      CommandRequirements<DeferredStepReturn<Output>>,
+      | Update.RegistrationEvidenceOf<DeferredStepReturn<Output>>
+      | Update.GraphRequirementOf<Extract<Output, AnyFunction>>,
+      DeferredStepKind<Output>,
+      | Update.ResultEvidenceChannelOf<DeferredStepReturn<Output>>
+      | Update.GraphRequirementOf<Extract<Output, AnyFunction>>
+    >
   >
   function defineStep(step: AnyFunction): AnyFunction {
     return (model: unknown, ...context: ReadonlyArray<unknown>) => {
@@ -3951,6 +3972,7 @@ export const makeDefinition = (
     authoring !== undefined,
   )
   const defineStep = authoring?.step ?? makeDefineStep()
+  const defineOutMessageFold = makeOutMessageFold()
   const stepFields = authoring?.stepFields ?? makeStepFields()
   const stepNoop = authoring?.stepNoop ?? makeStepNoop
   const defineSubscriptions =
@@ -4168,6 +4190,7 @@ export const makeDefinition = (
     makeInit: init,
     makeUpdate: update,
     step: defineStep,
+    makeOutMessageFold: defineOutMessageFold,
     stepFields,
     stepNoop,
     subscriptions: defineSubscriptions,
@@ -4260,6 +4283,7 @@ export const makeBaseDefinition = (
     [LocalMountsTypeId]: base[LocalMountsTypeId],
     bindings: base.bindings,
     step: base.step,
+    makeOutMessageFold: base.makeOutMessageFold,
     stepFields: base.stepFields,
     stepNoop: base.stepNoop,
     subscriptions: base.subscriptions,

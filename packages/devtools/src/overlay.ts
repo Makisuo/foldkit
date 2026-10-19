@@ -392,16 +392,16 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   ChildInitContext: Flags,
 })
 
-const foldInspectorTabsOutMessage = InspectorTabsBlock.OutMessage.match<
-  Update.Step<Model, Message>,
-  typeof InspectorTabsBlock.OutMessage.Type
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { activeInspectorTab: () => value }),
-    }),
-})
+const foldInspectorTabsOutMessage = ApplicationDefinition.makeOutMessageFold(
+  InspectorTabsBlock,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, { activeInspectorTab: () => value }),
+      }),
+  },
+)
 
 const InspectorTabsBinding = ApplicationDefinition.bindChild(
   InspectorTabsBlock,
@@ -412,18 +412,19 @@ const InspectorTabsBinding = ApplicationDefinition.bindChild(
   },
 )
 
-const foldBlockFilterOutMessage = BlockFilterListboxBlock.OutMessage.match<
-  Update.Step<Model, Message>,
-  typeof BlockFilterListboxBlock.OutMessage.Type
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeBlockFilter: () => Option.liftPredicate(value, String.isNonEmpty),
+const foldBlockFilterOutMessage = ApplicationDefinition.makeOutMessageFold(
+  BlockFilterListboxBlock,
+  {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, {
+          maybeBlockFilter: () =>
+            Option.liftPredicate(value, String.isNonEmpty),
+        }),
       }),
-    }),
-})
+  },
+)
 
 const BlockFilterListboxBinding = ApplicationDefinition.bindChild(
   BlockFilterListboxBlock,
@@ -434,28 +435,29 @@ const BlockFilterListboxBinding = ApplicationDefinition.bindChild(
   },
 )
 
-// NOTE: Pointer Messages update the thumb immediately, but jumping to and
-// inspecting the corresponding state is expensive. Keep only the latest host
-// index until TickedScrubFrame flushes one navigation on the next frame.
-const foldScrubberSliderOutMessage = Slider.SliderBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ChangedValue:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        scrubberValue: () => value,
-        maybePendingScrubIndex: () =>
-          Option.some(sliderValueToHostIndex(value, model.startIndex)),
-      }),
-    }),
-})
-
 type DevToolsScrubberBlock = ReturnType<typeof Slider.forRoot>
 
 const makeApplicationComposition = (
   scrubberSliderBlock: DevToolsScrubberBlock,
 ) => {
+  // NOTE: Pointer Messages update the thumb immediately, but jumping to and
+  // inspecting the corresponding state is expensive. Keep only the latest host
+  // index until TickedScrubFrame flushes one navigation on the next frame.
+  const foldScrubberSliderOutMessage = ApplicationDefinition.makeOutMessageFold(
+    scrubberSliderBlock,
+    {
+      ChangedValue:
+        ({ value }) =>
+        model => ({
+          model: modifyFields(model, {
+            scrubberValue: () => value,
+            maybePendingScrubIndex: () =>
+              Option.some(sliderValueToHostIndex(value, model.startIndex)),
+          }),
+        }),
+    },
+  )
+
   const ScrubberBinding = ApplicationDefinition.bindChild(scrubberSliderBlock, {
     field: 'scrubberSlider',
     init: {

@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Option, Schema, Tuple } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -31,37 +31,34 @@ const Model = Schema.Struct({
   maybeLastDismissedBody: Schema.Option(Schema.String),
   // ...your other fields
 })
-type Model = typeof Model.Type
 
 // Declare the parent-owned domain facts that should push a Toast. The
 // Composition derives Toast delivery from the Binding.
 const Message = defineMessageUnion({
   ClickedSave: {},
 })
-type Message = typeof Message.Type
 
-// At module scope, fold the OutMessage into your own Model, lifting the
-// DismissedToast event into domain state. The arm returns an Update.Step over
-// the parent Model, which already has the next Toast Model written back:
-const foldToastOutMessage = Toast.OutMessage.match<Update.Step<Model, Message>>(
-  {
-    DismissedToast:
-      ({ payload }) =>
-      model => ({
-        model: modifyFields(model, {
-          maybeLastDismissedBody: () => Option.some(payload.bodyText),
-        }),
-      }),
-  },
-)
-
-// The Binding delegates Toast Messages, writes the next Toast Model, maps its
-// Commands, handles its OutMessages, and collects its Subscriptions.
 const NotificationsDefinition = Block.makeDefinition('Notifications', {
   Model,
   Message,
 })
 
+// At module scope, fold the OutMessage into your own Model, lifting the
+// DismissedToast event into domain state. The arm returns an Update.Step over
+// the parent Model, which already has the next Toast Model written back. The
+// parent Definition infers the factory-refined payload from the whole Block:
+const foldToastOutMessage = NotificationsDefinition.makeOutMessageFold(Toast, {
+  DismissedToast:
+    ({ payload }) =>
+    model => ({
+      model: modifyFields(model, {
+        maybeLastDismissedBody: () => Option.some(payload.bodyText),
+      }),
+    }),
+})
+
+// The Binding delegates Toast Messages, writes the next Toast Model, maps its
+// Commands, handles its OutMessages, and collects its Subscriptions.
 const ToastBinding = NotificationsDefinition.bindChild(Toast, {
   field: 'toast',
   init: {

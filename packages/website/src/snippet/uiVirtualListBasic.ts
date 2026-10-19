@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update and view definitions.
 import { Schema, Tuple } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 import { VirtualList } from '@foldkit/ui'
@@ -24,14 +24,12 @@ const Model = Schema.Struct({
   activityList: ActivityList.Model,
   activities: Schema.Array(Activity),
 })
-type Model = typeof Model.Type
 
 // Declare only the parent-owned scrolling fact. The Composition derives
 // VirtualList delivery from the Binding.
 const Message = defineMessageUnion({
   ClickedScrollActivityListToMiddle: {},
 })
-type Message = typeof Message.Type
 
 const ActivityListExampleDefinition = Block.makeDefinition(
   'ActivityListExample',
@@ -41,11 +39,10 @@ const ActivityListExampleDefinition = Block.makeDefinition(
   },
 )
 
-const foldActivityListOutMessage = ActivityList.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ObservedContainerScroll: () => ActivityListExampleDefinition.stepNoop(),
-})
+const foldActivityListOutMessage =
+  ActivityListExampleDefinition.makeOutMessageFold(ActivityList, {
+    ObservedContainerScroll: () => ActivityListExampleDefinition.stepNoop(),
+  })
 
 const ActivityListBinding = ActivityListExampleDefinition.bindChild(
   ActivityList,

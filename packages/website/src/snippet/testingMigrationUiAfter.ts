@@ -14,7 +14,11 @@ const DialogBinding = ConfirmDefinition.bindChild(Dialog.DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => Tuple.make({ id: 'confirm' }) },
   outMessage: {
-    fold: () => ConfirmDefinition.stepNoop(),
+    fold: ConfirmDefinition.makeOutMessageFold(Dialog.DialogBlock, {
+      Opened: () => ConfirmDefinition.stepNoop(),
+      Closed: () => ConfirmDefinition.stepNoop(),
+      CompletedClose: () => ConfirmDefinition.stepNoop(),
+    }),
   },
 })
 const ConfirmComposition = ConfirmDefinition.makeComposition({

@@ -24,9 +24,10 @@ Build that boundary through Definition → Composition → assembly. All three s
    `hostHandlers` as the completed Block. It does not run init, construct Layers,
    or start effects.
 
-The root follows the same stages with `makeApplicationDefinition`, then
-`assembleApplication` or `assembleElement`. The Runtime constructs the resulting
-Layer graph and starts effects.
+The root is an ordinary Block built through the same three stages. Name its
+completed value `ApplicationBlock`. `Program.make` or `Program.makeElement`
+adds host behavior, and the Runtime constructs the resulting Layer graph and
+starts effects.
 
 Use a plain view helper when a section only renders state owned elsewhere. Use
 a Block when the section owns a state machine, effect or lifecycle boundary,
@@ -421,18 +422,22 @@ the ordinary Service providers below them.
 At the root:
 
 ```ts
-const application = ApplicationComposition.assembleApplication({
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
   init,
   update,
   view,
   EffectsLayer,
+})
+
+const program = Program.make({
+  block: ApplicationBlock,
   container: document.getElementById('root'),
 })
 
-Runtime.run(application.provide(ApplicationLayer))
+Runtime.run(program.provide(ApplicationLayer))
 ```
 
-The completed application is still passive. `provide` supplies remaining
+The completed Program is still passive. `provide` supplies remaining
 ordinary Services and returns another passive value. The Runtime builds the
 graph once per start and releases its application scope when that run stops.
 

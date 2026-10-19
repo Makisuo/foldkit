@@ -13,8 +13,8 @@ import { clearRuntime, setRuntime } from '../html/runtimeSingleton.js'
 import type * as ManagedResource from '../managedResource/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import * as Mount from '../mount/index.js'
-import { makeDefinition as makeApplicationDefinition } from '../runtime/applicationPublic.js'
 import { Dispatch } from '../runtime/index.js'
+import * as Program from '../runtime/programPublic.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Subscription from '../subscription/subscription.js'
 import type * as Update from '../update/index.js'
@@ -934,20 +934,11 @@ if (false) {
   // @ts-expect-error A broad annotation cannot produce a usable block.
   erasedBlock.init
 
-  makeApplicationDefinition({
-    Model: HomeModel,
-    Message: HomeMessage,
+  // @ts-expect-error A broad annotation cannot produce a usable Program root.
+  Program.makeElement({
+    block: erasedBlock,
+    container: null,
   })
-    .makeComposition()
-    .assembleElement({
-      block: erasedBlock,
-      container: null,
-      init: homeInit,
-      update: homeUpdate,
-      // @ts-expect-error A reusable Block view cannot become an application root.
-      view: homeView,
-      EffectsLayer: CreateRoom.layer,
-    })
 
   // @ts-expect-error Selecting a recipe still requires every local handler.
   Home.replaceEffectsLayer(Layer.empty)
@@ -1171,10 +1162,10 @@ if (false) {
 
   HomeComposition.assembleBlock({
     init: () => ({
-      // @ts-expect-error Specialized implementation shapes with Subscriptions retain the definition Model returned by init.
+      // @ts-expect-error Specialized implementations with Subscriptions retain the definition Model returned by init.
       model: RoomModel.make({ roomId: 'foreign', joinedCount: 0 }),
     }),
-    // @ts-expect-error Specialized implementation shapes with Subscriptions retain the definition Model and Message accepted by update.
+    // @ts-expect-error Specialized implementations with Subscriptions retain the definition Model and Message accepted by update.
     update: (model: RoomModel, _message: RoomMessage) => ({ model }),
     view: homeView,
     subscriptions: {},

@@ -1,4 +1,4 @@
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 
 const Model = Schema.Struct({
   posts: postsQuery.Model,
@@ -10,7 +10,10 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 
 const PostsBinding = ApplicationDefinition.bindChild(postsQuery, {
   field: 'posts',

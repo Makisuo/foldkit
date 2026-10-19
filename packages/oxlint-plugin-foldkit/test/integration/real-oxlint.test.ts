@@ -165,6 +165,10 @@ describe('real-oxlint rule fixtures', () => {
     expect(countDiagnostics('no-manual-composition-routing', 'invalid')).toBe(8)
   })
 
+  it('recognizes root and subpath Program aliases', () => {
+    expect(countDiagnostics('no-disabling-dev-guardrails', 'invalid')).toBe(4)
+  })
+
   it('reports direct child Message construction and local constructor aliases', () => {
     const diagnostics = diagnosticsFor(
       'no-child-message-construction-in-root',

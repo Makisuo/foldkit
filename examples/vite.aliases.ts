@@ -2,9 +2,9 @@ import path from 'path'
 
 /** Vite resolve aliases that point foldkit subpath imports at the local source. */
 export const foldkitAliases = (dirname: string) => ({
-  'foldkit/application': path.resolve(
+  'foldkit/program': path.resolve(
     dirname,
-    '../../packages/foldkit/src/runtime/applicationPublic',
+    '../../packages/foldkit/src/runtime/programPublic',
   ),
   'foldkit/asyncData': path.resolve(
     dirname,

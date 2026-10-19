@@ -2,13 +2,13 @@ import { Array, Layer, Option, Schema, Tuple } from 'effect'
 import { expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
-import { makeDefinition as makeApplicationDefinition } from '../runtime/applicationPublic.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
 import type { RequirementOfBinding } from './binding.js'
 import type { ChildEnvelope } from './childEnvelope.js'
 import type { DeferredBindingPolicy } from './deferredPolicy.js'
 import { makeDefinition, makeNamespace } from './define.js'
+import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ value: Schema.String })
 type ChildModel = typeof ChildModel.Type
@@ -399,7 +399,7 @@ if (false) {
 const SingleParentMessage = defineMessageUnion({
   RequestedInvokePrototypeOperation: { value: Schema.String },
 })
-const ApplicationDefinition = makeApplicationDefinition({
+const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: SingleParentMessage,
 })
@@ -430,10 +430,9 @@ if (false) {
   Parent.assembleBlock
   // @ts-expect-error The breaking staging API does not retain register aliases.
   Parent.register
-  // @ts-expect-error Every Application completes through a Composition.
-  ApplicationDefinition.assembleElement
-  // @ts-expect-error An Application Composition does not expose Block completion.
-  ApplicationComposition.assembleBlock
+  // @ts-expect-error Every Block completes through a Composition.
+  ApplicationDefinition.assembleBlock
+  void ApplicationComposition.assembleBlock
   // @ts-expect-error A completed child has no child-owned Binding factory.
   ChildBlock.connection
   // @ts-expect-error Keyed Bindings are also created by the parent.
@@ -549,7 +548,7 @@ it('snapshots mutable child and Mount arrays at the Composition boundary', () =>
   expect(Object.isFrozen(composition.mounts)).toBe(true)
 })
 
-it('keeps Application Composition snapshots independent from caller arrays', () => {
+it('keeps root Composition snapshots independent from caller arrays', () => {
   const suppliedChildBindings: Array<typeof ApplicationChildBinding> = [
     ApplicationChildBinding,
   ]

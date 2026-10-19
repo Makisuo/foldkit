@@ -1,11 +1,9 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect'
-import {
-  type Application as ApplicationProgram,
-  makeDefinition as makeApplicationDefinition,
-} from 'foldkit/application'
+import { Program } from 'foldkit'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
 import { defineMessageUnion } from 'foldkit/message'
+import { type Program as ProgramType } from 'foldkit/program'
 import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 
@@ -568,7 +566,10 @@ type GraphCombinedRegistration = Expect<
 >
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const RootApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const RootApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 const Persist = RootApplicationDefinition.command('Persist', {
   messages: [Message.CompletedSave],
 })
@@ -598,16 +599,18 @@ const rootView = RootComposition.makeView((model, h) => ({
   body: h.empty,
 }))
 const makePendingApplication = () =>
-  RootComposition.assembleApplication({
+  Program.make({
+    block: RootComposition.assembleBlock({
+      init: rootInit,
+      update: rootUpdate,
+      view: rootView,
+      EffectsLayer: PersistLayer,
+    }),
     container: document.body,
-    init: rootInit,
-    update: rootUpdate,
-    view: rootView,
-    EffectsLayer: PersistLayer,
   })
 
 if (false) {
-  const typedPendingApplication: ApplicationProgram<
+  const typedPendingApplication: ProgramType<
     undefined,
     void,
     SaveClient,

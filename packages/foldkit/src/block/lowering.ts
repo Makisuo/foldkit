@@ -1,4 +1,4 @@
-import { Context, Record } from 'effect'
+import { Context, Predicate, Record } from 'effect'
 
 import type { AnyAuthoredView } from '../html/block.js'
 import type { BindableBlock } from './binding.js'
@@ -31,21 +31,43 @@ export const lowerBlock = (
   Readonly<{ view: AnyAuthoredView }> => {
   const segment = block.owner.id
   const allowedIdentities = hostIdentitiesOf(block)
-  const lowerReturn = (output: any) =>
-    output.commands === undefined
-      ? output
-      : {
-          model: output.model,
-          commands: output.commands.map((command: any) =>
-            qualifyCommand(
-              segment,
-              command,
-              block.owner,
-              undefined,
-              allowedIdentities,
-            ),
-          ),
-        }
+  const lowerReturn = (output: any) => {
+    if (!Predicate.isObject(output) || !Reflect.has(output, 'model')) {
+      throw new Error(
+        '[foldkit] A Program root init and update must return its Model.',
+      )
+    }
+
+    if (Reflect.get(output, 'outMessage') !== undefined) {
+      throw new Error(
+        '[foldkit] A Program root init and update cannot emit an OutMessage.',
+      )
+    }
+
+    const commands = Reflect.get(output, 'commands')
+    if (commands === undefined) {
+      return output
+    }
+
+    if (!globalThis.Array.isArray(commands)) {
+      throw new Error(
+        '[foldkit] A Program root init and update commands field must be an array.',
+      )
+    }
+
+    return {
+      model: Reflect.get(output, 'model'),
+      commands: commands.map((command: any) =>
+        qualifyCommand(
+          segment,
+          command,
+          block.owner,
+          undefined,
+          allowedIdentities,
+        ),
+      ),
+    }
+  }
   const subscriptions = Record.map(block.subscriptions, entry => {
     const lowered = {
       ...qualifyEntry(segment, entry),

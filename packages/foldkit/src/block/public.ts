@@ -53,6 +53,7 @@ export type {
   CompletedBlockWithViewAndOutMessage,
   CompletedBlockWithoutViewOrOutMessage,
   CompletedWithViewAndOutMessage,
+  CompletedWithView,
   Definition,
   DefinitionAuthoredView,
   DefinitionView,

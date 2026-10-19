@@ -1,0 +1,409 @@
+import { Effect, Schema } from 'effect'
+import * as Block from 'foldkit/block'
+import * as Message from 'foldkit/message'
+import * as Navigation from 'foldkit/navigation'
+import * as Program from 'foldkit/program'
+import * as Url from 'foldkit/url'
+
+import { Flags, Model, PurePageBlock } from './program.accepted.js'
+
+const RootMessage = Message.defineMessageUnion({
+  RequestedNavigation: { request: Navigation.UrlRequest },
+  ChangedUrl: { url: Url.Url },
+})
+
+const RejectedDeclarationPageDefinition = Block.makeDefinition(
+  'RejectedDeclarationPage',
+  {
+    Model,
+    Message: RootMessage,
+  },
+)
+const RejectedDeclarationPageComposition =
+  RejectedDeclarationPageDefinition.makeComposition()
+const PageBlock = RejectedDeclarationPageComposition.assembleBlock({
+  init: (flags: typeof Flags.Type, _url: Url.Url) => ({
+    model: Model.make({ status: flags.status }),
+  }),
+  update: RejectedDeclarationPageComposition.makeUpdate(model => ({ model })),
+  view: RejectedDeclarationPageComposition.makeView(model => ({
+    title: model.status,
+    body: null,
+  })),
+})
+
+const RejectedDeclarationElementDefinition = Block.makeDefinition(
+  'RejectedDeclarationElement',
+  {
+    Model,
+    Message: RootMessage,
+  },
+)
+const RejectedDeclarationElementComposition =
+  RejectedDeclarationElementDefinition.makeComposition()
+const ElementBlock = RejectedDeclarationElementComposition.assembleBlock({
+  init: (flags: typeof Flags.Type) => ({
+    model: Model.make({ status: flags.status }),
+  }),
+  update: RejectedDeclarationElementComposition.makeUpdate(model => ({
+    model,
+  })),
+  view: RejectedDeclarationElementComposition.makeView((model, h) =>
+    h.div([], [model.status]),
+  ),
+})
+
+const MixedView =
+  globalThis.Math.random() > 0.5
+    ? RejectedDeclarationElementComposition.makeView(model => ({
+        title: model.status,
+        body: null,
+      }))
+    : RejectedDeclarationElementComposition.makeView((model, h) =>
+        h.div([], [model.status]),
+      )
+const MixedBlock = RejectedDeclarationElementComposition.assembleBlock({
+  init: (flags: typeof Flags.Type) => ({
+    model: Model.make({ status: flags.status }),
+  }),
+  update: RejectedDeclarationElementComposition.makeUpdate(model => ({
+    model,
+  })),
+  view: MixedView,
+})
+
+const MaybeInputView =
+  globalThis.Math.random() > 0.5
+    ? RejectedDeclarationElementComposition.makeView((model, h) =>
+        h.div([], [model.status]),
+      )
+    : RejectedDeclarationElementComposition.makeView.withInputs<
+        Readonly<{ label: string }>
+      >((model, inputs, h) => h.div([], [model.status, inputs.label]))
+const MaybeInputViewBlock = RejectedDeclarationElementComposition.assembleBlock(
+  {
+    init: (flags: typeof Flags.Type) => ({
+      model: Model.make({ status: flags.status }),
+    }),
+    update: RejectedDeclarationElementComposition.makeUpdate(model => ({
+      model,
+    })),
+    view: MaybeInputView,
+  },
+)
+
+const NarrowFlags = Schema.Struct({ status: Schema.Literal('ready') })
+const NarrowFlagsBlock = RejectedDeclarationElementComposition.assembleBlock({
+  init: (_flags: typeof NarrowFlags.Type) => ({
+    model: Model.make({ status: 'ready' }),
+  }),
+  update: RejectedDeclarationElementComposition.makeUpdate(model => ({
+    model,
+  })),
+  view: RejectedDeclarationElementComposition.makeView((model, h) =>
+    h.div([], [model.status]),
+  ),
+})
+const MaybeNarrowFlagsBlock =
+  globalThis.Math.random() > 0.5 ? ElementBlock : NarrowFlagsBlock
+
+const ExtraRequestMessage = Message.defineMessageUnion({
+  RequestedNavigationWithExtra: {
+    request: Navigation.UrlRequest,
+    source: Schema.String,
+  },
+})
+const WrongRequestMessage = Message.defineMessageUnion({
+  RequestedString: { request: Schema.String },
+})
+const ForeignRequestMessage = Message.defineMessageUnion({
+  RequestedForeignNavigation: { request: Navigation.UrlRequest },
+})
+
+const AlternativeRootMessage = Message.defineMessageUnion({
+  RequestedAlternativeNavigation: { request: Navigation.UrlRequest },
+  ChangedAlternativeUrl: { url: Url.Url },
+})
+const RejectedAlternativeRoutingPageDefinition = Block.makeDefinition(
+  'RejectedAlternativeRoutingPage',
+  { Model, Message: AlternativeRootMessage },
+)
+const RejectedAlternativeRoutingPageComposition =
+  RejectedAlternativeRoutingPageDefinition.makeComposition()
+const AlternativeRoutingBlock =
+  RejectedAlternativeRoutingPageComposition.assembleBlock({
+    init: (_url: Url.Url) => ({
+      model: Model.make({ status: 'alternative' }),
+    }),
+    update: RejectedAlternativeRoutingPageComposition.makeUpdate(model => ({
+      model,
+    })),
+    view: RejectedAlternativeRoutingPageComposition.makeView(model => ({
+      title: model.status,
+      body: null,
+    })),
+  })
+const RejectedPrimaryRoutingPageDefinition = Block.makeDefinition(
+  'RejectedPrimaryRoutingPage',
+  { Model, Message: RootMessage },
+)
+const RejectedPrimaryRoutingPageComposition =
+  RejectedPrimaryRoutingPageDefinition.makeComposition()
+const PrimaryRoutingBlock = RejectedPrimaryRoutingPageComposition.assembleBlock(
+  {
+    init: (_url: Url.Url) => ({ model: Model.make({ status: 'primary' }) }),
+    update: RejectedPrimaryRoutingPageComposition.makeUpdate(model => ({
+      model,
+    })),
+    view: RejectedPrimaryRoutingPageComposition.makeView(model => ({
+      title: model.status,
+      body: null,
+    })),
+  },
+)
+const MaybeRoutingBlock =
+  globalThis.Math.random() > 0.5 ? PrimaryRoutingBlock : AlternativeRoutingBlock
+
+const configWithRootInit = {
+  block: PurePageBlock,
+  container: null,
+  init: () => ({ model: Model.make({ status: 'duplicate' }) }),
+}
+
+// @ts-expect-error Block implementation fields cannot be supplied beside block.
+Program.make(configWithRootInit)
+
+const configWithUnsupportedField = {
+  block: PurePageBlock,
+  container: null,
+  unsupported: true,
+}
+
+// @ts-expect-error Named Program configs cannot contain unsupported host fields.
+Program.make(configWithUnsupportedField)
+
+declare const UnresolvedHostBlock: Omit<
+  typeof PurePageBlock,
+  'hostHandlers' | '__blockHandlerRequirements'
+> &
+  Readonly<{
+    hostHandlers: readonly [unknown]
+    __blockHandlerRequirements: unknown
+  }>
+const MaybeUnresolvedHostBlock =
+  globalThis.Math.random() > 0.5 ? PurePageBlock : UnresolvedHostBlock
+
+// @ts-expect-error Every member of a root Block union must resolve its host handlers.
+Program.make({ block: MaybeUnresolvedHostBlock, container: null })
+
+Program.make({
+  block: MaybeRoutingBlock,
+  container: null,
+  routing: {
+    // @ts-expect-error Every dynamic root member must accept the URL request Message.
+    onUrlRequest: RootMessage.RequestedNavigation,
+    // @ts-expect-error Every dynamic root member must accept the URL change Message.
+    onUrlChange: RootMessage.ChangedUrl,
+  },
+})
+
+Program.make({
+  block: PageBlock,
+  container: null,
+  Flags,
+  routing: {
+    // @ts-expect-error A routing constructor cannot require additional payload fields.
+    onUrlRequest: ExtraRequestMessage.RequestedNavigationWithExtra,
+    onUrlChange: RootMessage.ChangedUrl,
+  },
+})
+
+Program.make({
+  block: PageBlock,
+  container: null,
+  Flags,
+  routing: {
+    // @ts-expect-error A routing constructor must accept UrlRequest in its request field.
+    onUrlRequest: WrongRequestMessage.RequestedString,
+    onUrlChange: RootMessage.ChangedUrl,
+  },
+})
+
+Program.make({
+  block: PageBlock,
+  container: null,
+  Flags,
+  routing: {
+    // @ts-expect-error A routing constructor must produce the root Message.
+    onUrlRequest: ForeignRequestMessage.RequestedForeignNavigation,
+    onUrlChange: RootMessage.ChangedUrl,
+  },
+})
+
+// @ts-expect-error A routed init requires routing host options.
+Program.make({ block: PageBlock, container: null, Flags })
+
+// @ts-expect-error Program.make requires a Document view.
+Program.make({ block: ElementBlock, container: null, Flags })
+
+// @ts-expect-error Program.make rejects a root view whose output may be Html.
+Program.make({ block: MixedBlock, container: null, Flags })
+
+// @ts-expect-error Program.makeElement rejects a root view whose output may be Document.
+Program.makeElement({
+  block: MixedBlock,
+  container: null,
+  Flags,
+  flags: Effect.succeed(Flags.make({ status: 'ready' })),
+})
+
+// @ts-expect-error Every root view union member must omit view inputs.
+Program.makeElement({
+  block: MaybeInputViewBlock,
+  container: null,
+  Flags,
+  flags: Effect.succeed(Flags.make({ status: 'ready' })),
+})
+
+// @ts-expect-error The Flags Schema output must exactly match the root init input.
+Program.makeElement({
+  block: NarrowFlagsBlock,
+  container: null,
+  Flags,
+  flags: Effect.succeed(Flags.make({ status: 'ready' })),
+})
+
+// @ts-expect-error Every dynamic root member must accept exactly the hosted Flags type.
+Program.makeElement({
+  block: MaybeNarrowFlagsBlock,
+  container: null,
+  Flags,
+  flags: Effect.succeed(Flags.make({ status: 'ready' })),
+})
+
+// @ts-expect-error Program.makeElement requires a flags Effect with its Flags Schema.
+Program.makeElement({ block: ElementBlock, container: null, Flags })
+
+// @ts-expect-error Program.makeElement requires a Flags Schema with its flags Effect.
+Program.makeElement({
+  block: ElementBlock,
+  container: null,
+  flags: Effect.succeed(Flags.make({ status: 'ready' })),
+})
+
+const DeclarationHeadlessRootDefinition = Block.makeDefinition(
+  'DeclarationHeadlessRoot',
+  {
+    Model,
+    Message: RootMessage,
+  },
+)
+const DeclarationHeadlessRootComposition =
+  DeclarationHeadlessRootDefinition.makeComposition()
+const HeadlessBlock = DeclarationHeadlessRootComposition.assembleBlock({
+  init: () => ({ model: Model.make({ status: 'ready' }) }),
+  update: DeclarationHeadlessRootComposition.makeUpdate(model => ({ model })),
+})
+
+const HeadedBlock = DeclarationHeadlessRootComposition.assembleBlock({
+  init: () => ({ model: Model.make({ status: 'ready' }) }),
+  update: DeclarationHeadlessRootComposition.makeUpdate(model => ({ model })),
+  view: DeclarationHeadlessRootComposition.makeView((model, h) =>
+    h.div([], [model.status]),
+  ),
+})
+
+// @ts-expect-error A Program root Block must have a default view.
+Program.makeElement({ block: HeadlessBlock, container: null })
+
+const MaybeHeadlessBlock =
+  globalThis.Math.random() > 0.5 ? HeadedBlock : HeadlessBlock
+
+// @ts-expect-error Every member of a root Block union must have a default view.
+Program.makeElement({ block: MaybeHeadlessBlock, container: null })
+
+const OutMessage = Message.defineMessageUnion({ CompletedRootWork: {} })
+const DeclarationOutMessageRootDefinition = Block.makeDefinition(
+  'DeclarationOutMessageRoot',
+  {
+    Model,
+    Message: RootMessage,
+    OutMessage,
+  },
+)
+const DeclarationOutMessageRootComposition =
+  DeclarationOutMessageRootDefinition.makeComposition()
+const OutMessageBlock = DeclarationOutMessageRootComposition.assembleBlock({
+  init: () => ({ model: Model.make({ status: 'ready' }) }),
+  update: DeclarationOutMessageRootComposition.makeUpdate(model => ({ model })),
+  view: DeclarationOutMessageRootComposition.makeView(model => ({
+    title: model.status,
+    body: null,
+  })),
+})
+
+// @ts-expect-error A Program root Block cannot declare OutMessage.
+Program.make({ block: OutMessageBlock, container: null })
+
+const MaybeOutMessageBlock =
+  globalThis.Math.random() > 0.5 ? PurePageBlock : OutMessageBlock
+
+// @ts-expect-error Every member of a root Block union must omit OutMessage.
+Program.make({ block: MaybeOutMessageBlock, container: null })
+
+const DeclarationContextRootDefinition = Block.makeDefinition(
+  'DeclarationContextRoot',
+  {
+    Model,
+    Message: RootMessage,
+  },
+)
+const DeclarationContextRootComposition =
+  DeclarationContextRootDefinition.makeComposition()
+const ContextBlock = DeclarationContextRootComposition.assembleBlock({
+  init: () => ({ model: Model.make({ status: 'ready' }) }),
+  update: DeclarationContextRootComposition.makeUpdate(
+    (model, _message, _requiredContext: string) => ({ model }),
+  ),
+  view: DeclarationContextRootComposition.makeView((model, h) =>
+    h.div([], [model.status]),
+  ),
+})
+
+// @ts-expect-error A Program root update cannot require dispatch Context.
+Program.makeElement({ block: ContextBlock, container: null })
+
+const SafeContextBlock = DeclarationContextRootComposition.assembleBlock({
+  init: () => ({ model: Model.make({ status: 'ready' }) }),
+  update: DeclarationContextRootComposition.makeUpdate(model => ({ model })),
+  view: DeclarationContextRootComposition.makeView((model, h) =>
+    h.div([], [model.status]),
+  ),
+})
+const MaybeContextBlock =
+  globalThis.Math.random() > 0.5 ? SafeContextBlock : ContextBlock
+
+// @ts-expect-error Every member of a root Block union must omit required dispatch Context.
+Program.makeElement({ block: MaybeContextBlock, container: null })
+
+const DeclarationInvalidInitDefinition = Block.makeDefinition(
+  'DeclarationInvalidInit',
+  {
+    Model,
+    Message: RootMessage,
+  },
+)
+const DeclarationInvalidInitComposition =
+  DeclarationInvalidInitDefinition.makeComposition()
+const InvalidInitBlock = DeclarationInvalidInitComposition.assembleBlock({
+  init: (_url: Url.Url, _unexpected: string) => ({
+    model: Model.make({ status: 'ready' }),
+  }),
+  update: DeclarationInvalidInitComposition.makeUpdate(model => ({ model })),
+  view: DeclarationInvalidInitComposition.makeView((model, h) =>
+    h.div([], [model.status]),
+  ),
+})
+
+// @ts-expect-error Program init supports only (), (Flags), (Url), or (Flags, Url).
+Program.makeElement({ block: InvalidInitBlock, container: null })

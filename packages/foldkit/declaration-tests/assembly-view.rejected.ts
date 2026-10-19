@@ -1,10 +1,7 @@
-import { Message } from 'foldkit'
+import { Program } from 'foldkit'
 
 import {
   ApplicationComposition,
-  type ApplicationViewBuilder,
-  LocalMessage,
-  Model,
   documentView,
   elementView,
   helper,
@@ -12,70 +9,45 @@ import {
   update,
 } from './assembly-view.accepted.js'
 
-type Equal<Left, Right> =
-  (<Value>() => Value extends Left ? 1 : 2) extends <
-    Value,
-  >() => Value extends Right ? 1 : 2
-    ? true
-    : false
-type Expect<Value extends true> = Value
-
-const ForeignMessage = Message.defineMessageUnion({ ClickedForeign: {} })
-
-ApplicationComposition.assembleApplication({
+ApplicationComposition.assembleBlock({
   init,
   update,
-  container: null,
   // @ts-expect-error An inline view must first be authored with Composition.makeView.
-  view: (model, h) => {
-    const exactModel: Expect<Equal<typeof model, typeof Model.Type>> = true
-    const exactBuilder: Expect<Equal<typeof h, ApplicationViewBuilder>> = true
-    void exactModel
-    void exactBuilder
-    h.OnClick(LocalMessage.ClickedIncrement())
-    // @ts-expect-error Contextual typing retains the local Message contract.
-    h.OnClick(ForeignMessage.ClickedForeign())
-    return {
-      title: 'Unowned',
-      body: h.main([], [globalThis.String(model.count)]),
-    }
-  },
+  view: () => ({ title: 'Unowned', body: null }),
 })
 
-ApplicationComposition.assembleElement({
+ApplicationComposition.assembleBlock({
   init,
   update,
-  container: null,
   // @ts-expect-error An inline view must first be authored with Composition.makeView.
-  view: (model, h) => {
-    const exactModel: Expect<Equal<typeof model, typeof Model.Type>> = true
-    const exactBuilder: Expect<Equal<typeof h, ApplicationViewBuilder>> = true
-    void exactModel
-    void exactBuilder
-    return h.main([], [globalThis.String(model.count)])
-  },
+  view: () => null,
 })
 
-ApplicationComposition.assembleElement({
+ApplicationComposition.assembleBlock({
   init,
   update,
-  container: null,
   // @ts-expect-error A precisely typed helper still needs Composition ownership.
   view: helper,
 })
 
-ApplicationComposition.assembleApplication({
+const elementBlock = ApplicationComposition.assembleBlock({
   init,
   update,
-  container: null,
-  // @ts-expect-error An Element view cannot complete a page-owning Application.
   view: elementView,
 })
+// @ts-expect-error Program.make requires a Document view.
+Program.make({
+  block: elementBlock,
+  container: null,
+})
 
-ApplicationComposition.assembleElement({
+const documentBlock = ApplicationComposition.assembleBlock({
   init,
   update,
-  container: null,
-  // @ts-expect-error A Document view cannot complete an Element.
   view: documentView,
+})
+// @ts-expect-error Program.makeElement requires an Html view.
+Program.makeElement({
+  block: documentBlock,
+  container: null,
 })

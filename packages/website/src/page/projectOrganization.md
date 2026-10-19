@@ -10,15 +10,16 @@ Keep three boundaries visible as the application grows:
 | ----------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
 | Definition  | `definition.ts`, or the top of `composition.ts` when unnamed | Early Model, Message, OutMessage, ChildInitContext, Command, lifecycle, and Step contracts |
 | Composition | `composition.ts` or `composition/`                           | Parent-owned Bindings, Mount registrations, and graph-aware authoring                      |
-| Completion  | `block.ts` for a feature, `entry.ts` for the root            | Packages implementation; the entry also supplies Services and starts Runtime               |
+| Completion  | `block.ts` or compact `application.ts`                       | Packages implementation as a completed Block                                               |
+| Host        | `entry.ts`                                                   | Chooses page or element ownership, supplies Services, and starts Runtime                   |
 
-`bindChild` configures one parent-child relationship. Including that Binding in `makeComposition({ bindings })` registers it. Both calls are passive; `assembleBlock` and `assembleApplication` completion are passive too. A browser Runtime builds Layers, calls init, and starts effects after the entry starts it.
+`bindChild` configures one parent-child relationship. Including that Binding in `makeComposition({ bindings })` registers it. Both calls and `assembleBlock` are passive. `Program.make` or `Program.makeElement` adds host behavior without starting anything. A browser Runtime builds Layers, calls init, and starts effects after the entry starts it.
 
 ## Starting Simple
 
-Start with one cohesive module. The smallest application keeps Model, Message, Composition-owned init, update, view, `ApplicationDefinition`, and `ApplicationComposition` together in `application.ts`. A separate `entry.ts` chooses the browser container and startup inputs, completes the Application, supplies shared Services, and starts the Runtime. Tests and server tooling can import the passive application pieces without starting a browser Runtime.
+Start with one cohesive module. The smallest application keeps Model, Message, Composition-owned init, update, view, `ApplicationDefinition`, `ApplicationComposition`, and `ApplicationBlock` together in `application.ts`. A separate `entry.ts` chooses the browser container and startup inputs, creates the Program, supplies shared Services, and starts the Runtime. Tests and server tooling can import the passive Block without starting a browser Runtime.
 
-Split when those responsibilities become easier to navigate separately. Once one root responsibility moves out of `application.ts`, move the rest to files named for what they own. Retain `definition.ts` and a named `ApplicationDefinition` when Commands, Mounts, resources, child Bindings, or Steps use its authoring methods. When the factory's only use is `makeComposition`, place the top-level `makeApplicationDefinition(...).makeComposition()` chain in `composition.ts` instead. That file owns Bindings, OutMessage folds, complete child and Mount registration, `ApplicationComposition`, and an optional `ApplicationViewBuilder`. `init.ts`, `update.ts`, and `view.ts` own behavior authored through that Composition. Even a graphless split root has a `composition.ts` so every root follows the same passive Definition → Composition → assembly sequence.
+Split when those responsibilities become easier to navigate separately. Once one root responsibility moves out of `application.ts`, move the rest to files named for what they own. Retain `definition.ts` and a named `ApplicationDefinition` when Commands, Mounts, resources, child Bindings, or Steps use its authoring methods. When the factory's only use is `makeComposition`, place the top-level `Block.makeDefinition('Application', ...).makeComposition()` chain in `composition.ts` instead. That file owns Bindings, OutMessage folds, complete child and Mount registration, `ApplicationComposition`, and an optional `ApplicationViewBuilder`. `init.ts`, `update.ts`, and `view.ts` own behavior authored through that Composition. `block.ts` assembles `ApplicationBlock`. Even a graphless split root has a `composition.ts` so every root follows the same passive Definition → Composition → Block sequence.
 
 Use `composition/composition.ts` and an explicit `composition/index.ts` barrel only when substantial Binding policies need their own modules. Remove the emptied `application.ts` instead of retaining it as a forwarding barrel.
 
@@ -106,7 +107,7 @@ In a split root, `composition.ts` owns the complete child and Mount graph and `A
 
 When root authoring methods need it, `definition.ts` imports the split root's Model and Message Schemas and exports `ApplicationDefinition`. Root Commands, Subscriptions, and composition import that contract directly. A graphless root whose factory only creates the Composition places the factory chain in `composition.ts` instead. A simple root `EffectsLayer` stays with its Command definitions in `command.ts`; extract `layer.ts` only when Layer composition is substantial or reused.
 
-Root `services.ts` composes `ApplicationLayer`. The entry imports it and each completion field from its real owner, chooses browser inputs, and invokes the Runtime:
+Root `services.ts` composes `ApplicationLayer`. `block.ts` imports each implementation field from its real owner and assembles `ApplicationBlock`. The entry imports the Block and Layer, chooses browser inputs, creates the Program, and invokes the Runtime:
 
 ::Snippet{name="applicationEntryPoint" label="Browser application entry point"}
 

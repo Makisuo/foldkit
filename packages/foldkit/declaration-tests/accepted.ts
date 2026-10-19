@@ -1,14 +1,14 @@
 import { Context, Effect, Layer, Option, Record, Schema, Tuple } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
-import {
-  type Application as ApplicationProgram,
-  type Element as ElementProgram,
-} from 'foldkit/application'
+import { Program } from 'foldkit'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
 import { Server } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Port from 'foldkit/port'
+import {
+  type Element as ElementProgram,
+  type Program as ProgramType,
+} from 'foldkit/program'
 import { Lazy } from 'foldkit/test'
 import * as Update from 'foldkit/update'
 import type { Url } from 'foldkit/url'
@@ -709,7 +709,7 @@ export const provisionPorts = {
   outbound: { valueRead: Port.outbound(Schema.Number) },
 }
 
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -718,7 +718,7 @@ type PureMessage = typeof PureMessage.Type
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct Block or Application identity for type coverage.
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct Block or Application identity for type coverage.
-export const PureApplicationComposition = makeApplicationDefinition({
+export const PureApplicationComposition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: PureMessage,
 }).makeComposition()
@@ -745,24 +745,23 @@ const pureDocumentView = PureApplicationComposition.makeView((_model, h) => ({
   body: h.main([]),
 }))
 const pureElementProgram: ElementProgram<undefined, never, never, never> =
-  PureApplicationComposition.assembleElement({
+  Program.makeElement({
+    block: PureApplicationComposition.assembleBlock({
+      init: pureInit,
+      update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
+      view: pureElementView,
+    }),
     container: null,
-    init: pureInit,
-    update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
-    view: pureElementView,
   })
-const purePageProgram: ApplicationProgram<
-  undefined,
-  void,
-  never,
-  never,
-  never
-> = PureApplicationComposition.assembleApplication({
-  container: null,
-  init: pureInit,
-  update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
-  view: pureDocumentView,
-})
+const purePageProgram: ProgramType<undefined, void, never, never, never> =
+  Program.make({
+    block: PureApplicationComposition.assembleBlock({
+      init: pureInit,
+      update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
+      view: pureDocumentView,
+    }),
+    container: null,
+  })
 void pureElementProgram
 void purePageProgram
 export const ReadApplicationValue = ApplicationDefinition.command(
@@ -859,22 +858,24 @@ export const provisionRoutingInit = PureApplicationComposition.makeInit(
 const makeInferredProvisionPageAwaitingDependency = (
   container: HTMLElement | null,
 ) =>
-  PureApplicationComposition.assembleApplication({
+  Program.make({
+    block: PureApplicationComposition.assembleBlock({
+      init: PureApplicationComposition.makeInit(
+        ({ initialValue }: ProvisionFlags) => ({
+          model: ParentModel.make({
+            child: ChildBlock.Model.make({ value: initialValue }),
+          }),
+        }),
+      ),
+      update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
+      view: pureDocumentView,
+    }),
     Flags: ProvisionFlags,
     container,
-    init: PureApplicationComposition.makeInit(
-      ({ initialValue }: ProvisionFlags) => ({
-        model: ParentModel.make({
-          child: ChildBlock.Model.make({ value: initialValue }),
-        }),
-      }),
-    ),
     ports: provisionPorts,
-    update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
-    view: pureDocumentView,
   }).provide(ClockAndExtraLayer)
 
-type ProvisionPage = ApplicationProgram<
+type ProvisionPage = ProgramType<
   typeof provisionPorts,
   ProvisionFlags,
   ProvisionDependency,
@@ -894,12 +895,14 @@ export const makeProvisionPageAwaitingDependency: (
 ) => ProvisionPage = makeInferredProvisionPageAwaitingDependency
 
 const makeInferredProvisionElement = (container: HTMLElement | null) =>
-  PureApplicationComposition.assembleElement({
+  Program.makeElement({
+    block: PureApplicationComposition.assembleBlock({
+      init: pureInit,
+      update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
+      view: pureElementView,
+    }),
     container,
-    init: pureInit,
     ports: provisionPorts,
-    update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
-    view: pureElementView,
   })
     .provide(ClockAndExtraLayer)
     .provide(ProvisionDependencyLayer)
@@ -924,36 +927,45 @@ const provisionAssertions: ProvisionAssertions = [true, true]
 void provisionAssertions
 
 export const makeProgram = (container: HTMLElement) =>
-  ApplicationComposition.assembleElement({
-    ...applicationImplementation,
+  Program.makeElement({
+    block: ApplicationComposition.assembleBlock({
+      ...applicationImplementation,
+      view: applicationElementView,
+    }),
     container,
-    view: applicationElementView,
   }).provide(ClockLayer)
 
 export const makePageProgram = (container: HTMLElement | null) =>
-  ApplicationComposition.assembleApplication({
-    ...applicationImplementation,
+  Program.make({
+    block: ApplicationComposition.assembleBlock({
+      ...applicationImplementation,
+      view: applicationDocumentView,
+    }),
     container,
-    view: applicationDocumentView,
   }).provide(ClockLayer)
 
 export const makeRoutedFlagsPage = (container: HTMLElement | null) =>
-  PureApplicationComposition.assembleApplication({
+  Program.make({
+    block: PureApplicationComposition.assembleBlock({
+      init: provisionRoutingInit,
+      update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
+      view: pureDocumentView,
+    }),
     Flags: ProvisionFlags,
     container,
-    init: provisionRoutingInit,
     routing: {
       onUrlRequest: () => ParentMessage.RequestedRefresh(),
       onUrlChange: () => ParentMessage.RequestedRefresh(),
     },
-    update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
-    view: pureDocumentView,
   })
 
 export const renderPage = () =>
   Server.renderToString(
-    ApplicationComposition,
-    { ...applicationImplementation, view: applicationDocumentView },
+    ApplicationComposition.assembleBlock({
+      ...applicationImplementation,
+      view: applicationDocumentView,
+    }),
+    {},
     { isHydratable: false },
   )
 
@@ -972,7 +984,7 @@ export const recordUpdate = DisclosuresComposition.makeUpdate(
   (model, { id, isOpen }) => ({ model: Record.set(model, id, isOpen) }),
 )
 export const RecordApplicationComposition = (() => {
-  const ApplicationComposition = makeApplicationDefinition({
+  const ApplicationComposition = Block.makeDefinition('Application', {
     Model: RecordModel,
     Message: RecordMessage,
   }).makeComposition()

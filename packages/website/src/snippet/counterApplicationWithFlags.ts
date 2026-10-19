@@ -1,10 +1,7 @@
 import { ApplicationComposition, init, update, view } from './counterFlagsRoot'
-import { Flags } from './flagsDefinition'
 
-export const application = ApplicationComposition.assembleApplication({
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
   init,
   update,
   view,
-  Flags,
-  container: document.getElementById('root'),
 })

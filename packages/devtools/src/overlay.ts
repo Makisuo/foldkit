@@ -21,7 +21,7 @@ import {
   pipe,
 } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import { Block, Update, makeApplicationDefinition } from 'foldkit'
+import { Block, Program, Update } from 'foldkit'
 import {
   type CommandRecord,
   DEVTOOLS_HOST_ID,
@@ -386,7 +386,7 @@ const taggedPayload = (
 
 // UPDATE
 
-const ApplicationDefinition = makeApplicationDefinition({
+const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
   ChildInitContext: Flags,
@@ -1153,6 +1153,14 @@ const makeView = (
 }
 
 const view = ApplicationComposition.makeView(makeView(bindings))
+
+const ApplicationBlock = ApplicationComposition.assembleBlock({
+  init,
+  update,
+  view,
+  subscriptions,
+  EffectsLayer,
+})
 
 const buildOverlayView = (
   position: DevToolsPosition,
@@ -2988,19 +2996,15 @@ export const createOverlay = (
       }
     })
 
-    const application = ApplicationComposition.assembleElement({
-      init,
-      update,
-      view,
-      subscriptions,
-      EffectsLayer,
+    const program = Program.makeElement({
+      block: ApplicationBlock,
       Flags,
       flags,
       container,
       devTools: false,
       freezeModel: false,
     })
-    const overlay = application.provide(ServicesLayer)
+    const overlay = program.provide(ServicesLayer)
 
     yield* Effect.forkScoped(overlay.start())
   })

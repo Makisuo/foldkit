@@ -1,5 +1,5 @@
 import { Schema, Tuple } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import * as Story from 'foldkit/story'
 
@@ -10,7 +10,7 @@ const ToastBlock = Toast.make(ToastPayload)
 
 const Model = Schema.Struct({ toast: ToastBlock.Model })
 const Message = defineMessageUnion({ RequestedShowToast: {} })
-const ApplicationDefinition = makeApplicationDefinition({
+const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })

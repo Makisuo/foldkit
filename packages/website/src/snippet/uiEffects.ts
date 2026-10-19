@@ -57,20 +57,27 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-// entry.ts
-import { Runtime } from 'foldkit'
-
+// block.ts
 import { ApplicationComposition } from './composition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const application = ApplicationComposition.assembleApplication({
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
   init,
   update,
   view,
-  container: document.getElementById('root'),
-  devTools: { Message: ApplicationComposition.Message },
 })
 
-Runtime.run(application)
+// entry.ts
+import { Program, Runtime } from 'foldkit'
+
+import { ApplicationBlock } from './block'
+
+const program = Program.make({
+  block: ApplicationBlock,
+  container: document.getElementById('root'),
+  devTools: { Message: ApplicationBlock.Message },
+})
+
+Runtime.run(program)

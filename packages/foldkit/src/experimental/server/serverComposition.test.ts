@@ -3,8 +3,8 @@ import { Effect, Layer, Option, Schema } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import { makeNamespace } from '../../block/define.js'
+import * as Block from '../../block/public.js'
 import { defineMessageUnion } from '../../message/index.js'
-import { makeDefinition as makeApplicationDefinition } from '../../runtime/applicationPublic.js'
 import type { Url } from '../../url/index.js'
 import { renderToString } from './server.js'
 
@@ -63,7 +63,7 @@ const childImplementation = {
 }
 const childBlock = child.assembleBlock(childImplementation)
 const RootModel = Schema.Struct({ title: Schema.String })
-const RootApplicationDefinition = makeApplicationDefinition({
+const RootApplicationDefinition = Block.makeDefinition('Application', {
   Model: RootModel,
   Message: Schema.Never,
 })
@@ -96,7 +96,7 @@ const rootImplementation = {
 const ServerFlags = Schema.Struct({ title: Schema.String })
 type ServerFlags = typeof ServerFlags.Type
 
-const FlagsComposition = makeApplicationDefinition({
+const FlagsComposition = Block.makeDefinition('Application', {
   Model: RootModel,
   Message: PlainMessage,
 }).makeComposition()
@@ -110,7 +110,7 @@ const flagsImplementation = {
   EffectsLayer: Layer.empty,
 }
 
-const RoutingComposition = makeApplicationDefinition({
+const RoutingComposition = Block.makeDefinition('Application', {
   Model: RootModel,
   Message: PlainMessage,
 }).makeComposition()
@@ -124,7 +124,7 @@ const routingImplementation = {
   EffectsLayer: Layer.empty,
 }
 
-const RoutingFlagsComposition = makeApplicationDefinition({
+const RoutingFlagsComposition = Block.makeDefinition('Application', {
   Model: RootModel,
   Message: PlainMessage,
 }).makeComposition()
@@ -140,7 +140,7 @@ const routingFlagsImplementation = {
   EffectsLayer: Layer.empty,
 }
 
-const DataComposition = makeApplicationDefinition({
+const DataComposition = Block.makeDefinition('Application', {
   Model: RootModel,
   Message: PlainMessage,
 }).makeComposition()
@@ -150,7 +150,7 @@ const dataImplementation = {
   EffectsLayer: Layer.empty,
 }
 
-const HtmlComposition = makeApplicationDefinition({
+const HtmlComposition = Block.makeDefinition('Application', {
   Model: RootModel,
   Message: PlainMessage,
 }).makeComposition()
@@ -163,27 +163,30 @@ const htmlImplementation = {
 
 const OtherFlags = Schema.Struct({ count: Schema.Number })
 
+const RootBlock = RegisteredApplication.assembleBlock(rootImplementation)
+const FlagsBlock = FlagsComposition.assembleBlock(flagsImplementation)
+const RoutingBlock = RoutingComposition.assembleBlock(routingImplementation)
+const RoutingFlagsBlock = RoutingFlagsComposition.assembleBlock(
+  routingFlagsImplementation,
+)
+const DataBlock = DataComposition.assembleBlock(dataImplementation)
+const HtmlBlock = HtmlComposition.assembleBlock(htmlImplementation)
+
 const verifyServerBlockContracts = (): void => {
-  const rootRender = renderToString(RegisteredApplication, rootImplementation, {
-    isHydratable: false,
-  })
+  const rootRender = renderToString(RootBlock, {}, { isHydratable: false })
   const flagsRender = renderToString(
-    FlagsComposition,
-    { ...flagsImplementation, Flags: ServerFlags },
+    FlagsBlock,
+    { Flags: ServerFlags },
     { flags: { title: 'flags' }, isHydratable: false },
   )
   const routingRender = renderToString(
-    RoutingComposition,
-    { ...routingImplementation, routing: {} },
+    RoutingBlock,
+    { routing: {} },
     { url: 'https://foldkit.dev/docs', isHydratable: false },
   )
   const routingFlagsRender = renderToString(
-    RoutingFlagsComposition,
-    {
-      ...routingFlagsImplementation,
-      Flags: ServerFlags,
-      routing: {},
-    },
+    RoutingFlagsBlock,
+    { Flags: ServerFlags, routing: {} },
     {
       flags: { title: 'flags' },
       url: 'https://foldkit.dev/docs',
@@ -192,42 +195,50 @@ const verifyServerBlockContracts = (): void => {
   )
 
   const invalidDataRender = renderToString(
-    DataComposition,
-    // @ts-expect-error A server implementation must supply a page-owning Document view.
-    dataImplementation,
-    {
-      isHydratable: false,
-    },
+    // @ts-expect-error The completed root must have a default Document view.
+    DataBlock,
+    {},
+    { isHydratable: false },
   )
-
   const invalidHtmlRender = renderToString(
-    HtmlComposition,
-    // @ts-expect-error An embeddable HTML view cannot own the rendered Document.
-    htmlImplementation,
-    {
-      isHydratable: false,
-    },
+    // @ts-expect-error An embedded Html view cannot own the rendered Document.
+    HtmlBlock,
+    {},
+    { isHydratable: false },
   )
-
   const invalidFlagsValueRender = renderToString(
-    FlagsComposition,
-    // @ts-expect-error Render Flags must match the config's Flags Schema.
-    { ...flagsImplementation, Flags: ServerFlags },
+    FlagsBlock,
+    // @ts-expect-error The render input must match the Flags Schema.
+    { Flags: ServerFlags },
     { flags: { title: 1 }, isHydratable: false },
   )
-
   const invalidFlagsSchemaRender = renderToString(
-    FlagsComposition,
-    // @ts-expect-error The Flags Schema must match the root's init input.
-    { ...flagsImplementation, Flags: OtherFlags },
+    FlagsBlock,
+    // @ts-expect-error The host Flags Schema must match the root initializer.
+    { Flags: OtherFlags },
     { flags: { count: 1 }, isHydratable: false },
   )
-
   const invalidRoutingRender = renderToString(
-    RegisteredApplication,
-    // @ts-expect-error A routing root must accept the parsed Url as its init input.
-    { ...rootImplementation, routing: {} },
+    RootBlock,
+    // @ts-expect-error URL initialization must be accepted by the root initializer.
+    { routing: {} },
     { url: 'https://foldkit.dev', isHydratable: false },
+  )
+  const invalidRoutingMode = renderToString(
+    RoutingBlock,
+    // @ts-expect-error Enabling URL initialization requires a routing configuration object.
+    { routing: undefined },
+    { url: 'https://foldkit.dev', isHydratable: false },
+  )
+  const duplicatedImplementation = {
+    Flags: ServerFlags,
+    init: flagsImplementation.init,
+  }
+  const invalidHostConfigRender = renderToString(
+    FlagsBlock,
+    // @ts-expect-error Host configuration cannot replace completed Block behavior.
+    duplicatedImplementation,
+    { flags: { title: 'flags' }, isHydratable: false },
   )
 
   void [
@@ -240,17 +251,51 @@ const verifyServerBlockContracts = (): void => {
     invalidFlagsValueRender,
     invalidFlagsSchemaRender,
     invalidRoutingRender,
+    invalidRoutingMode,
+    invalidHostConfigRender,
   ]
 }
 
 void verifyServerBlockContracts
 
-describe('Application definition server rendering', () => {
-  it('renders a graphless definition created by the public define function', async () => {
+describe('completed root Block server rendering', () => {
+  it('rejects an erased Flags configuration before encoding', () => {
+    expect(() =>
+      Reflect.apply(renderToString, undefined, [
+        FlagsBlock,
+        { Flags: {} },
+        { flags: { title: 'Invalid schema' }, isHydratable: false },
+      ]),
+    ).toThrow('Server Flags must be an Effect Schema')
+  })
+
+  it('rejects an erased Html root before attempting Document serialization', async () => {
+    const render = Reflect.apply(renderToString, undefined, [
+      HtmlBlock,
+      {},
+      { isHydratable: false },
+    ])
+
+    await expect(Effect.runPromise(render)).rejects.toThrow(
+      'requires a Document view',
+    )
+  })
+
+  it('rejects an erased routing configuration that cannot enable URL initialization', () => {
+    expect(() =>
+      Reflect.apply(renderToString, undefined, [
+        RoutingBlock,
+        { routing: undefined },
+        { url: 'https://foldkit.dev', isHydratable: false },
+      ]),
+    ).toThrow('Server routing must be a configuration object')
+  })
+
+  it('renders a graphless completed Block', async () => {
     const rendered = await Effect.runPromise(
       renderToString(
-        FlagsComposition,
-        { ...flagsImplementation, Flags: ServerFlags },
+        FlagsBlock,
+        { Flags: ServerFlags },
         { flags: { title: 'Graphless root' }, isHydratable: false },
       ),
     )
@@ -261,9 +306,13 @@ describe('Application definition server rendering', () => {
 
   it('renders registered child boundaries without constructing or executing handlers', async () => {
     const rendered = await Effect.runPromise(
-      renderToString(RegisteredApplication, rootImplementation, {
-        isHydratable: false,
-      }),
+      renderToString(
+        RootBlock,
+        {},
+        {
+          isHydratable: false,
+        },
+      ),
     )
     expect(rendered.title).toBe('Server-rendered child')
     expect(rendered.html).toContain('Server-rendered child')

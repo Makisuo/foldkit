@@ -1,5 +1,5 @@
 import { Array, Effect, Number, Schema } from 'effect'
-import { makeDefinition } from 'foldkit/application'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -32,7 +32,10 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = makeDefinition({ Model, Message })
+export const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 // CONSTANTS
@@ -231,4 +234,11 @@ export const view = ApplicationComposition.makeView((model, h) => {
       ],
     ),
   }
+})
+
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
+  init,
+  update,
+  view,
+  EffectsLayer,
 })

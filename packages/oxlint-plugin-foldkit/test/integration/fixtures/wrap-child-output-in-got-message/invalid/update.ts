@@ -1,5 +1,5 @@
 import { Layer, Option } from 'effect'
-import { Block, Command as ChildCommand, makeApplicationDefinition } from 'foldkit'
+import { Block, Command as ChildCommand } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { Child } from './child'
 import { ForwardedChildMessage } from './message'
@@ -18,7 +18,10 @@ const InlineChildDefinition = Block.makeDefinition('InlineChild', {
     EffectsLayer: Layer.empty,
   })
 
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 export const InlineChildBinding = ApplicationDefinition.bindChild(InlineChildDefinition, {read: (model: Model) => Option.some(model.child),
 write: (model, child) => modifyFields(model, { child: () => child }),
 toParentMessage: message => ForwardedChildMessage({ message })})

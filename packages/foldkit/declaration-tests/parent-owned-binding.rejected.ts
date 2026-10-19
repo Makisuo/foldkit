@@ -1,5 +1,5 @@
 import { Layer, Option, Schema } from 'effect'
-import { Block, Message, makeApplicationDefinition } from 'foldkit'
+import { Block, Message } from 'foldkit'
 
 import {
   ChildBlock,
@@ -254,7 +254,7 @@ DeclarationRejectedParentComposition.assembleBlock({
   EffectsLayer: Layer.empty,
 })
 
-const ApplicationDefinition = makeApplicationDefinition({
+const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -267,6 +267,6 @@ ApplicationDefinition.bindChild(ChildBlock, {
   },
 })
 // @ts-expect-error An Application Definition cannot complete before makeComposition.
-ApplicationDefinition.assembleElement
+ApplicationDefinition.assembleBlock
 // @ts-expect-error An Application Definition has no register alias.
 ApplicationDefinition.register

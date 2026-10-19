@@ -1,11 +1,5 @@
 import { Array, Context, Effect, Layer, Option, Schema, Stream } from 'effect'
-import {
-  Block,
-  Message,
-  Struct,
-  Update,
-  makeApplicationDefinition,
-} from 'foldkit'
+import { Block, Message, Struct, Update } from 'foldkit'
 
 export class ChildClock extends Context.Service<
   ChildClock,
@@ -317,7 +311,7 @@ export const ParentBlock =
 const ApplicationMessage = Message.defineMessageUnion({
   ClickedApplication: {},
 })
-const ApplicationDefinition = makeApplicationDefinition({
+const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: ApplicationMessage,
 })

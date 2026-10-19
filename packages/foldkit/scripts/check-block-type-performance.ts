@@ -254,7 +254,7 @@ const printRows = (
 
 const assertBuiltDeclarations = (): void => {
   for (const path of [
-    'dist/runtime/applicationPublic.d.ts',
+    'dist/runtime/programPublic.d.ts',
     'dist/block/public.d.ts',
     'dist/command/public.d.ts',
     'dist/update/public.d.ts',

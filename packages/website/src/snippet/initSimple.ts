@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Model = Schema.Struct({
@@ -12,7 +12,7 @@ const Message = defineMessageUnion({
   ClickedDecrement: {},
 })
 type Message = typeof Message.Type
-const ApplicationComposition = makeApplicationDefinition({
+const ApplicationComposition = Block.makeDefinition('Application', {
   Model,
   Message,
 }).makeComposition()

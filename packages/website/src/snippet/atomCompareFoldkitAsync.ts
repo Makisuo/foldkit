@@ -1,5 +1,5 @@
 import { Effect, Schema } from 'effect'
-import { AsyncData, makeApplicationDefinition } from 'foldkit'
+import { AsyncData, Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 import { Api, ApiLayer } from './api'
@@ -20,7 +20,10 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 
 // Api is an Effect service; ApiLayer provides it.
 const FetchUser = ApplicationDefinition.command('FetchUser', {

@@ -280,7 +280,6 @@ export const resolveImportedPath = (
   })
 
 const foldkitNamespaceBySource: Readonly<Record<string, string>> = {
-  'foldkit/application': 'Application',
   'foldkit/command': 'Command',
   'foldkit/experimental': 'Experimental',
   'foldkit/experimental/query': 'Query',
@@ -289,6 +288,7 @@ const foldkitNamespaceBySource: Readonly<Record<string, string>> = {
   'foldkit/message': 'Message',
   'foldkit/mount': 'Mount',
   'foldkit/navigation': 'Navigation',
+  'foldkit/program': 'Program',
   'foldkit/route': 'Route',
   'foldkit/runtime': 'Runtime',
   'foldkit/schema': 'Schema',
@@ -981,7 +981,7 @@ export const blockBindingMethod = (
   return Option.none()
 }
 
-/** Recognizes an authoring method on a Block, Application, or imported feature owner. */
+/** Recognizes an authoring method on a Block or imported feature owner. */
 const isOwnedDefinitionCallee = (
   callee: unknown,
   method: string,
@@ -1022,9 +1022,7 @@ const isOwnedDefinitionCallee = (
               const path = Array.join(apiPath, '.')
               return (
                 path === 'Block.makeDefinition' ||
-                path === 'Block.makeNamespace' ||
-                path === 'Application.makeDefinition' ||
-                path === 'makeApplicationDefinition'
+                path === 'Block.makeNamespace'
               )
             },
           )

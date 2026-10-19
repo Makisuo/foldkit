@@ -1,5 +1,5 @@
 import { Option } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 import { foreignComposition, foreignDefinition } from 'third-party'
@@ -7,7 +7,10 @@ import { foreignComposition, foreignDefinition } from 'third-party'
 const Message = defineMessageUnion({
   ClickedSave: {},
 })
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 
 defineMessageUnion({ ChangedSettings: {} })
 

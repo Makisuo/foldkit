@@ -123,9 +123,9 @@ The feature barrel exports only `HomeBlock`. The parent barrel re-exports that n
 
 ## Author through factory methods
 
-`Definition.makeComposition` fixes the child and Mount graph. A Composition's `makeInit`, `makeUpdate`, and `makeView` methods author its implementation. `assembleBlock`, `assembleApplication`, and `assembleElement` assemble that fixed graph with its authored implementation. A completed Block uses `makeView` for an alternate embed view against its fixed graph.
+`Definition.makeComposition` fixes the child and Mount graph. A Composition's `makeInit`, `makeUpdate`, and `makeView` methods author its implementation. `assembleBlock` assembles that fixed graph with its authored implementation. A completed Block uses `makeView` for an alternate embed view against its fixed graph.
 
-Each `make*` authoring method returns a configured value or function. Each `assemble*` method returns a passive completed value. These methods do not run init, update the Model, render, construct Layers, or start effects. `Runtime.run`, `Runtime.hydrate`, and `Runtime.embed` start execution.
+Each `make*` authoring method returns a configured value or function. `assembleBlock` returns a passive completed value. These methods do not run init, update the Model, render, construct Layers, or start effects. `Program.make` and `Program.makeElement` add browser host behavior; `Runtime.run`, `Runtime.hydrate`, and `Runtime.embed` start execution.
 
 An authored update supports both call directions. Runtime dispatch uses `update(model, message, ...context)`. The curried `update(message)(model, ...context)` form is an internal Step with the same requirements, OutMessage type, and graph evidence. `Update.combine` accepts unary Steps, so supply required dispatch context through an explicit unary adapter before combining a contextual update.
 
@@ -218,11 +218,11 @@ The aggregate only merges passive recipes; it constructs no handlers or Streams.
 The parent authoring value creates the Binding because the parent owns Model access, delivery context, OutMessage policy, and lifecycle policy:
 
 ```ts
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { Message } from './message'
 import { Model } from './model'
 import { HomeBlock } from './page'
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
@@ -257,12 +257,15 @@ The authored parent Message Schema contains only local facts. Composition derive
 Register that route and its OutMessage policy on the Binding:
 
 ```ts
-import { makeApplicationDefinition, type Update } from 'foldkit'
+import { Block, type Update } from 'foldkit'
 import { DialogBlock } from './dialog'
 import { Message } from './message'
 import { Model } from './model'
 import { resetSearch } from './search'
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 const foldDialogOutMessage = DialogBlock.OutMessage.match<
   Update.Step<typeof Model.Type, typeof Message.Type>
 >({
@@ -295,12 +298,12 @@ The parent configures OutMessage policy in its Binding. That policy executes dur
 parent update → child fold or operation → parent OutMessage handling → parent result
 
 ```ts
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { Message } from './message'
 import { Model } from './model'
 import { openArticle } from './operation'
 import { HomeBlock } from './page'
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
@@ -364,7 +367,7 @@ A Query uses the same Binding path because Query and KeyedQuery are completed vi
 ```ts
 import { Schema } from 'effect'
 import { Query } from 'foldkit/experimental'
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { fetchPosts } from './api'
 import { Message } from './message'
 import { Model } from './model'
@@ -378,7 +381,7 @@ export const postsQuery = Query.define({
     return () => fetchPosts
   },
 })
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
@@ -400,10 +403,10 @@ Keep the early root contract separate when child Bindings import its helpers:
 
 ```ts
 // definition.ts
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { Message } from './message'
 import { Model } from './model'
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
@@ -541,7 +544,7 @@ After:
 ```ts
 // application.ts
 import { Schema } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -549,7 +552,7 @@ export const Model = Schema.Struct({ count: Schema.Number })
 
 export const Message = defineMessageUnion({ ClickedIncrement: {} })
 
-export const ApplicationComposition = makeApplicationDefinition({
+export const ApplicationComposition = Block.makeDefinition('Application', {
   Model,
   Message,
 }).makeComposition()
@@ -577,37 +580,38 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-// entry.ts
-import { Runtime } from 'foldkit'
-
-import { ApplicationComposition, init, update, view } from './application'
-
-const application = ApplicationComposition.assembleApplication({
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
   init,
   update,
   view,
+})
+
+// entry.ts
+import { Program, Runtime } from 'foldkit'
+
+import { ApplicationBlock } from './application'
+
+const program = Program.make({
+  block: ApplicationBlock,
   container: document.getElementById('root'),
 })
 
-Runtime.run(application)
+Runtime.run(program)
 ```
 
-Call `application.provide(ApplicationLayer)` or `element.provide(ApplicationLayer)` when ordinary Services remain. `application.provide` is an instance method on the completed passive program. There is no standalone `provide` function and no `Application.provide` method.
+Call `program.provide(ApplicationLayer)` when ordinary Services remain. `program.provide` is an instance method on the completed passive Program. There is no standalone `provide` function.
 
-Server rendering receives the same passive Composition and explicit implementation fields:
+Server rendering receives the same completed root Block as the browser Program:
 
 ```ts
 import { Server } from 'foldkit/experimental'
 
-import { ApplicationComposition } from './composition'
+import { ApplicationBlock } from './block'
 import { Flags } from './flags'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
 
 Server.renderToString(
-  ApplicationComposition,
-  { init, update, view, Flags, routing: {} },
+  ApplicationBlock,
+  { Flags, routing: {} },
   { url: request.url, flags },
 )
 ```

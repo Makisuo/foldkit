@@ -1,4 +1,4 @@
-import { Block, makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { Effect, Schema } from 'effect'
 import { Query } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
@@ -32,7 +32,10 @@ const DirectBlock = DirectComposition.assembleBlock({
   update: DirectComposition.makeUpdate(model => ({ model })),
 })
 
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 ApplicationDefinition.bindChild(CustomChild.block, {field: 'child',
 parentMessage: ParentMessage.GotCustomChildMessage})
 

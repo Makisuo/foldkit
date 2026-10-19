@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Number, Schema, Stream } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
+import { Program } from 'foldkit'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
 import { defineMessageUnion } from 'foldkit/message'
@@ -65,6 +65,10 @@ export const childSubscriptions =
   }))
 export const GeneratedDispatchChildComposition =
   GeneratedDispatchChildDefinition.makeComposition()
+export const childSceneSubscriptions = Scene.subscriptions(
+  GeneratedDispatchChildComposition,
+  childSubscriptions,
+)
 export const childInit = GeneratedDispatchChildComposition.makeInit(() => ({
   model: { count: 0 },
   commands: [ReadCount()],
@@ -188,7 +192,7 @@ export const Model = Schema.Struct({
   parent: GeneratedDispatchParentBlock.Model,
 })
 export const Message = defineMessageUnion({ ClickedApplication: {} })
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
@@ -214,10 +218,12 @@ export const view = ApplicationComposition.makeView((model, h) =>
     ],
   ),
 )
-export const element = ApplicationComposition.assembleElement({
-  init,
-  update,
-  view,
+export const element = Program.makeElement({
+  block: ApplicationComposition.assembleBlock({
+    init,
+    update,
+    view,
+  }),
   container: null,
   devTools: { Message: ApplicationComposition.Message },
 })
@@ -241,6 +247,9 @@ export type CompleteApplicationDispatch = Expect<
     (typeof ApplicationComposition.Message.Type)['_tag'],
     'ClickedApplication' | 'GotParentMessage'
   >
+>
+export type ExactChildSceneSubscriptionKeys = Expect<
+  Equal<keyof typeof childSceneSubscriptions, 'observations'>
 >
 export type ExactSceneSubscriptionKeys = Expect<
   Equal<keyof typeof sceneSubscriptions, 'parent/child/observations'>

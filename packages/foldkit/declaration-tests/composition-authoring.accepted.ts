@@ -1,12 +1,12 @@
 import { Context, Effect, Layer, Option, Schema, Tuple } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
-import type {
-  Element as ElementProgram,
-  PendingApplication,
-} from 'foldkit/application'
+import { Program } from 'foldkit'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
 import { defineMessageUnion } from 'foldkit/message'
+import type {
+  Element as ElementProgram,
+  Pending as PendingProgram,
+} from 'foldkit/program'
 import { defineRouteUnion } from 'foldkit/route'
 import * as Struct from 'foldkit/struct'
 import * as Update from 'foldkit/update'
@@ -776,7 +776,7 @@ export type ApplicationModel = typeof ApplicationModel.Type
 export const ApplicationMessage = defineMessageUnion({ Incremented: {} })
 export type ApplicationMessage = typeof ApplicationMessage.Type
 
-export const ApplicationComposition = makeApplicationDefinition({
+export const ApplicationComposition = Block.makeDefinition('Application', {
   Model: ApplicationModel,
   Message: ApplicationMessage,
 }).makeComposition()
@@ -798,11 +798,13 @@ export const applicationUpdate = ApplicationComposition.makeUpdate(model => ({
 export const applicationView = ApplicationComposition.makeView((model, h) =>
   h.main([], [globalThis.String(model.count)]),
 )
-export const ApplicationElement = ApplicationComposition.assembleElement({
+export const ApplicationElement = Program.makeElement({
+  block: ApplicationComposition.assembleBlock({
+    init: applicationInit,
+    update: applicationUpdate,
+    view: applicationView,
+  }),
   container: null,
-  init: applicationInit,
-  update: applicationUpdate,
-  view: applicationView,
 })
 
 type ApplicationInitModelIsExact = Expect<
@@ -847,7 +849,7 @@ export const ServiceApplicationMessage = defineMessageUnion({
 })
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable
-const ServiceApplicationDefinition = makeApplicationDefinition({
+const ServiceApplicationDefinition = Block.makeDefinition('Application', {
   Model: ServiceApplicationModel,
   Message: ServiceApplicationMessage,
 })
@@ -887,14 +889,15 @@ export const serviceApplicationView = ServiceApplicationComposition.makeView(
   (model, h) => h.main([], [globalThis.String(model.count)]),
 )
 
-export const PendingServiceApplicationElement =
-  ServiceApplicationComposition.assembleElement({
-    container: null,
+export const PendingServiceApplicationElement = Program.makeElement({
+  block: ServiceApplicationComposition.assembleBlock({
     init: serviceApplicationInit,
     update: serviceApplicationUpdate,
     view: serviceApplicationView,
     EffectsLayer: RunApplicationTask.layer,
-  })
+  }),
+  container: null,
+})
 
 export const ApplicationClientLayer = Layer.succeed(ApplicationClient, {
   run: Effect.void,
@@ -905,7 +908,7 @@ export const ProvidedServiceApplicationElement =
 type PendingServiceApplicationElementIsExact = Expect<
   Equal<
     typeof PendingServiceApplicationElement,
-    PendingApplication<
+    PendingProgram<
       undefined,
       void,
       ApplicationClient,

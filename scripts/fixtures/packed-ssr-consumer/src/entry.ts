@@ -1,23 +1,12 @@
-import { Runtime } from 'foldkit'
+import { Program, Runtime } from 'foldkit'
 
-import {
-  ApplicationComposition,
-  EffectsLayer,
-  Flags,
-  Message,
-  init,
-  update,
-  view,
-} from './application'
+import { ApplicationBlock, Flags, Message } from './application'
 
-const application = ApplicationComposition.assembleApplication({
-  init,
-  update,
-  view,
-  EffectsLayer,
+const program = Program.make({
+  block: ApplicationBlock,
   Flags,
   container: document.getElementById('root'),
   devTools: { Message },
 })
 
-Runtime.hydrate(application)
+Runtime.hydrate(program)

@@ -1,5 +1,5 @@
 import { Effect, Layer, Schema, Stream } from 'effect'
-import { Block, makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -57,7 +57,10 @@ export const PinsBlock = PinsComposition.assembleBlock({
 
 const Model = Schema.Struct({ pins: PinsBlock.Model })
 export const Message = defineMessageUnion({ RequestedRefreshPins: {} })
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 const PinsBinding = ApplicationDefinition.bindChild(PinsBlock, {
   field: 'pins',
 })

@@ -10,10 +10,11 @@ import {
 import { afterEach, expect, it, vi } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
-import { makeDefinition as makeApplicationDefinition } from '../runtime/applicationPublic.js'
+import * as Program from '../runtime/programPublic.js'
 import { __startProgram } from '../runtime/start.js'
 import { modifyFields } from '../struct/index.js'
 import { makeNamespace } from './define.js'
+import * as Block from './public.js'
 
 type LifecycleEvent =
   | 'Mount acquired'
@@ -192,7 +193,7 @@ const buildGraph = (
   })
   type ParentMessage = typeof ParentMessage.Type
 
-  const ParentBaseDefinition = makeApplicationDefinition({
+  const ParentBaseDefinition = Block.makeDefinition('Application', {
     Model: ParentModel,
     Message: ParentMessage,
   })
@@ -273,12 +274,14 @@ it.each(['Option', 'Route'] as const)(
     container.id = 'block-lifecycle-test'
     document.body.appendChild(container)
 
-    const provided = composition.assembleElement({
+    const provided = Program.makeElement({
+      block: composition.assembleBlock({
+        init,
+        update,
+        view,
+        EffectsLayer: Layer.empty,
+      }),
       container,
-      init,
-      update,
-      view,
-      EffectsLayer: Layer.empty,
     })
 
     expect(events).toEqual([])
@@ -351,11 +354,13 @@ it('gates only Subscription Streams while the direct-field child remains present
   const container = document.createElement('div')
   container.id = 'block-subscription-only-lifecycle-test'
   document.body.appendChild(container)
-  const application = composition.assembleElement({
+  const application = Program.makeElement({
+    block: composition.assembleBlock({
+      init,
+      update,
+      view,
+    }),
     container,
-    init,
-    update,
-    view,
   })
   const fiber = Effect.runFork(__startProgram(application, undefined, 'Fresh'))
 

@@ -409,6 +409,18 @@ const checks: ReadonlyArray<
   }>
 > = [
   {
+    name: 'program-server',
+    accepted: ['program-server.accepted.ts'],
+    rejected: ['program-server.rejected.ts'],
+    consumers: ['program-server.consume.ts'],
+  },
+  {
+    name: 'program',
+    accepted: ['program.accepted.ts'],
+    rejected: ['program.rejected.ts'],
+    consumers: ['program.consume.ts'],
+  },
+  {
     name: 'optional-wrapped-keyed',
     accepted: ['optional-wrapped-keyed.accepted.ts'],
     rejected: ['optional-wrapped-keyed.rejected.ts'],

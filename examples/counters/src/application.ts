@@ -1,6 +1,5 @@
 import { Array, Number, Schema, Tuple } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -27,7 +26,7 @@ export const Message = defineMessageUnion({
   ClickedRemoveCounter: { id: Schema.String },
 })
 
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
@@ -159,3 +158,9 @@ export const view = ApplicationComposition.makeView((model, h) => ({
     ],
   ),
 }))
+
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
+  init,
+  update,
+  view,
+})

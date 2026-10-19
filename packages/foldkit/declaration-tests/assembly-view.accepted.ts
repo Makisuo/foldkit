@@ -1,16 +1,26 @@
 import { Number, Schema } from 'effect'
-import { Block, Message, makeApplicationDefinition } from 'foldkit'
+import { Block, Message, Program } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 export const Model = Schema.Struct({ count: Schema.Number })
 export const LocalMessage = Message.defineMessageUnion({ ClickedIncrement: {} })
-export const ApplicationComposition = makeApplicationDefinition({
+export const ApplicationComposition = Block.makeDefinition('Application', {
   Model,
   Message: LocalMessage,
 }).makeComposition()
 export type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
+type Equal<Left, Right> =
+  (<Value>() => Value extends Left ? 1 : 2) extends <
+    Value,
+  >() => Value extends Right ? 1 : 2
+    ? true
+    : false
+type Expect<Value extends true> = Value
+
+const ForeignMessage = Message.defineMessageUnion({ ClickedForeign: {} })
+
 export const init = ApplicationComposition.makeInit(() => ({
   model: { count: 0 },
 }))
@@ -27,15 +37,29 @@ export const documentView = ApplicationComposition.makeView((model, h) => ({
   body: helper(model, h),
 }))
 export const elementView = ApplicationComposition.makeView(helper)
-export const application = ApplicationComposition.assembleApplication({
-  init,
-  update,
-  view: documentView,
+export const contextualView = ApplicationComposition.makeView((model, h) => {
+  const exactModel: Expect<Equal<typeof model, typeof Model.Type>> = true
+  const exactBuilder: Expect<Equal<typeof h, ApplicationViewBuilder>> = true
+  void exactModel
+  void exactBuilder
+  h.OnClick(LocalMessage.ClickedIncrement())
+  // @ts-expect-error Composition.makeView retains the local Message contract.
+  h.OnClick(ForeignMessage.ClickedForeign())
+  return h.main([], [globalThis.String(model.count)])
+})
+export const application = Program.make({
+  block: ApplicationComposition.assembleBlock({
+    init,
+    update,
+    view: documentView,
+  }),
   container: null,
 })
-export const element = ApplicationComposition.assembleElement({
-  init,
-  update,
-  view: elementView,
+export const element = Program.makeElement({
+  block: ApplicationComposition.assembleBlock({
+    init,
+    update,
+    view: elementView,
+  }),
   container: null,
 })

@@ -1,5 +1,5 @@
 import { Array, Effect, Fiber, Layer, Schema } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
+import { Block, Program } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -15,7 +15,7 @@ const Model = Schema.Struct({
 })
 type Model = typeof Model.Type
 
-const ApplicationDefinition = makeApplicationDefinition({
+const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message: Schema.Never,
 })
@@ -93,12 +93,14 @@ const preservedOpenModel = (config: Dialog.InitConfig): Dialog.Model =>
   Dialog.update(Dialog.init(config).model, Dialog.Message.RequestedOpen()).model
 
 const makeDialogProgram = (container: HTMLElement) =>
-  ApplicationComposition.assembleElement({
+  Program.makeElement({
+    block: ApplicationComposition.assembleBlock({
+      init,
+      update,
+      view,
+      EffectsLayer: Layer.empty,
+    }),
     container,
-    init,
-    update,
-    view,
-    EffectsLayer: Layer.empty,
   })
 
 describe('Dialog runtime lifecycle', () => {

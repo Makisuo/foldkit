@@ -2,10 +2,10 @@ import { Number, Schema } from 'effect'
 import { expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
-import { makeDefinition as makeApplicationDefinition } from '../runtime/applicationPublic.js'
 import { modifyFields } from '../struct/index.js'
 import * as Update from '../update/public.js'
 import { makeDefinition } from './define.js'
+import * as Block from './public.js'
 
 const Model = Schema.Struct({
   count: Schema.Number,
@@ -16,7 +16,7 @@ const FieldStepsDefinition = makeDefinition('FieldSteps', {
   Model,
   Message: Schema.Never,
 })
-const ApplicationDefinition = makeApplicationDefinition({
+const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message: Schema.Never,
 })

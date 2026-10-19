@@ -10,18 +10,14 @@ import {
 } from 'vitest'
 
 import { makeNamespace } from '../block/define.js'
+import * as Block from '../block/public.js'
 import type * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
 import type { Url } from '../url/index.js'
-import type {
-  Application as ApplicationProgram,
-  Element as ElementProgram,
-  ViewBuilderFor,
-} from './applicationPublic.js'
-import { makeDefinition as makeApplicationDefinition } from './applicationPublic.js'
 import * as ModelPreservationBridge from './modelPreservationBridge.js'
+import * as Program from './programPublic.js'
 import { embed } from './start.js'
 
 class ValueSource extends Context.Service<
@@ -56,7 +52,10 @@ const Message = defineMessageUnion({
   CompletedReadRootValue: { value: Schema.String },
 })
 const ForeignMessage = defineMessageUnion({ ForeignCompleted: {} })
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 const ChildBinding = ApplicationDefinition.bindChild(childBlock, {
   read: model => Option.some(model.child),
   write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
@@ -119,7 +118,7 @@ expectTypeOf<Update.RequirementsOf<typeof update>>().toEqualTypeOf<
 >()
 const rootBody = (
   model: typeof Model.Type,
-  h: ViewBuilderFor<typeof composition>,
+  h: Block.ViewBuilderFor<typeof composition>,
 ) =>
   h.div(
     [],
@@ -137,7 +136,7 @@ const view = composition.makeView(rootBody)
 
 const NoMessageModel = Schema.Null
 
-const NoMessageComposition = makeApplicationDefinition({
+const NoMessageComposition = Block.makeDefinition('Application', {
   Model: NoMessageModel,
   Message: Schema.Never,
 }).makeComposition()
@@ -152,32 +151,20 @@ const noMessageElementView = NoMessageComposition.makeView(
 )
 
 const typecheckRootCompletion = (): void => {
-  NoMessageComposition.assembleApplication({
-    container: null,
+  NoMessageComposition.assembleBlock({
     init: noMessageInit,
     update: noMessageUpdate,
     // @ts-expect-error Inline views still require Composition.makeView ownership.
-    view: (model, h) => {
-      expectTypeOf(model).toEqualTypeOf<null>()
-      expectTypeOf(h).toEqualTypeOf<
-        ViewBuilderFor<typeof NoMessageComposition>
-      >()
-      return { title: 'Unowned Document', body: h.div([]) }
-    },
+    view: () => ({ title: 'Unowned Document', body: null }),
+    EffectsLayer: Layer.empty,
   })
 
-  NoMessageComposition.assembleElement({
-    container: null,
+  NoMessageComposition.assembleBlock({
     init: noMessageInit,
     update: noMessageUpdate,
     // @ts-expect-error Inline views still require Composition.makeView ownership.
-    view: (model, h) => {
-      expectTypeOf(model).toEqualTypeOf<null>()
-      expectTypeOf(h).toEqualTypeOf<
-        ViewBuilderFor<typeof NoMessageComposition>
-      >()
-      return h.div([])
-    },
+    view: () => null,
+    EffectsLayer: Layer.empty,
   })
 
   // @ts-expect-error An Application Definition does not author the primary view.
@@ -217,22 +204,22 @@ const typecheckRootCompletion = (): void => {
     }),
   )
 
-  composition.assembleElement({
-    container: null,
+  const elementBlock = composition.assembleBlock({
     init,
     update,
     view: graphlessElementView,
     EffectsLayer: ReadRootValue.layer,
   })
+  Program.makeElement({ block: elementBlock, container: null })
 
-  const application = composition.assembleApplication({
-    container: null,
+  const documentBlock = composition.assembleBlock({
     init,
     update,
     view: documentView,
     EffectsLayer: ReadRootValue.layer,
   })
-  const pendingApplication: ApplicationProgram<
+  const application = Program.make({ block: documentBlock, container: null })
+  const pendingApplication: Program.Program<
     undefined,
     void,
     ValueSource,
@@ -241,71 +228,71 @@ const typecheckRootCompletion = (): void => {
   > = application
   void pendingApplication
 
-  NoMessageComposition.assembleApplication({
-    container: null,
+  const noMessageDocumentBlock = NoMessageComposition.assembleBlock({
     init: noMessageInit,
     update: noMessageUpdate,
     view: noMessageDocumentView,
   })
-  NoMessageComposition.assembleElement({
-    container: null,
+  Program.make({ block: noMessageDocumentBlock, container: null })
+  const noMessageElementBlock = NoMessageComposition.assembleBlock({
     init: noMessageInit,
     update: noMessageUpdate,
     view: noMessageElementView,
   })
+  Program.makeElement({ block: noMessageElementBlock, container: null })
 
-  composition.assembleApplication({
+  // @ts-expect-error Program.make requires a Document view.
+  Program.make({
+    block: elementBlock,
     container: null,
-    init,
-    update,
-    // @ts-expect-error assembleApplication requires the registered Document view.
+  })
+
+  // @ts-expect-error Program.makeElement requires an Html view.
+  Program.makeElement({
+    block: documentBlock,
+    container: null,
+  })
+
+  const unregisteredComposition = ApplicationDefinition.makeComposition()
+  const unregisteredInit = () => ({
+    model: { rootValue: 'pending', child: { value: 'child' } },
+  })
+  const unregisteredUpdate = unregisteredComposition.makeUpdate(
+    (model, message) =>
+      Message.match(message, {
+        ClickedReadRootValue: () => ({ model }),
+        CompletedReadRootValue: () => ({ model }),
+      }),
+  )
+
+  unregisteredComposition.assembleBlock({
+    init: unregisteredInit,
+    update: unregisteredUpdate,
+    // @ts-expect-error The Composition has not registered the child used by this view.
     view,
     EffectsLayer: ReadRootValue.layer,
   })
 
-  composition.assembleElement({
-    container: null,
-    init,
-    update,
-    // @ts-expect-error assembleElement requires the registered Element view.
-    view: documentView,
-    EffectsLayer: ReadRootValue.layer,
-  })
-
-  ApplicationDefinition.makeComposition().assembleElement({
-    container: null,
-    init,
-    update,
-    // @ts-expect-error The graphless Composition has not registered the child used by this view.
-    view,
-    EffectsLayer: ReadRootValue.layer,
-  })
-
-  ApplicationDefinition.makeComposition().assembleElement({
-    container: null,
-    init,
-    update,
-    // @ts-expect-error The graphless Composition has not registered the Mount used by this view.
+  unregisteredComposition.assembleBlock({
+    init: unregisteredInit,
+    update: unregisteredUpdate,
+    // @ts-expect-error The Composition has not registered the Mount used by this view.
     view: mountedView,
     EffectsLayer: Layer.merge(ReadRootValue.layer, ObserveRoot.layer),
   })
 
-  // @ts-expect-error root handler definitions must be included in EffectsLayer.
-  composition.assembleElement({
-    container: null,
+  // @ts-expect-error Root handler definitions must be included in EffectsLayer.
+  composition.assembleBlock({
     init,
     update,
     view,
   })
 
-  composition.assembleElement({
-    // @ts-expect-error Model is established by makeApplicationDefinition.
+  // @ts-expect-error Model is established by Block.makeDefinition.
+  Program.makeElement({
+    block: elementBlock,
     Model,
     container: null,
-    init,
-    update,
-    view,
-    EffectsLayer: ReadRootValue.layer,
   })
 
   const Flags = Schema.Struct({ initialValue: Schema.String })
@@ -315,16 +302,19 @@ const typecheckRootCompletion = (): void => {
       child: { value: 'child' },
     },
   })
-  const elementWithFlags = composition.assembleElement({
-    Flags,
-    flags: Effect.succeed({ initialValue: 'from flags' }),
-    container: null,
+  const flagsBlock = composition.assembleBlock({
     init: initWithFlags,
     update,
     view,
     EffectsLayer: ReadRootValue.layer,
   })
-  const pendingElementWithFlags: ElementProgram<
+  const elementWithFlags = Program.makeElement({
+    block: flagsBlock,
+    Flags,
+    flags: Effect.succeed({ initialValue: 'from flags' }),
+    container: null,
+  })
+  const pendingElementWithFlags: Program.Element<
     undefined,
     ValueSource,
     never,
@@ -338,8 +328,9 @@ const typecheckRootCompletion = (): void => {
     view: documentView,
     EffectsLayer: ReadRootValue.layer,
   }
-  const routedApplication = composition.assembleApplication({
-    ...routedImplementation,
+  const routedBlock = composition.assembleBlock(routedImplementation)
+  const routedApplication = Program.make({
+    block: routedBlock,
     container: null,
     routing: {
       onUrlRequest: request => {
@@ -353,7 +344,7 @@ const typecheckRootCompletion = (): void => {
     },
     devTools: { Message, mode: 'TimeTravel' },
   })
-  const pendingRoutedApplication: ApplicationProgram<
+  const pendingRoutedApplication: Program.Program<
     undefined,
     void,
     ValueSource,
@@ -368,8 +359,9 @@ const typecheckRootCompletion = (): void => {
     view: documentView,
     EffectsLayer: ReadRootValue.layer,
   }
-  const routedFlagsApplication = composition.assembleApplication({
-    ...routedFlagsImplementation,
+  const routedFlagsBlock = composition.assembleBlock(routedFlagsImplementation)
+  const routedFlagsApplication = Program.make({
+    block: routedFlagsBlock,
     Flags,
     container: null,
     routing: {
@@ -383,7 +375,7 @@ const typecheckRootCompletion = (): void => {
       },
     },
   })
-  const pendingRoutedFlagsApplication: ApplicationProgram<
+  const pendingRoutedFlagsApplication: Program.Program<
     undefined,
     typeof Flags.Type,
     ValueSource,
@@ -392,15 +384,12 @@ const typecheckRootCompletion = (): void => {
   > = routedFlagsApplication
   void pendingRoutedFlagsApplication
 
-  // @ts-expect-error a Flags application init must receive its Flags.
-  composition.assembleElement({
+  // @ts-expect-error A Flags Program root init must receive its Flags.
+  Program.makeElement({
+    block: elementBlock,
     Flags,
     flags: Effect.succeed({ initialValue: 'from flags' }),
     container: null,
-    init,
-    update,
-    view,
-    EffectsLayer: ReadRootValue.layer,
   })
 }
 void typecheckRootCompletion
@@ -416,7 +405,7 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-describe('Application authoring', () => {
+describe('Program root Block authoring', () => {
   it('stages primitive authoring before composition', () => {
     expectTypeOf(ApplicationDefinition.Model).toEqualTypeOf(Model)
     expectTypeOf(ApplicationDefinition.Message).toEqualTypeOf(Message)
@@ -445,21 +434,22 @@ describe('Application authoring', () => {
     expect(ApplicationDefinition).not.toHaveProperty('makeView')
     expect(graphlessComposition).toHaveProperty('makeView')
 
-    // @ts-expect-error an application root is not a reusable Block.
+    // @ts-expect-error A root Definition is not a completed reusable Block.
     void ApplicationDefinition.bind
-    // @ts-expect-error an Application composition does not expose Block completion.
-    void composition.assembleBlock
+    expect(composition.assembleBlock).toBeTypeOf('function')
     // @ts-expect-error an application can only be composed once.
     void composition.makeComposition
   })
 
-  it('completes an empty composition through its owned method', () => {
+  it('hosts a completed empty Block', () => {
     expect(() =>
-      NoMessageComposition.assembleElement({
+      Program.makeElement({
+        block: NoMessageComposition.assembleBlock({
+          init: noMessageInit,
+          update: noMessageUpdate,
+          view: noMessageElementView,
+        }),
         container: document.createElement('div'),
-        init: noMessageInit,
-        update: noMessageUpdate,
-        view: noMessageElementView,
       }),
     ).not.toThrow()
   })
@@ -469,14 +459,16 @@ describe('Application authoring', () => {
     container.id = 'application-authoring'
     document.body.append(container)
 
-    const element = composition.assembleElement({
+    const element = Program.makeElement({
+      block: composition.assembleBlock({
+        init,
+        update,
+        view,
+        EffectsLayer: ReadRootValue.layer,
+      }),
       container,
-      init,
-      update,
-      view,
-      EffectsLayer: ReadRootValue.layer,
     })
-    const pendingElement: ElementProgram<
+    const pendingElement: Program.Element<
       undefined,
       ValueSource,
       never,

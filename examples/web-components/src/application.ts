@@ -1,7 +1,6 @@
 import { clsx } from 'clsx'
 import { Schema } from 'effect'
-import { CustomElement, makeApplicationDefinition } from 'foldkit'
-import type { Block } from 'foldkit'
+import { Block, CustomElement } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -25,7 +24,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationComposition = makeApplicationDefinition({
+export const ApplicationComposition = Block.makeDefinition('Application', {
   Model,
   Message,
 }).makeComposition()
@@ -322,3 +321,9 @@ const previewView = (model: Model, h: ApplicationViewBuilder): Html => {
     ],
   )
 }
+
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
+  init,
+  update,
+  view,
+})

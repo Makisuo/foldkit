@@ -1,12 +1,5 @@
 import { Context, Effect, Layer, Option, Schema, Tuple } from 'effect'
-import {
-  Block,
-  Message,
-  Route,
-  Struct,
-  Update,
-  makeApplicationDefinition,
-} from 'foldkit'
+import { Block, Message, Route, Struct, Update } from 'foldkit'
 
 type Equal<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends <
@@ -201,7 +194,7 @@ export const ApplicationModel = Schema.Struct({
   route: ApplicationRoute,
 })
 export const ApplicationMessage = Schema.Never
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ApplicationModel,
   Message: ApplicationMessage,
 })
@@ -426,10 +419,13 @@ const DirectReciprocalModel = Schema.Struct({
 })
 const DirectReciprocalMessage = Schema.Never
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture compares independent Application graphs for direct sibling coordination.
-export const DirectReciprocalApplicationDefinition = makeApplicationDefinition({
-  Model: DirectReciprocalModel,
-  Message: DirectReciprocalMessage,
-})
+export const DirectReciprocalApplicationDefinition = Block.makeDefinition(
+  'Application',
+  {
+    Model: DirectReciprocalModel,
+    Message: DirectReciprocalMessage,
+  },
+)
 
 export const LeftHomeBinding = DirectReciprocalApplicationDefinition.bindChild(
   HomeBlock,
@@ -494,10 +490,13 @@ const KeyedReciprocalModel = Schema.Struct({
 })
 const KeyedReciprocalMessage = Schema.Never
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture compares independent Application graphs for keyed sibling coordination.
-export const KeyedReciprocalApplicationDefinition = makeApplicationDefinition({
-  Model: KeyedReciprocalModel,
-  Message: KeyedReciprocalMessage,
-})
+export const KeyedReciprocalApplicationDefinition = Block.makeDefinition(
+  'Application',
+  {
+    Model: KeyedReciprocalModel,
+    Message: KeyedReciprocalMessage,
+  },
+)
 
 export const LeftKeyedHomeBinding =
   KeyedReciprocalApplicationDefinition.bindChild(HomeBlock, {

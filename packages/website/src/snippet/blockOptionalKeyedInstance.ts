@@ -1,5 +1,5 @@
 import { Layer, Option, Schema } from 'effect'
-import { Block, makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -36,7 +36,7 @@ const Model = Schema.Struct({
 const Message = defineMessageUnion({
   RequestedOpenRoom: { roomId: Schema.String, title: Schema.String },
 })
-const ApplicationDefinition = makeApplicationDefinition({
+const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })

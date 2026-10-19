@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { Effect, Fiber, Layer, Schema } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
+import { Block, Program } from 'foldkit'
 import { brandViewResult } from 'foldkit/brand'
 import { type Html, inertHtml } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -17,7 +17,7 @@ const Message = defineMessageUnion({
 
 type Message = typeof Message.Type
 
-const ApplicationComposition = makeApplicationDefinition({
+const ApplicationComposition = Block.makeDefinition('Application', {
   Model,
   Message,
 }).makeComposition()
@@ -177,11 +177,14 @@ const withRunningApp = async (
   view: View,
   run: () => Promise<void>,
 ): Promise<void> => {
-  const element = ApplicationComposition.assembleElement({
+  const ApplicationBlock = ApplicationComposition.assembleBlock({
     init,
     update,
     view: ApplicationComposition.makeView(model => view(model)),
     EffectsLayer: Layer.empty,
+  })
+  const element = Program.makeElement({
+    block: ApplicationBlock,
     container,
   })
   const fiber = Effect.runFork(element.start())

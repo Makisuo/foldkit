@@ -1,6 +1,5 @@
 import { Duration, Layer, Option, Schema, SchemaTransformation } from 'effect'
-import { Block, Message, Struct, makeApplicationDefinition } from 'foldkit'
-import type * as Application from 'foldkit/application'
+import { Block, Message, Program, Struct } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 
 import * as Animation from '@foldkit/ui/animation'
@@ -144,7 +143,7 @@ export const Model = Schema.Struct({
 export const ParentMessage = Message.defineMessageUnion({
   ClickedClear: {},
 })
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message: ParentMessage,
 })
@@ -199,9 +198,11 @@ export const PopoverBinding = ApplicationDefinition.bindChild(
   },
 )
 
-export type Composition = Application.Composition<
+export type Composition = Block.Composition<
+  typeof ApplicationDefinition.owner,
   typeof Model,
   typeof ParentMessage,
+  undefined,
   readonly [],
   readonly [typeof DialogBinding, typeof PickerBinding, typeof PopoverBinding]
 >
@@ -264,10 +265,14 @@ export const author = (composition: Composition) => {
   const update = composition.makeUpdate((model, _message) => ({ model }))
   const view = composition.makeView((model, h) => helper(model, h))
 
-  return composition.assembleElement({ init, update, view, container: null })
+  return composition.assembleBlock({ init, update, view })
 }
 
-export const application = author(createComposition())
+export const ElementBlock = author(createComposition())
+export const application = Program.makeElement({
+  block: ElementBlock,
+  container: null,
+})
 
 export type GenericAssertions = [
   Expect<

@@ -1,5 +1,5 @@
 import { Number, Schema } from 'effect'
-import { Block, Update, makeApplicationDefinition } from 'foldkit'
+import { Block, Update } from 'foldkit'
 
 export const Model = Schema.Struct({
   count: Schema.Number,
@@ -10,7 +10,7 @@ export const FieldStepsDefinition = Block.makeDefinition('FieldSteps', {
   Model,
   Message: Schema.Never,
 })
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message: Schema.Never,
 })

@@ -1,7 +1,8 @@
 import {
-  ApplicationDefinition,
   ApplicationComposition,
+  FetchCountLayer,
   type Model,
+  update,
 } from './counterHttpCommand'
 
 export const init = ApplicationComposition.makeInit(
@@ -14,3 +15,10 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   title: `Count: ${model.count}`,
   body: h.p([], [model.count.toString()]),
 }))
+
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
+  init,
+  update,
+  view,
+  EffectsLayer: FetchCountLayer,
+})

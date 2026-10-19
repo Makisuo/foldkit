@@ -474,7 +474,7 @@ Pass `managedResources` and its local `EffectsLayer` to `CameraComposition.assem
 
 ### Application assembly and runtime resources
 
-Remove the `resources` field. Export `ApplicationDefinition` and establish `ApplicationComposition` in `application.ts`, then complete it in `entry.ts` with its owned `assembleApplication` or `assembleElement` method. Supply ordinary Services through the completed program's `provide` method before calling the Runtime.
+Remove the `resources` field. Export `ApplicationDefinition` and establish `ApplicationComposition` in `application.ts`, then export the completed `ApplicationBlock` from that module. Create the browser Program with host-only configuration in `entry.ts`. Supply ordinary Services through the Program's `provide` method before calling the Runtime.
 
 This example uses the storage service needed by `StoreDraft`. The Application collects its local handler recipes and the recipes of child Bindings included in its Composition; `ApplicationLayer` supplies their ordinary Services.
 
@@ -503,43 +503,47 @@ Runtime.run(application)
 In `application.ts`:
 
 ```ts
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 
+import { init } from './init'
 import { Model } from './model'
 import { Message } from './message'
+import { EffectsLayer, update } from './update'
+import { view } from './view'
 
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
+
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
+  init,
+  update,
+  view,
+  EffectsLayer,
+})
 ```
 
 In `entry.ts`:
 
 ```ts
 import { BrowserKeyValueStore } from '@effect/platform-browser'
-import { Runtime } from 'foldkit'
+import { Program, Runtime } from 'foldkit'
 
-import { ApplicationComposition } from './application'
-import { init } from './init'
-import { EffectsLayer, update } from './update'
-import { view } from './view'
+import { ApplicationBlock } from './application'
 
 const ApplicationLayer = BrowserKeyValueStore.layerLocalStorage
 
-const application = ApplicationComposition.assembleApplication({
-  init,
-  update,
-  view,
-  EffectsLayer,
+const program = Program.make({
+  block: ApplicationBlock,
   container: document.getElementById('root'),
 })
 
-Runtime.run(application.provide(ApplicationLayer))
+Runtime.run(program.provide(ApplicationLayer))
 ```
 
-For an Element, use `ApplicationComposition.assembleElement`, call `element.provide(ApplicationLayer)`, and pass the result to `Runtime.run` or `Runtime.embed`. Preserve existing Flags, Ports, container, and DevTools host configuration. Include local Subscriptions and ManagedResources in completion; child Bindings included in the Composition contribute their lifecycle declarations and handlers automatically.
+For an Element, pass the completed `ApplicationBlock` to `Program.makeElement`, call `program.provide(ApplicationLayer)`, and pass the result to `Runtime.run` or `Runtime.embed`. Preserve existing Flags, Ports, container, and DevTools host configuration on the Program. Include local Subscriptions and ManagedResources in Block completion; child Bindings included in the Composition contribute their lifecycle declarations and handlers automatically.
 
 ### External host implementations
 
@@ -668,7 +672,7 @@ A Command-producing fold can infer its requirements through the owning definitio
 
 ### Composing Layers
 
-Keep definitions and handlers within the feature whose update returns them, alongside update or in a feature-local `command.ts`. Compose attached recipes directly as `Definition.layer` in each owning module's local `EffectsLayer`. When a recipe needs its own exported or reused binding, name it `FooLayer`; name an external alternative `FooTestLayer`. Pass the local bundle to `FeatureComposition.assembleBlock`; child Bindings included in the Composition contribute their recipes automatically. The typed Application Composition owns root completion and its graph. Completion through `ApplicationComposition.assembleApplication` or `.assembleElement` collects the handler recipes into a passive runtime input, while `ApplicationLayer` supplies ordinary Services. Import Effect's module as `Layer`; the bundle names avoid an alias.
+Keep definitions and handlers within the feature whose update returns them, alongside update or in a feature-local `command.ts`. Compose attached recipes directly as `Definition.layer` in each owning module's local `EffectsLayer`. When a recipe needs its own exported or reused binding, name it `FooLayer`; name an external alternative `FooTestLayer`. Pass the local bundle to `FeatureComposition.assembleBlock`; child Bindings included in the Composition contribute their recipes automatically. The typed Application Composition owns root completion and its graph. `ApplicationComposition.assembleBlock` collects the handler recipes into a passive root Block, while `ApplicationLayer` supplies ordinary Services through the Program. Import Effect's module as `Layer`; the bundle names avoid an alias.
 
 Foldkit UI components expose completed Blocks. Bind each component through the owning Definition and include it in the Composition's `bindings`; composition carries its Mounts, lifecycle registrations, and handler graph to the root. `Slider.forRoot(getTrackRoot)` and `Toast.make(payloadSchema)` return completed Blocks with refined Model, Message, and operation contracts.
 
@@ -676,7 +680,7 @@ Foldkit UI components expose completed Blocks. Bind each component through the o
 
 #### Inferred requirements
 
-`Update.define` infers Command requirements and OutMessages across Message branches while preserving required, optional, and rest context parameters. `Update.RequirementsOf<typeof update>` reads the Command services from an update contract without including lifecycle-only services. `ApplicationComposition.assembleApplication` checks handler completeness across the Composition. The completed program carries the ordinary Service requirements of those handler recipes and startup Effects until `application.provide(ApplicationLayer)` satisfies them.
+`Update.define` infers Command requirements and OutMessages across Message branches while preserving required, optional, and rest context parameters. `Update.RequirementsOf<typeof update>` reads the Command services from an update contract without including lifecycle-only services. `ApplicationComposition.assembleBlock` checks handler completeness across the Composition. The completed Program carries the ordinary Service requirements of those handler recipes and startup Effects until `program.provide(ApplicationLayer)` satisfies them.
 
 #### Registration names
 
@@ -692,11 +696,11 @@ Distinct definitions with identical names and protocols remain structurally indi
 
 #### ManagedResource ownership
 
-Each registered ManagedResource tag key has one lifecycle owner. `ApplicationComposition.assembleApplication` and `ApplicationComposition.assembleElement` reject the same resource key under multiple registration keys, including separately created tags with matching keys. Give independent resource instances distinct tag keys so each accessor resolves its own handle.
+Each registered ManagedResource tag key has one lifecycle owner. `ApplicationComposition.assembleBlock` rejects the same resource key under multiple registration keys, including separately created tags with matching keys. Give independent resource instances distinct tag keys so each accessor resolves its own handle.
 
 ### Startup and cleanup
 
-Call `Runtime.run(application.provide(ApplicationLayer), { flags })`. The Runtime checks the Flags value and its required services against the provided application. Omit the options argument for a Flags-free application.
+Call `Runtime.run(program.provide(ApplicationLayer), { flags })`. The Runtime checks the Flags value and its required Services against the provided Program. Omit the options argument for a Flags-free application.
 
 Application Layer construction happens before Flags, init, or the first render. A construction failure therefore stops startup before a Model exists for a crash view. `Runtime.hydrate` validates the server handoff before acquiring the application Layer.
 

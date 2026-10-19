@@ -229,7 +229,10 @@ SucceededUpdateNote: ({ note }) =>
 When the initial Model needs data from a side effect (current time, localStorage, browser APIs), use Flags, not module-level constants:
 
 ```ts
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 // WRONG: module-level side effect (non-deterministic and untestable)
@@ -270,32 +273,40 @@ export const SavedBoardJsonString = Schema.fromJsonString(
 
 `toCodecJson` turns the domain value into canonical JSON, then `fromJsonString` stringifies it. Leave it out and a field like `Schema.Option` writes Effect's runtime shape (`{_id:"Option",_tag:"None"}`) to storage. The next boot fails to decode it, the Flags `Effect.catch` falls back to the empty value, and the user's saved data looks gone. For a Schema that is already JSON-native, `toCodecJson` changes nothing on the wire, so composing it every time costs nothing.
 
-Import `makeApplicationDefinition` from `foldkit`. Declare the root Model and Message through `ApplicationDefinition`, establish the root graph as `ApplicationComposition`, declare the `Flags` Schema in its `assembleApplication` config, then pass the runtime input to `Runtime.run`:
+Declare the root Model and Message through an ordinary Block Definition, establish the root graph as `ApplicationComposition`, assemble `ApplicationBlock`, then declare the `Flags` Schema in `Program.make` and pass the Program to `Runtime.run`:
 
 ```ts
-import { makeApplicationDefinition } from 'foldkit'
+import { Block, Program } from 'foldkit'
 
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings,
 })
 
-const application = ApplicationComposition.assembleApplication({
+const ApplicationBlock = ApplicationComposition.assembleBlock({
   init,
   update,
   view,
   EffectsLayer,
+})
+
+const program = Program.make({
+  block: ApplicationBlock,
+  container: document.getElementById('root'),
   Flags,
 })
 
-Runtime.run(application.provide(ApplicationLayer), { flags })
+Runtime.run(program.provide(ApplicationLayer), { flags })
 ```
 
-Hydrated applications do not provide a browser Flags Effect. `Runtime.hydrate(application)` decodes the exact Schema-encoded Flags payload emitted by the server. `@foldkit/vite-plugin` compiles the shared deployment identity into Foldkit for coordinated client and server builds; separately orchestrated builds pass the same explicit `buildId` override to each artifact. Hydration compares that identity against the id the server stamped on the root before it reads the handoff at all. Missing or invalid server handoff data, and a page from another deployment, are fatal boot errors.
+Hydrated applications do not provide a browser Flags Effect. `Runtime.hydrate(program)` decodes the exact Schema-encoded Flags payload emitted by the server. `@foldkit/vite-plugin` compiles the shared deployment identity into Foldkit for coordinated client and server builds; separately orchestrated builds pass the same explicit `buildId` override to each artifact. Hydration compares that identity against the id the server stamped on the root before it reads the handoff at all. Missing or invalid server handoff data, and a page from another deployment, are fatal boot errors.
 
 Leave a Flags service in the Effect requirements when the application root should choose or share its provider. Keep a service used by both Flags and handlers exposed from `ApplicationLayer` with `Layer.provideMerge`. A service may be private to `flags` only when startup deliberately owns it and no application environment needs to substitute or share it. The Runtime builds the resulting Layer eagerly on every start, before executing a fresh Flags Effect, init, or the first render, including a start that restores a preserved Model. `Runtime.hydrate` validates the server handoff before acquiring Layers. A construction failure stops startup before the first render. Do not also provide a root service inside `flags`: doing both builds it twice and hands the app two instances of whatever it holds.
 
-An Element owns its Flags Effect because no separate runtime call seeds it. Put both `Flags` and `flags` in the `ApplicationComposition.assembleElement` config. The embedded widget example later in this guide shows the full shape.
+An Element owns its Flags Effect because no separate Runtime call seeds it. Put both `Flags` and `flags` in the `Program.makeElement` config. The embedded widget example later in this guide shows the full shape.
 
 ## Layers
 
@@ -307,7 +318,7 @@ RPC, browser, and business Services that those recipes still require.
 
 Keep those responsibilities separate. Do not merge a registered child's Layer
 again at its parent or flatten every handler into the entry point. Completion
-and `application.provide(ApplicationLayer)` remain passive; the Runtime builds
+and `program.provide(ApplicationLayer)` remain passive; the Runtime builds
 the graph once for each start and releases it when that run stops.
 
 Read [Block composition and Layers](../foldkit/references/composition.md) when
@@ -507,24 +518,31 @@ Use these instead of raw `document.querySelector`, `setTimeout`, `Date.now()`, o
 
 ## With and Without URL Routing
 
-`const ApplicationDefinition = makeApplicationDefinition({ Model, Message })` establishes root contracts. Every root then creates `ApplicationComposition = ApplicationDefinition.makeComposition({ bindings?, mounts? })`; use `makeComposition()` for a graphless app. Author init, update, and view through that Composition, then complete it with those implementation fields listed explicitly.
+`const ApplicationDefinition = Block.makeDefinition('Application', { Model, Message })` establishes root contracts. Every root then creates `ApplicationComposition = ApplicationDefinition.makeComposition({ bindings?, mounts? })`; use `makeComposition()` for a graphless app. Author init, update, and view through that Composition, then assemble `ApplicationBlock` with those implementation fields listed explicitly.
 
 ### Without Routing
 
 ```ts
-import { makeApplicationDefinition } from 'foldkit'
+import { Block, Program } from 'foldkit'
 
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 const ApplicationComposition = ApplicationDefinition.makeComposition()
 
-const application = ApplicationComposition.assembleApplication({
+const ApplicationBlock = ApplicationComposition.assembleBlock({
   init,
   update,
   view,
+})
+
+const program = Program.make({
+  block: ApplicationBlock,
   container: document.getElementById('root'),
 })
 
-Runtime.run(application.provide(ApplicationLayer))
+Runtime.run(program.provide(ApplicationLayer))
 ```
 
 ### With Routing
@@ -540,41 +558,47 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [HomeBinding],
 })
 
-const application = ApplicationComposition.assembleApplication({
+const ApplicationBlock = ApplicationComposition.assembleBlock({
   init,
   update,
   view,
+})
+
+const program = Program.make({
+  block: ApplicationBlock,
   container: document.getElementById('root'),
   routing: {
-    onUrlRequest: request => Message.ClickedLink({ request }),
-    onUrlChange: url => Message.ChangedUrl({ url }),
+    onUrlRequest: ApplicationBlock.Message.ClickedLink,
+    onUrlChange: ApplicationBlock.Message.ChangedUrl,
   },
 })
 ```
 
 ### Scoped to a Node (Embedded Widgets)
 
-`ApplicationComposition.assembleApplication` owns the page and completes a Document view. `ApplicationComposition.assembleElement` completes a container-scoped Html view and has no routing config:
+`Program.make` owns the page and requires a root Block whose view returns a Document. `Program.makeElement` creates a container-scoped Program from a root Block whose view returns Html and has no routing config:
 
 ```ts
-const element = ApplicationComposition.assembleElement({
+const ApplicationBlock = ApplicationComposition.assembleBlock({
   init,
   update,
   view,
+})
+
+const program = Program.makeElement({
+  block: ApplicationBlock,
   container: document.getElementById('widget'),
 })
 
-Runtime.run(element.provide(ApplicationLayer))
+Runtime.run(program.provide(ApplicationLayer))
 ```
 
-Element Flags live in the `assembleElement` config. A host factory can turn initial data into a Flags Effect and provide the root Service Layer:
+Element Flags live in the `Program.makeElement` config. A host factory can turn initial data into a Flags Effect and provide the root Service Layer:
 
 ```ts
 export const createElement = (container: HTMLElement, flags: Flags) =>
-  ApplicationComposition.assembleElement({
-    init,
-    update,
-    view,
+  Program.makeElement({
+    block: ApplicationBlock,
     Flags,
     flags: Effect.succeed(flags),
     container,
@@ -585,13 +609,13 @@ Use `Runtime.embed(program)` when the host must mount, dispose, or communicate t
 
 ### Document Metadata
 
-With `assembleApplication`, the `view` returns a `Document`. The runtime writes `title` to `document.title` after every render. It never derives `canonical` from the address bar. Build the canonical from the typed route in the Model, where the application can decide which route and query values identify the page.
+With `Program.make`, the root `view` returns a `Document`. The Runtime writes `title` to `document.title` after every render. It never derives `canonical` from the address bar. Build the canonical from the typed route in the Model, where the application can decide which route and query values identify the page.
 
 If no render supplies `canonical`, the runtime leaves a served `<link rel="canonical">` unchanged or keeps the document without one. Before the client first writes a canonical, it records the existing `href`. A later omission restores that value, or removes the element if the runtime created it. During hydration, the recorded value can be the initial route's server-rendered canonical, so omission means restore that baseline rather than remove every canonical.
 
 `ogUrl` can be supplied independently. An omitted `ogUrl` uses an explicit `canonical`, and its restore or removal behavior is the same. `Server.renderToString` returns only a canonical supplied by the view and gives `ogUrl` the explicit canonical when `ogUrl` is omitted. It does not derive either field from `Request.url`.
 
-With `assembleElement`, the runtime does not manage the title or document metadata.
+With `Program.makeElement`, the Runtime does not manage the title or document metadata.
 
 `lang` and `dir` sync to the `<html>` element, so an app that switches language at runtime drives them from the Model. `dir` is `TextDirection` from `foldkit/html`, a Schema over `'Ltr' | 'Rtl' | 'Auto'` that you can drop straight into a Model `Schema.Struct`, and the runtime writes it as the lowercase attribute value. Both fields are optional and have no default: when a view omits one, the runtime does not touch that attribute, leaving whatever value it currently holds, so a view that never sets it leaves the served HTML in place.
 
@@ -601,7 +625,7 @@ For the canonical update-handler shapes (the exact `UrlRequest` tag names, how t
 
 ### How to Choose
 
-- App is a widget embedded on a page it does not own (must not touch the host `<head>`) → `ApplicationComposition.assembleElement`
-- The host application also needs to drive it (lifecycle, data in, values out) → `assembleElement` started with `Runtime.embed`, communicating through Flags and Ports
-- App owns the page and mentions "pages", "navigation", "routes", URLs → `ApplicationComposition.assembleApplication` with routing config
-- App owns the page with no navigation → `ApplicationComposition.assembleApplication` without routing
+- App is a widget embedded on a page it does not own (must not touch the host `<head>`) → `Program.makeElement`
+- The host application also needs to drive it (lifecycle, data in, values out) → a `Program.makeElement` result started with `Runtime.embed`, communicating through Flags and Ports
+- App owns the page and mentions "pages", "navigation", "routes", URLs → `Program.make` with routing config
+- App owns the page with no navigation → `Program.make` without routing

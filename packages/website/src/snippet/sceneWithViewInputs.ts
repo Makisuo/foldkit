@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { inertHtml as ih } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { expect, given, role, scene, withViewInputs } from 'foldkit/scene'
@@ -8,7 +8,7 @@ import { Slider } from '@foldkit/ui'
 
 const Model = Schema.Struct({ slider: Slider.SliderBlock.Model })
 const Message = defineMessageUnion({})
-const ApplicationDefinition = makeApplicationDefinition({
+const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })

@@ -1,5 +1,5 @@
 import { Effect, Redacted, Schema } from 'effect'
-import { Command, makeApplicationDefinition } from 'foldkit'
+import { Block, Command } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const accessTokenLabel = 'access token'
@@ -22,7 +22,7 @@ const Message = defineMessageUnion({
   CompletedFetchProfile: {},
   FailedFetchProfile: {},
 })
-const ApplicationComposition = makeApplicationDefinition({
+const ApplicationComposition = Block.makeDefinition('Application', {
   Model,
   Message,
 }).makeComposition()

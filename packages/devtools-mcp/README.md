@@ -36,13 +36,15 @@ pnpm add -D @foldkit/devtools-mcp
 yarn add -D @foldkit/devtools-mcp
 ```
 
-Pass your `Message` Schema as `devTools.Message` when calling the Application Composition's owned `assembleApplication` method to let the agent dispatch Messages. The Runtime rejects a payload that does not match the Schema before it reaches update:
+Pass `ApplicationBlock.Message` as `devTools.Message` when calling `Program.make` to let the agent dispatch Messages. The Runtime rejects a payload that does not match the Schema before it reaches update:
 
 ```typescript
-ApplicationComposition.assembleApplication({
+Program.make({
+  block: ApplicationBlock,
+  container,
   devTools: {
     // Rest of your DevTools config
-    Message,
+    Message: ApplicationBlock.Message,
   },
 })
 ```

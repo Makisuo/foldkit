@@ -17,9 +17,9 @@ Four values make those responsibilities visible:
 
 The Settings example on this page grows through that sequence. Settings first defines and completes its own state machine. Profile then creates `SettingsBinding`, registers it in `ApplicationComposition`, handles the `ChangedTheme` fact, and embeds the Settings view.
 
-The sequence is Definition → Composition → assembly. A Definition establishes the contracts and authoring methods. A Composition fixes the child Binding and Mount graph. `assembleBlock`, `assembleApplication`, or `assembleElement` checks and packages the authored implementation with that graph.
+The sequence is Definition → Composition → assembly. A Definition establishes the contracts and authoring methods. A Composition fixes the child Binding and Mount graph. `assembleBlock` checks and packages the authored implementation with that graph. The root follows the same sequence before `Program.make` or `Program.makeElement` adds host behavior.
 
-Definitions, Compositions, Bindings, and assembled programs are passive. `makeInit`, `makeUpdate`, and `makeView` return functions for the Runtime to call later. At the root, `application.provide(ApplicationLayer)` supplies ordinary Effect Services without building them. `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` builds the selected handler graph, resolves Flags when required, calls init, and begins performing effects.
+Definitions, Compositions, Bindings, Blocks, and Programs are passive. `makeInit`, `makeUpdate`, and `makeView` return functions for the Runtime to call later. At the root, `program.provide(ApplicationLayer)` supplies ordinary Effect Services without building them. `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` builds the selected handler graph, resolves Flags when required, calls init, and begins performing effects.
 
 A Binding lets Foldkit use one parent-owned policy across update, view, Subscriptions, ManagedResources, Mounts, and handler collection. The parent still decides where the child Model lives, what child facts mean, when the child exists, and where it renders.
 
@@ -187,19 +187,19 @@ The parent configures integration policy in its child Binding. That policy execu
 
 ## Complete the Application
 
-Import `makeApplicationDefinition` from `foldkit`. Export the early typed value as `ApplicationDefinition` when its owned methods author root Commands, Steps, lifecycle declarations, or Bindings. When the factory only creates the Composition, chain its top-level result directly into `makeComposition()`. Author init, update, and the primary view through `ApplicationComposition`, then call its `assembleApplication` or `assembleElement` in `entry.ts` with explicitly listed implementation pieces and browser inputs. An Application cannot be bound as a child.
+Call `Block.makeDefinition('Application', { Model, Message })` for the root. Export the early typed value as `ApplicationDefinition` when its owned methods author root Commands, Steps, lifecycle declarations, or Bindings. When the factory only creates the Composition, chain its top-level result directly into `makeComposition()`. Author init, update, and the primary view through `ApplicationComposition`, then assemble `ApplicationBlock` with explicitly listed implementation pieces. In `entry.ts`, pass that Block and browser inputs to `Program.make` or `Program.makeElement`.
 
 Root `services.ts` supplies the shared store required by the child handler:
 
 ::Snippet{name="blockApplicationServices" label="Application settings provider"}
 
-The entry completes and starts the Application:
+The entry gives the completed `ApplicationBlock` to `Program.make` and starts the Program:
 
-::Snippet{name="blockApplicationCompletion" label="Completing the Application"}
+::Snippet{name="blockApplicationCompletion" label="Starting the Application"}
 
 The Application Composition carries the child graph. Its completion config supplies root-local handler recipes and lifecycle definitions. Registered child Blocks contribute their own handlers through that graph. `ApplicationLayer` supplies ordinary application Services such as storage or an HTTP client. It does not re-merge each feature's `EffectsLayer`.
 
-`ApplicationComposition.assembleApplication` validates the concrete composition before the Runtime starts. It returns another passive value. `application.provide(ApplicationLayer)` records the ordinary Service providers. The Runtime builds those Layers and the selected handler graph when the application starts. Missing handlers, incompatible child Bindings, and unavailable Mount requirements fail before a user interaction.
+`ApplicationComposition.assembleBlock` validates the concrete composition before the Runtime starts. `Program.make` returns another passive value, and `program.provide(ApplicationLayer)` records ordinary Service providers. The Runtime builds those Layers and the selected handler graph when the Program starts. Missing handlers, incompatible child Bindings, unavailable Mount requirements, and an unhandled root OutMessage fail before a user interaction.
 
 Server rendering uses the same root:
 
@@ -419,7 +419,7 @@ For a generic factory that shares definitions, `Block.makeNamespace(id)` supplie
 
 ### FeatureComposition.assembleBlock
 
-`FeatureComposition.assembleBlock({ init, update, view?, operations?, subscriptions?, managedResources?, EffectsLayer?, hostHandlers? })` checks and returns the passive completed Block. `EffectsLayer` may require ordinary Services supplied by `application.provide(ApplicationLayer)`. `hostHandlers` explicitly declares contracts left to the host. Complete those Blocks with their own `provideHandlers(...)` before binding them into a runnable application; final Application completion rejects unresolved child handlers.
+`FeatureComposition.assembleBlock({ init, update, view?, operations?, subscriptions?, managedResources?, EffectsLayer?, hostHandlers? })` checks and returns the passive completed Block. `EffectsLayer` may require ordinary Services supplied by `program.provide(ApplicationLayer)`. `hostHandlers` explicitly declares contracts left to the host. Complete those Blocks with their own `provideHandlers(...)` before binding them into `ApplicationBlock`; Program construction rejects unresolved handlers.
 
 ### ParentDefinition.bindChild
 

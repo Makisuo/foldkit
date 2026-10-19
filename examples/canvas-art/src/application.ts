@@ -9,8 +9,7 @@ import {
   Stream,
   pipe,
 } from 'effect'
-import { Canvas, Dom, makeApplicationDefinition } from 'foldkit'
-import type { Block } from 'foldkit'
+import { Block, Canvas, Dom } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -72,7 +71,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
@@ -295,3 +294,11 @@ export const view = ApplicationComposition.makeView((model, h) => ({
     ],
   ),
 }))
+
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
+  init,
+  update,
+  view,
+  subscriptions,
+  EffectsLayer,
+})

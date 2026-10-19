@@ -39,7 +39,7 @@ DevTools displays the value as `<redacted:access token>`. This prevents accident
 
 DevTools are enabled by default in development. Recording and the MCP bridge live in the core runtime. The browser overlay ships separately in `@foldkit/devtools`. When that package is installed as a development dependency, `@foldkit/vite-plugin` mounts the overlay automatically during development. Production builds omit it without an application-level environment check.
 
-Add a `devTools` object to `ApplicationComposition.assembleApplication` only when you need to configure DevTools or allow MCP dispatch. To include the overlay in production, move `@foldkit/devtools` to regular `dependencies` and set `show: 'Always'`. You do not need to import the overlay.
+Add a `devTools` object to `Program.make` only when you need to configure DevTools or allow MCP dispatch. To include the overlay in production, move `@foldkit/devtools` to regular `dependencies` and set `show: 'Always'`. You do not need to import the overlay.
 
 ::Snippet{name="devtoolsBasic" label="Configuring DevTools"}
 
@@ -77,13 +77,7 @@ An optional string displayed as a banner at the top of the panel. Useful for wel
 
 ### Message
 
-The application’s complete `ApplicationComposition.Message` Codec, including
-local Messages and generated child dispatch envelopes. Required only for AI
-agent integration: when set and the running app is connected to the [DevTools
-MCP](/ai/mcp) server, agents can dispatch Messages into the live runtime. The
-Codec decodes inbound dispatch payloads at the bridge boundary and rejects
-mismatches with a clean error. Omit this field to disable agent dispatch
-entirely.
+The application’s complete `ApplicationBlock.Message` Codec, including local Messages and generated child dispatch envelopes. Required only for AI agent integration: when set and the running app is connected to the [DevTools MCP](/ai/mcp) server, agents can dispatch Messages into the live runtime. The Codec decodes inbound dispatch payloads at the bridge boundary and rejects mismatches with a clean error. Omit this field to disable agent dispatch entirely.
 
 ### excludeFromHistory {#exclude-from-history}
 

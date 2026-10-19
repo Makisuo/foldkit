@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { Runtime, makeApplicationDefinition } from 'foldkit'
+import { Block, Runtime } from 'foldkit'
 import { Document, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 
@@ -14,7 +14,7 @@ export const Message = defineMessageUnion({
 
 export type Message = typeof Message.Type
 
-export const ApplicationComposition = makeApplicationDefinition({
+export const ApplicationComposition = Block.makeDefinition('Application', {
   Model,
   Message,
 }).makeComposition()
@@ -95,4 +95,10 @@ export const crashView = (
       ),
     ],
   ),
+})
+
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
+  init,
+  update,
+  view,
 })

@@ -16,9 +16,11 @@ import { dual } from 'effect/Function'
 
 import {
   type AggregatedChildren,
+  type AnyBinding,
   type BindingRequirement,
   aggregateChildren,
 } from '../block/binding.js'
+import { LocalMountsTypeId, isComposition } from '../block/definition.js'
 import { identityOf } from '../block/identity.js'
 import { isScopedEntry } from '../block/scope.js'
 import type { Scoped } from '../block/scope.js'
@@ -47,13 +49,6 @@ import type {
   LayeredMountDefinition,
   MountDefinition,
 } from '../mount/index.js'
-import {
-  type AnyComposition,
-  type ChildrenOf,
-  type MessageSchemaOf,
-  type ModelSchemaOf,
-  definitionOf,
-} from '../runtime/applicationAuthoring.js'
 import { Dispatch } from '../runtime/dispatch.js'
 import {
   type Registrations as RuntimeRegistrations,
@@ -246,11 +241,40 @@ type RegisteredSubscriptions<Model, Message> = RuntimeRegistrations<
   any
 >
 
+type AnyComposition = Readonly<{
+  Model: Schema.Top
+  Message: Schema.Top
+  [LocalMountsTypeId]: ReadonlyArray<LayeredMountDefinition>
+  bindings: ReadonlyArray<AnyBinding>
+  makeView: (...args: ReadonlyArray<any>) => any
+}>
+
+type ModelSchemaOf<CompositionValue> =
+  CompositionValue extends Readonly<{
+    Model: infer ModelSchema extends Schema.Top
+  }>
+    ? ModelSchema
+    : never
+
+type MessageSchemaOf<CompositionValue> =
+  CompositionValue extends Readonly<{
+    Message: infer MessageSchema extends Schema.Top
+  }>
+    ? MessageSchema
+    : never
+
+type ChildrenOf<CompositionValue> =
+  CompositionValue extends Readonly<{
+    bindings: infer Children extends ReadonlyArray<AnyBinding>
+  }>
+    ? Children
+    : never
+
 type ChildSubscriptions<CompositionValue extends AnyComposition> =
   AggregatedChildren<ChildrenOf<CompositionValue>>['subscriptions']
 
 /**
- * Collects an Application Composition's registered child Subscriptions for
+ * Collects a Block Composition's registered child Subscriptions for
  * Scene emission steps. Local declarations may be supplied as the second
  * argument. The result retains placement-qualified keys, exact Message
  * declarations, and the same lift paths used by the Runtime.
@@ -259,8 +283,8 @@ type ChildSubscriptions<CompositionValue extends AnyComposition> =
  * construct handler Layers, or start Streams. Completed feature Blocks already
  * expose their aggregated `subscriptions` directly.
  *
- * @param composition - The Application Composition whose child graph is tested.
- * @param localSubscriptions - Optional Subscriptions declared by that Application.
+ * @param composition - The Block Composition whose child graph is tested.
+ * @param localSubscriptions - Optional Subscriptions declared by that Block.
  * Duplicate registration keys are rejected rather than overwritten.
  */
 export function subscriptions<const CompositionValue extends AnyComposition>(
@@ -281,7 +305,13 @@ export function subscriptions(
   composition: AnyComposition,
   localSubscriptions: AnySubscriptions = {},
 ): AnySubscriptions {
-  const children = aggregateChildren(definitionOf(composition).bindings)
+  if (!isComposition(composition)) {
+    throw new Error(
+      '[foldkit] Scene.subscriptions Composition must come from Block.makeDefinition(...).makeComposition(...).',
+    )
+  }
+
+  const children = aggregateChildren(composition.bindings)
   return aggregateSubscriptions(localSubscriptions, children.subscriptions)
 }
 

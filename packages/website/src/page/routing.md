@@ -150,11 +150,11 @@ Foldkit provides navigation Commands for programmatically changing the URL. Thes
 
 ### Handle Link Requests
 
-When a link is clicked in your application, the `routing.onUrlRequest` handler receives either an Internal or External request. Handle Internal links with `pushUrl` and External links with `load`:
+When a link is clicked in your application, the `routing.onUrlRequest` handler receives either an Internal or External request. When `ClickedLink` has the canonical `{ request }` payload, pass `ApplicationBlock.Message.ClickedLink` directly in `Program.make`. A callback remains available for a custom payload shape. Handle Internal links with `pushUrl` and External links with `load`:
 
 ::Snippet{name="navigationHandleUrlRequest" label="URL request handling"}
 
-After `pushUrl` or `replaceUrl` changes the URL, Foldkit automatically calls your `routing.onUrlChange` handler with the new URL. This is where you parse the URL into a route and update your model.
+After `pushUrl` or `replaceUrl` changes the URL, Foldkit automatically calls your `routing.onUrlChange` handler with the new URL. Pass `ApplicationBlock.Message.ChangedUrl` directly when the Message has the canonical `{ url }` payload. Update parses that URL into a Route and stores it in the Model.
 
 ## Cold Loads and the Initial Route {#cold-loads}
 

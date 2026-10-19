@@ -3,11 +3,11 @@ import { expect, expectTypeOf, it } from 'vitest'
 
 import * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
-import { makeDefinition as makeApplicationDefinition } from '../runtime/applicationPublic.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
 import type { RequirementOfBinding } from './binding.js'
 import { makeDefinition, makeNamespace } from './define.js'
+import * as Block from './public.js'
 import type { Scoped } from './scope.js'
 
 class StartupClient extends Context.Service<
@@ -419,7 +419,7 @@ if (false) {
   })
 }
 
-const ApplicationDefinition = makeApplicationDefinition({
+const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ExactStartupModel,
   Message: Schema.Never,
   ChildInitContext,

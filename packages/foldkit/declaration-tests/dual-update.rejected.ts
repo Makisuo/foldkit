@@ -85,9 +85,8 @@ OmittedComposition.assembleBlock({
   EffectsLayer: Layer.empty,
 })
 
-// @ts-expect-error Root completion still requires the update's Command handler Layer.
-RootComposition.assembleApplication({
-  container: null,
+// @ts-expect-error Block completion requires the update's Command handler Layer.
+RootComposition.assembleBlock({
   init: rootInit,
   update: rootUpdate,
   view: rootView,

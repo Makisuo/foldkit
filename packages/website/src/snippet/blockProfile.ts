@@ -44,3 +44,9 @@ export const view = ApplicationComposition.makeView((model, h) => ({
     }),
   ),
 }))
+
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
+  init,
+  update,
+  view,
+})

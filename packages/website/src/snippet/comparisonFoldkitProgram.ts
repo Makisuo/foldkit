@@ -18,21 +18,30 @@ export const init = ApplicationComposition.makeInit((flags: Flags) => ({
   },
 }))
 
-// src/entry.ts
+// src/application.ts
 
-import { Runtime } from 'foldkit'
-
-import { Flags, flags } from './flags'
+import { ApplicationComposition } from './composition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const application = ApplicationComposition.assembleApplication({
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
   init,
   update,
   view,
+})
+
+// src/entry.ts
+
+import { Program, Runtime } from 'foldkit'
+
+import { ApplicationBlock } from './application'
+import { Flags, flags } from './flags'
+
+const program = Program.make({
+  block: ApplicationBlock,
   Flags,
   container: document.getElementById('root'),
 })
 
-Runtime.run(application, { flags })
+Runtime.run(program, { flags })

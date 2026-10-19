@@ -60,7 +60,7 @@ Set `FOLDKIT_DEVTOOLS_MCP_PORT` to the same port for the MCP server. When the ag
 
 #### Enable Message Dispatch
 
-To let an agent dispatch Messages, pass the application's `Message` Schema to `ApplicationComposition.assembleApplication`:
+To let an agent dispatch Messages, pass `ApplicationBlock.Message` to `Program.make` as `devTools.Message`:
 
 ::Snippet{name="aiMcpApplicationConfig" label="Application configuration"}
 

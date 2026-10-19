@@ -1,5 +1,5 @@
 import { Effect, Schema, pipe } from 'effect'
-import { Navigation, Route, Url, makeApplicationDefinition } from 'foldkit'
+import { Block, Navigation, Route, Url } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { defineRouteUnion, int, literal, slash } from 'foldkit/route'
 import { modifyFields } from 'foldkit/struct'
@@ -36,7 +36,10 @@ const Message = defineMessageUnion({
 })
 type Message = typeof Message.Type
 
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {

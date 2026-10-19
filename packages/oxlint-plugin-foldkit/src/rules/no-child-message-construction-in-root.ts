@@ -249,7 +249,7 @@ const parametersArgumentAt = (
   })
 }
 
-const applicationViewDefinitionPath = (
+const viewDefinitionPath = (
   references: WeakMap<ESTree.Node, Reference>,
   builderType: unknown,
 ): Option.Option<ImportedMessagePath> =>
@@ -330,12 +330,9 @@ const directOwnedBuilderDefinitionPath = (
   references: WeakMap<ESTree.Node, Reference>,
   typeAnnotation: unknown,
 ): Option.Option<ImportedMessagePath> => {
-  const applicationViewPath = applicationViewDefinitionPath(
-    references,
-    typeAnnotation,
-  )
-  if (Option.isSome(applicationViewPath)) {
-    return applicationViewPath
+  const viewPath = viewDefinitionPath(references, typeAnnotation)
+  if (Option.isSome(viewPath)) {
+    return viewPath
   }
 
   return compositionHtmlBuilderDefinitionPath(references, typeAnnotation)
@@ -906,10 +903,7 @@ const importedOperationOwnsMessage = (
           operation,
           Option.fromNullishOr(previousOperation),
         ) !== undefined
-      const isCompletion =
-        operation === 'assembleApplication' ||
-        operation === 'assembleBlock' ||
-        operation === 'assembleElement'
+      const isCompletion = operation === 'assembleBlock'
       if (!isDefinitionOperation && !isViewWithInputs && !isCompletion) {
         return false
       }

@@ -50,6 +50,7 @@ export const SettingsBlock = SettingsComposition.assembleBlock({
   update,
   view,
   operations: {
+    requestThemeChange: Message.RequestedThemeChange,
     requestReset: Message.RequestedReset,
   },
   EffectsLayer: SaveTheme.layer,

@@ -1,50 +1,32 @@
 ---
 title: Foldkit 0.169.0
-description: Input, portal, and overlay fixes, plus DevTools MCP discovery and new testing helpers.
+description: Runtime and overlay fixes, better DevTools MCP discovery, and new testing and Route transition helpers.
 date: 2026-10-20
 ---
 
-Foldkit 0.169.0 fixes lost input during deferred updates, portal patching crashes, and modal cleanup and focus problems. It also improves DevTools MCP discovery and adds helpers for testing lazy views and keyboard drag. This post also covers the smaller changes in 0.168.0.
+Foldkit 0.169.0 is out, with fixes for lost input, portals, and overlays. This post also covers 0.168.0.
 
-## Input and overlay fixes
+## Runtime and UI fixes
 
-Typing into an input while a deferred update was waiting could lose keystrokes. The runtime now skips rendering while the deferred queue is draining, then renders once it catches up. Mounts can move an element into a portal without crashing a later sibling update. Messages from blur and other events that fire while destroy hooks run reach the parent while a Submodel's subtree is being removed.
+Typing during deferred updates no longer loses keystrokes. Portaled views update without crashing, and focused overlays close cleanly. Other fixes cover trigger clicks, focus handling, repeated opens, inert state, and input-method composition.
 
-Repeated open calls avoid acquiring duplicate scroll locks and inert state. Cleaning up the final overlay removes its empty shared portal root so a modal can reopen in a fresh root. A default Popover stays open when focus moves into a control inside its panel, and Combobox lets an input method's Enter confirm a conversion.
-
-Overlay trigger clicks use the current Model to decide how to respond. The [UI release notes](https://github.com/foldkit/foldkit/releases/tag/%40foldkit%2Fui%400.169.0) cover changes to exhaustive Popover, Menu, and Listbox Message matches and Scene tests for trigger clicks and Popover panel focus.
-
-Thank you to [@servaasvdc](https://github.com/servaasvdc) for [the input fix](https://github.com/foldkit/foldkit/pull/1702), [@artile](https://github.com/artile) for [portal patching](https://github.com/foldkit/foldkit/pull/1548) and [Submodel teardown](https://github.com/foldkit/foldkit/pull/1549), and [@armancharan](https://github.com/armancharan) for the input-method, focus, and modal cleanup fixes!
+Thank you to [@servaasvdc](https://github.com/servaasvdc) for the input fix, [@artile](https://github.com/artile) for the portal and teardown fixes, and [@armancharan](https://github.com/armancharan) for the overlay and keyboard fixes!
 
 ## DevTools MCP discovery
 
-The DevTools MCP server connects when an agent calls a tool. You can start the agent before the dev server, then inspect the running application on the next call. Each dev server registers separately, so one agent session can find several Foldkit applications without their relay connections interfering with each other.
+An agent can find several running Foldkit apps, and the dev server can start after the agent. Upgrade the Vite plugin and MCP server together; the [MCP guide](/ai/mcp) covers setup.
 
-The automatic relay uses its own loopback port, allowing other Vite plugins and WebSocket proxies to handle the dev server's connections. Discovery checks registry ownership and permissions on macOS, Linux, and Windows, and verifies a relay's identity before sending tool requests.
-
-Upgrade the Vite plugin and MCP server together. The [DevTools MCP guide](/ai/mcp) covers setup, and the [MCP server release notes](https://github.com/foldkit/foldkit/releases/tag/%40foldkit%2Fdevtools-mcp%400.25.0) describe the changes to fixed host and port configuration.
-
-Thank you to [@filipfalcon](https://github.com/filipfalcon) for [the DevTools MCP improvements](https://github.com/foldkit/foldkit/pull/1535)!
-
-## Testing lazy views and keyboard drag
-
-[`Lazy.expectAllReused`](/core/view-memoization) renders a view twice with the same Model and throws if any lazy call misses its cache on the second render. The error identifies each miss by its slot, its key for keyed calls, and the reason for the miss. This helps catch a view that renders the right result but repeats work you expected it to reuse.
-
-DragAndDrop adds `test.settleFocus` and `test.resolveKeyboardMove` for resolving focus and movement Commands in keyboard drag Story tests. Story and Scene diagnostics also point to component test helpers when a child Command needs a resolver.
-
-The [testing guide](/testing) covers Story and Scene tests, and the [DragAndDrop guide](/ui/drag-and-drop) documents its helpers.
-
-Thank you to [@Tanner-Scadden](https://github.com/Tanner-Scadden) for [the Lazy helper](https://github.com/foldkit/foldkit/pull/1679), [keyboard drag helpers](https://github.com/foldkit/foldkit/pull/1667), [Command diagnostics](https://github.com/foldkit/foldkit/pull/1666), and [testing documentation](https://github.com/foldkit/foldkit/pull/1668)!
+Thank you to [@filipfalcon](https://github.com/filipfalcon) for the discovery improvements!
 
 ## More in these releases
 
-- [Route transition matchers](/core/routing-and-navigation#route-transitions) handle entering, leaving, and staying on a route with payloads narrowed to the selected Route variant. Thank you to [@SyahrulBhudiF](https://github.com/SyahrulBhudiF) for [contributing the helpers](https://github.com/foldkit/foldkit/pull/1701)!
-- Apps generated by `create-foldkit-app` include [Effect-aware linting](/tooling/oxlint-plugin) alongside the Foldkit Oxlint rules. The generated `lint` command runs both.
-- On foldkit.dev, browser Playgrounds open the application preview instead of the MCP relay's HTTP 426 response.
-- Server rendering shares compatible HTML parses across checks, reducing repeated parsing during validation and insertion. Thank you to [@drobson03](https://github.com/drobson03) for [the performance report](https://github.com/foldkit/foldkit/issues/1657).
-- Meter, Nav, and Progress have their own package subpaths in 0.168.0: `@foldkit/ui/meter`, `@foldkit/ui/nav`, and `@foldkit/ui/progress`. Thank you to [@Awjin](https://github.com/Awjin) for [contributing the exports](https://github.com/foldkit/foldkit/pull/1638)!
+- [`Lazy.expectAllReused`](/core/view-memoization) checks view cache reuse, and [DragAndDrop](/ui/drag-and-drop) adds helpers for keyboard Story tests. Thank you to [@Tanner-Scadden](https://github.com/Tanner-Scadden) for the testing helpers and documentation!
+- [Route transition matchers](/core/routing-and-navigation#route-transitions) handle entry, exit, and stay policies with narrowed Route payloads. Thank you to [@SyahrulBhudiF](https://github.com/SyahrulBhudiF) for contributing them!
+- Generated apps get [Effect-aware linting](/tooling/oxlint-plugin), and fresh SSR projects get compatible Effect dependencies. Other tooling fixes cover DevTools relay recovery and browser Playgrounds.
+- Server rendering reduces repeated HTML parsing. Thank you to [@drobson03](https://github.com/drobson03) for the performance report!
+- Meter, Nav, and Progress gain package subpaths in 0.168.0. Thank you to [@Awjin](https://github.com/Awjin) for contributing the exports!
 
-See the [Foldkit 0.169.0 notes](https://github.com/foldkit/foldkit/releases/tag/foldkit%400.169.0), [Foldkit 0.168.0 notes](https://github.com/foldkit/foldkit/releases/tag/foldkit%400.168.0), and [companion package releases](https://github.com/foldkit/foldkit/releases) for the complete change list and upgrade guidance.
+See the [0.169.0 notes](https://github.com/foldkit/foldkit/releases/tag/foldkit%400.169.0), [0.168.0 notes](https://github.com/foldkit/foldkit/releases/tag/foldkit%400.168.0), and [companion package releases](https://github.com/foldkit/foldkit/releases) for the complete changes and migration details.
 
 Thanks to everyone building with Foldkit!
 

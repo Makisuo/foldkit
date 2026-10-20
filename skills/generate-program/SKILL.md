@@ -765,7 +765,7 @@ Write `story` pipelines covering:
 
 Match pending Commands with their original Definitions, not a displayed `command.name` string or `Definition.name`. Source identity survives Binding qualification. Pass an instance for exact args; a bound instance also selects its composition path. Resolve a child Command with its raw child result Message; Story replays the generated delivery chain.
 
-Check an `@foldkit/ui` component's `test` namespace before writing resolvers for its Commands and Mounts. Pair those original Definitions with result Messages from the completed Block. Use a completed instance's published drain helper when one is available for a multi-Command lifecycle.
+Check a completed `@foldkit/ui` Block's `test` namespace before writing resolvers for its Commands and Mounts. Pair those original Definitions with result Messages from the completed Block. Use a completed Block's published drain helper when one is available for a multi-Command lifecycle. For example, use `ToastBlock.test.drainEntry({ binding: ToastBinding, entryId })` for a newly shown toast that auto-dismisses.
 
 **Scene tests** (`scene.test.ts`) test through the rendered view. You interact with elements by accessible locators (role, label, text) and assert on what the user sees. A `scene.test.ts` is **REQUIRED** for Tier 3+ apps. The review loop treats its absence as a BLOCKER, not a QUALITY item. No exceptions. Don't "defer" this. Study these exemplars:
 

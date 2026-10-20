@@ -69,7 +69,7 @@ When resolving a Command from a [child Block](/core/block), pass the child's res
 
 ### UI Component Test Helpers
 
-Before writing resolvers for an `@foldkit/ui` component, check the completed component's `test` namespace for lifecycle helpers. These helpers preserve the component instance's Command identity while resolving its internal transitions.
+Before writing resolvers for an `@foldkit/ui` component, check the completed component's `test` namespace for lifecycle helpers. These helpers preserve the component instance's Command identity while resolving its internal transitions. For example, the [Toast test helper](/ui/toast#testing) handles the animation and timer Commands for a newly shown toast that auto-dismisses.
 
 ## Reusable Step Groups
 

@@ -15,6 +15,7 @@ import type * as Mount from '../mount/index.js'
 import type * as Subscription from '../subscription/public.js'
 import * as Update from '../update/index.js'
 import type { BindingBlockEvidence } from './binding.js'
+import { LocalMountsTypeId } from './identity.js'
 import { type OwnedName, makeOwnedName } from './ownerName.js'
 import type {
   HandlerOfHostDefinition,
@@ -26,6 +27,7 @@ import type {
   RequirementsOfBlock,
   SubscriptionRequirements,
   ValidateComposition,
+  ValidateImplementationComposition,
 } from './requirements.js'
 
 const Message = defineMessageUnion({
@@ -527,4 +529,91 @@ it('reports policy Commands retained by an exposed operation binding', () => {
       ParentWithPolicyStep
     >['Block handler requirements must be provided locally or listed in hostHandlers']
   >().toEqualTypeOf<Command.HandlerOf<typeof Refresh>>()
+})
+
+type LocalValidationCompleteA = Readonly<{
+  [LocalMountsTypeId]: readonly []
+  bindings: readonly []
+  init: () => Readonly<{ model: 'A' }>
+  update: () => Readonly<{ model: 'A' }>
+  subscriptions: EmptyRecord
+  managedResources: EmptyRecord
+  EffectsLayer: never
+  hostHandlers: readonly ['InvalidA']
+}>
+
+type LocalValidationCompleteB = Readonly<{
+  [LocalMountsTypeId]: readonly []
+  bindings: readonly []
+  init: () => Readonly<{ model: 'B' }>
+  update: () => Readonly<{ model: 'B' }>
+  subscriptions: EmptyRecord
+  managedResources: EmptyRecord
+  EffectsLayer: never
+  hostHandlers: readonly ['InvalidB']
+}>
+
+type LocalValidationPartial = Readonly<{
+  init: () => Readonly<{ model: 'Partial' }>
+  hostHandlers: readonly ['InvalidPartial']
+}>
+
+type LocalValidationOptional = Omit<
+  LocalValidationCompleteA,
+  'bindings' | 'hostHandlers'
+> &
+  Readonly<{
+    bindings?: readonly []
+    hostHandlers: readonly ['InvalidOptional']
+  }>
+
+type LocalValidationDefinition = Readonly<{ kind: 'Fallback' }>
+
+it('retains validation evidence across complete and partial composition unions', () => {
+  type MixedEvidence = ValidateImplementationComposition<
+    LocalValidationDefinition,
+    LocalValidationCompleteA | LocalValidationPartial
+  >['Block hostHandlers must contain layered Foldkit definitions']
+  type CompleteUnionEvidence = ValidateImplementationComposition<
+    LocalValidationDefinition,
+    LocalValidationCompleteA | LocalValidationCompleteB
+  >['Block hostHandlers must contain layered Foldkit definitions']
+
+  expectTypeOf<MixedEvidence>().toEqualTypeOf<'InvalidA' | 'InvalidPartial'>()
+  expectTypeOf<CompleteUnionEvidence>().toEqualTypeOf<'InvalidA' | 'InvalidB'>()
+})
+
+it('keeps fallback validation exact for optional and top-level types', () => {
+  type OptionalEvidence = ValidateImplementationComposition<
+    LocalValidationDefinition,
+    LocalValidationOptional
+  >['Block hostHandlers must contain layered Foldkit definitions']
+
+  expectTypeOf<OptionalEvidence>().toEqualTypeOf<'InvalidOptional'>()
+  expectTypeOf<
+    ValidateImplementationComposition<LocalValidationDefinition, any>
+  >().toEqualTypeOf<
+    Readonly<{
+      'Block hostHandlers must contain layered Foldkit definitions': unknown
+    }>
+  >()
+  expectTypeOf<
+    ValidateImplementationComposition<LocalValidationDefinition, unknown>
+  >().toEqualTypeOf<unknown>()
+  expectTypeOf<
+    ValidateImplementationComposition<LocalValidationDefinition, never>
+  >().toEqualTypeOf<never>()
+})
+
+type AcceptedLocalValidation<Composition> = Omit<Composition, 'hostHandlers'> &
+  Readonly<{ hostHandlers: readonly [] }>
+
+it('accepts complete local composition unions', () => {
+  expectTypeOf<
+    ValidateImplementationComposition<
+      LocalValidationDefinition,
+      | AcceptedLocalValidation<LocalValidationCompleteA>
+      | AcceptedLocalValidation<LocalValidationCompleteB>
+    >
+  >().toEqualTypeOf<unknown>()
 })

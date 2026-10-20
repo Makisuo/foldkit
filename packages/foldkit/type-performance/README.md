@@ -38,6 +38,56 @@ Only update budgets after reviewing an intentional type-level change. The
 ordinary check never changes them and fails when either gated metric exceeds
 its stored maximum.
 
+## Language service latency
+
+Compiler instantiation and type counts are deterministic regression signals,
+but they do not predict the delay of an editor request after a file changes.
+Use the opt-in native LSP benchmark after building `packages/foldkit` when a
+type-level change is intended to improve authoring latency:
+
+```sh
+node packages/foldkit/scripts/profile-block-language-service.ts --runs 5 > /tmp/foldkit-block-language-service.json
+```
+
+The benchmark starts a fresh pinned native TypeScript language server for each
+Website hover, go-to-definition, and completion scenario. It records first,
+warm, post-whitespace, and post-semantic-edit requests where applicable. Its
+JSON output includes raw samples, medians, the source commit and dirty state, a
+hash of the Website and mapped workspace TypeScript sources, workspace
+declarations and declaration maps, package manifests, TypeScript configuration,
+and lockfile, plus separate lockfile and benchmark-script hashes and the
+compiler, server, Node, and platform versions. Set `--timeout-ms` when profiling
+a graph that legitimately takes longer than the default 60 seconds. Missing or
+empty hover contents, definitions, server identity, or expected Route
+completions fail the run instead of recording an artificially fast response.
+
+The benchmark has no CI latency threshold. Run baseline and candidate samples
+on the same idle host and compare their metadata before comparing medians.
+Wall-clock results vary with CPU contention, filesystem cache state, profiling,
+and language-server scheduling. Keep captured JSON outside the source tree.
+
+The initial investigation at commit
+`3edb273870b898ef963f1ed3a308424554bfd370` reproduced a 3.3–4.4 second Website
+hover after invalidation and a 3.8–4.2 second first go-to-definition request.
+Warm hovers were normally below one millisecond, while the focused Route
+completion remained around 20 milliseconds after a whitespace edit. Hover
+responses were about one kilobyte. Native profiles attributed the delay to
+conditional type instantiation and relation work, with allocation and garbage
+collection pressure, rather than response formatting or transport.
+Whole-program compiler traces highlighted several large Block validation
+graphs. Request-scoped traces found the post-edit work distributed across
+local Block validation, deferred Message policy resolution, selected Binding
+resolution, and delivery indexes, so they do not establish one validator as
+the interactive stall. A local assembly channel projection was adopted because
+it reduced Website compiler instantiations by 8.09% and focused fixture counts
+by 8–13% on the integrated factory surface. Its paired native timings were modest and noisy, so it is a
+compiler-cost optimization rather than a claimed interactive latency fix.
+Other safe encodings reduced deterministic counts without a repeatable
+post-edit LSP improvement and were not adopted as latency fixes.
+
+This benchmark drives the native server directly. Editor extensions, editor UI
+rendering, and editor-side request scheduling remain outside its scope.
+
 Baseline history for private Binding evidence: the TypeScript 7.0.2 ceilings
 include the evidence used by `Block.inspectBinding`. Compared with the
 preceding public metadata shape, the reviewed increases were 2.40%

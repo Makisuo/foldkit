@@ -69,9 +69,9 @@ declare const optionalPolicyConfig: Readonly<{
   field: 'child'
   outMessage?: ChildPolicy
 }>
-// @ts-expect-error A potentially absent policy cannot handle a child's OutMessages.
 DeclarationRejectedParentDefinition.makeBinding(
   ChildBlock,
+  // @ts-expect-error A potentially absent policy cannot handle a child's OutMessages.
   optionalPolicyConfig,
 )
 

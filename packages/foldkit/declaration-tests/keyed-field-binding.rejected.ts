@@ -24,9 +24,9 @@ const missingFieldConfig = {
   field: missingField,
   key: idKey,
 }
-// @ts-expect-error The selected field must name a parent Struct field.
 DeclarationKeyedFieldParentDefinition.makeBinding(
   ChildBlock,
+  // @ts-expect-error The selected field must name a parent Struct field.
   missingFieldConfig,
 )
 
@@ -395,9 +395,9 @@ const anyKeyConfig = {
   key: anyKey,
 }
 
-// @ts-expect-error Null is not an occurrence key type.
 DeclarationInvalidKeyParentDefinition.makeBinding(
   InvalidKeyBlock,
+  // @ts-expect-error Null is not an occurrence key type.
   nullKeyConfig,
 )
 DeclarationInvalidKeyParentDefinition.makeBinding(
@@ -405,9 +405,9 @@ DeclarationInvalidKeyParentDefinition.makeBinding(
   // @ts-expect-error Unknown is not an occurrence key type.
   unknownKeyConfig,
 )
-// @ts-expect-error Never is not an occurrence key type.
 DeclarationInvalidKeyParentDefinition.makeBinding(
   InvalidKeyBlock,
+  // @ts-expect-error Never is not an occurrence key type.
   neverKeyConfig,
 )
 // @ts-expect-error Any is not an occurrence key type.

@@ -46,7 +46,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
         }),
       }),
 
-    ChangedUrl: ({ url }) => handleChangedUrl(model, url),
+    ChangedUrl: ({ url }) => handleChangedUrl(url)(model),
 
     ClickedCopyLink: ({ hash }) => ({
       model,

@@ -506,7 +506,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
 
 - [ ] Every function operates at a single abstraction level: orchestrators delegate, implementations implement. If a function reads like it's doing two things, extract one.
 - [ ] Extract substantial update behavior into named handlers when it makes the Message matcher easier to read. A substantial `update/` directory has an explicit `index.ts` barrel, an `update.ts` matcher, and files named for their behavior, such as `handleRoomUpdated.ts`. Keep trivial child forwards and unchanged results inline; do not create a file per Message.
-- [ ] Handler parameters match their call sites. A direct Message branch can call `handleChangedUrl(model, url)`; a producer used by `Update.combineSteps` returns a Step so it receives the preceding Model. Preserve exact inputs and inferred Command requirements.
+- [ ] Extracted Step-producing handlers take their event inputs first, then return a Step: `handleChangedUrl(url)(model)`. Read the Model when the Step is applied so composition uses the preceding Step's Model. Preserve exact inputs and inferred Command requirements.
 - [ ] **View branches over ~30 lines are extracted** to named view functions (e.g. `enterUsernameView`, `selectActionView`). [T5+] If the view for a single route/state exceeds ~100 lines, extract to `src/view/` or `src/page/*/view.ts`.
 - [ ] No function exceeds ~40 lines without extraction. Long functions are the primary smell.
 

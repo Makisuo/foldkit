@@ -21,8 +21,8 @@ import { ApplicationRoute, urlToApplicationRoute } from '../route'
 
 type ApplicationTransition = Transition.Transition<typeof ApplicationRoute.Type>
 
-export const handleChangedUrl = ApplicationDefinition.step(
-  (model, url: Url) => {
+export const handleChangedUrl = (url: Url) =>
+  ApplicationDefinition.step(model => {
     const { route: previousRoute } = model
     const nextRoute = urlToApplicationRoute(url)
     const transition = Transition.make(previousRoute, nextRoute)
@@ -42,8 +42,7 @@ export const handleChangedUrl = ApplicationDefinition.step(
       loadRouteData(transition),
       scrollAfterUrlChange(url, isDifferentPathname),
     ])
-  },
-)
+  })
 
 const nextSidebarGroups = (
   model: typeof Model.Type,

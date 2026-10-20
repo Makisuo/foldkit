@@ -28,6 +28,7 @@ ParentDefinition.makeOutMessageForward(ChildBlock, {
 })
 
 // @ts-expect-error A forwarding policy must forward at least one parent OutMessage.
+// oxlint-disable-next-line foldkit/no-empty-to-parent-out-message -- This fixture verifies TypeScript rejects an empty forwarding policy.
 ParentDefinition.makeOutMessageForward(ChildBlock, {
   Selected: () => undefined,
   Closed: () => undefined,

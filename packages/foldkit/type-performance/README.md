@@ -40,7 +40,7 @@ its stored maximum.
 
 ## Language service latency
 
-Compiler instantiation and type counts are deterministic regression signals,
+Compiler instantiation and type counts provide regression signals,
 but they do not predict the delay of an editor request after a file changes.
 Use the opt-in native LSP benchmark after building `packages/foldkit` when a
 type-level change is intended to improve authoring latency:
@@ -50,19 +50,23 @@ node packages/foldkit/scripts/profile-block-language-service.ts --runs 5 > /tmp/
 ```
 
 The benchmark starts a fresh pinned native TypeScript language server for each
-Website hover, go-to-definition, and completion scenario. It records first,
-warm, post-whitespace, and post-semantic-edit requests where applicable. Its
-JSON output includes raw samples, medians, the source commit and dirty state, a
-hash of the Website and mapped workspace TypeScript sources, workspace
-declarations and declaration maps, package manifests, TypeScript configuration,
+Website hover, go-to-definition, Route completion, and Binding member
+completion scenario. The Binding scenario requests members on
+`SearchBinding` and verifies `fold`, `embedView`, and `requestOpen`. The
+benchmark records first, warm, post-whitespace, and post-semantic-edit requests
+where applicable. Its JSON output includes raw samples, medians, the source
+commit and dirty state, a hash of the Website and mapped workspace TypeScript
+sources, workspace declarations and declaration maps, package manifests, TypeScript configuration,
 and lockfile, plus separate lockfile and benchmark-script hashes and the
 compiler, server, Node, and platform versions. Set `--timeout-ms` when profiling
 a graph that legitimately takes longer than the default 60 seconds. Missing or
-empty hover contents, definitions, server identity, or expected Route
-completions fail the run instead of recording an artificially fast response.
+empty hover contents, definitions, server identity, or expected completion
+labels fail the run instead of recording an artificially fast response.
 
 The benchmark has no CI latency threshold. Run baseline and candidate samples
 on the same idle host and compare their metadata before comparing medians.
+Inspect post-edit samples and slow requests alongside medians. Repeat small
+compiler-count differences with identical source and emitted declarations.
 Wall-clock results vary with CPU contention, filesystem cache state, profiling,
 and language-server scheduling. Keep captured JSON outside the source tree.
 
@@ -80,9 +84,10 @@ local Block validation, deferred Message policy resolution, selected Binding
 resolution, and delivery indexes, so they do not establish one validator as
 the interactive stall. A local assembly channel projection was adopted because
 it reduced Website compiler instantiations by 8.09% and focused fixture counts
-by 8–13% on the integrated factory surface. Its paired native timings were modest and noisy, so it is a
-compiler-cost optimization rather than a claimed interactive latency fix.
-Other safe encodings reduced deterministic counts without a repeatable
+by 8–13% on the integrated factory surface. Its paired native timings were
+modest and noisy, so it is a compiler-cost optimization rather than a claimed
+interactive latency fix.
+Other safe encodings reduced compiler counts without a repeatable
 post-edit LSP improvement and were not adopted as latency fixes.
 
 This benchmark drives the native server directly. Editor extensions, editor UI

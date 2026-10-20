@@ -1,4 +1,4 @@
-import { Option, Predicate, String } from 'effect'
+import { Array as EffectArray, Option, Predicate, String } from 'effect'
 import { execFileSync, spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import {
@@ -34,11 +34,20 @@ type SourceDocument = {
 
 type Position = Readonly<{ line: number; character: number }>
 
-type RequestTarget = Readonly<{
-  method: string
+type RequestTargetBase = Readonly<{
   source: SourceDocument
   position: Position
 }>
+
+type RequestTargetConfig =
+  | Readonly<{ method: 'textDocument/hover' }>
+  | Readonly<{ method: 'textDocument/definition' }>
+  | Readonly<{
+      method: 'textDocument/completion'
+      expectedLabels: readonly [string, ...Array<string>]
+    }>
+
+type RequestTarget = RequestTargetBase & RequestTargetConfig
 
 type Measurement = Readonly<{
   label: string
@@ -332,12 +341,12 @@ const occurrence = (text: string, needle: string, within?: string): number => {
 }
 
 const requestTarget = (
-  method: string,
+  request: RequestTargetConfig,
   source: SourceDocument,
   needle: string,
   within?: string,
 ): RequestTarget => ({
-  method,
+  ...request,
   source,
   position: positionAt(
     source.originalText,
@@ -493,10 +502,10 @@ const hoverText = (contents: unknown): string => {
 
 const validateResult = (
   label: string,
-  method: string,
+  target: RequestTarget,
   result: unknown,
 ): number | undefined => {
-  if (method === 'textDocument/hover') {
+  if (target.method === 'textDocument/hover') {
     if (
       result === null ||
       typeof result !== 'object' ||
@@ -509,7 +518,7 @@ const validateResult = (
     return undefined
   }
 
-  if (method === 'textDocument/definition') {
+  if (target.method === 'textDocument/definition') {
     if (!globalThis.Array.isArray(result) || result.length < 1) {
       return fail(`${label} returned no definitions.`)
     }
@@ -517,8 +526,15 @@ const validateResult = (
     return result.length
   }
 
-  if (method === 'textDocument/completion') {
+  if (target.method === 'textDocument/completion') {
     const items = completionItems(result)
+    if (Option.isNone(EffectArray.head(items))) {
+      return fail(`${label} returned no completions.`)
+    }
+    if (Option.isNone(EffectArray.head(target.expectedLabels))) {
+      return fail(`${label} defines no expected completion labels.`)
+    }
+
     const labels = items.flatMap(item =>
       item !== null &&
       typeof item === 'object' &&
@@ -527,16 +543,19 @@ const validateResult = (
         ? [item.label]
         : [],
     )
-    if (!labels.includes('_tag') || !labels.includes('exampleSlug')) {
+    const missingLabels = target.expectedLabels.filter(
+      expectedLabel => !labels.includes(expectedLabel),
+    )
+    if (EffectArray.isArrayNonEmpty(missingLabels)) {
       return fail(
-        `${label} did not return the expected _tag and exampleSlug completions.`,
+        `${label} did not return the expected ${missingLabels.join(', ')} completions.`,
       )
     }
 
     return items.length
   }
 
-  return fail(`No result validation is defined for ${method}.`)
+  return fail(`No result validation is defined for the request.`)
 }
 
 const measure = async (
@@ -550,7 +569,7 @@ const measure = async (
     { textDocument: { uri: target.source.uri }, position: target.position },
     timeoutMs,
   )
-  const count = validateResult(label, target.method, response.result)
+  const count = validateResult(label, target, response.result)
   const serializedResult =
     JSON.stringify(response.result) ?? fail(`${label} returned no JSON result.`)
 
@@ -605,12 +624,12 @@ const hoverScenario = (timeoutMs: number): Promise<ScenarioResult> =>
     await openDocument(client, composition)
 
     const definitionTarget = requestTarget(
-      'textDocument/hover',
+      { method: 'textDocument/hover' },
       definition,
       'ApplicationDefinition',
     )
     const bindingTarget = requestTarget(
-      'textDocument/hover',
+      { method: 'textDocument/hover' },
       composition,
       'SearchBinding',
     )
@@ -651,7 +670,11 @@ const definitionScenario = (timeoutMs: number): Promise<ScenarioResult> =>
     const composition = document(compositionPath)
     await openDocument(client, composition)
     const marker = bindingFactoryMarker(composition.originalText)
-    const target = requestTarget('textDocument/definition', composition, marker)
+    const target = requestTarget(
+      { method: 'textDocument/definition' },
+      composition,
+      marker,
+    )
     const measurements = [
       ...(await measurePair(
         client,
@@ -692,6 +715,7 @@ const completionScenario = (timeoutMs: number): Promise<ScenarioResult> =>
     await openDocument(client, changedUrl, completionText)
     const target: RequestTarget = {
       method: 'textDocument/completion',
+      expectedLabels: ['_tag', 'exampleSlug'],
       source: changedUrl,
       position: positionAt(
         completionText,
@@ -712,6 +736,43 @@ const completionScenario = (timeoutMs: number): Promise<ScenarioResult> =>
         client,
         timeoutMs,
         ['completion.postWhitespace', 'completion.postWhitespaceWarm'],
+        target,
+        `${completionText}\n`,
+      )),
+    )
+    return measurements
+  })
+
+const bindingCompletionScenario = (
+  timeoutMs: number,
+): Promise<ScenarioResult> =>
+  runScenario(timeoutMs, async client => {
+    const composition = document(compositionPath)
+    const completionText = `${composition.originalText}\nSearchBinding.`
+    await openDocument(client, composition, completionText)
+    const target: RequestTarget = {
+      method: 'textDocument/completion',
+      expectedLabels: ['fold', 'embedView', 'requestOpen'],
+      source: composition,
+      position: positionAt(completionText, completionText.length),
+    }
+    const measurements = [
+      ...(await measurePair(
+        client,
+        timeoutMs,
+        ['bindingCompletion.first', 'bindingCompletion.warm'],
+        target,
+      )),
+    ]
+
+    measurements.push(
+      ...(await editThenMeasurePair(
+        client,
+        timeoutMs,
+        [
+          'bindingCompletion.postWhitespace',
+          'bindingCompletion.postWhitespaceWarm',
+        ],
         target,
         `${completionText}\n`,
       )),
@@ -865,6 +926,7 @@ const main = async (): Promise<void> => {
     const hover = await hoverScenario(options.timeoutMs)
     const definition = await definitionScenario(options.timeoutMs)
     const completion = await completionScenario(options.timeoutMs)
+    const bindingCompletion = await bindingCompletionScenario(options.timeoutMs)
     serverInfo ??= hover.serverInfo
     const expectedServer = serverInfo
 
@@ -872,6 +934,7 @@ const main = async (): Promise<void> => {
       hover.serverInfo,
       definition.serverInfo,
       completion.serverInfo,
+      bindingCompletion.serverInfo,
     ]
     if (
       scenarioInfos.some(
@@ -891,6 +954,7 @@ const main = async (): Promise<void> => {
         ...hover.measurements,
         ...definition.measurements,
         ...completion.measurements,
+        ...bindingCompletion.measurements,
       ],
     })
   }
@@ -927,6 +991,7 @@ const main = async (): Promise<void> => {
         readFileSync(join(workspaceRoot, compositionPath), 'utf8'),
       )}`,
       completion: `${changedUrlPath}#previousRoute.`,
+      bindingCompletion: `${compositionPath}#SearchBinding.`,
     },
     summary: summarize(runs),
     runs,

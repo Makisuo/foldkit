@@ -75,6 +75,8 @@ Apply the same ownership to every effect primitive:
 | `Mount.define(..., { execute })`                    | `FeatureDefinition.makeMount(..., { handler })`; register the Mount in the Composition                                                                   |
 | ManagedResource with inline `acquire` and `release` | `FeatureDefinition.makeManagedResources`; the handler returns both `acquire` and `release`                                                               |
 
+`makeSubscriptions` entries take a dependency Schema field record, in the same shape passed to `Schema.Struct`. If an adapter already supplies a Struct as `dependenciesSchema`, pass `dependenciesSchema.fields` to `entry`.
+
 Every attached handler exposes a `.layer`. Merge only the definitions owned by that feature into its local `EffectsLayer`, then pass that bundle to `assembleBlock`. Registered child Bindings contribute their own handler graphs automatically.
 
 ::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}
@@ -173,6 +175,8 @@ The completed Settings Block exposes `requestThemeChange`. In a `makeUpdate` bra
 
 ::Snippet{name="blockDelegateViaHelper" label="Calling a bound Block operation"}
 
+An operation retains the child update's full context tuple, even when the Message branch it selects does not use every context value. Pass those context arguments when calling the completed Block or bound operation. `delivery.toUpdateContext` supplies context for incoming child Message delivery; it does not supply arguments to an ordinary operation call.
+
 Rename existing `Update.combine` calls to `Update.combineSteps`. Both data-first and data-last calls retain the same arguments and inference.
 
 When several Steps must run in order, pass the unapplied Binding operations alongside the parent Steps to `Update.combineSteps`. A Definition-owned `makeStep` may return the connected Step for later use under that Composition, and Composition startup may list it under `steps`. Do not return an unapplied Binding operation from an ordinary update branch that must produce an update result.
@@ -216,11 +220,12 @@ Stable `Runtime.makeApplication` combines the application state machine, lifecyc
 Make the root an ordinary completed Block named `Application`:
 
 1. Replace the loose root contracts passed to `Runtime.makeApplication` with `Block.makeDefinition('Application', { Model, Message })`.
-2. Build `ApplicationComposition` through `makeComposition({ bindings, mounts })` as needed.
-3. Author root init, update, and view through that Composition.
-4. Complete `ApplicationBlock` with `ApplicationComposition.assembleBlock(...)`.
-5. Move container, Flags, routing, Ports, DevTools, and other browser host fields into `Program.make`.
-6. Supply ordinary application Services with `program.provide(ApplicationLayer)` before starting the Runtime.
+2. Rename a root route union named `AppRoute` to `ApplicationRoute`, including its imports and type queries.
+3. Build `ApplicationComposition` through `makeComposition({ bindings, mounts })` as needed.
+4. Author root init, update, and view through that Composition.
+5. Complete `ApplicationBlock` with `ApplicationComposition.assembleBlock(...)`.
+6. Move container, Flags, routing, Ports, DevTools, and other browser host fields into `Program.make`.
+7. Supply ordinary application Services with `program.provide(ApplicationLayer)` before starting the Runtime.
 
 The browser entry should now be small and host-focused:
 

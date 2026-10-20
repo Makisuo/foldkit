@@ -466,6 +466,8 @@ For a generic factory that shares definitions, `Block.makeNamespace(id)` supplie
 
 `FeatureDefinition.stepFields(callback)` authors a unary Model-only Step from field transformers. The callback receives the current Model and returns the same record accepted by `modifyFields`; omit the parameter when the transformers do not need another field. `FeatureDefinition.stepNoop()` authors a Step that preserves the exact incoming Model, which is useful when a named child OutMessage intentionally leaves the parent unchanged. Pass the helper point-free as that variant's handler: `Closed: FeatureDefinition.stepNoop`.
 
+`FeatureDefinition.makeCommandsStep(commands)` authors a Model-preserving Step from an existing Command collection. Use it when a composed Step only returns Commands, such as focusing a field after opening a Dialog. It retains result Message checks, Service requirements, and Binding registration evidence. Creating or applying the Step does not execute its Commands; Runtime executes them independently.
+
 `FeatureDefinition.step(producer)` handles parameterized, Command-producing, OutMessage-producing, connected Binding, initialization, delegated, conditional, and composed results. It preserves or wraps a connected value until a Composition interprets it under the registered graph, and infers the operation's arguments, result Messages, Command requirements, and Binding requirements. Ordinary update branches continue to return `{ model: modifyFields(...) }`; do not create and immediately invoke a Step solely to use the field helpers. Public operations belong in the completed Block's `operations` record as local Message constructors or Message tuple producers.
 
 ### ParentDefinition.makeOutMessageFold

@@ -62,10 +62,9 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
     ClickedOpenMobileMenu: () =>
       Update.combineSteps(model, [
         MobileMenuDialogBinding.requestOpen(),
-        ApplicationDefinition.step(stepModel => ({
-          model: stepModel,
-          commands: [Command.ScrollMobileMenuActiveLinkIntoView()],
-        })),
+        ApplicationDefinition.makeCommandsStep([
+          Command.ScrollMobileMenuActiveLinkIntoView(),
+        ]),
       ]),
 
     ClickedOpenSearch: () => SearchBinding.requestOpen()(model),

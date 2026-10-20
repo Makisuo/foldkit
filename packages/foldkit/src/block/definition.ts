@@ -53,6 +53,7 @@ import {
   generatedEnvelopeSchemas,
   makeDispatchSchema,
 } from './childEnvelope.js'
+import { type MakeCommandsStep, makeCommandsStep } from './commandsStep.js'
 import {
   assertBindingParentContracts,
   descendantOwnersOf,
@@ -3362,6 +3363,8 @@ export type Definition<
   stepFields: DefineStepFields<ModelSchema['Type']>
   /** Creates a Step preserving the incoming Model, with no Commands or OutMessage. */
   stepNoop: DefineStepNoop<ModelSchema['Type']>
+  /** Creates a Model-preserving Step returning the supplied Commands. */
+  makeCommandsStep: MakeCommandsStep<ModelSchema['Type'], MessageSchema['Type']>
   /** Defines Subscription entries owned directly by this Block. */
   subscriptions: DefineSubscriptions<
     OwnerValue['id'],
@@ -3964,6 +3967,7 @@ export const makeDefinition = (
     step: AnyFunction
     stepFields: AnyFunction
     stepNoop: AnyFunction
+    makeCommandsStep: AnyFunction
     subscriptions: AnyFunction
     managedResources: AnyFunction
   }>,
@@ -4006,6 +4010,7 @@ export const makeDefinition = (
   const defineOutMessageForward = makeOutMessageForward()
   const stepFields = authoring?.stepFields ?? makeStepFields()
   const stepNoop = authoring?.stepNoop ?? makeStepNoop
+  const commandsStep = authoring?.makeCommandsStep ?? makeCommandsStep()
   const defineSubscriptions =
     authoring?.subscriptions ?? makeDefineSubscriptions(owner)
   const defineManagedResources =
@@ -4228,6 +4233,7 @@ export const makeDefinition = (
     makeOutMessageFold: defineOutMessageFold,
     stepFields,
     stepNoop,
+    makeCommandsStep: commandsStep,
     subscriptions: defineSubscriptions,
     managedResources: defineManagedResources,
     bindChild,
@@ -4354,6 +4360,7 @@ export const makeBaseDefinition = (
     makeOutMessageFold: base.makeOutMessageFold,
     stepFields: base.stepFields,
     stepNoop: base.stepNoop,
+    makeCommandsStep: base.makeCommandsStep,
     subscriptions: base.subscriptions,
     managedResources: base.managedResources,
     bindChild: base.bindChild,

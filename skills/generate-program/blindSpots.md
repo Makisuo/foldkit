@@ -109,8 +109,9 @@ For an actual unary Model-only field Step, use
 named child OutMessage branch that intentionally preserves the parent Model uses
 `FeatureDefinition.stepNoop()`. In a `makeOutMessageFold` case record, pass the
 no-op helper point-free as the handler (`Closed: FeatureDefinition.stepNoop`).
-Parameterized, Command-producing,
-OutMessage-producing, connected Binding, initialization, delegated, conditional,
+Use `FeatureDefinition.makeCommandsStep(commands)` when a composed Step only
+returns an existing Command collection. Additional arguments, Model-dependent
+Commands, OutMessages, connected Binding, initialization, delegated, conditional,
 and composed results stay on `FeatureDefinition.step`. Do not construct and
 immediately invoke one of these helpers in an ordinary update branch.
 

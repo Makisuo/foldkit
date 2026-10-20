@@ -92,10 +92,7 @@ export const FocusSearchInput = SearchDefinition.command('FocusSearchInput', {
   },
 })
 
-const focusSearchInput = SearchDefinition.step(model => ({
-  model,
-  commands: [FocusSearchInput()],
-}))
+const focusSearchInput = SearchDefinition.makeCommandsStep([FocusSearchInput()])
 
 const open = SearchDefinition.step(() =>
   Update.combineSteps([DialogBinding.requestOpen(), focusSearchInput]),

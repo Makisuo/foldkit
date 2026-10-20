@@ -37,10 +37,9 @@ const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
   Animation.AnimationBlock,
   {
     StartedLeaveAnimating: ({ generation }, { liftCommand }) =>
-      AnimationExampleDefinition.step(model => ({
-        model,
-        commands: [liftCommand(WaitForPanelSettled({ generation }))],
-      })),
+      AnimationExampleDefinition.makeCommandsStep([
+        liftCommand(WaitForPanelSettled({ generation })),
+      ]),
     TransitionedOut: AnimationExampleDefinition.stepNoop,
   },
 )

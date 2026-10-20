@@ -318,10 +318,7 @@ export const update = DialogComposition.makeUpdate((model, message) =>
       )
       const dialogOpen = model.isAnimated
         ? Update.combineSteps(model, [
-            DialogDefinition.step(stepModel => ({
-              model: stepModel,
-              commands,
-            })),
+            DialogDefinition.makeCommandsStep(commands),
             AnimationBinding.requestShow(),
             DialogDefinition.stepFields(() => ({ isOpen: () => true })),
           ])

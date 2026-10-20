@@ -452,9 +452,10 @@ Use `FeatureDefinition.stepFields(callback)` for an actual unary Model-only
 field Step; its callback returns only field transformers. Use
 `FeatureDefinition.stepNoop()` when a Step value intentionally preserves the
 parent Model. In a `makeOutMessageFold` case record, pass that helper point-free
-as the handler (`Closed: FeatureDefinition.stepNoop`). Keep
-`FeatureDefinition.step` for parameterized,
-Command-producing, OutMessage-producing, connected Binding, initialization,
+as the handler (`Closed: FeatureDefinition.stepNoop`). Use
+`FeatureDefinition.makeCommandsStep(commands)` when a composed Step only returns
+an existing Command collection. Keep `FeatureDefinition.step` for additional
+arguments, Model-dependent Commands, OutMessages, connected Binding, initialization,
 delegated, conditional, and composed results. Keep ordinary update branches as
 ordinary returns instead of constructing and immediately invoking a Step.
 

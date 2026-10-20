@@ -513,6 +513,12 @@ const checks: ReadonlyArray<
     consumers: ['field-steps.consume.ts'],
   },
   {
+    name: 'commands-steps',
+    accepted: ['commands-steps.accepted.ts'],
+    rejected: ['commands-steps.rejected.ts'],
+    consumers: ['commands-steps.consume.ts'],
+  },
+  {
     name: 'generated-dispatch',
     accepted: ['generated-dispatch.accepted.ts'],
     rejected: ['generated-dispatch.rejected.ts'],

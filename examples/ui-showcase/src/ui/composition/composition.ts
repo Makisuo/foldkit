@@ -24,7 +24,7 @@ import { PlanRadioGroupBlock } from '../radioGroup'
 import { DemoTabsBlock } from '../tabs'
 import { ToastBlock } from '../toast'
 import { ActivityVirtualListBlock } from '../virtualList'
-import { AnimationDemoBinding } from './animation'
+import { AnimationDemoBindingWithOutMessagePolicy } from './animation'
 import { DragAndDropDemoBinding } from './dragAndDrop'
 
 const foldDialogOutMessage = UiDefinition.makeOutMessageFold(DialogBlock, {
@@ -528,7 +528,7 @@ export const UiComposition = UiDefinition.makeComposition({
     TooltipBasicDemoBinding,
     TooltipNoDelayDemoBinding,
     HoverIntentDemoBinding,
-    AnimationDemoBinding,
+    AnimationDemoBindingWithOutMessagePolicy,
     VirtualListDemoBinding,
     VirtualListVariableDemoBinding,
   ],

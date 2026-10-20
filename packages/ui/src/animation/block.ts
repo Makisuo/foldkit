@@ -8,7 +8,6 @@ import {
   EffectsLayer,
   WaitForAnimationSettled,
   WaitForPaint,
-  defaultLeaveCommand,
   init,
   update,
 } from './update.js'
@@ -16,13 +15,7 @@ import {
 export type { Hid, InitConfig, Showed } from './schema.js'
 export { init, Message, Model, OutMessage, TransitionState }
 
-export {
-  WaitForAnimationSettled,
-  WaitForPaint,
-  EffectsLayer,
-  defaultLeaveCommand,
-  update,
-}
+export { WaitForAnimationSettled, WaitForPaint, EffectsLayer, update }
 
 // VIEW
 
@@ -161,6 +154,7 @@ export const AnimationBlock = AnimationComposition.assembleBlock({
   operations: {
     requestShow: Message.RequestedShow,
     requestHide: Message.RequestedHide,
+    requestWaitForLeaveSettlement: Message.RequestedWaitForLeaveSettlement,
     requestFinish: (generation: number) =>
       Tuple.make(Message.RequestedFinish({ generation })),
     requestToggle: Message.RequestedToggle,

@@ -7,9 +7,11 @@ import * as Tooltip from '@foldkit/ui/tooltip'
 
 import {
   ApplicationDefinition,
+  AnimationBinding,
   DialogBinding,
   DragAndDropBinding,
   KeyedDragAndDropBinding,
+  KeyedAnimationBinding,
   KeyedToastBinding,
   MenuFoldFixtureDefinition,
   MenuPicker,
@@ -42,6 +44,15 @@ void invalidAnimationViewInputs
 
 // @ts-expect-error The connected Dialog operation takes no arguments.
 DialogBinding.requestOpen('unexpected')
+
+// @ts-expect-error The connected Animation operation takes no arguments.
+AnimationBinding.requestWaitForLeaveSettlement('unexpected')
+
+// @ts-expect-error A keyed Animation operation requires its occurrence key.
+KeyedAnimationBinding.requestWaitForLeaveSettlement()
+
+// @ts-expect-error The keyed Animation operation retains its literal key Schema.
+KeyedAnimationBinding.requestWaitForLeaveSettlement('Secondary')
 
 Picker.Message.SelectedItem({
   // @ts-expect-error The refined Message rejects an item outside its Schema.

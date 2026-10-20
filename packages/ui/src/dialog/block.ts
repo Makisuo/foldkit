@@ -259,15 +259,10 @@ const isLeaving = (model: Model): boolean =>
 const isOpenOrAnimating = (model: Model): boolean =>
   model.isOpen || model.animation.transitionState !== 'Idle'
 
-type AnimationMessage = typeof Animation.AnimationBlock.Message.Type
-
-const foldStartedLeaveAnimating = (
-  liftCommand: Update.FoldContext<AnimationMessage, Message>['liftCommand'],
-) =>
-  DialogDefinition.step(model => ({
-    model,
-    commands: [liftCommand(Animation.defaultLeaveCommand(model.animation))],
-  }))
+const AnimationBinding = DialogDefinition.bindChild(Animation.AnimationBlock, {
+  field: 'animation',
+  init: false,
+})
 
 const foldTransitionedOut = DialogDefinition.step(model => ({
   model,
@@ -277,16 +272,11 @@ const foldTransitionedOut = DialogDefinition.step(model => ({
 const foldAnimationOutMessage = DialogDefinition.makeOutMessageFold(
   Animation.AnimationBlock,
   {
-    StartedLeaveAnimating: (_outMessage, { liftCommand }) =>
-      foldStartedLeaveAnimating(liftCommand),
+    StartedLeaveAnimating: () =>
+      AnimationBinding.requestWaitForLeaveSettlement(),
     TransitionedOut: () => foldTransitionedOut,
   },
 )
-
-const AnimationBinding = DialogDefinition.bindChild(Animation.AnimationBlock, {
-  field: 'animation',
-  init: false,
-}).withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
 const resumeAnimationAfterAcquisition = AnimationBinding.requestResume()
 const resetAnimationImmediately = AnimationBinding.requestImmediateReset()
@@ -299,7 +289,9 @@ const resetToClosed = DialogDefinition.step(() =>
 
 const DialogComposition = DialogDefinition.makeComposition({
   mounts,
-  bindings: [AnimationBinding],
+  bindings: [
+    AnimationBinding.withOutMessagePolicy({ fold: foldAnimationOutMessage }),
+  ],
 })
 
 /** Creates a closed Dialog Model and its Commands from a config. */

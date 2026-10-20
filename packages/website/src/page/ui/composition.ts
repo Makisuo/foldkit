@@ -15,7 +15,6 @@ import {
   SliderBlock,
   TooltipBlock,
 } from '@foldkit/ui'
-import { Animation } from '@foldkit/ui'
 import { DragState } from '@foldkit/ui/dragAndDrop'
 
 import { CityComboboxBlock, CityMultiComboboxBlock } from './combobox'
@@ -641,24 +640,19 @@ export const ToastDemoBinding = UiDefinition.bindChild(ToastBlock, {
   },
 }).withOutMessagePolicy({ fold: foldToastDemoOutMessage })
 
-const foldAnimationDemoOutMessage = UiDefinition.makeOutMessageFold(
-  AnimationBlock,
-  {
-    StartedLeaveAnimating: (_, { liftCommand }) =>
-      UiDefinition.step(model => ({
-        model,
-        commands: [
-          liftCommand(Animation.defaultLeaveCommand(model.animationDemo)),
-        ],
-      })),
-    TransitionedOut: UiDefinition.stepNoop,
-  },
-)
-
 export const AnimationDemoBinding = UiDefinition.bindChild(AnimationBlock, {
   field: 'animationDemo',
   init: { contextToArgs: () => Tuple.make({ id: 'animation-demo' }) },
-}).withOutMessagePolicy({ fold: foldAnimationDemoOutMessage })
+})
+
+const foldAnimationDemoOutMessage = UiDefinition.makeOutMessageFold(
+  AnimationBlock,
+  {
+    StartedLeaveAnimating: () =>
+      AnimationDemoBinding.requestWaitForLeaveSettlement(),
+    TransitionedOut: UiDefinition.stepNoop,
+  },
+)
 
 const foldFileDropBasicDemoOutMessage = UiDefinition.makeOutMessageFold(
   FileDropBlock,
@@ -810,7 +804,9 @@ export const HorizontalRadioGroupDemoBinding = UiDefinition.bindChild(
 
 export const UiComposition = UiDefinition.makeComposition({
   bindings: [
-    AnimationDemoBinding,
+    AnimationDemoBinding.withOutMessagePolicy({
+      fold: foldAnimationDemoOutMessage,
+    }),
     CalendarBasicDemoBinding,
     ComboboxDemoBinding,
     ComboboxMultiDemoBinding,

@@ -124,6 +124,22 @@ const finishTransition = (model: Model, generation: number) => {
   )
 }
 
+const waitForLeaveSettlement = (model: Model) => {
+  if (model.transitionState !== 'LeaveAnimating') {
+    return { model }
+  }
+
+  return {
+    model,
+    commands: [
+      WaitForAnimationSettled({
+        id: model.id,
+        generation: model.transitionGeneration,
+      }),
+    ],
+  }
+}
+
 const toggleTransition = (model: Model) => {
   if (model.isShowing) {
     return hideTransition(model)
@@ -172,6 +188,8 @@ const updateInferred = AnimationComposition.makeUpdate((model, message) =>
     RequestedShow: () => showTransition(model),
 
     RequestedHide: () => hideTransition(model),
+
+    RequestedWaitForLeaveSettlement: () => waitForLeaveSettlement(model),
 
     RequestedFinish: ({ generation }) => finishTransition(model, generation),
 
@@ -230,13 +248,3 @@ export function update(model: Model, message: Message): UpdateReturn
 export function update(model: Model, message: Message): UpdateReturn {
   return updateInferred(model, message)
 }
-
-/** Creates the standard leave Command for the Model's current transition
- * without changing the Model. Use it when handling `StartedLeaveAnimating`
- * and lift the returned child Command through that Animation Binding's
- * `FoldContext`. The resulting Message is processed by Animation's update. */
-export const defaultLeaveCommand = (model: Model) =>
-  WaitForAnimationSettled({
-    id: model.id,
-    generation: model.transitionGeneration,
-  })

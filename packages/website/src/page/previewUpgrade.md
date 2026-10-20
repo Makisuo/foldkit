@@ -74,6 +74,12 @@ Animation replaced its `content: Html` ViewInput with `toView: () => Html`. The 
 
 ::Snippet{name="previewUpgradeAnimationView" label="Rendering Animation content"}
 
+### Replace the standard Animation leave helper
+
+`Animation.defaultLeaveCommand` has been removed. For standard CSS settlement, name the ordinary Animation Binding before its OutMessage fold and return `AnimationBinding.requestWaitForLeaveSettlement()` from `StartedLeaveAnimating`. Register the policy-selected alias with `AnimationBinding.withOutMessagePolicy({ fold })`. Delete the child Model read and `FoldContext.liftCommand` call that only supported the old helper.
+
+Keep a custom leave Command when settlement also watches another signal, such as trigger movement. Take its generation from `StartedLeaveAnimating`. A custom Command that returns `EndedAnimation` still uses the fold context's `liftCommand`; a parent-owned result Message can call `AnimationBinding.requestFinish(generation)`. See [Animation lifecycle coordination](/ui/animation#why) for both policies.
+
 ### Select the completed Toast Block and Binding in tests
 
 The module-level `Toast.test` fixture is gone. Call `test.drainEntry` on the exact completed Block returned by `Toast.make`, and pass the exact Binding registered for that Block. A keyed Binding also needs its occurrence key.
@@ -89,6 +95,7 @@ Search first, then change only the code the project contains:
 - Replace remaining `makeApplicationDefinition`, `assembleApplication`, and `assembleElement` uses with the completed root Block and Program boundary above.
 - Update each server render whose first argument is an Application Composition or whose host config repeats `init`, `update`, or `view`.
 - Replace Animation `viewInputs.content` with a top-level `toView` renderer.
+- Replace `Animation.defaultLeaveCommand` and its Model read or `liftCommand` wiring with the bound `requestWaitForLeaveSettlement()` operation. Preserve custom leave Commands that also watch movement or another completion signal.
 - Replace module-level `Toast.test` calls with the completed Toast Block's fixture and exact Binding.
 - Move every child OutMessage policy out of the `bindChild` config and select it with `.withOutMessagePolicy({ fold?, forward? })`. Build every callable fold with `ParentDefinition.makeOutMessageFold(ChildBlock, handlers)`, including inline folds. The forwarding API is unchanged. For self-referential or reciprocal policy, name the ordinary Bindings first, author the helpers against those values, then select and register `<Child>BindingWithOutMessagePolicy`. No raw child matcher or return annotation is needed.
 - Run typechecking against every `makeInit` plan and connected Binding Step. An ordinary Step must return an update result. Preserve a deferred connected operation through the owning Definition's `step`, and execute it only inside the Composition that registered its Binding. The stronger checks also retain Command requirements from combined initialization Steps.

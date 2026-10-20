@@ -257,7 +257,44 @@ export const resolveKeyedKeyboardMove = DragAndDrop.test.resolveKeyboardMove({
 export const animationViewInputs: Animation.ViewInputs = {
   toView: () => null,
 }
+const AnimationInstance = Schema.Struct({
+  id: Schema.Literal('Primary'),
+  model: Animation.AnimationBlock.Model,
+})
+const KeyedAnimationFixtureDefinition = Block.makeDefinition(
+  'KeyedAnimationFixture',
+  {
+    Model: Schema.Struct({ animations: Schema.Array(AnimationInstance) }),
+    Message: Schema.Never,
+  },
+)
+export const KeyedAnimationBinding = KeyedAnimationFixtureDefinition.bindChild(
+  Animation.AnimationBlock,
+  {
+    field: 'animations',
+    key: 'id',
+    childField: 'model',
+  },
+)
+const makeKeyedAnimationOutMessageFold = (key: 'Primary') =>
+  KeyedAnimationFixtureDefinition.makeOutMessageFold(Animation.AnimationBlock, {
+    StartedLeaveAnimating: () =>
+      KeyedAnimationBinding.requestWaitForLeaveSettlement(key),
+    TransitionedOut: KeyedAnimationFixtureDefinition.stepNoop,
+  })
+export const KeyedAnimationComposition =
+  KeyedAnimationFixtureDefinition.makeComposition({
+    bindings: [
+      KeyedAnimationBinding.withOutMessagePolicy({
+        fold: (key, outMessage) =>
+          makeKeyedAnimationOutMessageFold(key)(outMessage),
+      }),
+    ],
+  })
+export const keyedAnimationLeaveWait =
+  KeyedAnimationBinding.requestWaitForLeaveSettlement('Primary')
 export const Model = Schema.Struct({
+  animation: Animation.AnimationBlock.Model,
   dialog: Dialog.DialogBlock.Model,
   picker: Picker.Model,
   popover: Popover.PopoverBlock.Model,
@@ -270,6 +307,24 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message: ParentMessage,
 })
+
+export const AnimationBinding = ApplicationDefinition.bindChild(
+  Animation.AnimationBlock,
+  {
+    field: 'animation',
+    init: { contextToArgs: () => [{ id: 'details-animation' }] },
+  },
+)
+const foldAnimationOutMessage = ApplicationDefinition.makeOutMessageFold(
+  Animation.AnimationBlock,
+  {
+    StartedLeaveAnimating: () =>
+      AnimationBinding.requestWaitForLeaveSettlement(),
+    TransitionedOut: ApplicationDefinition.stepNoop,
+  },
+)
+export const AnimationBindingWithOutMessagePolicy =
+  AnimationBinding.withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
 export const DialogBinding = ApplicationDefinition.bindChild(
   Dialog.DialogBlock,
@@ -324,12 +379,22 @@ export type Composition = Block.Composition<
   typeof ParentMessage,
   undefined,
   readonly [],
-  readonly [typeof DialogBinding, typeof PickerBinding, typeof PopoverBinding]
+  readonly [
+    typeof AnimationBindingWithOutMessagePolicy,
+    typeof DialogBinding,
+    typeof PickerBinding,
+    typeof PopoverBinding,
+  ]
 >
 
 export const createComposition = (): Composition =>
   ApplicationDefinition.makeComposition({
-    bindings: [DialogBinding, PickerBinding, PopoverBinding],
+    bindings: [
+      AnimationBindingWithOutMessagePolicy,
+      DialogBinding,
+      PickerBinding,
+      PopoverBinding,
+    ],
     mounts: [],
   })
 export type Builder = Block.ViewBuilderFor<Composition>
@@ -399,6 +464,27 @@ export type GenericAssertions = [
     Equal<ReturnType<typeof matchMenuOutMessage>, 'Apple' | 'Pear' | 'Closed'>
   >,
   Expect<Equal<Parameters<typeof DialogBinding.requestOpen>, []>>,
+  Expect<
+    Equal<Parameters<typeof AnimationBinding.requestWaitForLeaveSettlement>, []>
+  >,
+  Expect<
+    Equal<
+      ReturnType<typeof AnimationBinding.requestWaitForLeaveSettlement>,
+      ReturnType<typeof AnimationBinding.requestResume>
+    >
+  >,
+  Expect<
+    Equal<
+      Parameters<typeof KeyedAnimationBinding.requestWaitForLeaveSettlement>,
+      [key: 'Primary']
+    >
+  >,
+  Expect<
+    Equal<
+      ReturnType<typeof KeyedAnimationBinding.requestWaitForLeaveSettlement>,
+      ReturnType<typeof KeyedAnimationBinding.requestResume>
+    >
+  >,
   Expect<
     Equal<
       Parameters<typeof PickerBinding.requestSelectItem>,

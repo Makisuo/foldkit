@@ -17,7 +17,6 @@ import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 
 import * as Animation from '../animation/index.js'
-import { defaultLeaveCommand as animationDefaultLeaveCommand } from '../animation/update.js'
 import {
   DEFAULT_DURATION,
   DEFAULT_SWIPE_DIRECTION,
@@ -250,26 +249,19 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       }
     })
 
-  const readEntryAnimation =
-    (entryId: string) =>
-    (model: Model): Option.Option<Entry['animation']> =>
-      pipe(
-        Array.findFirst(model.entries, ({ id }) => id === entryId),
-        Option.map(({ animation }) => animation),
-      )
+  const EntryAnimationBinding = ToastDefinition.bindChild(
+    Animation.AnimationBlock,
+    {
+      field: 'entries',
+      key: 'id',
+      childField: 'animation',
+    },
+  )
 
   const makeEntryAnimationOutMessageFold = (entryId: string) =>
     ToastDefinition.makeOutMessageFold(Animation.AnimationBlock, {
-      StartedLeaveAnimating: (_outMessage, { liftCommand }) =>
-        ToastDefinition.step(model =>
-          Option.match(readEntryAnimation(entryId)(model), {
-            onNone: () => ({ model }),
-            onSome: animation => ({
-              model,
-              commands: [liftCommand(animationDefaultLeaveCommand(animation))],
-            }),
-          }),
-        ),
+      StartedLeaveAnimating: () =>
+        EntryAnimationBinding.requestWaitForLeaveSettlement(entryId),
       TransitionedOut: () =>
         ToastDefinition.step(model =>
           Option.match(
@@ -287,20 +279,13 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         ),
     })
 
-  const EntryAnimationBinding = ToastDefinition.bindChild(
-    Animation.AnimationBlock,
-    {
-      field: 'entries',
-      key: 'id',
-      childField: 'animation',
-    },
-  ).withOutMessagePolicy({
-    fold: (entryId, outMessage, context) =>
-      makeEntryAnimationOutMessageFold(entryId)(outMessage, context),
-  })
-
   const ToastComposition = ToastDefinition.makeComposition({
-    bindings: [EntryAnimationBinding],
+    bindings: [
+      EntryAnimationBinding.withOutMessagePolicy({
+        fold: (entryId, outMessage) =>
+          makeEntryAnimationOutMessageFold(entryId)(outMessage),
+      }),
+    ],
   })
 
   const foldEntryAnimationShow = (entry: Entry) =>

@@ -39,6 +39,20 @@ Read these before writing code. They calibrate the quality bar.
 
 The principles below apply broadly. Calibrate to the right context: library design when inside `packages/foldkit/src/`, application architecture elsewhere.
 
+## Review the consumer experience
+
+For public API changes, inspect realistic consumer code alongside the implementation and tests. Use representative, split-file examples for substantial changes and assess:
+
+- Surface: Does application code read naturally?
+- Contracts: Is ownership clear, including requirements and guarantees?
+- Naming: Can a reader understand an operation without inspecting its implementation?
+- Organization: Is behavior easy to find, with clear dependency direction?
+- Complexity: Does the API remove repeated wiring, or merely relocate it?
+
+Treat repetitive annotations, unexplained staging, awkward imports, and unnecessary indirection as design findings, even when the implementation is technically correct. Consumers should not need to understand internal TypeScript machinery to use the API comfortably.
+
+This review supplements correctness, type-safety, runtime, and performance checks.
+
 ## Naming
 
 - When a concrete typed Block authoring value is used beyond Composition creation, name it `<BlockId>Definition`, such as `SearchDefinition = Block.makeDefinition('Search', ...)` and `ApplicationDefinition = Block.makeDefinition('Application', ...)`. Keep runtime IDs unchanged. Name the corresponding Composition `<BlockId>Composition` or `ApplicationComposition`. Complete ordinary values as `<BlockId>Block` or `ApplicationBlock`. Export a feature Block from its feature barrel and bind that completed Block directly. A generic feature factory returns an exact completed Block that the consumer names locally, such as `const ResultListboxBlock = Listbox.create(Result)`.

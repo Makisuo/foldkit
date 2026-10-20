@@ -2,6 +2,10 @@
 title: Foldkit 0.169.0
 description: Runtime and overlay fixes, better DevTools MCP discovery, and new testing and Route transition helpers.
 date: 2026-10-20
+coverImage: /blog/foldkit-0-169-0/cover.png
+coverImageAlt: The number 169 outlined in light gray above a dashed 168 on a black background.
+coverImageWidth: 3600
+coverImageHeight: 2400
 ---
 
 Foldkit 0.169.0 is out, with fixes for lost input, portals, and overlays. This post also covers 0.168.0.

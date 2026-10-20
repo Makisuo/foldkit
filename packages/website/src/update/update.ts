@@ -10,11 +10,12 @@ import {
   MobileMenuDialogBinding,
   SearchBinding,
 } from '../composition'
+import { ApplicationDefinition } from '../definition'
 import { Message } from '../message'
 import { isPlaygroundRoute, urlToApplicationRoute } from '../route'
 import { ApplyTheme, resolveTheme } from '../theme'
-import { handleCompletedLoadBrowserEnvironment } from './browserEnvironment'
-import { handleChangedUrl } from './changedUrl'
+import { handleChangedUrl } from './handleChangedUrl'
+import { handleCompletedLoadBrowserEnvironment } from './handleCompletedLoadBrowserEnvironment'
 
 export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
@@ -61,10 +62,10 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
     ClickedOpenMobileMenu: () =>
       Update.combineSteps(model, [
         MobileMenuDialogBinding.requestOpen(),
-        stepModel => ({
+        ApplicationDefinition.step(stepModel => ({
           model: stepModel,
           commands: [Command.ScrollMobileMenuActiveLinkIntoView()],
-        }),
+        })),
       ]),
 
     ClickedOpenSearch: () => SearchBinding.requestOpen()(model),
@@ -97,7 +98,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
     }),
 
     CompletedLoadBrowserEnvironment: environment =>
-      handleCompletedLoadBrowserEnvironment(model, environment),
+      handleCompletedLoadBrowserEnvironment(environment)(model),
 
     ChangedSystemTheme: ({ theme }) => {
       const resolvedTheme = resolveTheme(

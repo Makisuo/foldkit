@@ -29,10 +29,10 @@ export const handleChangedUrl = ApplicationDefinition.step(
     const isDifferentPathname = model.url.pathname !== url.pathname
 
     return Update.combineSteps([
-      ApplicationDefinition.stepFields(model => ({
+      ApplicationDefinition.stepFields(stepModel => ({
         route: () => nextRoute,
         url: () => url,
-        sidebarGroups: () => nextSidebarGroups(model, nextRoute),
+        sidebarGroups: () => nextSidebarGroups(stepModel, nextRoute),
       })),
       stepHome(transition),
       stepPlayground(transition),

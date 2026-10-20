@@ -138,6 +138,63 @@ test('pins both migration paths and prompts to the verified deployment and packa
   assert.ok(!summary.includes('https://foldkit.dev/preview-'))
 })
 
+test('gives each migration prompt its complete independent release target', () => {
+  const deployment = 'https://example.vercel.app'
+  const summary = previewReadySummary(manifest, deployment)
+  const prompts = new Map()
+
+  for (const [, title, prompt] of summary.matchAll(
+    /<summary>(Agent prompt:[^<]+)<\/summary>\s*```text\n([\s\S]*?)\n```/g,
+  )) {
+    prompts.set(title, prompt)
+  }
+
+  assert.equal(prompts.size, 2)
+  const guides = {
+    'Agent prompt: migrate a stable application': '/preview-migration.md',
+    'Agent prompt: upgrade an earlier preview': '/preview-upgrade.md',
+  }
+
+  for (const [title, path] of Object.entries(guides)) {
+    const prompt = prompts.get(title)
+    assert.ok(prompt, title)
+    assert.ok(prompt.includes(`Target source commit: ${COMMIT}`), title)
+    assert.ok(prompt.includes(`Migration guide: ${deployment}${path}`), title)
+    assert.ok(
+      prompt.includes(
+        `Verified package manifest: ${deployment}/preview-release.json`,
+      ),
+      title,
+    )
+    for (const [name, version] of Object.entries(manifest.packages)) {
+      assert.ok(prompt.includes(`${name}@${version}`), `${title}: ${name}`)
+    }
+    assert.ok(prompt.includes('package.json, the lockfile'), title)
+    assert.ok(
+      prompt.includes('preserving dependency/devDependency placement'),
+      title,
+    )
+    assert.ok(prompt.includes('Do not install unused packages'), title)
+    assert.ok(
+      prompt.includes('Edit all installed Foldkit entries before one install'),
+      title,
+    )
+  }
+
+  assert.ok(
+    summary.includes(
+      `Manifest: [preview-release.json](${deployment}/preview-release.json)`,
+    ),
+  )
+  assert.ok(summary.includes('1. **Existing stable Foldkit application:**'))
+  assert.ok(summary.includes('2. **Application using an earlier preview:**'))
+  assert.ok(
+    summary.includes(
+      `3. **New project:** \`${previewScaffoldCommand(manifest)}\``,
+    ),
+  )
+})
+
 test('marks embedded examples with the exact website build', context => {
   const directory = mkdtempSync(resolve(tmpdir(), 'foldkit-example-build-'))
   context.after(() => rmSync(directory, { recursive: true, force: true }))

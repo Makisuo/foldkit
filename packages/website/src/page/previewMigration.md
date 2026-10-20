@@ -175,6 +175,8 @@ The completed Settings Block exposes `requestThemeChange`. In a `makeUpdate` bra
 
 When several Steps must run in order, pass the unapplied Binding operations alongside the parent Steps to `Update.combine`. A Definition-owned `step` may return the connected Step for later use under that Composition, and Composition startup may list it under `steps`. Do not return an unapplied Binding operation from an ordinary update branch that must produce an update result.
 
+Author parent transitions that read current state with `Definition.step` or `stepFields`, then combine them with the Binding operations. The owner supplies the Model type, and each Step reads the Model produced by preceding Steps when it is applied.
+
 Use `request*` with `Requested*` Messages for actions and `inform*` with `InformedOf*` Messages for notifications. Keep internal Model-only transformations as Definition-owned Steps. Remove stable public helpers that silently accept and return a child Model, especially `reflect*` helpers.
 
 ### Move Child Initialization into the Composition Plan

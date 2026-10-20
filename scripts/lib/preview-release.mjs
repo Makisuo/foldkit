@@ -165,7 +165,7 @@ const previewMigrationPrompt = (manifest, deploymentUrl, source) => {
     '',
     'First inspect package.json, the lockfile, the source tree and existing project instructions. Record the installed versions and, for a preview, its source commit. Preserve concurrent work. Read the complete target guide, including its before/after examples, before editing. Resolve supporting documentation paths on this same deployment so you stay on the target API.',
     '',
-    'Fetch the manifest and confirm its sourceCommit and package map match this target. Upgrade every Foldkit package already used by the project together, preserving dependency/devDependency placement and exact versions. Do not install unused packages. Check declared peer requirements before changing Effect or other dependencies.',
+    'Fetch the manifest and confirm its sourceCommit and package map match this target. Upgrade every Foldkit package already used by the project together, preserving dependency/devDependency placement and exact versions. Edit all installed Foldkit entries before one install. Do not install unused packages. Check declared peer requirements before changing Effect or other dependencies.',
     '',
     'Target package map:',
     versions,
@@ -204,12 +204,15 @@ export const previewReadySummary = (manifest, deploymentUrl) => {
     `## Integration preview ready\n\n` +
     `Source: [\`${manifest.sourceCommit}\`](https://github.com/foldkit/foldkit/commit/${manifest.sourceCommit})\n\n` +
     `Website: [${url.href}](${url.href})\n\n` +
-    `Scaffold: \`${previewScaffoldCommand(manifest)}\`\n\n` +
+    `Manifest: [preview-release.json](${new URL('/preview-release.json', url).href})\n\n` +
+    `### Choose your starting point\n\n` +
+    `1. **Existing stable Foldkit application:** [Complete migration guide](${stableGuide})\n` +
+    `2. **Application using an earlier preview:** [Previous-preview upgrade guide](${previewGuide})\n` +
+    `3. **New project:** \`${previewScaffoldCommand(manifest)}\`\n\n` +
     `<details>\n<summary>Complete package-set reference</summary>\n\n` +
     `This command installs the entire set as production dependencies; it is a snapshot reference, not an upgrade command for an existing project.\n\n` +
     `\`${previewInstallCommand(manifest)}\`\n\n</details>\n\n` +
     `For an existing application, update only its installed Foldkit packages and preserve dependency/devDependency placement.\n\n` +
-    `Migration: [Stable Foldkit to this preview](${stableGuide}) · [Earlier preview to this preview](${previewGuide})\n\n` +
     `${packages}\n\n` +
     `<details>\n<summary>Agent prompt: migrate a stable application</summary>\n\n\`\`\`text\n${stablePrompt}\n\`\`\`\n\n</details>\n\n` +
     `<details>\n<summary>Agent prompt: upgrade an earlier preview</summary>\n\n\`\`\`text\n${previewPrompt}\n\`\`\`\n\n</details>\n`

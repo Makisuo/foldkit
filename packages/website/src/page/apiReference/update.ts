@@ -9,7 +9,7 @@ import { Message } from './message'
 import { disclosuresForApiData } from './model'
 
 /** Loads the complete reference, including modules omitted from hydration data. */
-export const LoadApiData = ApiReferenceDefinition.command('LoadApiData', {
+export const LoadApiData = ApiReferenceDefinition.makeCommand('LoadApiData', {
   messages: [Message.SucceededLoadApiData, Message.FailedLoadApiData],
   handler: function* () {
     return () =>
@@ -49,7 +49,7 @@ export const LoadApiData = ApiReferenceDefinition.command('LoadApiData', {
 
 export const EffectsLayer = LoadApiData.layer
 
-const refreshApiData = ApiReferenceDefinition.step(model =>
+const refreshApiData = ApiReferenceDefinition.makeStep(model =>
   Option.match(
     AsyncData.isStale(model.apiData)
       ? AsyncData.revalidate(model.apiData)

@@ -12,7 +12,7 @@ const CommandsDefinition = makeDefinition('Commands', { Model, Message })
 class Store extends Context.Service<Store, { save: Effect.Effect<void> }>()(
   'CommandsStep/Store',
 ) {}
-const Save = CommandsDefinition.command('Save', {
+const Save = CommandsDefinition.makeCommand('Save', {
   messages: [Message.CompletedSave],
   handler: function* () {
     return () =>
@@ -58,9 +58,11 @@ it('preserves the Model and exact Commands without executing Effects', async () 
 it('composes sequential Model changes without losing Commands', () => {
   const model = Model.make({ count: 1 })
   const result = Update.combineSteps(model, [
-    CommandsDefinition.stepFields(() => ({ count: Number.increment })),
+    CommandsDefinition.makeFieldsStep(() => ({ count: Number.increment })),
     CommandsDefinition.makeCommandsStep([Save()]),
-    CommandsDefinition.stepFields(({ count }) => ({ count: () => count * 2 })),
+    CommandsDefinition.makeFieldsStep(({ count }) => ({
+      count: () => count * 2,
+    })),
   ])
 
   expect(result.model.count).toBe(4)
@@ -111,7 +113,7 @@ it('retains registration obligations carried by a Command collection', () => {
     Model: ParentModel,
     Message,
   })
-  const ChildBinding = ParentDefinition.bindChild(ChildBlock, {
+  const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
   })
   const ParentComposition = ParentDefinition.makeComposition({

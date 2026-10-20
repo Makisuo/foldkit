@@ -132,7 +132,7 @@ export const init = TabsComposition.makeInit((config: InitConfig) => ({
 }))
 
 /** Moves focus to the tab at the given index. */
-export const FocusTab = TabsDefinition.command('FocusTab', {
+export const FocusTab = TabsDefinition.makeCommand('FocusTab', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedFocusTab],
   handler: function* () {

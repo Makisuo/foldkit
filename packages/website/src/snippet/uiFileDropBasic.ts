@@ -32,19 +32,19 @@ const foldFileDropOutMessage = FileDropExampleDefinition.makeOutMessageFold(
   FileDrop.FileDropBlock,
   {
     ReceivedFiles: ({ files }) =>
-      FileDropExampleDefinition.stepFields(() => ({
+      FileDropExampleDefinition.makeFieldsStep(() => ({
         uploadedFiles: Array.appendAll(files),
       })),
     // Fires when something is dropped but no files came through (e.g.
     // a drag of text or a URL). Ignore, or show a hint to the user.
-    RejectedNonFiles: FileDropExampleDefinition.stepNoop,
+    RejectedNonFiles: FileDropExampleDefinition.makeNoopStep,
   },
 )
 
 // The Binding wires the completed child Block into the parent: it runs FileDrop.FileDropBlock.update,
 // writes the next FileDrop Model back, routes generated delivery, and hands
 // any OutMessage to the OutMessage fold.
-const FileDropBinding = FileDropExampleDefinition.bindChild(
+const FileDropBinding = FileDropExampleDefinition.makeBinding(
   FileDrop.FileDropBlock,
   {
     field: 'uploader',

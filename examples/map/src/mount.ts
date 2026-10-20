@@ -84,7 +84,7 @@ const listenToMapMovesAndMarkerClicks = (
       }),
   )
 
-export const MountMap = ApplicationDefinition.mountStream('MountMap', {
+export const MountMap = ApplicationDefinition.makeMountStream('MountMap', {
   args: { hostId: Schema.String },
   messages: [
     Message.SucceededMountMap,

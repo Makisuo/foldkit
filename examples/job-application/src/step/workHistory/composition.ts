@@ -6,12 +6,12 @@ import { WorkHistoryEntryBlock } from './entry'
 const foldEntryOutMessage = (entryId: string) =>
   WorkHistoryDefinition.makeOutMessageFold(WorkHistoryEntryBlock, {
     Removed: () =>
-      WorkHistoryDefinition.stepFields(() => ({
+      WorkHistoryDefinition.makeFieldsStep(() => ({
         entries: Array.filter(entry => entry.id !== entryId),
       })),
   })
 
-export const EntriesBinding = WorkHistoryDefinition.bindChild(
+export const EntriesBinding = WorkHistoryDefinition.makeBinding(
   WorkHistoryEntryBlock,
   {
     field: 'entries',

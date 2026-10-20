@@ -747,7 +747,7 @@ const makeHostKeyedQuery = <
     Model,
     Message,
   })
-  const Fetch = QueryDefinition.command('Fetch', {
+  const Fetch = QueryDefinition.makeCommand('Fetch', {
     args: {
       args: Args,
       generation: Schema.Number,
@@ -829,7 +829,7 @@ const makeCanonicalKeyedQuery = <
     Model,
     Message,
   })
-  const Fetch = QueryDefinition.command('Fetch', {
+  const Fetch = QueryDefinition.makeCommand('Fetch', {
     args: {
       args: Args,
       generation: Schema.Number,

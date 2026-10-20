@@ -18,7 +18,7 @@ import { SettingsBlock } from './page/settings'
 SettingsBlock.Model
 SettingsBlock.Message
 SettingsBlock.OutMessage
-ApplicationDefinition.bindChild(SettingsBlock, {
+ApplicationDefinition.makeBinding(SettingsBlock, {
   field: 'settings',
   init: false,
 }).withOutMessagePolicy({ fold: foldSettingsOutMessage })

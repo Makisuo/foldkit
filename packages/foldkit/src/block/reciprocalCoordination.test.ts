@@ -29,7 +29,7 @@ const Home = Block.makeDefinition('Home', {
   Message: HomeMessage,
   OutMessage: HomeOutMessage,
 })
-const ClearJoinDraft = Home.command('ClearJoinDraft', {
+const ClearJoinDraft = Home.makeCommand('ClearJoinDraft', {
   messages: [HomeMessage.CompletedClearJoinDraft],
   handler: function* () {
     const store = yield* DraftStore
@@ -38,17 +38,19 @@ const ClearJoinDraft = Home.command('ClearJoinDraft', {
   },
 })
 const HomeComposition = Home.makeComposition()
-const resetJoinForm = Home.step((model, username: string) => ({
+const resetJoinForm = Home.makeStep((model, username: string) => ({
   model: modifyFields(model, {
     username: () => username,
     resetCount: count => count + 1,
   }),
   commands: [ClearJoinDraft()],
 }))
-const requestJoin = Home.step((model, roomId: string, username: string) => ({
-  model,
-  outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
-}))
+const requestJoin = Home.makeStep(
+  (model, roomId: string, username: string) => ({
+    model,
+    outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
+  }),
+)
 const HomeBlock = HomeComposition.assembleBlock({
   init: HomeComposition.makeInit(() => ({
     model: HomeModel.make({ username: '', resetCount: 0 }),
@@ -89,7 +91,7 @@ const Room = Block.makeDefinition('Room', {
   OutMessage: RoomOutMessage,
 })
 const RoomComposition = Room.makeComposition()
-const informJoined = Room.step(
+const informJoined = Room.makeStep(
   (model, username: string, _context: typeof RoomContext.Type) => ({
     model: modifyFields(model, { maybeUsername: () => Option.some(username) }),
   }),
@@ -139,7 +141,7 @@ const Application = Block.makeDefinition('ReciprocalApplication', {
 const foldRoomOutMessage = Application.makeOutMessageFold(RoomBlock, {
   LeftRoom: () =>
     Update.combineSteps([
-      Application.step(model => ({
+      Application.makeStep(model => ({
         model: modifyFields(model, {
           route: () => ApplicationRoute.Home(),
           maybeRoomInstance: () => Option.none(),
@@ -152,7 +154,7 @@ const foldRoomOutMessage = Application.makeOutMessageFold(RoomBlock, {
 const foldHomeOutMessage = Application.makeOutMessageFold(HomeBlock, {
   JoinedRoom: ({ roomId, username }) =>
     Update.combineSteps([
-      Application.step(model =>
+      Application.makeStep(model =>
         RoomBinding.init({
           key: roomId,
           args: [],
@@ -164,7 +166,7 @@ const foldHomeOutMessage = Application.makeOutMessageFold(HomeBlock, {
         }),
       ),
       RoomBinding.informJoined(roomId, username, { roomId }),
-      Application.step(model => ({
+      Application.makeStep(model => ({
         model: modifyFields(model, {
           route: () => ApplicationRoute.Room({ roomId }),
         }),
@@ -172,7 +174,7 @@ const foldHomeOutMessage = Application.makeOutMessageFold(HomeBlock, {
     ]),
 })
 
-const HomeBinding = Application.bindChild(HomeBlock, {
+const HomeBinding = Application.makeBinding(HomeBlock, {
   field: 'home',
   presentWhen: model => model.route._tag === 'Home',
   init: false,
@@ -180,7 +182,7 @@ const HomeBinding = Application.bindChild(HomeBlock, {
   fold: foldHomeOutMessage,
 })
 
-const RoomBinding = Application.bindChild(RoomBlock, {
+const RoomBinding = Application.makeBinding(RoomBlock, {
   readAll: model => Option.toArray(model.maybeRoomInstance),
   key: instance => instance.roomId,
   read: instance => instance.model,
@@ -304,7 +306,7 @@ describe('reciprocal sibling coordination', () => {
   ])(
     'rejects $name OutMessage policy from erased configuration',
     ({ policy, error }) => {
-      const binding = Reflect.apply(Application.bindChild, undefined, [
+      const binding = Reflect.apply(Application.makeBinding, undefined, [
         HomeBlock,
         { field: 'home' },
       ])
@@ -322,9 +324,9 @@ describe('reciprocal sibling coordination', () => {
   )
 
   it('validates a policy without calling it during Binding construction', () => {
-    const fold = vi.fn(() => Application.step(model => ({ model })))
+    const fold = vi.fn(() => Application.makeStep(model => ({ model })))
 
-    const binding = Reflect.apply(Application.bindChild, undefined, [
+    const binding = Reflect.apply(Application.makeBinding, undefined, [
       HomeBlock,
       { field: 'home' },
     ])

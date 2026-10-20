@@ -20,7 +20,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-export const WaitBeforeReset = ApplicationDefinition.command(
+export const WaitBeforeReset = ApplicationDefinition.makeCommand(
   'WaitBeforeReset',
   {
     messages: [Message.CompletedWaitBeforeReset],

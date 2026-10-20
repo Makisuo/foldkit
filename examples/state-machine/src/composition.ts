@@ -9,7 +9,7 @@ import {
 } from './model'
 import { stepMachine } from './transition'
 
-export const EditionRadioGroupBinding = ApplicationDefinition.bindChild(
+export const EditionRadioGroupBinding = ApplicationDefinition.makeBinding(
   EditionRadioGroupBlock,
   {
     field: 'editionRadioGroup',
@@ -18,7 +18,7 @@ export const EditionRadioGroupBinding = ApplicationDefinition.bindChild(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(EditionRadioGroupBlock, {
     Selected: ({ value }) =>
-      ApplicationDefinition.step(
+      ApplicationDefinition.makeStep(
         stepMachine(
           Message.SelectedEdition({
             isShippingRequired: value === HARDCOVER_EDITION,

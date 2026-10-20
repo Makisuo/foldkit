@@ -12,11 +12,13 @@ const SettingsDemo = Settings.SettingsBlock.replaceEffectsLayer(
   ),
 )
 
-export const SettingsBinding = ApplicationDefinition.bindChild(SettingsDemo, {
+export const SettingsBinding = ApplicationDefinition.makeBinding(SettingsDemo, {
   field: 'settings',
 }).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(SettingsDemo, {
     ChangedTheme: ({ theme }) =>
-      ApplicationDefinition.stepFields(() => ({ previewTheme: () => theme })),
+      ApplicationDefinition.makeFieldsStep(() => ({
+        previewTheme: () => theme,
+      })),
   }),
 })

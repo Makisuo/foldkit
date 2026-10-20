@@ -11,7 +11,7 @@ const Message = defineMessageUnion({
 const makeGenericComplete = <const Id extends string>(id: Id) => {
   const FeatureNamespace = makeNamespace(id)
   const Model = Schema.Struct({ value: Schema.String })
-  const Work = FeatureNamespace.command('Work', {
+  const Work = FeatureNamespace.makeCommand('Work', {
     messages: [Message.CompletedWork],
     handler: function* () {
       return () => Effect.succeed(Message.CompletedWork())
@@ -39,7 +39,7 @@ const makeGenericComplete = <const Id extends string>(id: Id) => {
 const makeGenericMissing = <const Id extends string>(id: Id) => {
   const FeatureNamespace = makeNamespace(id)
   const Model = Schema.Struct({ value: Schema.String })
-  const Work = FeatureNamespace.command('Work', {
+  const Work = FeatureNamespace.makeCommand('Work', {
     messages: [Message.CompletedWork],
   })
 
@@ -68,7 +68,7 @@ const CompleteParent = makeDefinition('GenericCompleteParent', {
   Model: CompleteParentModel,
   Message: Schema.Never,
 })
-const CompleteBinding = CompleteParent.bindChild(complete, {
+const CompleteBinding = CompleteParent.makeBinding(complete, {
   placement: 'GenericComplete',
   field: 'child',
 })
@@ -86,7 +86,7 @@ if (false) {
   })
 
   // @ts-expect-error Concrete Bindings validate deferred generic handler coverage.
-  MissingParent.bindChild(missing, {
+  MissingParent.makeBinding(missing, {
     placement: 'GenericMissing',
     field: 'child',
   })

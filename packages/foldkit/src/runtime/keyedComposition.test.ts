@@ -58,8 +58,8 @@ const ItemMessage = defineMessageUnion({
   FailedAcquireValue: {},
   EmittedPulse: { value: Schema.String },
 })
-const Value = ItemNamespace.resource<string>()('Value')
-const ReadValue = ItemNamespace.command('ReadValue', {
+const Value = ItemNamespace.makeResource<string>()('Value')
+const ReadValue = ItemNamespace.makeCommand('ReadValue', {
   messages: [ItemMessage.CompletedReadValue, ItemMessage.FailedReadValue],
   handler: function* () {
     const controls = yield* TestControls
@@ -73,7 +73,7 @@ const ReadValue = ItemNamespace.command('ReadValue', {
       )
   },
 })
-const ObserveValue = ItemNamespace.mountStream('ObserveValue', {
+const ObserveValue = ItemNamespace.makeMountStream('ObserveValue', {
   messages: [ItemMessage.EmittedPulse],
   handler: function* () {
     const controls = yield* TestControls
@@ -100,7 +100,7 @@ const ItemBaseDefinition = ItemNamespace.makeDefinition({
   Message: ItemMessage,
 })
 const item = ItemBaseDefinition.makeComposition({ mounts: [ObserveValue] })
-const subscriptions = ItemBaseDefinition.subscriptions(entry => ({
+const subscriptions = ItemBaseDefinition.makeSubscriptions(entry => ({
   activePulse: entry(
     'ActivePulse',
     { source: Schema.String },
@@ -126,7 +126,7 @@ const subscriptions = ItemBaseDefinition.subscriptions(entry => ({
     },
   ),
 }))
-const managedResources = ItemBaseDefinition.managedResources(entry => ({
+const managedResources = ItemBaseDefinition.makeManagedResources(entry => ({
   value: entry(
     'Value',
     Schema.Option(Schema.Struct({ source: Schema.String })),
@@ -214,7 +214,7 @@ const RootBaseDefinition = Block.makeDefinition('Application', {
   Model: RootModel,
   Message: RootMessage,
 })
-const EntriesBinding = RootBaseDefinition.bindChild(itemBlock, {
+const EntriesBinding = RootBaseDefinition.makeBinding(itemBlock, {
   field: 'entries',
   key: 'id',
 })

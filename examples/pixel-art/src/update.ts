@@ -237,7 +237,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
 
     FailedExportPng: ({ error }) =>
       Update.combineSteps(model, [
-        ApplicationDefinition.stepFields(() => ({
+        ApplicationDefinition.makeFieldsStep(() => ({
           maybeExportError: () => Option.some(error),
         })),
         ErrorDialogBinding.requestOpen(),
@@ -248,11 +248,11 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
         onNone: () => ({ model }),
         onSome: pendingSize =>
           Update.combineSteps(model, [
-            ApplicationDefinition.step(stepModel =>
+            ApplicationDefinition.makeStep(stepModel =>
               applyGridSizeChange(stepModel, pendingSize),
             ),
             GridSizeConfirmDialogBinding.requestClose(),
-            ApplicationDefinition.step(stepModel => ({
+            ApplicationDefinition.makeStep(stepModel => ({
               model: stepModel,
               commands: [saveCanvas(stepModel)],
             })),

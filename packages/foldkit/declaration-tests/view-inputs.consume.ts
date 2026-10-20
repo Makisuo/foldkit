@@ -32,10 +32,11 @@ const EmittedGenericViewInputsParentDefinition = Block.makeDefinition(
     Message: Schema.Never,
   },
 )
-const GenericStringBinding = EmittedGenericViewInputsParentDefinition.bindChild(
-  makeGenericBlock<string>(),
-  { field: 'child' },
-)
+const GenericStringBinding =
+  EmittedGenericViewInputsParentDefinition.makeBinding(
+    makeGenericBlock<string>(),
+    { field: 'child' },
+  )
 
 export const emittedGenericConfig = GenericStringBinding.embedView({
   slotId: 'emitted-generic-child',

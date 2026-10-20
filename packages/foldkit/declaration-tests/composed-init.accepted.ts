@@ -19,24 +19,24 @@ export const ComposedInitDefinition = Block.makeDefinition('ComposedInit', {
   Model,
   Message: LocalMessage,
 })
-export const Prepare = ComposedInitDefinition.command('Prepare', {
+export const Prepare = ComposedInitDefinition.makeCommand('Prepare', {
   messages: [LocalMessage.CompletedPrepare],
   handler: function* () {
     return () => Effect.succeed(LocalMessage.CompletedPrepare())
   },
 })
-export const ChildBinding = ComposedInitDefinition.bindChild(
+export const ChildBinding = ComposedInitDefinition.makeBinding(
   GeneratedDispatchChildBlock,
   { field: 'child' },
 )
 export const ComposedInitComposition = ComposedInitDefinition.makeComposition({
   bindings: [ChildBinding],
 })
-export const prepare = ComposedInitDefinition.step(model => ({
+export const prepare = ComposedInitDefinition.makeStep(model => ({
   model: modifyFields(model, { isReady: () => true }),
   commands: [Prepare()],
 }))
-export const prepareTogether = ComposedInitDefinition.step(() =>
+export const prepareTogether = ComposedInitDefinition.makeStep(() =>
   Update.combineSteps([ChildBinding.requestReadCount(), prepare]),
 )
 export const init = ComposedInitComposition.makeInit((isReady: boolean) => ({

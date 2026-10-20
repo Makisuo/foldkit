@@ -1,7 +1,7 @@
 import { ApplicationDefinition } from './blockProfileContract'
 import * as Settings from './blockSettings'
 
-export const SettingsBinding = ApplicationDefinition.bindChild(
+export const SettingsBinding = ApplicationDefinition.makeBinding(
   Settings.SettingsBlock,
   {
     field: 'settings',
@@ -9,7 +9,9 @@ export const SettingsBinding = ApplicationDefinition.bindChild(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(Settings.SettingsBlock, {
     ChangedTheme: ({ theme }) =>
-      ApplicationDefinition.stepFields(() => ({ previewTheme: () => theme })),
+      ApplicationDefinition.makeFieldsStep(() => ({
+        previewTheme: () => theme,
+      })),
   }),
 })
 

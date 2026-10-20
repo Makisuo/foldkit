@@ -51,7 +51,7 @@ const ChildOutMessage = defineMessageUnion({
 })
 type ChildOutMessage = typeof ChildOutMessage.Type
 
-const Save = ChildNamespace.command('Save', {
+const Save = ChildNamespace.makeCommand('Save', {
   messages: [ChildMessage.CompletedSave],
 })
 
@@ -61,7 +61,7 @@ const ChildChannelsDefinition = ChildNamespace.makeDefinition({
   OutMessage: ChildOutMessage,
 })
 
-const childSubscriptions = ChildChannelsDefinition.subscriptions(entry => ({
+const childSubscriptions = ChildChannelsDefinition.makeSubscriptions(entry => ({
   ticks: entry(
     'ObserveTicks',
     { count: Schema.Number },
@@ -72,9 +72,9 @@ const childSubscriptions = ChildChannelsDefinition.subscriptions(entry => ({
   ),
 }))
 
-const Session = ChildNamespace.resource<string>()('Session')
+const Session = ChildNamespace.makeResource<string>()('Session')
 
-const childManagedResources = ChildChannelsDefinition.managedResources(
+const childManagedResources = ChildChannelsDefinition.makeManagedResources(
   entry => ({
     session: entry('ManageSession', Schema.Option(Schema.String), {
       resource: Session,
@@ -87,7 +87,7 @@ const childManagedResources = ChildChannelsDefinition.managedResources(
   }),
 )
 
-const Measure = ChildNamespace.mount('Measure', {
+const Measure = ChildNamespace.makeMount('Measure', {
   messages: [ChildMessage.CompletedMeasure],
 })
 
@@ -108,16 +108,16 @@ const detailedChildView = ChildComposition.makeView.withInputs<
   Readonly<{ prefix: string }>
 >((model, viewInputs, h) => h.div([], [`${viewInputs.prefix} ${model.count}`]))
 
-const save = ChildBaseDefinition.step(model => ({
+const save = ChildBaseDefinition.makeStep(model => ({
   model,
   commands: [Save()],
 }))
 
-const reset = ChildBaseDefinition.step(model => ({
+const reset = ChildBaseDefinition.makeStep(model => ({
   model: modifyFields(model, { count: () => 0 }),
 }))
 
-const addForRoom = ChildBaseDefinition.step(
+const addForRoom = ChildBaseDefinition.makeStep(
   (model, amount: number, context: Readonly<{ roomId: string }>) => ({
     model: modifyFields(model, {
       count: () => model.count + amount + context.roomId.length,
@@ -125,7 +125,7 @@ const addForRoom = ChildBaseDefinition.step(
   }),
 )
 
-const report = ChildBaseDefinition.step(model => ({
+const report = ChildBaseDefinition.makeStep(model => ({
   model,
   outMessage: ChildOutMessage.Reported({ value: model.count }),
 }))
@@ -229,7 +229,7 @@ const writeChild = (
 ): ParentModel =>
   modifyFields(model, { maybeChild: () => Option.some(nextChildModel) })
 
-const HomeBinding = Parent.bindChild(Child, {
+const HomeBinding = Parent.makeBinding(Child, {
   placement: 'home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
@@ -267,7 +267,7 @@ const foldChildOutMessageWithCommand = (
       }),
   })
 
-const CommandHomeBinding = Parent.bindChild(Child, {
+const CommandHomeBinding = Parent.makeBinding(Child, {
   placement: 'command-home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
@@ -284,7 +284,7 @@ const PolicyMessage = defineMessageUnion({
 type PolicyMessage = typeof PolicyMessage.Type
 
 const ParentPolicyNamespace = makeNamespace('BindingParentPolicy')
-const RunPolicyWork = ParentPolicyNamespace.command('RunPolicyWork', {
+const RunPolicyWork = ParentPolicyNamespace.makeCommand('RunPolicyWork', {
   messages: [PolicyMessage.CompletedPolicyWork],
 })
 const ParentPolicyDefinition = ParentPolicyNamespace.makeDefinition({
@@ -310,7 +310,7 @@ const foldChildOutMessageWithParentCommand = ChildOutMessage.match<
     }),
 })
 
-const ParentCommandHomeBinding = ParentPolicyDefinition.bindChild(Child, {
+const ParentCommandHomeBinding = ParentPolicyDefinition.makeBinding(Child, {
   placement: 'parent-command-home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
@@ -319,7 +319,7 @@ const ParentCommandHomeBinding = ParentPolicyDefinition.bindChild(Child, {
   },
 }).withOutMessagePolicy({ fold: foldChildOutMessageWithParentCommand })
 
-const ForwardOnlyHomeBinding = Parent.bindChild(Child, {
+const ForwardOnlyHomeBinding = Parent.makeBinding(Child, {
   placement: 'forward-only-home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
@@ -329,7 +329,7 @@ const ForwardOnlyHomeBinding = Parent.bindChild(Child, {
 }).withOutMessagePolicy({ forward: forwardChildOutMessage })
 
 const bindWithoutOutMessagePolicy = () =>
-  Parent.bindChild(Child, {
+  Parent.makeBinding(Child, {
     // @ts-expect-error This invalid Binding configuration has no matching overload.
     placement: 'missing-policy',
     // @ts-expect-error This invalid Binding configuration has no matching overload.
@@ -340,7 +340,7 @@ const bindWithoutOutMessagePolicy = () =>
 void bindWithoutOutMessagePolicy
 
 const bindWithUnknownForward = () =>
-  Parent.bindChild(Child, {
+  Parent.makeBinding(Child, {
     // @ts-expect-error This invalid Binding configuration has no matching overload.
     placement: 'unknown-forward',
     // @ts-expect-error This invalid Binding configuration has no matching overload.
@@ -353,7 +353,7 @@ const bindWithUnknownForward = () =>
   })
 void bindWithUnknownForward
 
-const LocallyHandledWithoutForwardingBinding = Parent.bindChild(Child, {
+const LocallyHandledWithoutForwardingBinding = Parent.makeBinding(Child, {
   placement: 'locally-handled',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
@@ -382,12 +382,12 @@ const ForwardOnlyComposition = Parent.makeComposition({
 const foldForwardOnlyHome = ForwardOnlyComposition.makeUpdate(model => ({
   model,
 }))
-const resetHome = Parent.step(_model => HomeBinding.reset())
-const addHomeForRoom = Parent.step(
+const resetHome = Parent.makeStep(_model => HomeBinding.reset())
+const addHomeForRoom = Parent.makeStep(
   (_model, amount: number, context: Readonly<{ roomId: string }>) =>
     HomeBinding.addForRoom(amount, context),
 )
-const reportHome = Parent.step(_model => HomeBinding.report())
+const reportHome = Parent.makeStep(_model => HomeBinding.report())
 const ParentRuntime = ParentComposition.assembleBlock({
   init: () => ({ model: initialParent }),
   update: ParentComposition.makeUpdate((model, message) =>
@@ -416,10 +416,10 @@ const ParentRuntime = ParentComposition.assembleBlock({
 const ParentPolicyComposition = ParentPolicyDefinition.makeComposition({
   bindings: [ParentCommandHomeBinding],
 })
-const resetParentCommandHome = ParentPolicyDefinition.step(_model =>
+const resetParentCommandHome = ParentPolicyDefinition.makeStep(_model =>
   ParentCommandHomeBinding.reset(),
 )
-const reportParentCommandHome = ParentPolicyDefinition.step(_model =>
+const reportParentCommandHome = ParentPolicyDefinition.makeStep(_model =>
   ParentCommandHomeBinding.report(),
 )
 const foldParentPolicy = ParentPolicyComposition.makeUpdate((model, message) =>
@@ -493,12 +493,12 @@ const WrappedArityDefinition = WrappedArityNamespace.makeDefinition({
   Message: ArityMessage,
 })
 const WrappedArityComposition = WrappedArityDefinition.makeComposition()
-const defaultIncrement = WrappedArityDefinition.step(
+const defaultIncrement = WrappedArityDefinition.makeStep(
   (model: ArityModel, amount: number = 1) => ({
     model: modifyFields(model, { count: count => count + amount }),
   }),
 )
-const addMany = WrappedArityDefinition.step(
+const addMany = WrappedArityDefinition.makeStep(
   (model: ArityModel, ...amounts: ReadonlyArray<number>) => ({
     model: modifyFields(model, {
       count: count =>
@@ -506,7 +506,7 @@ const addMany = WrappedArityDefinition.step(
     }),
   }),
 )
-const resetArity = WrappedArityDefinition.step((model: ArityModel) => ({
+const resetArity = WrappedArityDefinition.makeStep((model: ArityModel) => ({
   model: modifyFields(model, { count: () => 0 }),
 }))
 const wrappedArityUpdate = WrappedArityComposition.makeUpdate(
@@ -585,7 +585,7 @@ const WrappedArityParent = makeDefinition('BindingWrappedArityParent', {
   Model: ArityParent,
   Message: ArityParentMessage,
 })
-const WrappedArityBinding = WrappedArityParent.bindChild(WrappedArityBlock, {
+const WrappedArityBinding = WrappedArityParent.makeBinding(WrappedArityBlock, {
   placement: 'wrapped-arity',
   read: readArityChild,
   write: writeArityChild,
@@ -636,7 +636,7 @@ const IgnoredMessage = makeArityBlock(
     model: modifyFields(model, { count: count => count + 1 }),
   }),
 )
-const IgnoredMessageBinding = WrappedArityParent.bindChild(IgnoredMessage, {
+const IgnoredMessageBinding = WrappedArityParent.makeBinding(IgnoredMessage, {
   placement: 'ignored-message',
   read: readArityChild,
   write: writeArityChild,
@@ -658,7 +658,7 @@ const DefaultContext = makeArityBlock(
     }),
   }),
 )
-const DefaultContextBinding = WrappedArityParent.bindChild(DefaultContext, {
+const DefaultContextBinding = WrappedArityParent.makeBinding(DefaultContext, {
   placement: 'default-context',
   read: readArityChild,
   write: writeArityChild,
@@ -683,7 +683,7 @@ const OptionalContext = makeArityBlock(
     }),
   }),
 )
-const OptionalContextBinding = WrappedArityParent.bindChild(OptionalContext, {
+const OptionalContextBinding = WrappedArityParent.makeBinding(OptionalContext, {
   placement: 'optional-context',
   read: readArityChild,
   write: writeArityChild,
@@ -703,7 +703,7 @@ const WrappedArityParentComposition = WrappedArityParent.makeComposition({
 const foldWrappedArity = WrappedArityParentComposition.makeUpdate(model => ({
   model,
 }))
-const runDefaultIncrement = WrappedArityParent.step(
+const runDefaultIncrement = WrappedArityParent.makeStep(
   (_model, amount?: number) => {
     if (amount === undefined) {
       return WrappedArityBinding.defaultIncrement()
@@ -712,11 +712,11 @@ const runDefaultIncrement = WrappedArityParent.step(
     }
   },
 )
-const runAddMany = WrappedArityParent.step(
+const runAddMany = WrappedArityParent.makeStep(
   (_model, ...amounts: ReadonlyArray<number>) =>
     WrappedArityBinding.addMany(...amounts),
 )
-const runResetArity = WrappedArityParent.step(_model =>
+const runResetArity = WrappedArityParent.makeStep(_model =>
   WrappedArityBinding.resetArity(),
 )
 const WrappedArityRuntime = WrappedArityParentComposition.assembleBlock({
@@ -852,7 +852,7 @@ describe('Block binding', () => {
   })
 
   it('applies one Subscription gate across every child entry', () => {
-    const GatedBinding = Parent.bindChild(Child, {
+    const GatedBinding = Parent.makeBinding(Child, {
       placement: 'gated-home',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
@@ -1028,7 +1028,7 @@ describe('Block binding', () => {
       Message: NamedParentMessage,
       OutMessage: ParentOutMessage,
     })
-    const NamedHomeBinding = ParentBaseDefinition.bindChild(Child, {
+    const NamedHomeBinding = ParentBaseDefinition.makeBinding(Child, {
       placement: 'home',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
@@ -1036,7 +1036,7 @@ describe('Block binding', () => {
         toUpdateContext: () => [{ roomId: 'room' }],
       },
     }).withOutMessagePolicy({ fold: foldNamedChildOutMessage })
-    const RoomBinding = ParentBaseDefinition.bindChild(pulseChild, {
+    const RoomBinding = ParentBaseDefinition.makeBinding(pulseChild, {
       placement: 'room',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
@@ -1289,7 +1289,7 @@ if (false) {
 
 describe('Block child registration composition', () => {
   it('gives repeated ManagedResources independent placement capability keys', () => {
-    const SidebarBinding = Parent.bindChild(Child, {
+    const SidebarBinding = Parent.makeBinding(Child, {
       placement: 'sidebar',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
@@ -1319,7 +1319,7 @@ describe('Block child registration composition', () => {
       let buildCount = 0
       const RepeatedNamespace = makeNamespace('BindingRepeated')
       const RepeatedMessage = defineMessageUnion({ CompletedMount: {} })
-      const RepeatedMount = RepeatedNamespace.mount('Mount', {
+      const RepeatedMount = RepeatedNamespace.makeMount('Mount', {
         messages: [RepeatedMessage.CompletedMount],
       })
 
@@ -1347,7 +1347,7 @@ describe('Block child registration composition', () => {
         Message: RepeatedParentMessage,
       })
       const bindRepeated = (placement: 'first' | 'second') =>
-        RepeatedParent.bindChild(Repeated, {
+        RepeatedParent.makeBinding(Repeated, {
           placement,
           read: (model: RepeatedParentModel) => Option.some(model.child),
           write: (model, child) => ({ ...model, child }),
@@ -1368,7 +1368,7 @@ describe('Block child registration composition', () => {
 describe('generic block refinement', () => {
   const GenericNamespace = makeNamespace('BindingChoice')
   const CompletedChoiceWork = Schema.TaggedStruct('CompletedChoiceWork', {})
-  const FinishChoice = GenericNamespace.command('FinishChoice', {
+  const FinishChoice = GenericNamespace.makeCommand('FinishChoice', {
     messages: [CompletedChoiceWork],
   })
 
@@ -1387,7 +1387,7 @@ describe('generic block refinement', () => {
       OutMessage,
     })
     const Composition = ChoiceDefinition.makeComposition()
-    const finish = ChoiceDefinition.step(model => ({
+    const finish = ChoiceDefinition.makeStep(model => ({
       model,
       commands: [FinishChoice()],
     }))
@@ -1440,7 +1440,7 @@ describe('generic block refinement', () => {
         outMessage,
       }),
     }
-    const DirectBinding = ChoiceParent.bindChild(Choice, {
+    const DirectBinding = ChoiceParent.makeBinding(Choice, {
       placement: 'direct-choice',
       read: (model: ChoiceParentModel) => Option.some(model.choice),
       write: (model, choice) => ({ ...model, choice }),
@@ -1448,7 +1448,7 @@ describe('generic block refinement', () => {
     const DirectComposition = ChoiceParent.makeComposition({
       bindings: [DirectBinding],
     })
-    const Binding = ChoiceParent.bindChild(Choice, {
+    const Binding = ChoiceParent.makeBinding(Choice, {
       placement: 'choice',
       read: (model: ChoiceParentModel) => Option.some(model.choice),
       write: (model: ChoiceParentModel, choice: ChoiceModel) => ({

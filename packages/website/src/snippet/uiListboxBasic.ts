@@ -41,7 +41,7 @@ const foldListboxOutMessage = PlanPickerDefinition.makeOutMessageFold(
   PlanListbox,
   {
     Selected: ({ value }) =>
-      PlanPickerDefinition.stepFields(() => ({
+      PlanPickerDefinition.makeFieldsStep(() => ({
         maybePlan: () => Option.some(value),
       })),
   },
@@ -51,7 +51,7 @@ const foldListboxOutMessage = PlanPickerDefinition.makeOutMessageFold(
 // navigation, typeahead, and open/close to PlanListbox.update, writes the next
 // Listbox Model back, routes generated delivery and Command results, and
 // hands any OutMessage to the OutMessage fold.
-const PlanListboxBinding = PlanPickerDefinition.bindChild(PlanListbox, {
+const PlanListboxBinding = PlanPickerDefinition.makeBinding(PlanListbox, {
   field: 'listbox',
   init: { contextToArgs: () => Tuple.make({ id: 'plan' }) },
 }).withOutMessagePolicy({ fold: foldListboxOutMessage })

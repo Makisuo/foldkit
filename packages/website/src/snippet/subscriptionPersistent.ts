@@ -13,7 +13,7 @@ const HeartbeatDefinition = Block.makeDefinition('Heartbeat', {
   Message,
 })
 
-export const subscriptions = HeartbeatDefinition.subscriptions(entry => ({
+export const subscriptions = HeartbeatDefinition.makeSubscriptions(entry => ({
   heartbeatTicks: entry('HeartbeatTicks', {
     messages: [Message.TickedHeartbeat],
     handler: function* () {

@@ -17,7 +17,7 @@ const ChildMessage = defineMessageUnion({
 })
 let constructions = 0
 let executions = 0
-const Prepare = ChildNamespace.command('Prepare', {
+const Prepare = ChildNamespace.makeCommand('Prepare', {
   messages: [ChildMessage.CompletedPrepare],
   handler: function* () {
     yield* Effect.sync(() => {
@@ -31,7 +31,7 @@ const Prepare = ChildNamespace.command('Prepare', {
       })
   },
 })
-const Observe = ChildNamespace.mount('Observe', {
+const Observe = ChildNamespace.makeMount('Observe', {
   messages: [ChildMessage.CompletedObserve],
   handler: function* () {
     yield* Effect.sync(() => {
@@ -68,7 +68,7 @@ const RootApplicationDefinition = Block.makeDefinition('Application', {
   Message: Schema.Never,
 })
 const PlainMessage = Schema.Never
-const ChildBinding = RootApplicationDefinition.bindChild(childBlock, {
+const ChildBinding = RootApplicationDefinition.makeBinding(childBlock, {
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
 })

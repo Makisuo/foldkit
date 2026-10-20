@@ -59,7 +59,7 @@ export const BindingMessagePolicyParentDefinition = Block.makeDefinition(
   },
 )
 
-export const ContextBinding = BindingMessagePolicyParentDefinition.bindChild(
+export const ContextBinding = BindingMessagePolicyParentDefinition.makeBinding(
   ContextChildBlock,
   {
     placement: 'child',
@@ -71,7 +71,7 @@ export const ContextBinding = BindingMessagePolicyParentDefinition.bindChild(
   },
 )
 
-export const KeyedBinding = BindingMessagePolicyParentDefinition.bindChild(
+export const KeyedBinding = BindingMessagePolicyParentDefinition.makeBinding(
   ContextChildBlock,
   {
     placement: 'entries',
@@ -86,7 +86,7 @@ export const KeyedBinding = BindingMessagePolicyParentDefinition.bindChild(
   },
 )
 
-export const SilentBinding = BindingMessagePolicyParentDefinition.bindChild(
+export const SilentBinding = BindingMessagePolicyParentDefinition.makeBinding(
   SilentChildBlock,
   {
     placement: 'silent',
@@ -96,7 +96,7 @@ export const SilentBinding = BindingMessagePolicyParentDefinition.bindChild(
 )
 
 export const SilentKeyedBinding =
-  BindingMessagePolicyParentDefinition.bindChild(SilentChildBlock, {
+  BindingMessagePolicyParentDefinition.makeBinding(SilentChildBlock, {
     placement: 'silentEntries',
     readAll: model => model.silentEntries,
     key: entry => entry.id,

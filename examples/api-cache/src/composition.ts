@@ -57,7 +57,7 @@ const activateTab = (tab: typeof Tab.Type) => (model: typeof Model.Type) => {
   )
 }
 
-export const TabsBinding = ApplicationDefinition.bindChild(
+export const TabsBinding = ApplicationDefinition.makeBinding(
   ApplicationTabsBlock,
   {
     field: 'tabs',
@@ -65,7 +65,7 @@ export const TabsBinding = ApplicationDefinition.bindChild(
   },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ApplicationTabsBlock, {
-    Selected: ({ value }) => ApplicationDefinition.step(activateTab(value)),
+    Selected: ({ value }) => ApplicationDefinition.makeStep(activateTab(value)),
   }),
 })
 

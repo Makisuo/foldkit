@@ -38,11 +38,11 @@ export const DeclarationCanonicalConstructorParentDefinition =
     Message: ParentMessage,
   })
 export const CanonicalBinding =
-  DeclarationCanonicalConstructorParentDefinition.bindChild(ChildBlock, {
+  DeclarationCanonicalConstructorParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
   })
 export const AlternativeBinding =
-  DeclarationCanonicalConstructorParentDefinition.bindChild(ChildBlock, {
+  DeclarationCanonicalConstructorParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
     placement: 'other',
   })

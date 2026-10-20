@@ -15,7 +15,7 @@ const Child = makeDefinition('DirectPresenceChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const setCount = Child.step((model, count: number) => ({
+const setCount = Child.makeStep((model, count: number) => ({
   model: modifyFields(model, { count: () => count }),
 }))
 const ChildComposition = Child.makeComposition()
@@ -45,10 +45,10 @@ const Message = defineMessageUnion({
   RequestedSetGatedCount: { count: Schema.Number },
 })
 const Parent = makeDefinition('DirectPresenceParent', { Model, Message })
-const OptionalBinding = Parent.bindChild(childBlock, {
+const OptionalBinding = Parent.makeBinding(childBlock, {
   field: 'maybeChild',
 })
-const GatedBinding = Parent.bindChild(childBlock, {
+const GatedBinding = Parent.makeBinding(childBlock, {
   field: 'child',
   presentWhen: model => {
     expectTypeOf(model).toEqualTypeOf<Model>()
@@ -153,10 +153,10 @@ it('distinguishes Option child Models from optional storage wrappers', () => {
     Model,
     Message: Schema.Never,
   })
-  const RequiredBinding = Parent.bindChild(block, {
+  const RequiredBinding = Parent.makeBinding(block, {
     field: 'required',
   })
-  const OptionalBinding = Parent.bindChild(block, {
+  const OptionalBinding = Parent.makeBinding(block, {
     field: 'maybe',
   })
   const Composition = Parent.makeComposition({
@@ -185,7 +185,7 @@ it('distinguishes Option child Models from optional storage wrappers', () => {
 
 it('reports invalid erased direct configurations during binding creation', () => {
   const bind = (config: unknown) =>
-    Reflect.apply(Parent.bindChild, Parent, [childBlock, config])
+    Reflect.apply(Parent.makeBinding, Parent, [childBlock, config])
   expect(() =>
     bind({
       field: 'missing',
@@ -228,7 +228,7 @@ it('preserves absence through a suspended Option storage schema', () => {
     Model: SuspendedModel,
     Message: Schema.Never,
   })
-  const ChildBinding = Suspended.bindChild(childBlock, {
+  const ChildBinding = Suspended.makeBinding(childBlock, {
     field: 'maybeChild',
   })
   const Composition = Suspended.makeComposition({
@@ -267,7 +267,7 @@ it('rejects structurally incompatible storage and invalid wrapper constructors b
     Message,
   })
   const bind = (config: unknown) =>
-    Reflect.apply(Invalid.bindChild, Invalid, [childBlock, config])
+    Reflect.apply(Invalid.makeBinding, Invalid, [childBlock, config])
   for (const field of ['number', 'wrongOption']) {
     expect(() =>
       bind({
@@ -277,7 +277,7 @@ it('rejects structurally incompatible storage and invalid wrapper constructors b
   }
 
   const bindParent = (config: unknown) =>
-    Reflect.apply(Parent.bindChild, Parent, [childBlock, config])
+    Reflect.apply(Parent.makeBinding, Parent, [childBlock, config])
   expect(() =>
     bindParent({
       field: 'child',
@@ -288,7 +288,7 @@ it('rejects structurally incompatible storage and invalid wrapper constructors b
 
 it('rejects nonboolean presence policies from erased callers', () => {
   const bind = (config: unknown) =>
-    Reflect.apply(Parent.bindChild, Parent, [childBlock, config])
+    Reflect.apply(Parent.makeBinding, Parent, [childBlock, config])
   const InvalidPresenceBinding = bind({
     placement: 'invalid-child',
     field: 'child',
@@ -325,7 +325,7 @@ it('rejects nonboolean presence policies from erased callers', () => {
 
 it('rejects ignored keyed adapters on erased accessor configs', () => {
   const bind = (config: unknown) =>
-    Reflect.apply(Parent.bindChild, Parent, [childBlock, config])
+    Reflect.apply(Parent.makeBinding, Parent, [childBlock, config])
   for (const field of ['Model', 'key', 'writeAt']) {
     expect(() =>
       bind({
@@ -346,10 +346,10 @@ it('reads direct fields from callable tagged Struct parent Models', () => {
     Model,
     Message,
   })
-  const ChildBinding = Parent.bindChild(childBlock, {
+  const ChildBinding = Parent.makeBinding(childBlock, {
     field: 'child',
   })
-  const OptionalBinding = Parent.bindChild(childBlock, {
+  const OptionalBinding = Parent.makeBinding(childBlock, {
     field: 'maybeChild',
   })
   const Composition = Parent.makeComposition({
@@ -384,7 +384,7 @@ it('reads direct fields from callable tagged Struct parent Models', () => {
 it('rejects ignored Model overrides on parent-owned direct fields', () => {
   for (const field of ['Model', 'ChildModel']) {
     expect(() =>
-      Reflect.apply(Parent.bindChild, Parent, [
+      Reflect.apply(Parent.makeBinding, Parent, [
         childBlock,
         {
           field: 'child',

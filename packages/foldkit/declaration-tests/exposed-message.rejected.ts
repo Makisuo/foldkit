@@ -32,7 +32,7 @@ import {
   parentUpdate,
 } from './exposed-message.accepted.js'
 
-const directModelStep = ChildDefinition.step((model, value: string) => ({
+const directModelStep = ChildDefinition.makeStep((model, value: string) => ({
   model: modifyFields(model, { value: () => value }),
 }))
 
@@ -221,7 +221,7 @@ GraphlessMountedChoiceComposition.assembleBlock({
 const ForeignMountedChoiceNamespace = Block.makeNamespace(
   'ForeignMountedChoice',
 )
-const ObserveForeignSelection = ForeignMountedChoiceNamespace.mount(
+const ObserveForeignSelection = ForeignMountedChoiceNamespace.makeMount(
   'ObserveForeignSelection',
   {
     messages: [MountedChoiceMessage.CompletedObserveSelection],
@@ -264,7 +264,7 @@ MountedChoiceComposition.assembleBlock({
 })
 
 const foldChildOutMessage = () => (model: ParentModel) => ({ model })
-const AlternativeChildBinding = ParentDefinition.bindChild(ChildBlock, {
+const AlternativeChildBinding = ParentDefinition.makeBinding(ChildBlock, {
   field: 'child',
   placement: 'alternative',
 }).withOutMessagePolicy({ fold: foldChildOutMessage })

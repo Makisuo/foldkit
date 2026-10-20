@@ -53,7 +53,7 @@ export const OperationConstructorProofChildDefinition = Block.makeDefinition(
     OutMessage,
   },
 )
-export const RecordValue = OperationConstructorProofChildDefinition.command(
+export const RecordValue = OperationConstructorProofChildDefinition.makeCommand(
   'RecordValue',
   {
     args: { value: Schema.String },
@@ -149,9 +149,8 @@ export const OperationConstructorProofParentDefinition = Block.makeDefinition(
     Message: ParentMessage,
   },
 )
-export const ChildBinding = OperationConstructorProofParentDefinition.bindChild(
-  ChildBlock,
-  {
+export const ChildBinding =
+  OperationConstructorProofParentDefinition.makeBinding(ChildBlock, {
     placement: 'child',
     read: model => model.maybeChild,
     write: (model, nextChild) =>
@@ -159,15 +158,15 @@ export const ChildBinding = OperationConstructorProofParentDefinition.bindChild(
     delivery: {
       toUpdateContext: () => [{ prefix: 'routed' }],
     },
-  },
-).withOutMessagePolicy({
-  fold: OutMessage.match<Update.Step<ParentModel, typeof ParentMessage.Type>>({
-    ChangedValue: () => model => ({ model }),
-  }),
-})
-export const EntryBinding = OperationConstructorProofParentDefinition.bindChild(
-  ChildBlock,
-  {
+  }).withOutMessagePolicy({
+    fold: OutMessage.match<Update.Step<ParentModel, typeof ParentMessage.Type>>(
+      {
+        ChangedValue: () => model => ({ model }),
+      },
+    ),
+  })
+export const EntryBinding =
+  OperationConstructorProofParentDefinition.makeBinding(ChildBlock, {
     placement: 'entries',
     readAll: model => model.entries,
     key: entry => entry.id,
@@ -182,16 +181,15 @@ export const EntryBinding = OperationConstructorProofParentDefinition.bindChild(
     delivery: {
       toUpdateContext: () => [{ prefix: 'routed' }],
     },
-  },
-).withOutMessagePolicy({
-  fold: (_id, outMessage) =>
-    OutMessage.match<Update.Step<ParentModel, typeof ParentMessage.Type>>(
-      outMessage,
-      {
-        ChangedValue: () => model => ({ model }),
-      },
-    ),
-})
+  }).withOutMessagePolicy({
+    fold: (_id, outMessage) =>
+      OutMessage.match<Update.Step<ParentModel, typeof ParentMessage.Type>>(
+        outMessage,
+        {
+          ChangedValue: () => model => ({ model }),
+        },
+      ),
+  })
 export const OperationConstructorProofParentComposition =
   OperationConstructorProofParentDefinition.makeComposition({
     bindings: [ChildBinding, EntryBinding],

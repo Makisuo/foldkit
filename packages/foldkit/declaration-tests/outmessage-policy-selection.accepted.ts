@@ -24,7 +24,7 @@ export class ChildStore extends Context.Service<
   ChildStore,
   Readonly<{ reset: Effect.Effect<void> }>
 >()('PolicySelectionChildStore') {}
-export const ResetChild = ChildDefinition.command('ResetChild', {
+export const ResetChild = ChildDefinition.makeCommand('ResetChild', {
   messages: [ChildMessage.RequestedReset],
   handler: function* () {
     const store = yield* ChildStore
@@ -94,20 +94,23 @@ export const ParentDefinition = Block.makeDefinition('PolicySelectionParent', {
   Message: ParentMessage,
   OutMessage: ParentOutMessage,
 })
-export const ReflectSelection = ParentDefinition.command('ReflectSelection', {
-  messages: [ParentMessage.Reflected],
-  handler: function* () {
-    return () => Effect.succeed(ParentMessage.Reflected())
+export const ReflectSelection = ParentDefinition.makeCommand(
+  'ReflectSelection',
+  {
+    messages: [ParentMessage.Reflected],
+    handler: function* () {
+      return () => Effect.succeed(ParentMessage.Reflected())
+    },
   },
-})
+)
 
-export const LeftBinding = ParentDefinition.bindChild(ChildBlock, {
+export const LeftBinding = ParentDefinition.makeBinding(ChildBlock, {
   field: 'left',
 })
-export const RightBinding = ParentDefinition.bindChild(ChildBlock, {
+export const RightBinding = ParentDefinition.makeBinding(ChildBlock, {
   field: 'right',
 })
-export const RefinedBinding = ParentDefinition.bindChild(RefinedChildBlock, {
+export const RefinedBinding = ParentDefinition.makeBinding(RefinedChildBlock, {
   field: 'left',
   placement: 'refined',
 })
@@ -133,9 +136,9 @@ export const exactContextAnnotatedFold: Block.OutMessageFold<
     void exactValue
     void exactContext
 
-    return ParentDefinition.stepNoop()
+    return ParentDefinition.makeNoopStep()
   },
-  Closed: ParentDefinition.stepNoop,
+  Closed: ParentDefinition.makeNoopStep,
 })
 
 export const exactContextAnnotatedForward: Block.OutMessageForward<
@@ -159,17 +162,17 @@ export const foldLeftOutMessage = ParentDefinition.makeOutMessageFold(
 
       return RightBinding.reset()
     },
-    Closed: () => ParentDefinition.stepNoop(),
+    Closed: () => ParentDefinition.makeNoopStep(),
   },
 )
 export const foldRightOutMessage = ParentDefinition.makeOutMessageFold(
   ChildBlock,
   {
     Selected: ({ value }) =>
-      ParentDefinition.stepFields(() => ({
+      ParentDefinition.makeFieldsStep(() => ({
         left: left => Struct.modifyFields(left, { value: () => value }),
       })),
-    Closed: () => ParentDefinition.stepNoop(),
+    Closed: () => ParentDefinition.makeNoopStep(),
   },
 )
 export const forwardLeftOutMessage = ParentDefinition.makeOutMessageForward(
@@ -187,10 +190,10 @@ export const rawFoldWithContext = (
     typeof ParentMessage.Type,
     typeof ParentModel.Type
   >,
-) => ParentDefinition.stepNoop()
+) => ParentDefinition.makeNoopStep()
 
 const rawFoldWithoutContext = (_outMessage: typeof ChildOutMessage.Type) =>
-  ParentDefinition.stepNoop()
+  ParentDefinition.makeNoopStep()
 
 declare const rawFoldUnion:
   | typeof rawFoldWithContext
@@ -224,14 +227,14 @@ export const LeftBindingWithInlineOutMessagePolicy =
         void exactContext
 
         return Update.combineSteps([
-          ParentDefinition.step(model => ({
+          ParentDefinition.makeStep(model => ({
             model,
             commands: [context.liftCommand(ResetChild())],
           })),
           RightBinding.reset(),
         ])
       },
-      Closed: ParentDefinition.stepNoop,
+      Closed: ParentDefinition.makeNoopStep,
     }),
     forward: ParentDefinition.makeOutMessageForward({
       Selected: ({ value }) => ParentOutMessage.ForwardedSelection({ value }),
@@ -245,11 +248,11 @@ export const RefinedBindingWithInlineOutMessagePolicy =
         const exactValue: 'Refined' = value
         void exactValue
 
-        return ParentDefinition.stepFields(() => ({
+        return ParentDefinition.makeFieldsStep(() => ({
           left: left => Struct.modifyFields(left, { value: () => value }),
         }))
       },
-      Closed: ParentDefinition.stepNoop,
+      Closed: ParentDefinition.makeNoopStep,
     }),
   })
 export const RefinedBindingWithAnnotatedOutMessagePolicy =
@@ -263,7 +266,7 @@ export const LeftBindingWithReselectedOutMessagePolicy =
     forward: forwardLeftOutMessage,
   })
 
-export const EntriesBinding = ParentDefinition.bindChild(ChildBlock, {
+export const EntriesBinding = ParentDefinition.makeBinding(ChildBlock, {
   readAll: model => model.entries,
   key: entry => entry.id,
   keySchema: Entry.fields.id,
@@ -292,7 +295,7 @@ export const EntriesBindingWithOutMessagePolicy =
       void exactOutMessage
       void exactContext
 
-      return ParentDefinition.stepNoop()
+      return ParentDefinition.makeNoopStep()
     },
   })
 

@@ -10,7 +10,7 @@ Embed Combobox via the [`Combobox.create(Item)` factory](/ui/selection-blocks) a
 
 What the factory returns is typed [`Completed<Item>` from `@foldkit/ui/combobox`](/ui/selection-blocks#completed-type). The multi-select subpath exports its own `Completed<Item>` type for cases where a created Block has to be named.
 
-Call `ParentDefinition.bindChild` with the completed Block, its parent Model `field` and an exhaustive OutMessage policy. Use explicit accessors for custom storage. Include the resulting Binding in the parent Composition's `bindings` list to collect the Combobox's handlers and Mounts. `binding.embedView` supplies the canonical view and Message wrapper at the render site. See [Connecting a static placement](/core/block#embedding) for the complete authoring flow. Use `Combobox.create(Schema.String)` for plain strings; `Combobox.create(Item)` requires the Item Schema.
+Call `ParentDefinition.makeBinding` with the completed Block, its parent Model `field` and an exhaustive OutMessage policy. Use explicit accessors for custom storage. Include the resulting Binding in the parent Composition's `bindings` list to collect the Combobox's handlers and Mounts. `binding.embedView` supplies the canonical view and Message wrapper at the render site. See [Connecting a static placement](/core/block#embedding) for the complete authoring flow. Use `Combobox.create(Schema.String)` for plain strings; `Combobox.create(Item)` requires the Item Schema.
 
 ### Programmatic API
 

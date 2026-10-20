@@ -36,7 +36,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-ApplicationDefinition.bindChild(CustomChild.block, {field: 'child',
+ApplicationDefinition.makeBinding(CustomChild.block, {field: 'child',
 parentMessage: ParentMessage.GotCustomChildMessage})
 
 const Message = defineMessageUnion({
@@ -56,4 +56,4 @@ const directBindingConfig = {
   field: 'direct',
   parentMessage: Message.GotDirectMessage,
 }
-ApplicationDefinition.bindChild(DirectBlock, directBindingConfig)
+ApplicationDefinition.makeBinding(DirectBlock, directBindingConfig)

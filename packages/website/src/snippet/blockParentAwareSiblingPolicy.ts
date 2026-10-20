@@ -14,11 +14,11 @@ const foldSearchOutMessage = ApplicationDefinition.makeOutMessageFold(
   },
 )
 
-export const SearchBinding = ApplicationDefinition.bindChild(SearchBlock, {
+export const SearchBinding = ApplicationDefinition.makeBinding(SearchBlock, {
   field: 'search',
 }).withOutMessagePolicy({ fold: foldSearchOutMessage })
 
-export const DetailsBinding = ApplicationDefinition.bindChild(DetailsBlock, {
+export const DetailsBinding = ApplicationDefinition.makeBinding(DetailsBlock, {
   field: 'maybeDetails',
 })
 

@@ -6,12 +6,12 @@ import { SkillsEntryBlock } from './entry'
 const foldEntryOutMessage = (entryId: string) =>
   SkillsDefinition.makeOutMessageFold(SkillsEntryBlock, {
     Removed: () =>
-      SkillsDefinition.stepFields(() => ({
+      SkillsDefinition.makeFieldsStep(() => ({
         entries: Array.filter(entry => entry.id !== entryId),
       })),
   })
 
-export const EntriesBinding = SkillsDefinition.bindChild(SkillsEntryBlock, {
+export const EntriesBinding = SkillsDefinition.makeBinding(SkillsEntryBlock, {
   field: 'entries',
   key: 'id',
   init: {

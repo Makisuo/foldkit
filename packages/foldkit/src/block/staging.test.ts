@@ -21,7 +21,7 @@ const ChildMessage = defineMessageUnion({
 })
 type ChildMessage = typeof ChildMessage.Type
 
-const Observe = ChildNamespace.mount('Observe', {
+const Observe = ChildNamespace.makeMount('Observe', {
   messages: [ChildMessage.CompletedObserve],
   handler: function* () {
     yield* ObserveDependency
@@ -31,7 +31,7 @@ const Observe = ChildNamespace.mount('Observe', {
   },
 })
 
-const Measure = ChildNamespace.mount('Measure', {
+const Measure = ChildNamespace.makeMount('Measure', {
   messages: [ChildMessage.CompletedMeasure],
 })
 
@@ -70,11 +70,11 @@ const Parent = makeDefinition('StagedParent', {
   Message: Schema.Never,
 })
 
-const DirectChildBinding = Parent.bindChild(Child, {
+const DirectChildBinding = Parent.makeBinding(Child, {
   field: 'child',
 })
 
-const ExplicitChildBinding = Parent.bindChild(Child, {
+const ExplicitChildBinding = Parent.makeBinding(Child, {
   read: model => Option.some(model.child),
   write: (_model, child) => ParentModel.make({ child }),
 })
@@ -162,9 +162,9 @@ it('creates independent immutable graphs from one typed Base', () => {
   void graphlessView
   expect(observeComposition.owner).toBe(ChildBaseDefinition.owner)
   expect(observeComposition.makeUpdate).toBeTypeOf('function')
-  expect(observeComposition).not.toHaveProperty('step')
-  expect(observeComposition).not.toHaveProperty('subscriptions')
-  expect(observeComposition).not.toHaveProperty('managedResources')
+  expect(observeComposition).not.toHaveProperty('makeStep')
+  expect(observeComposition).not.toHaveProperty('makeSubscriptions')
+  expect(observeComposition).not.toHaveProperty('makeManagedResources')
   expect(measureComposition.owner).toBe(ChildBaseDefinition.owner)
   expect(observeComposition).not.toBe(measureComposition)
   expect(observeComposition.mounts).toEqual([Observe])
@@ -223,7 +223,7 @@ it('retains contextual update and Step inference after registration', () => {
     expectTypeOf(message).toEqualTypeOf<ChildMessage>()
     return { model }
   })
-  const setValue = ChildBaseDefinition.step((model, value: string) => {
+  const setValue = ChildBaseDefinition.makeStep((model, value: string) => {
     expectTypeOf(model).toEqualTypeOf<ChildModel>()
     return { model: modifyFields(model, { value: () => value }) }
   })

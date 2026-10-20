@@ -30,7 +30,7 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-export const CountersBinding = ApplicationDefinition.bindChild(CounterBlock, {
+export const CountersBinding = ApplicationDefinition.makeBinding(CounterBlock, {
   field: 'counters',
   key: 'id',
   childField: 'counter',

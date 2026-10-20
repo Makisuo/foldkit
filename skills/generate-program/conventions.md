@@ -51,7 +51,7 @@ CompletedItemsFocus
 
 ```ts
 // RIGHT: the Message is named from the Command that caused it
-const DetermineStartTime = FeatureDefinition.command('DetermineStartTime', {
+const DetermineStartTime = FeatureDefinition.makeCommand('DetermineStartTime', {
   args: { elapsedMs: Schema.Number },
   messages: [Message.CompletedDetermineStartTime],
 
@@ -64,7 +64,7 @@ const DetermineStartTime = FeatureDefinition.command('DetermineStartTime', {
       )
   },
 })
-const GenerateCardId = FeatureDefinition.command('GenerateCardId', {
+const GenerateCardId = FeatureDefinition.makeCommand('GenerateCardId', {
   args: { columnId: Schema.String },
   messages: [Message.CompletedGenerateCardId],
 
@@ -78,7 +78,7 @@ const GenerateCardId = FeatureDefinition.command('GenerateCardId', {
       })
   },
 })
-const SaveTodos = FeatureDefinition.command('SaveTodos', {
+const SaveTodos = FeatureDefinition.makeCommand('SaveTodos', {
   args: { todos: Todos },
   messages: [Message.SucceededSaveTodos, Message.FailedSaveTodos],
 
@@ -209,7 +209,7 @@ const foldFormMessage = Message.match<Update.Step<Model, Message>>({
 })
 ```
 
-Inside `Composition.makeUpdate`, `Definition.step`, or `Definition.makeOutMessageFold`, omit a matcher return generic and let the owner infer Command requirements, OutMessages, and graph evidence. `Update.Return<Model, Message>` and `Update.Step<Model, Message>` default their requirement parameter to `never`, so those annotations are accurate only for a standalone pure matcher. A pure matcher benefits from the contextual return type because an unconstrained generic matcher can widen nested literal tags before a later assignment. For a standalone matcher that returns Commands, wrap the producer with `Update.define` or `Update.defineStep`, or supply the complete requirement type when another public signature already defines it.
+Inside `Composition.makeUpdate`, `Definition.makeStep`, or `Definition.makeOutMessageFold`, omit a matcher return generic and let the owner infer Command requirements, OutMessages, and graph evidence. `Update.Return<Model, Message>` and `Update.Step<Model, Message>` default their requirement parameter to `never`, so those annotations are accurate only for a standalone pure matcher. A pure matcher benefits from the contextual return type because an unconstrained generic matcher can widen nested literal tags before a later assignment. For a standalone matcher that returns Commands, wrap the producer with `Update.define` or `Update.defineStep`, or supply the complete requirement type when another public signature already defines it.
 
 Use a `defineTaggedUnion` or `defineRouteUnion` namespace's `matchOrElse` for partial matches with a fallback. Use Effect `Match` for partial Message matches, one handler shared by several tags, or unions without their own matcher.
 
@@ -411,9 +411,9 @@ Keep the Definition binding only when code uses a Definition authoring member. W
 
 Author one canonical `init` through the Composition and pass it to assembly by shorthand. Do not retain a raw Model-returning `init` and wrap it at the assembly call. A pure Model constructor with its own domain purpose may remain separate.
 
-Author an ordinary Block from `Block.makeDefinition('Child', { Model, Message, OutMessage? })`. Retain `ChildDefinition` when Commands, Steps, Subscriptions, ManagedResources, or Bindings use it; otherwise chain the factory directly into the module-level Composition. The Definition owns those authoring capabilities. A generic API that shares identity across several typed contracts instead creates `ChildNamespace = Block.makeNamespace('Child')`, then calls `ChildNamespace.makeDefinition(...)` for each specialization. That Namespace may live outside the specialization factory. Create `ChildComposition = ChildDefinition.makeComposition({ bindings?, mounts? })`, author init, update, and the primary view through that Composition, and assemble the same value through `ChildComposition.assembleBlock(...)`. Export the completed value as `ChildBlock`. Its ordinary feature barrel exports only `ChildBlock`; reusable Schemas and pure utilities use an explicit domain barrel. Parent code imports the completed Block, creates a Binding with `ParentDefinition.bindChild(ChildBlock, config)`, and includes it under `bindings` in `ParentDefinition.makeComposition(...)`. The authored parent `Message` contains only local facts. `ChildComposition.Message` and `ChildBlock.Message` are the complete dispatch contracts and include generated child envelopes. Parent-driven changes use named operations selected under `operations`. The completed Block aggregates child registrations and handler Layers; the Binding supplies the canonical view and captures generated delivery provenance through `binding.embedView`.
+Author an ordinary Block from `Block.makeDefinition('Child', { Model, Message, OutMessage? })`. Retain `ChildDefinition` when Commands, Steps, Subscriptions, ManagedResources, or Bindings use it; otherwise chain the factory directly into the module-level Composition. The Definition owns those authoring capabilities. A generic API that shares identity across several typed contracts instead creates `ChildNamespace = Block.makeNamespace('Child')`, then calls `ChildNamespace.makeDefinition(...)` for each specialization. That Namespace may live outside the specialization factory. Create `ChildComposition = ChildDefinition.makeComposition({ bindings?, mounts? })`, author init, update, and the primary view through that Composition, and assemble the same value through `ChildComposition.assembleBlock(...)`. Export the completed value as `ChildBlock`. Its ordinary feature barrel exports only `ChildBlock`; reusable Schemas and pure utilities use an explicit domain barrel. Parent code imports the completed Block, creates a Binding with `ParentDefinition.makeBinding(ChildBlock, config)`, and includes it under `bindings` in `ParentDefinition.makeComposition(...)`. The authored parent `Message` contains only local facts. `ChildComposition.Message` and `ChildBlock.Message` are the complete dispatch contracts and include generated child envelopes. Parent-driven changes use named operations selected under `operations`. The completed Block aggregates child registrations and handler Layers; the Binding supplies the canonical view and captures generated delivery provenance through `binding.embedView`.
 
-Declare a Block's ManagedResource identity once at module scope with `ChildDefinition.resource<Value>()('LocalName')`. Export and reuse that binding in the ManagedResource entry and in every Command that reads `.get`. The Definition qualifies the runtime key with the Block ID and keeps the resource alongside its lifecycle owner. Use low-level `ManagedResource.tag` only for a deliberately standalone registry that has no Block Definition.
+Declare a Block's ManagedResource identity once at module scope with `ChildDefinition.makeResource<Value>()('LocalName')`. Export and reuse that binding in the ManagedResource entry and in every Command that reads `.get`. The Definition qualifies the runtime key with the Block ID and keeps the resource alongside its lifecycle owner. Use low-level `ManagedResource.tag` only for a deliberately standalone registry that has no Block Definition.
 
 An authored update supports `update(model, message, ...context)` for Runtime dispatch and `update(message)(model, ...context)` as an internal Step. Put the local Message constructor directly under `operations` for a public operation that forwards its payload into that Message. Completion creates the callable operation without constructing a Message. A constructor with fields takes one constructor payload object followed by update context, with constructor defaults honored; an empty-fields constructor takes no payload placeholder. Keep a tuple producer under `operations` when public inputs need mapping, refinement, defaults, or an exact context tuple. Both forms pass the Message through update synchronously as part of the pure transition. Keep standalone Steps for internal Model transformations. Adapt a required-context curried update to the unary Step expected by `Update.combineSteps` with an explicit function that supplies that context.
 
@@ -423,7 +423,7 @@ Each completed operation returns the completed update function's full return con
 
 Select an alternate whole local handler bundle through `ChildBlock.replaceEffectsLayer(localRecipe)` before binding the child. The selected Block keeps its child recipes. Ordinary application tests usually retain its handlers and replace their service providers instead.
 
-For a child stored in an exact `Schema.Struct` field as `ChildModel` or `Option<ChildModel>`, use `ParentDefinition.bindChild(ChildBlock, { field })`; the field is the default placement. A direct Option field is absent while `None`, and folds never create it. Reuse the child Model Schema instance for an opaque declaration whose decoded shape cannot be compared. Add `presentWhen` only when parent policy gates the entire direct child. Use explicit `read` and `write` for nested, tagged, or custom storage. A custom keyed Binding provides `readAll`, `key`, `keySchema`, `read`, and `writeAt`. Put admission policy in `delivery.when` and derive required child update context with `delivery.toUpdateContext`; these callbacks receive the occurrence key for keyed storage. The Composition generates the child envelope and records its placement, key, and live generation. Do not add a child wrapper to the authored parent Message or write `parentMessage`, `toParentMessage`, or `fromParentMessage` mappings. A child whose Message Schema is `Schema.Never` needs no delivery policy. Placement identifies the Binding in the parent composition graph; a keyed occurrence's key is nested under that placement. The Binding projects `init`, `fold`, named operations, and `embedView`. Declare eligible startup with `init` and let `Composition.makeInit` assemble it. Custom storage, deliberate Command interleaving, and dynamic creation use the exact registered `ChildBinding.init({ key?, args, toParentModel, commands? })`. It returns a passive recipe with no `.model` or `.commands`. Return it directly from `Composition.makeInit` or `Composition.makeUpdate`, or preserve it through the parent's `step` producer. The Composition callbacks interpret it directly. The compiler checks exact key, args, parent Model, requirements, and Binding requirement, while runtime validation during checked execution checks the active composition frame, schema-equivalent child placement, and exactly one requested keyed occurrence. Ordinary Model construction remains available.
+For a child stored in an exact `Schema.Struct` field as `ChildModel` or `Option<ChildModel>`, use `ParentDefinition.makeBinding(ChildBlock, { field })`; the field is the default placement. A direct Option field is absent while `None`, and folds never create it. Reuse the child Model Schema instance for an opaque declaration whose decoded shape cannot be compared. Add `presentWhen` only when parent policy gates the entire direct child. Use explicit `read` and `write` for nested, tagged, or custom storage. A custom keyed Binding provides `readAll`, `key`, `keySchema`, `read`, and `writeAt`. Put admission policy in `delivery.when` and derive required child update context with `delivery.toUpdateContext`; these callbacks receive the occurrence key for keyed storage. The Composition generates the child envelope and records its placement, key, and live generation. Do not add a child wrapper to the authored parent Message or write `parentMessage`, `toParentMessage`, or `fromParentMessage` mappings. A child whose Message Schema is `Schema.Never` needs no delivery policy. Placement identifies the Binding in the parent composition graph; a keyed occurrence's key is nested under that placement. The Binding projects `init`, `fold`, named operations, and `embedView`. Declare eligible startup with `init` and let `Composition.makeInit` assemble it. Custom storage, deliberate Command interleaving, and dynamic creation use the exact registered `ChildBinding.init({ key?, args, toParentModel, commands? })`. It returns a passive recipe with no `.model` or `.commands`. Return it directly from `Composition.makeInit` or `Composition.makeUpdate`, or preserve it through the parent's `makeStep` producer. The Composition callbacks interpret it directly. The compiler checks exact key, args, parent Model, requirements, and Binding requirement, while runtime validation during checked execution checks the active composition frame, schema-equivalent child placement, and exactly one requested keyed occurrence. Ordinary Model construction remains available.
 
 `ChildBinding.fold` is the projected primitive Composition invokes for a registered generated child delivery. Framework adapters and focused tests may call it directly when they already own a child Message. Parent-driven transitions use named operations. Both folds and Binding-projected operations are connected Steps whose Model input requires the exact registered graph. Typed calls with the raw domain Model fail. Include named operations in `Composition.makeInit` startup or apply them to the contextual Model inside the owning `Composition.makeUpdate`. Return or compose their opaque results intact; no `.model` or `.commands` fields are available before checked execution, and the result cannot narrow to a useful `{ model }` return. A raw recipe exposes only direct channels. The Composition resolves registered policy into the final parent Command Message, requirements, and OutMessage channels, so derive exported parent contracts from the Composition-authored update or completed Block. A completed `ChildBlock.operations.operation(model, ...args)` dispatches the produced Message through the Block's update and returns the readable executed result. Ordinary pure Steps remain directly callable. TypeScript may erase a connected Binding function's result through a method returning `void`; outside the graph, that invocation only constructs and discards passive configuration and executes no child work.
 
@@ -432,7 +432,7 @@ Use `Update.combineSteps` when a later Step should receive the Model produced by
 When the OutMessage is already known while constructing a new result, include it directly: `{ model, commands, outMessage }`. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper: `pipe(dialogClose, Update.withOutMessage(outMessage))`. When constructing the plain return in the same expression, pass it first: `Update.withOutMessage({ model, commands }, outMessage)`.
 
 Inline an ordinary unkeyed policy as
-`bindChild(WholeChildBlock, ...).withOutMessagePolicy({ fold: FeatureDefinition.makeOutMessageFold(WholeChildBlock, handlers) })`.
+`makeBinding(WholeChildBlock, ...).withOutMessagePolicy({ fold: FeatureDefinition.makeOutMessageFold(WholeChildBlock, handlers) })`.
 Every fold passes the whole completed child explicitly, whether inline,
 extracted, adapted for keyed policy, or staged for reciprocal composition.
 Name every variant directly, including a singleton union. Command requirements
@@ -448,13 +448,13 @@ keyed policy, or staging reciprocal composition. Name every child variant,
 return a declared parent OutMessage or `undefined`, and forward at least one
 variant. Register the full policy-selected Binding.
 
-Use `FeatureDefinition.stepFields(callback)` for an actual unary Model-only
+Use `FeatureDefinition.makeFieldsStep(callback)` for an actual unary Model-only
 field Step; its callback returns only field transformers. Use
-`FeatureDefinition.stepNoop()` when a Step value intentionally preserves the
+`FeatureDefinition.makeNoopStep()` when a Step value intentionally preserves the
 parent Model. In a `makeOutMessageFold` case record, pass that helper point-free
-as the handler (`Closed: FeatureDefinition.stepNoop`). Use
+as the handler (`Closed: FeatureDefinition.makeNoopStep`). Use
 `FeatureDefinition.makeCommandsStep(commands)` when a composed Step only returns
-an existing Command collection. Keep `FeatureDefinition.step` for additional
+an existing Command collection. Keep `FeatureDefinition.makeStep` for additional
 arguments, Model-dependent Commands, OutMessages, connected Binding, initialization,
 delegated, conditional, and composed results. Keep ordinary update branches as
 ordinary returns instead of constructing and immediately invoking a Step.

@@ -83,18 +83,18 @@ export const ParentDefinition = Block.makeDefinition('StrictRoutingParent', {
   Message: ParentMessage,
 })
 
-export const CanonicalBinding = ParentDefinition.bindChild(ChildBlock, {
+export const CanonicalBinding = ParentDefinition.makeBinding(ChildBlock, {
   field: 'child',
 })
 
-export const ContextBinding = ParentDefinition.bindChild(ContextChildBlock, {
+export const ContextBinding = ParentDefinition.makeBinding(ContextChildBlock, {
   field: 'contextualChild',
   delivery: {
     toUpdateContext: model => [{ multiplier: model.multiplier }],
   },
 })
 
-export const KeyedBinding = ParentDefinition.bindChild(ChildBlock, {
+export const KeyedBinding = ParentDefinition.makeBinding(ChildBlock, {
   field: 'entries',
   key: 'id',
   childField: 'child',
@@ -177,7 +177,7 @@ class SilentClient extends Context.Service<
   SilentClient,
   Readonly<{ wait: Effect.Effect<never> }>
 >()('StrictRouting/SilentClient') {}
-const WaitForever = SilentDefinition.command('WaitForever', {
+const WaitForever = SilentDefinition.makeCommand('WaitForever', {
   messages: [],
   handler: function* () {
     const client = yield* SilentClient
@@ -209,7 +209,7 @@ export const SilentParentDefinition = Block.makeDefinition(
   },
 )
 
-export const SilentBinding = SilentParentDefinition.bindChild(SilentBlock, {
+export const SilentBinding = SilentParentDefinition.makeBinding(SilentBlock, {
   field: 'silent',
 })
 
@@ -217,7 +217,7 @@ export const SilentBinding = SilentParentDefinition.bindChild(SilentBlock, {
 export const SilentParentComposition = SilentParentDefinition.makeComposition({
   bindings: [SilentBinding],
 })
-export const initializeSilent = SilentParentDefinition.step(model =>
+export const initializeSilent = SilentParentDefinition.makeStep(model =>
   SilentBinding.init({
     args: [],
     toParentModel: silent => modifyFields(model, { silent: () => silent }),

@@ -196,7 +196,7 @@ const assertBindingConfigurationDocs = async (): Promise<void> => {
         declaration.initializer === undefined ||
         !isCallExpression(declaration.initializer)
       ) {
-        return fail(`Expected ${check.binding} to call bindChild.`)
+        return fail(`Expected ${check.binding} to call makeBinding.`)
       }
 
       const bindingCall =

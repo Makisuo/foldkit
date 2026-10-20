@@ -85,7 +85,7 @@ update in a unary adapter that supplies every required context argument.
 
 Parent-facing operation names describe the communication: `requestCloseMenu` produces `Message.RequestedCloseMenu`, `informJoined` produces `Message.InformedOfJoin`, and `informRouteChanged` produces `Message.InformedOfRouteChange`. Use `request*` for actions and `inform*` for notifications. Both enter child update; avoid silent `reflect*` Model synchronization. Keep an actual UI fact separate when it represents a different event.
 
-An owned `Definition.subscriptions(...)` registry exposes `subscriptions.layer`
+An owned `Definition.makeSubscriptions(...)` registry exposes `subscriptions.layer`
 when every entry has an attached handler. Merge that passive recipe into
 `EffectsLayer`; constructor errors and ordinary Services remain precise. An empty
 record supplies an empty Layer. Mixed host contracts have no aggregate: provide
@@ -116,7 +116,7 @@ different file uses it. A helper shared across owners uses the general
 
 ## Bind a child
 
-`bindChild` describes one relationship. Adding the Binding to
+`makeBinding` describes one relationship. Adding the Binding to
 `bindings` registers it. Binding construction alone does not route
 Messages, collect lifecycle entries, or contribute handler recipes.
 
@@ -149,7 +149,7 @@ Add `presentWhen` only when parent policy gates an entire direct child. A direct
 `Option` field is absent while it is `None`; folds and operations do not create
 it. Use `subscriptions.when` only for Stream activation.
 
-`bindChild` derives child delivery from the completed child Block. Do not add a
+`makeBinding` derives child delivery from the completed child Block. Do not add a
 child wrapper variant to the parent's authored Message or write message
 mappers. The generated envelope records the Binding placement, keyed occurrence
 when present, and runtime generation. The Composition routes it only to that
@@ -164,7 +164,7 @@ Message variants. A child whose Message Schema is `Schema.Never` needs no
 delivery policy.
 
 ```ts
-export const SettingsBinding = ProfileDefinition.bindChild(SettingsBlock, {
+export const SettingsBinding = ProfileDefinition.makeBinding(SettingsBlock, {
   field: 'settings',
 }).withOutMessagePolicy({ fold: foldSettingsOutMessage })
 
@@ -188,7 +188,7 @@ update owns the transition. Render through
 ## OutMessages and sibling policy
 
 Inline an ordinary unkeyed fold as
-`bindChild(WholeChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(WholeChildBlock, handlers) })`.
+`makeBinding(WholeChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(WholeChildBlock, handlers) })`.
 Pass the completed child explicitly to `makeOutMessageFold` whether the fold is
 inline, extracted, adapted for keyed policy, or staged for reciprocal
 composition. Keep substantial transition helpers beside their fold. Name every variant directly
@@ -216,7 +216,7 @@ Local handling still runs for a forwarded variant, and a derived parent
 OutMessage takes precedence for that dispatch.
 
 Select the callable `fold` and `forward` through
-`bindChild(...).withOutMessagePolicy({ fold?, forward? })`. The returned value is
+`makeBinding(...).withOutMessagePolicy({ fold?, forward? })`. The returned value is
 the full Binding to register and use. Keep an ordinary one-way policy fluent.
 When a fold calls an operation on the same Binding, or two policies call each
 other's Binding operations, declare the original `FooBinding` values first.
@@ -242,7 +242,7 @@ exposes only the child transition's direct channels. The Composition resolves
 registered OutMessage policy and sibling operations into the final parent
 Command Message, requirements, and OutMessage channels. Derive exported parent
 contracts from the Composition-authored update or completed Block. A
-Definition-owned `step` preserves or wraps the connected value. A completed operation is
+Definition-owned `makeStep` preserves or wraps the connected value. A completed operation is
 a checked raw-Model executor that dispatches its produced Message through update
 under its own graph and returns a readable result. Its return contract uses the
 update function's complete Command requirements and OutMessage type. Calling a
@@ -312,7 +312,7 @@ commands? })` for custom storage or dynamic
 creation. It returns a passive, noncallable recipe that retains the arguments,
 mapping, key, and optional parent Commands. Return the recipe directly from the
 owning Composition's `makeInit` or `makeUpdate`, or preserve it through the
-parent's owned `step` producer. The Composition callbacks interpret it
+parent's owned `makeStep` producer. The Composition callbacks interpret it
 directly; a completed operation may dispatch a Message whose update
 branch returns the recipe. The recipe has no `.model` or `.commands` fields. The compiler checks the key, arguments,
 complete parent Model, requirements, and exact Binding requirement. During

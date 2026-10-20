@@ -19,7 +19,7 @@ const ChildDefinition = makeDefinition('BindingMatcherChild', {
   Message,
 })
 
-const Work = ChildDefinition.command('Work', {
+const Work = ChildDefinition.makeCommand('Work', {
   args: {
     entryId: Schema.String,
     version: Schema.Number,
@@ -53,13 +53,13 @@ const ParentDefinition = makeDefinition('BindingMatcherParent', {
   Message: Schema.Never,
 })
 
-const LeftBinding = ParentDefinition.bindChild(ChildBlock, {
+const LeftBinding = ParentDefinition.makeBinding(ChildBlock, {
   placement: 'Left',
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
 })
 
-const RightBinding = ParentDefinition.bindChild(ChildBlock, {
+const RightBinding = ParentDefinition.makeBinding(ChildBlock, {
   placement: 'Right',
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,

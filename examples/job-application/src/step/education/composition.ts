@@ -7,12 +7,12 @@ import { EducationEntryBlock } from './entry'
 const foldEntryOutMessage = (entryId: string) =>
   EducationDefinition.makeOutMessageFold(EducationEntryBlock, {
     Removed: () =>
-      EducationDefinition.stepFields(() => ({
+      EducationDefinition.makeFieldsStep(() => ({
         entries: Array.filter(entry => entry.id !== entryId),
       })),
   })
 
-export const EntriesBinding = EducationDefinition.bindChild(
+export const EntriesBinding = EducationDefinition.makeBinding(
   EducationEntryBlock,
   {
     field: 'entries',

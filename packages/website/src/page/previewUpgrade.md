@@ -62,6 +62,25 @@ Canonical routing Messages can be passed directly when their payloads are `{ req
 
 ::Snippet{name="serverRenderingBlockServerEntry" label="Rendering the completed root Block"}
 
+## Rename Definition Authoring Factories
+
+Definition-owned factories now use the same `make*` naming as `makeInit`, `makeUpdate`, and `makeView`. Replace each removed name:
+
+| Previous preview                   | Current API                            |
+| ---------------------------------- | -------------------------------------- |
+| `Definition.command(...)`          | `Definition.makeCommand(...)`          |
+| `Definition.mount(...)`            | `Definition.makeMount(...)`            |
+| `Definition.mountStream(...)`      | `Definition.makeMountStream(...)`      |
+| `Definition.resource(...)`         | `Definition.makeResource(...)`         |
+| `Definition.subscriptions(...)`    | `Definition.makeSubscriptions(...)`    |
+| `Definition.managedResources(...)` | `Definition.makeManagedResources(...)` |
+| `Definition.bindChild(...)`        | `Definition.makeBinding(...)`          |
+| `Definition.step(...)`             | `Definition.makeStep(...)`             |
+| `Definition.stepFields(...)`       | `Definition.makeFieldsStep(...)`       |
+| `Definition.stepNoop()`            | `Definition.makeNoopStep()`            |
+
+Apply the primitive factory renames to an early Namespace used by a generic Block factory as well. `Definition.makeCommandsStep(...)` already has its final name. Keep completion fields such as `subscriptions` and `managedResources`, completed Block metadata, and standalone Command and Update APIs unchanged. The removed factory names have no compatibility aliases.
+
 ## Rename Step Composition
 
 Replace `Update.combine` with `Update.combineSteps` in both data-first and data-last calls. The helper applies pure Steps sequentially to the Model and collects their Commands; it does not sequence Command execution. Its arguments, inferred requirements, and registration checks are unchanged. See [Combining Steps](/core/update#combining-steps).
@@ -92,20 +111,21 @@ The helper handles a freshly shown, non-sticky entry whose first enter and auto-
 
 Search first, then change only the code the project contains:
 
+- Replace every removed Definition or Namespace factory name using the table above. Do not rename completion config fields, completed Block metadata, or standalone Command and Update APIs.
 - Replace remaining `makeApplicationDefinition`, `assembleApplication`, and `assembleElement` uses with the completed root Block and Program boundary above.
 - Update each server render whose first argument is an Application Composition or whose host config repeats `init`, `update`, or `view`.
 - Replace Animation `viewInputs.content` with a top-level `toView` renderer.
 - Replace `Animation.defaultLeaveCommand` and its Model read or `liftCommand` wiring with the bound `requestWaitForLeaveSettlement()` operation. Preserve custom leave Commands that also watch movement or another completion signal.
 - Replace module-level `Toast.test` calls with the completed Toast Block's fixture and exact Binding.
-- Move every child OutMessage policy out of the `bindChild` config and select it with `.withOutMessagePolicy({ fold?, forward? })`. Build every callable fold with `ParentDefinition.makeOutMessageFold(ChildBlock, handlers)`, including inline folds. The forwarding API is unchanged. For self-referential or reciprocal policy, name the ordinary Bindings first, author the helpers against those values, then select and register `<Child>BindingWithOutMessagePolicy`. No raw child matcher or return annotation is needed.
-- Run typechecking against every `makeInit` plan and connected Binding Step. An ordinary Step must return an update result. Preserve a deferred connected operation through the owning Definition's `step`, and execute it only inside the Composition that registered its Binding. The stronger checks also retain Command requirements from combined initialization Steps.
+- Move every child OutMessage policy out of the previous preview's `bindChild` config, rename that factory to `makeBinding`, and select the policy with `.withOutMessagePolicy({ fold?, forward? })`. Build every callable fold with `ParentDefinition.makeOutMessageFold(ChildBlock, handlers)`, including inline folds. The forwarding API is unchanged. For self-referential or reciprocal policy, name the ordinary Bindings first, author the helpers against those values, then select and register `<Child>BindingWithOutMessagePolicy`. No raw child matcher or return annotation is needed.
+- Run typechecking against every `makeInit` plan and connected Binding Step. An ordinary Step must return an update result. Preserve a deferred connected operation through the owning Definition's `makeStep`, and execute it only inside the Composition that registered its Binding. The stronger checks also retain Command requirements from combined initialization Steps.
 - Keep callbacks at the top level of `viewInputs`. A callback nested in a record, array, tuple, union, or `Option` is rejected because its dispatch boundary is ambiguous. Return callback-bearing Html from a top-level renderer such as `toView` instead.
 
 Run the project's formatter, typecheck, lint, tests, and build after these edits. Treat each reported site as evidence. Do not mechanically rewrite every Binding or OutMessage policy.
 
 ## Optional Convenience
 
-Use `Definition.makeCommandsStep(commands)` for a composed Step whose only job is returning an existing Command collection. It preserves the Model and keeps Command requirements and Binding evidence. Keep `Definition.step` when the Commands depend on the current Model or the transition also changes fields or emits an OutMessage. Ordinary update branches can keep returning their result objects directly.
+Use `Definition.makeCommandsStep(commands)` for a composed Step whose only job is returning an existing Command collection. It preserves the Model and keeps Command requirements and Binding evidence. Keep `Definition.makeStep` when the Commands depend on the current Model or the transition also changes fields or emits an OutMessage. Ordinary update branches can keep returning their result objects directly.
 
 These conveniences can shorten current code; they are optional when upgrading.
 

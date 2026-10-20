@@ -20,7 +20,7 @@ const Message = defineMessageUnion({
 
 const SearchDefinition = Block.makeDefinition('Search', { Model, Message })
 
-const subscriptions = SearchDefinition.subscriptions(entry => ({
+const subscriptions = SearchDefinition.makeSubscriptions(entry => ({
   keyBindings: entry(
     'KeyBindings',
     { searchState: SearchState },

@@ -82,7 +82,7 @@ export const DeclarationOptionalWrappedKeyedParentDefinition =
   })
 
 export const RoomBinding =
-  DeclarationOptionalWrappedKeyedParentDefinition.bindChild(RoomBlock, {
+  DeclarationOptionalWrappedKeyedParentDefinition.makeBinding(RoomBlock, {
     field: 'maybeRoomInstance',
     key: 'roomId',
     childField: 'model',
@@ -98,7 +98,7 @@ export const RoomBinding =
     },
   })
 export const LiteralRoomBinding =
-  DeclarationOptionalWrappedKeyedParentDefinition.bindChild(PlainRoomBlock, {
+  DeclarationOptionalWrappedKeyedParentDefinition.makeBinding(PlainRoomBlock, {
     field: 'maybeLiteralRoomInstance',
     key: 'roomId',
     childField: 'model',
@@ -141,7 +141,7 @@ export const makePayloadParent = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       Message: ParentMessage,
     })
   const Binding =
-    DeclarationOptionalWrappedKeyedPayloadParentDefinition.bindChild(
+    DeclarationOptionalWrappedKeyedPayloadParentDefinition.makeBinding(
       RoomBlock,
       {
         field: 'maybeRoomInstance',

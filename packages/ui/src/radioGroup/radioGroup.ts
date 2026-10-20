@@ -113,7 +113,7 @@ const descriptionId = (id: string, index: number): string =>
   `${id}-option-${index}-description`
 
 /** Moves focus to the option at the given index. */
-export const FocusOption = RadioGroupNamespace.command('FocusOption', {
+export const FocusOption = RadioGroupNamespace.makeCommand('FocusOption', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedFocusOption],
   handler: function* () {

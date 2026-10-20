@@ -22,12 +22,15 @@ Keep the initial state transition and Command with the child that owns them. The
 For example, the website's API Reference and Example Detail Bindings select their prerendered inputs in the root Composition:
 
 ```ts
-const ApiReferenceBinding = ApplicationDefinition.bindChild(ApiReferenceBlock, {
-  field: 'apiReference',
-  init: { contextToArgs: ({ maybeApiData }) => [maybeApiData] },
-})
+const ApiReferenceBinding = ApplicationDefinition.makeBinding(
+  ApiReferenceBlock,
+  {
+    field: 'apiReference',
+    init: { contextToArgs: ({ maybeApiData }) => [maybeApiData] },
+  },
+)
 
-const ExampleDetailBinding = ApplicationDefinition.bindChild(
+const ExampleDetailBinding = ApplicationDefinition.makeBinding(
   ExampleDetailBlock,
   {
     field: 'exampleDetail',
@@ -109,12 +112,15 @@ Then declare the child inputs with the Binding in composition.ts. The Definition
 ```ts
 import { ApplicationDefinition } from './definition'
 import { SettingsBlock } from './settings'
-export const SettingsBinding = ApplicationDefinition.bindChild(SettingsBlock, {
-  field: 'settings',
-  init: {
-    contextToArgs: flags => [{ theme: flags.savedTheme }],
+export const SettingsBinding = ApplicationDefinition.makeBinding(
+  SettingsBlock,
+  {
+    field: 'settings',
+    init: {
+      contextToArgs: flags => [{ theme: flags.savedTheme }],
+    },
   },
-})
+)
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [SettingsBinding],
 })
@@ -145,15 +151,18 @@ import { modifyFields } from 'foldkit/struct'
 import { ApplicationDefinition } from './definition'
 import { SettingsBlock } from './settings'
 
-export const SettingsBinding = ApplicationDefinition.bindChild(SettingsBlock, {
-  read: model => Option.some(model.settings),
-  write: (model, nextSettings) =>
-    modifyFields(model, { settings: () => nextSettings }),
-  init: {
-    contextToArgs: flags => [{ theme: flags.savedTheme }],
-    toParentFields: settings => ({ settings }),
+export const SettingsBinding = ApplicationDefinition.makeBinding(
+  SettingsBlock,
+  {
+    read: model => Option.some(model.settings),
+    write: (model, nextSettings) =>
+      modifyFields(model, { settings: () => nextSettings }),
+    init: {
+      contextToArgs: flags => [{ theme: flags.savedTheme }],
+      toParentFields: settings => ({ settings }),
+    },
   },
-})
+)
 ```
 
 `toParentFields` must return exactly one declared, required parent Struct field whose decoded type matches the child Model. It cannot initialize an `Option` field or an optional property. Use the direct optional selector form when startup policy decides optional presence.
@@ -165,7 +174,7 @@ The final Model determines active occurrences. Init Commands for children absent
 When a child initializer takes no arguments, a required direct field needs no `init` property:
 
 ```ts
-const SearchBinding = ApplicationDefinition.bindChild(SearchBlock, {
+const SearchBinding = ApplicationDefinition.makeBinding(SearchBlock, {
   field: 'search',
 })
 ```
@@ -183,7 +192,7 @@ import { Array } from 'effect'
 import { ApplicationDefinition } from './definition'
 import { CounterBlock } from './counter'
 const INITIAL_COUNTER_COUNT = 3
-const CountersBinding = ApplicationDefinition.bindChild(CounterBlock, {
+const CountersBinding = ApplicationDefinition.makeBinding(CounterBlock, {
   field: 'counters',
   key: 'id',
   childField: 'counter',

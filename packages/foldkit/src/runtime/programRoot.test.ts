@@ -186,7 +186,7 @@ describe('completed root Block hosting', () => {
       Model,
       Message,
     })
-    const ReadValue = ProgramRootDefinition.command('ReadValue', {
+    const ReadValue = ProgramRootDefinition.makeCommand('ReadValue', {
       messages: [Message.CompletedReadValue],
       handler: function* () {
         const source = yield* RootSource

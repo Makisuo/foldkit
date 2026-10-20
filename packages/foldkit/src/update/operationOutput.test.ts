@@ -50,8 +50,8 @@ describe('Step output validation', () => {
   })
 
   it('executes an intentionally deferred Definition Step once', () => {
-    const deferred = CounterDefinition.step(() => increment)
-    const combined = CounterDefinition.step(() =>
+    const deferred = CounterDefinition.makeStep(() => increment)
+    const combined = CounterDefinition.makeStep(() =>
       Update.combineSteps([increment, increment]),
     )
 

@@ -45,23 +45,26 @@ const foldSecondToastOutMessage =
     DismissedToast: () => model => ({ model }),
   })
 
-const LeftToastBinding = ToastFixtureParentDefinition.bindChild(FirstToast, {
+const LeftToastBinding = ToastFixtureParentDefinition.makeBinding(FirstToast, {
   placement: 'LeftToast',
   read: model => Option.some(model.left),
   write: (model, left) => ({ ...model, left }),
 }).withOutMessagePolicy({ fold: foldFirstToastOutMessage })
 
-const RightToastBinding = ToastFixtureParentDefinition.bindChild(FirstToast, {
+const RightToastBinding = ToastFixtureParentDefinition.makeBinding(FirstToast, {
   placement: 'RightToast',
   read: model => Option.some(model.right),
   write: (model, right) => ({ ...model, right }),
 }).withOutMessagePolicy({ fold: foldFirstToastOutMessage })
 
-const OtherToastBinding = ToastFixtureParentDefinition.bindChild(SecondToast, {
-  placement: 'OtherToast',
-  read: model => Option.some(model.other),
-  write: (model, other) => ({ ...model, other }),
-}).withOutMessagePolicy({ fold: foldSecondToastOutMessage })
+const OtherToastBinding = ToastFixtureParentDefinition.makeBinding(
+  SecondToast,
+  {
+    placement: 'OtherToast',
+    read: model => Option.some(model.other),
+    write: (model, other) => ({ ...model, other }),
+  },
+).withOutMessagePolicy({ fold: foldSecondToastOutMessage })
 
 const ToastFixtureParentComposition =
   ToastFixtureParentDefinition.makeComposition({
@@ -115,7 +118,7 @@ const foldKeyedToastOutMessage =
   KeyedToastFixtureParentDefinition.makeOutMessageFold(FirstToast, {
     DismissedToast: () => model => ({ model }),
   })
-const KeyedToastBinding = KeyedToastFixtureParentDefinition.bindChild(
+const KeyedToastBinding = KeyedToastFixtureParentDefinition.makeBinding(
   FirstToast,
   {
     placement: 'KeyedToast',

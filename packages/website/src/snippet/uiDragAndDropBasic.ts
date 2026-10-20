@@ -40,20 +40,20 @@ const foldDragAndDropOutMessage = SortableListDefinition.makeOutMessageFold(
   DragAndDrop.DragAndDropBlock,
   {
     Reordered: ({ itemId, fromIndex, toIndex }) =>
-      SortableListDefinition.stepFields(() => ({
+      SortableListDefinition.makeFieldsStep(() => ({
         // reorder is your own function that moves the item
         items: items => reorder(items, itemId, fromIndex, toIndex),
       })),
     // The child has emitted `Cancelled`. In this arm the parent can update
     // its own state or dispatch its own Commands, for example revert an
     // optimistic UI change, log analytics, or trigger a downstream Command.
-    Cancelled: SortableListDefinition.stepNoop,
+    Cancelled: SortableListDefinition.makeNoopStep,
   },
 )
 
 // The Binding delegates the child update, writes the next DragAndDrop Model,
 // routes generated delivery, handles OutMessages, and collects Subscriptions.
-const DragAndDropBinding = SortableListDefinition.bindChild(
+const DragAndDropBinding = SortableListDefinition.makeBinding(
   DragAndDrop.DragAndDropBlock,
   {
     field: 'dragAndDrop',

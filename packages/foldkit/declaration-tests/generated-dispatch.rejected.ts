@@ -52,7 +52,7 @@ const ForeignSubscriptionDefinition = Block.makeDefinition(
     Message: ChildMessage,
   },
 )
-const foreignSubscriptions = ForeignSubscriptionDefinition.subscriptions(
+const foreignSubscriptions = ForeignSubscriptionDefinition.makeSubscriptions(
   entry => ({
     observations: entry('Observations', {
       messages: [ChildMessage.ObservedCount],
@@ -145,16 +145,19 @@ const RepeatedDefinition = Block.makeDefinition('Repeated', {
   Model: RepeatedModel,
   Message: RepeatedMessage,
 })
-const HeaderBinding = RepeatedDefinition.bindChild(
+const HeaderBinding = RepeatedDefinition.makeBinding(
   GeneratedDispatchChildBlock,
   {
     field: 'first',
     placement: 'header-search',
   },
 )
-const AliasBinding = RepeatedDefinition.bindChild(GeneratedDispatchChildBlock, {
-  field: 'second',
-  placement: 'headerSearch',
-})
+const AliasBinding = RepeatedDefinition.makeBinding(
+  GeneratedDispatchChildBlock,
+  {
+    field: 'second',
+    placement: 'headerSearch',
+  },
+)
 // @ts-expect-error Different placements cannot format into the same child delivery tag.
 RepeatedDefinition.makeComposition({ bindings: [HeaderBinding, AliasBinding] })

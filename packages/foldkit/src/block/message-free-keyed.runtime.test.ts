@@ -14,13 +14,13 @@ const Silent = makeDefinition('MessageFreeKeyedRuntimeChild', {
   Model: SilentModel,
   Message: Schema.Never,
 })
-const WaitForever = Silent.command('WaitForever', {
+const WaitForever = Silent.makeCommand('WaitForever', {
   messages: [],
   handler: function* () {
     return () => Effect.never
   },
 })
-const markReady = Silent.step(model => ({
+const markReady = Silent.makeStep(model => ({
   model: modifyFields(model, { ready: () => true }),
   commands: [WaitForever()],
 }))
@@ -59,7 +59,7 @@ const Parent = makeDefinition('MessageFreeKeyedRuntimeParent', {
   Model: ParentModel,
   Message: Schema.Never,
 })
-const SilentBinding = Parent.bindChild(SilentBlock, {
+const SilentBinding = Parent.makeBinding(SilentBlock, {
   readAll: model => model.entries,
   key: entry => entry.id,
   read: entry => entry.child,
@@ -127,7 +127,7 @@ it('keeps local Message-free Steps internal to the child', () => {
 
 it('rejects generated delivery configuration for a Message-free child', () => {
   expect(() =>
-    Reflect.apply(Parent.bindChild, undefined, [
+    Reflect.apply(Parent.makeBinding, undefined, [
       SilentBlock,
       {
         readAll: (model: ParentModel) => model.entries,

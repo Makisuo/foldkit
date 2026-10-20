@@ -17,7 +17,7 @@ const SearchDefinition = makeDefinition('GeneratedDirectSearch', {
   Message: SearchMessage,
   OutMessage: SearchOutMessage,
 })
-const ScheduleIncrement = SearchDefinition.command('ScheduleIncrement', {
+const ScheduleIncrement = SearchDefinition.makeCommand('ScheduleIncrement', {
   messages: [SearchMessage.CompletedScheduleIncrement],
 })
 const SearchComposition = SearchDefinition.makeComposition()
@@ -52,9 +52,9 @@ const ParentDefinition = makeDefinition('GeneratedDirectParent', {
 const foldSearchOutMessage = SearchOutMessage.match<
   Update.Step<ParentModel, ParentMessage>
 >({
-  Incremented: () => ParentDefinition.stepNoop(),
+  Incremented: () => ParentDefinition.makeNoopStep(),
 })
-const SearchBinding = ParentDefinition.bindChild(SearchBlock, {
+const SearchBinding = ParentDefinition.makeBinding(SearchBlock, {
   field: 'search',
 }).withOutMessagePolicy({ fold: foldSearchOutMessage })
 const ParentComposition = ParentDefinition.makeComposition({
@@ -88,7 +88,7 @@ const ContextualSearchBlock = ContextualSearchComposition.assembleBlock({
 })
 
 if (false) {
-  ParentDefinition.bindChild(ContextualSearchBlock, {
+  ParentDefinition.makeBinding(ContextualSearchBlock, {
     // @ts-expect-error Required update context needs an explicit bidirectional mapping.
     field: 'search',
   })

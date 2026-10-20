@@ -32,8 +32,8 @@ ParentDefinition.makeComposition({
 LeftBinding.withOutMessagePolicy({
   // @ts-expect-error The fold policy is callable rather than a case record.
   fold: {
-    Selected: () => ParentDefinition.stepNoop(),
-    Closed: () => ParentDefinition.stepNoop(),
+    Selected: () => ParentDefinition.makeNoopStep(),
+    Closed: () => ParentDefinition.makeNoopStep(),
   },
 })
 
@@ -44,9 +44,9 @@ LeftBinding.withOutMessagePolicy({
       const invalid = liftCommand(ReflectSelection())
       void invalid
 
-      return ParentDefinition.stepNoop()
+      return ParentDefinition.makeNoopStep()
     },
-    Closed: ParentDefinition.stepNoop,
+    Closed: ParentDefinition.makeNoopStep,
   }),
 })
 
@@ -61,13 +61,13 @@ LeftBinding.withOutMessagePolicy({
 
 // @ts-expect-error Every child OutMessage variant requires a named handler.
 ParentDefinition.makeOutMessageFold(ChildBlock, {
-  Selected: () => ParentDefinition.stepNoop(),
+  Selected: () => ParentDefinition.makeNoopStep(),
 })
 
 // @ts-expect-error A fold always requires its explicit child Block contract.
 const unboundFold = ParentDefinition.makeOutMessageFold({
-  Selected: () => ParentDefinition.stepNoop(),
-  Closed: ParentDefinition.stepNoop,
+  Selected: () => ParentDefinition.makeNoopStep(),
+  Closed: ParentDefinition.makeNoopStep,
 })
 void unboundFold
 
@@ -107,9 +107,9 @@ const WidenedChildBlock = WidenedChildComposition.assembleBlock({
 const widenedContextFold = ParentDefinition.makeOutMessageFold(
   WidenedChildBlock,
   {
-    Selected: () => ParentDefinition.stepNoop(),
-    Closed: ParentDefinition.stepNoop,
-    Unexpected: ParentDefinition.stepNoop,
+    Selected: () => ParentDefinition.makeNoopStep(),
+    Closed: ParentDefinition.makeNoopStep,
+    Unexpected: ParentDefinition.makeNoopStep,
   },
 )
 // @ts-expect-error A helper with extra variants does not match the exact child contract.
@@ -169,7 +169,7 @@ const SingleBlock = SingleComposition.assembleBlock({
 })
 // @ts-expect-error Fold helpers require a tagged-union child OutMessage contract.
 ParentDefinition.makeOutMessageFold(SingleBlock, {
-  Closed: ParentDefinition.stepNoop,
+  Closed: ParentDefinition.makeNoopStep,
 })
 
 const NeverDefinition = Block.makeDefinition('PolicySelectionNever', {
@@ -190,22 +190,22 @@ ParentDefinition.makeOutMessageFold(NeverBlock, {})
 LeftBinding.withOutMessagePolicy({
   // @ts-expect-error Every child OutMessage variant is required inline.
   fold: ParentDefinition.makeOutMessageFold(ChildBlock, {
-    Selected: () => ParentDefinition.stepNoop(),
+    Selected: () => ParentDefinition.makeNoopStep(),
   }),
 })
 
 LeftBinding.withOutMessagePolicy({
   fold: ParentDefinition.makeOutMessageFold(ChildBlock, {
-    Selected: () => ParentDefinition.stepNoop(),
-    Closed: ParentDefinition.stepNoop,
+    Selected: () => ParentDefinition.makeNoopStep(),
+    Closed: ParentDefinition.makeNoopStep,
     // @ts-expect-error Undeclared child OutMessage variants are rejected inline.
-    Unexpected: ParentDefinition.stepNoop,
+    Unexpected: ParentDefinition.makeNoopStep,
   }),
 })
 
 LeftBinding.withOutMessagePolicy({
   fold: ParentDefinition.makeOutMessageFold(ChildBlock, {
-    Selected: () => ParentDefinition.stepNoop(),
+    Selected: () => ParentDefinition.makeNoopStep(),
     // @ts-expect-error An inline handler must return a Step instead of never.
     Closed: () => {
       throw new Error('Missing transition')
@@ -234,15 +234,15 @@ ParentDefinition.makeOutMessageFold(ChildBlock, {
     const exactValue: string = value
     void exactValue
 
-    return ParentDefinition.stepNoop()
+    return ParentDefinition.makeNoopStep()
   },
-  Closed: () => ParentDefinition.stepNoop(),
+  Closed: () => ParentDefinition.makeNoopStep(),
 })
 
 ParentDefinition.makeOutMessageFold(ChildBlock, {
   // @ts-expect-error A fold cannot emit a child OutMessage through the parent channel.
   Selected: () => model => ({ model, outMessage: ChildOutMessage.Closed() }),
-  Closed: () => ParentDefinition.stepNoop(),
+  Closed: () => ParentDefinition.makeNoopStep(),
 })
 
 ParentDefinition.makeOutMessageForward(ChildBlock, {
@@ -253,7 +253,7 @@ ParentDefinition.makeOutMessageForward(ChildBlock, {
 
 EntriesBinding.withOutMessagePolicy({
   // @ts-expect-error A keyed fold receives the key decoded by keySchema.
-  fold: (_id: number) => ParentDefinition.stepNoop(),
+  fold: (_id: number) => ParentDefinition.makeNoopStep(),
 })
 
 // @ts-expect-error Selected operations preserve their exact argument list.

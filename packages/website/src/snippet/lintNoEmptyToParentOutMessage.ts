@@ -2,7 +2,7 @@ import { ApplicationDefinition } from './definition'
 import * as Settings from './settings'
 
 // ❌ Bad: this forwarder can never forward an OutMessage.
-const BadSettingsBinding = ApplicationDefinition.bindChild(
+const BadSettingsBinding = ApplicationDefinition.makeBinding(
   Settings.SettingsBlock,
   {
     field: 'settings',
@@ -13,7 +13,7 @@ const BadSettingsBinding = ApplicationDefinition.bindChild(
 })
 
 // ✅ Good: omit `forward` when every child OutMessage stops here.
-const SettingsBinding = ApplicationDefinition.bindChild(
+const SettingsBinding = ApplicationDefinition.makeBinding(
   Settings.SettingsBlock,
   {
     field: 'settings',

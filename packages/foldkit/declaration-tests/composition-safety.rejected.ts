@@ -21,15 +21,15 @@ declare const useSecondField: boolean
 
 // @ts-expect-error An accessor init projection must always supply one stable parent Model field.
 // oxfmt-ignore
-CompositionSafetyParentDefinition.bindChild(PlainBlock, { placement: 'unstableProjected', read: model => Option.some(model.first), write: (model, nextChild) => Struct.modifyFields(model, { first: () => nextChild }), init: { contextToArgs: () => [], toParentFields: child => useSecondField ? { second: child } : { first: child } } })
+CompositionSafetyParentDefinition.makeBinding(PlainBlock, { placement: 'unstableProjected', read: model => Option.some(model.first), write: (model, nextChild) => Struct.modifyFields(model, { first: () => nextChild }), init: { contextToArgs: () => [], toParentFields: child => useSecondField ? { second: child } : { first: child } } })
 
 // @ts-expect-error An optional update context still requires an explicit delivery context mapper.
 // oxfmt-ignore
-CompositionSafetyParentDefinition.bindChild(OptionalContextBlock, { field: 'optionalContext' })
+CompositionSafetyParentDefinition.makeBinding(OptionalContextBlock, { field: 'optionalContext' })
 
 // @ts-expect-error A required rest update context requires an explicit delivery context mapper.
 // oxfmt-ignore
-CompositionSafetyParentDefinition.bindChild(RestContextBlock, { field: 'restContext' })
+CompositionSafetyParentDefinition.makeBinding(RestContextBlock, { field: 'restContext' })
 
 // @ts-expect-error A connected Binding initializer requires its parent configuration.
 PlainBinding.init()

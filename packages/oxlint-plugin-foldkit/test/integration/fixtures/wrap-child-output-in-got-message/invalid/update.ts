@@ -22,7 +22,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-export const InlineChildBinding = ApplicationDefinition.bindChild(InlineChildDefinition, {read: (model: Model) => Option.some(model.child),
+export const InlineChildBinding = ApplicationDefinition.makeBinding(InlineChildDefinition, {read: (model: Model) => Option.some(model.child),
 write: (model, child) => modifyFields(model, { child: () => child }),
 toParentMessage: message => ForwardedChildMessage({ message })})
 

@@ -42,20 +42,23 @@ export const GeneratedDispatchChildDefinition = Block.makeDefinition(
   'GeneratedDispatchChild',
   { Model: ChildModel, Message: ChildMessage },
 )
-export const ReadCount = GeneratedDispatchChildDefinition.command('ReadCount', {
-  messages: [ChildMessage.CompletedReadCount],
-  handler: function* () {
-    const store = yield* CountStore
-    yield* store.prepare
+export const ReadCount = GeneratedDispatchChildDefinition.makeCommand(
+  'ReadCount',
+  {
+    messages: [ChildMessage.CompletedReadCount],
+    handler: function* () {
+      const store = yield* CountStore
+      yield* store.prepare
 
-    return () =>
-      store.read.pipe(
-        Effect.map(count => ChildMessage.CompletedReadCount({ count })),
-      )
+      return () =>
+        store.read.pipe(
+          Effect.map(count => ChildMessage.CompletedReadCount({ count })),
+        )
+    },
   },
-})
+)
 export const childSubscriptions =
-  GeneratedDispatchChildDefinition.subscriptions(entry => ({
+  GeneratedDispatchChildDefinition.makeSubscriptions(entry => ({
     observations: entry('Observations', {
       messages: [ChildMessage.ObservedCount],
       handler: function* () {
@@ -125,7 +128,7 @@ export const GeneratedDispatchParentDefinition = Block.makeDefinition(
   'GeneratedDispatchParent',
   { Model: ParentModel, Message: ParentMessage },
 )
-export const ChildBinding = GeneratedDispatchParentDefinition.bindChild(
+export const ChildBinding = GeneratedDispatchParentDefinition.makeBinding(
   GeneratedDispatchChildBlock,
   { field: 'child' },
 )
@@ -196,7 +199,7 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-export const ParentBinding = ApplicationDefinition.bindChild(
+export const ParentBinding = ApplicationDefinition.makeBinding(
   GeneratedDispatchParentBlock,
   { field: 'parent' },
 )

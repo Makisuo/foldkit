@@ -234,15 +234,18 @@ type HandlerReturn<Model> = Readonly<{
 }>
 
 /** Prevents page scrolling while the listbox is open in modal mode. */
-export const LockListboxScroll = ListboxNamespace.command('LockListboxScroll', {
-  messages: [Message.CompletedLockListboxScroll],
-  handler: function* () {
-    return () =>
-      Dom.lockScroll.pipe(Effect.as(Message.CompletedLockListboxScroll()))
+export const LockListboxScroll = ListboxNamespace.makeCommand(
+  'LockListboxScroll',
+  {
+    messages: [Message.CompletedLockListboxScroll],
+    handler: function* () {
+      return () =>
+        Dom.lockScroll.pipe(Effect.as(Message.CompletedLockListboxScroll()))
+    },
   },
-})
+)
 /** Re-enables page scrolling after the listbox closes. */
-export const UnlockListboxScroll = ListboxNamespace.command(
+export const UnlockListboxScroll = ListboxNamespace.makeCommand(
   'UnlockListboxScroll',
   {
     messages: [Message.CompletedUnlockListboxScroll],
@@ -253,7 +256,7 @@ export const UnlockListboxScroll = ListboxNamespace.command(
   },
 )
 /** Marks all elements outside the listbox as inert for modal behavior. */
-export const InertListboxOthers = ListboxNamespace.command(
+export const InertListboxOthers = ListboxNamespace.makeCommand(
   'InertListboxOthers',
   {
     args: { id: Schema.String },
@@ -267,7 +270,7 @@ export const InertListboxOthers = ListboxNamespace.command(
   },
 )
 /** Removes the inert attribute from elements outside the listbox. */
-export const RestoreListboxInert = ListboxNamespace.command(
+export const RestoreListboxInert = ListboxNamespace.makeCommand(
   'RestoreListboxInert',
   {
     args: { id: Schema.String },
@@ -281,7 +284,7 @@ export const RestoreListboxInert = ListboxNamespace.command(
   },
 )
 /** Moves focus back to the listbox button after closing. */
-export const FocusListboxButton = ListboxNamespace.command(
+export const FocusListboxButton = ListboxNamespace.makeCommand(
   'FocusListboxButton',
   {
     args: { id: Schema.String },
@@ -296,19 +299,22 @@ export const FocusListboxButton = ListboxNamespace.command(
   },
 )
 /** Moves focus to the listbox items container after opening. */
-export const FocusListboxItems = ListboxNamespace.command('FocusListboxItems', {
-  args: { id: Schema.String },
-  messages: [Message.CompletedFocusListboxItems],
-  handler: function* () {
-    return ({ id }) =>
-      Dom.focus(itemsSelector(id)).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedFocusListboxItems()),
-      )
+export const FocusListboxItems = ListboxNamespace.makeCommand(
+  'FocusListboxItems',
+  {
+    args: { id: Schema.String },
+    messages: [Message.CompletedFocusListboxItems],
+    handler: function* () {
+      return ({ id }) =>
+        Dom.focus(itemsSelector(id)).pipe(
+          Effect.ignore,
+          Effect.as(Message.CompletedFocusListboxItems()),
+        )
+    },
   },
-})
+)
 /** Scrolls the active listbox item into view after keyboard navigation. */
-export const ScrollListboxItemIntoView = ListboxNamespace.command(
+export const ScrollListboxItemIntoView = ListboxNamespace.makeCommand(
   'ScrollListboxItemIntoView',
   {
     args: { id: Schema.String, index: Schema.Number },
@@ -323,19 +329,22 @@ export const ScrollListboxItemIntoView = ListboxNamespace.command(
   },
 )
 /** Programmatically clicks the active listbox item's DOM element. */
-export const ClickListboxItem = ListboxNamespace.command('ClickListboxItem', {
-  args: { id: Schema.String, index: Schema.Number },
-  messages: [Message.CompletedClickListboxItem],
-  handler: function* () {
-    return ({ id, index }) =>
-      Dom.clickElement(itemSelector(id, index)).pipe(
-        Effect.ignore,
-        Effect.as(Message.CompletedClickListboxItem()),
-      )
+export const ClickListboxItem = ListboxNamespace.makeCommand(
+  'ClickListboxItem',
+  {
+    args: { id: Schema.String, index: Schema.Number },
+    messages: [Message.CompletedClickListboxItem],
+    handler: function* () {
+      return ({ id, index }) =>
+        Dom.clickElement(itemSelector(id, index)).pipe(
+          Effect.ignore,
+          Effect.as(Message.CompletedClickListboxItem()),
+        )
+    },
   },
-})
+)
 /** Waits for the typeahead search debounce period before clearing the query. */
-export const DelayClearListboxSearch = ListboxNamespace.command(
+export const DelayClearListboxSearch = ListboxNamespace.makeCommand(
   'DelayClearListboxSearch',
   {
     args: { version: Schema.Number },
@@ -349,7 +358,7 @@ export const DelayClearListboxSearch = ListboxNamespace.command(
   },
 )
 /** Detects whether the listbox button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation block that leave is complete. */
-export const DetectListboxMovementOrAnimationEnd = ListboxNamespace.command(
+export const DetectListboxMovementOrAnimationEnd = ListboxNamespace.makeCommand(
   'DetectListboxMovementOrAnimationEnd',
   {
     args: { id: Schema.String, generation: Schema.Number },
@@ -676,7 +685,7 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
  *  Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AnchorListbox, CompletedAnchorListbox())`.
  */
-export const AnchorListbox = ListboxNamespace.mount('AnchorListbox', {
+export const AnchorListbox = ListboxNamespace.makeMount('AnchorListbox', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorListbox],
   handler: function* () {
@@ -700,7 +709,7 @@ export const AnchorListbox = ListboxNamespace.mount('AnchorListbox', {
 /** The backdrop-portaling Mount this Listbox renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalListboxBackdrop, CompletedPortalListboxBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalListboxBackdrop = ListboxNamespace.mount(
+export const PortalListboxBackdrop = ListboxNamespace.makeMount(
   'PortalListboxBackdrop',
   {
     messages: [Message.CompletedPortalListboxBackdrop],

@@ -51,11 +51,11 @@ export type InitConfig = BaseInitConfig
  *  Closing never emits `ClearedSelection` because its input rests empty by
  *  design. Clear the selection by toggling each value off. */
 const defaultUpdate = makeUpdate(
-  ComboboxDefinition.bindChild,
+  ComboboxDefinition.makeBinding,
   ComboboxDefinition.makeOutMessageFold,
-  ComboboxDefinition.step,
-  ComboboxDefinition.stepFields,
-  ComboboxDefinition.stepNoop,
+  ComboboxDefinition.makeStep,
+  ComboboxDefinition.makeFieldsStep,
+  ComboboxDefinition.makeNoopStep,
   'KeepOpen',
   {
     handleClose: model => ({
@@ -79,7 +79,7 @@ const ComboboxComposition = ComboboxDefinition.makeComposition({
   bindings: [defaultUpdate.AnimationBinding],
 })
 
-const authoredUpdate = ComboboxDefinition.step(
+const authoredUpdate = ComboboxDefinition.makeStep(
   (model, message: Parameters<typeof defaultUpdate.update>[1]) =>
     defaultUpdate.update(model, message),
 )
@@ -123,11 +123,11 @@ const makeBlockParts = <Item extends string, ItemEncoded>(
     OutMessage: ItemOutMessage,
   })
   const itemUpdate = makeUpdate(
-    ComboboxDefinition.bindChild,
+    ComboboxDefinition.makeBinding,
     ComboboxDefinition.makeOutMessageFold,
-    ComboboxDefinition.step,
-    ComboboxDefinition.stepFields,
-    ComboboxDefinition.stepNoop,
+    ComboboxDefinition.makeStep,
+    ComboboxDefinition.makeFieldsStep,
+    ComboboxDefinition.makeNoopStep,
     'KeepOpen',
     {
       handleClose: model => ({
@@ -147,7 +147,7 @@ const makeBlockParts = <Item extends string, ItemEncoded>(
     mounts,
     bindings: [itemUpdate.AnimationBinding],
   })
-  const authoredUpdate = ComboboxDefinition.step(
+  const authoredUpdate = ComboboxDefinition.makeStep(
     (model, message: Parameters<typeof itemUpdate.update>[1]) =>
       itemUpdate.update(model, message),
   )

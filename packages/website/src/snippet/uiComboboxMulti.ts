@@ -27,17 +27,17 @@ const foldComboboxMultiOutMessage = CitiesPickerDefinition.makeOutMessageFold(
   CitiesCombobox,
   {
     Selected: ({ value }) =>
-      CitiesPickerDefinition.stepFields(() => ({
+      CitiesPickerDefinition.makeFieldsStep(() => ({
         selectedCities: selectedCities =>
           Array.contains(selectedCities, value)
             ? Array.filter(selectedCities, city => city !== value)
             : Array.append(selectedCities, value),
       })),
-    ClearedSelection: CitiesPickerDefinition.stepNoop,
+    ClearedSelection: CitiesPickerDefinition.makeNoopStep,
   },
 )
 
-const ComboboxBinding = CitiesPickerDefinition.bindChild(CitiesCombobox, {
+const ComboboxBinding = CitiesPickerDefinition.makeBinding(CitiesCombobox, {
   field: 'comboboxMulti',
   init: { contextToArgs: () => Tuple.make({ id: 'cities-multi' }) },
 }).withOutMessagePolicy({ fold: foldComboboxMultiOutMessage })

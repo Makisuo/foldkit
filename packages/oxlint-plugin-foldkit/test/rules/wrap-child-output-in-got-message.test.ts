@@ -250,7 +250,7 @@ it('checks the Message wrapper in a completed Block binding', () => {
     {
       type: 'MemberExpression',
       object: Testing.id('Application'),
-      property: Testing.id('bindChild'),
+      property: Testing.id('makeBinding'),
       computed: false,
     },
     [
@@ -277,7 +277,7 @@ const directConnectionCall = (constructorName: string) =>
     {
       type: 'MemberExpression',
       object: Testing.id('Application'),
-      property: Testing.id('bindChild'),
+      property: Testing.id('makeBinding'),
       computed: false,
     },
     [
@@ -307,7 +307,7 @@ it('allows a generated-delivery Binding without a parent wrapper', () => {
     {
       type: 'MemberExpression',
       object: Testing.id('Application'),
-      property: Testing.id('bindChild'),
+      property: Testing.id('makeBinding'),
       computed: false,
     },
     [

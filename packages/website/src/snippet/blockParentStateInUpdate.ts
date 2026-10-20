@@ -54,7 +54,7 @@ const ProfileDefinition = Block.makeDefinition('Profile', {
   Message: ProfileMessage,
 })
 
-export const AccountSettingsBinding = ProfileDefinition.bindChild(
+export const AccountSettingsBinding = ProfileDefinition.makeBinding(
   AccountSettingsBlock,
   {
     field: 'accountSettings',

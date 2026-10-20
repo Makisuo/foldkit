@@ -10,9 +10,10 @@ import * as VideoCall from './videoCall'
 const SIGNALING_URL = 'wss://example.com/call/signaling'
 
 const CallDefinition = Block.makeDefinition('Call', { Model, Message })
-const SignalingSocket = CallDefinition.resource<WebSocket>()('SignalingSocket')
+const SignalingSocket =
+  CallDefinition.makeResource<WebSocket>()('SignalingSocket')
 
-const VideoCallBinding = CallDefinition.bindChild(VideoCall.VideoCallBlock, {
+const VideoCallBinding = CallDefinition.makeBinding(VideoCall.VideoCallBlock, {
   field: 'videoCall',
 })
 
@@ -20,7 +21,7 @@ const CallComposition = CallDefinition.makeComposition({
   bindings: [VideoCallBinding],
 })
 
-export const managedResources = CallDefinition.managedResources(entry => ({
+export const managedResources = CallDefinition.makeManagedResources(entry => ({
   signalingSocket: entry('ManageSignalingSocket', Schema.Option(Schema.Null), {
     resource: SignalingSocket,
     modelToMaybeRequirements: model => Option.as(model.videoCall, null),

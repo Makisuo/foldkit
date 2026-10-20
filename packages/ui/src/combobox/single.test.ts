@@ -87,7 +87,7 @@ const foldFruitComboboxOutMessage =
     ClearedSelection: () => model => ({ model }),
   })
 
-const FruitComboboxBinding = FruitComboboxTestDefinition.bindChild(
+const FruitComboboxBinding = FruitComboboxTestDefinition.makeBinding(
   FruitCombobox,
   {
     field: 'combobox',

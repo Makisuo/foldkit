@@ -116,44 +116,50 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
   /** Waits for an entry's auto-dismiss duration, then emits a versioned
    *  `CompletedWaitBeforeDismissal` Message so update can ignore stale timers. */
-  const WaitBeforeDismissal = ToastDefinition.command('WaitBeforeDismissal', {
-    args: {
-      entryId: Schema.String,
-      version: Schema.Number,
-      duration: Schema.DurationFromMillis,
-    },
-    messages: [MessageSchema.CompletedWaitBeforeDismissal],
-    handler: function* () {
-      return ({ entryId, version, duration }) =>
-        Effect.gen(function* () {
-          yield* Effect.sleep(duration)
-          return MessageSchema.CompletedWaitBeforeDismissal({
-            entryId,
-            version,
+  const WaitBeforeDismissal = ToastDefinition.makeCommand(
+    'WaitBeforeDismissal',
+    {
+      args: {
+        entryId: Schema.String,
+        version: Schema.Number,
+        duration: Schema.DurationFromMillis,
+      },
+      messages: [MessageSchema.CompletedWaitBeforeDismissal],
+      handler: function* () {
+        return ({ entryId, version, duration }) =>
+          Effect.gen(function* () {
+            yield* Effect.sleep(duration)
+            return MessageSchema.CompletedWaitBeforeDismissal({
+              entryId,
+              version,
+            })
           })
-        })
+      },
     },
-  })
+  )
 
   /** Waits for a short or cancelled swipe to animate back, then emits
    *  `CompletedWaitForSwipeSettled` so update can clear `Settling`. */
-  const WaitForSwipeSettled = ToastDefinition.command('WaitForSwipeSettled', {
-    args: {
-      entryId: Schema.String,
-      version: Schema.Number,
-    },
-    messages: [MessageSchema.CompletedWaitForSwipeSettled],
-    handler: function* () {
-      return ({ entryId, version }) =>
-        Effect.gen(function* () {
-          yield* Effect.sleep(SWIPE_SETTLE_DURATION)
-          return MessageSchema.CompletedWaitForSwipeSettled({
-            entryId,
-            version,
+  const WaitForSwipeSettled = ToastDefinition.makeCommand(
+    'WaitForSwipeSettled',
+    {
+      args: {
+        entryId: Schema.String,
+        version: Schema.Number,
+      },
+      messages: [MessageSchema.CompletedWaitForSwipeSettled],
+      handler: function* () {
+        return ({ entryId, version }) =>
+          Effect.gen(function* () {
+            yield* Effect.sleep(SWIPE_SETTLE_DURATION)
+            return MessageSchema.CompletedWaitForSwipeSettled({
+              entryId,
+              version,
+            })
           })
-        })
+      },
     },
-  })
+  )
 
   const SharedEffectsLayer = Layer.mergeAll(
     WaitBeforeDismissal.layer,
@@ -232,7 +238,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   }
 
   const settleSnapBack = (entry: Entry) =>
-    ToastDefinition.step(model => {
+    ToastDefinition.makeStep(model => {
       const nextSwipeVersion = Number.increment(entry.swipeVersion)
       const nextEntry = modifyFields(entry, {
         pendingDismissVersion: Number.increment,
@@ -249,7 +255,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       }
     })
 
-  const EntryAnimationBinding = ToastDefinition.bindChild(
+  const EntryAnimationBinding = ToastDefinition.makeBinding(
     Animation.AnimationBlock,
     {
       field: 'entries',
@@ -263,7 +269,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       StartedLeaveAnimating: () =>
         EntryAnimationBinding.requestWaitForLeaveSettlement(entryId),
       TransitionedOut: () =>
-        ToastDefinition.step(model =>
+        ToastDefinition.makeStep(model =>
           Option.match(
             Array.findFirst(model.entries, ({ id }) => id === entryId),
             {
@@ -348,11 +354,11 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   }))
 
   const addEntry = (entry: Entry) => {
-    const appendEntry = ToastDefinition.stepFields(() => ({
+    const appendEntry = ToastDefinition.makeFieldsStep(() => ({
       entries: entries => Array.append(entries, entry),
       nextEntryKey: Number.increment,
     }))
-    const scheduleDismissal = ToastDefinition.step(model => ({
+    const scheduleDismissal = ToastDefinition.makeStep(model => ({
       model,
       commands: pipe(
         Array.findFirst(model.entries, ({ id }) => id === entry.id),
@@ -557,7 +563,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
                 return { model: nextModel }
               } else {
                 return Update.combineSteps(model, [
-                  ToastDefinition.step(() => ({ model: nextModel })),
+                  ToastDefinition.makeStep(() => ({ model: nextModel })),
                   foldEntryAnimationHide(entry),
                 ])
               }
@@ -640,7 +646,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     | typeof MessageSchema.ReleasedSwipePointer.Type
     | typeof MessageSchema.CancelledSwipe.Type
 
-  const subscriptions = ToastDefinition.subscriptions(entry => ({
+  const subscriptions = ToastDefinition.makeSubscriptions(entry => ({
     swipePointer: entry(
       'SwipePointer',
       {

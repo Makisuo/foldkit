@@ -43,7 +43,7 @@ type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-export const DetermineStartTime = ApplicationDefinition.command(
+export const DetermineStartTime = ApplicationDefinition.makeCommand(
   'DetermineStartTime',
   {
     args: { elapsedMs: Schema.Number },
@@ -63,7 +63,7 @@ export const DetermineStartTime = ApplicationDefinition.command(
   },
 )
 
-export const DetermineTickTime = ApplicationDefinition.command(
+export const DetermineTickTime = ApplicationDefinition.makeCommand(
   'DetermineTickTime',
   {
     args: { startTime: Schema.Number },
@@ -132,7 +132,7 @@ export const init = ApplicationComposition.makeInit(() => ({
   },
 }))
 
-export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
   stopwatchTicks: entry(
     'StopwatchTicks',
     { isRunning: Schema.Boolean },

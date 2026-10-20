@@ -80,7 +80,7 @@ const makeInitialModel = (config: InitConfig): Model => ({
 
 /** Waits for the tooltip's show delay before emitting
  *  `CompletedWaitBeforeShowing`. */
-export const WaitBeforeShowing = TooltipDefinition.command(
+export const WaitBeforeShowing = TooltipDefinition.makeCommand(
   'WaitBeforeShowing',
   {
     args: { delay: Schema.DurationFromMillis, version: Schema.Number },
@@ -95,7 +95,7 @@ export const WaitBeforeShowing = TooltipDefinition.command(
 )
 
 /** The anchor-positioning Mount this Tooltip renders on its panel. */
-export const AnchorTooltip = TooltipDefinition.mount('AnchorTooltip', {
+export const AnchorTooltip = TooltipDefinition.makeMount('AnchorTooltip', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorTooltip],
   handler: function* () {

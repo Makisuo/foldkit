@@ -94,11 +94,11 @@ const Parent = makeDefinition('KeyedFieldConnectionParent', {
   Model: ParentModel,
   Message: Schema.Never,
 })
-const ChildrenBinding = Parent.bindChild(childBlock, {
+const ChildrenBinding = Parent.makeBinding(childBlock, {
   field: 'entries',
   key: 'id',
 })
-const ArrayChildBinding = Parent.bindChild(arrayChildBlock, {
+const ArrayChildBinding = Parent.makeBinding(arrayChildBlock, {
   field: 'arrayChild',
   init: false,
 })
@@ -143,7 +143,7 @@ const CallableParent = makeDefinition('KeyedFieldConnectionCallableParent', {
   Model: CallableParentModel,
   Message: Schema.Never,
 })
-const CallableChildrenBinding = CallableParent.bindChild(callableChildBlock, {
+const CallableChildrenBinding = CallableParent.makeBinding(callableChildBlock, {
   field: 'entries',
   key: 'id',
 })
@@ -463,7 +463,7 @@ it('rejects ambiguous shorthand and incomplete general keyed adapters', () => {
   )
 
   expect(() =>
-    Reflect.apply(Parent.bindChild, undefined, [
+    Reflect.apply(Parent.makeBinding, undefined, [
       childBlock,
       {
         field: 'entries',
@@ -472,7 +472,7 @@ it('rejects ambiguous shorthand and incomplete general keyed adapters', () => {
   ).toThrow('requires a derivable key Schema')
 
   expect(() =>
-    Reflect.apply(Parent.bindChild, undefined, [
+    Reflect.apply(Parent.makeBinding, undefined, [
       childBlock,
       {
         field: 'entries',
@@ -485,7 +485,7 @@ it('rejects ambiguous shorthand and incomplete general keyed adapters', () => {
   ).toThrow('cannot supply field or presentWhen')
 
   expect(() =>
-    Reflect.apply(Parent.bindChild, undefined, [
+    Reflect.apply(Parent.makeBinding, undefined, [
       childBlock,
       {
         readAll: (model: typeof ParentModel.Type) => model.entries,
@@ -496,7 +496,7 @@ it('rejects ambiguous shorthand and incomplete general keyed adapters', () => {
   ).toThrow('requires a read function')
 
   expect(() =>
-    Reflect.apply(Parent.bindChild, undefined, [
+    Reflect.apply(Parent.makeBinding, undefined, [
       childBlock,
       {
         readAll: (model: typeof ParentModel.Type) => model.entries,

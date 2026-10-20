@@ -21,7 +21,7 @@ const nextSequenceNumber = (
   })
 
 const logTransition = (transition: AppTransition) =>
-  ApplicationDefinition.stepFields(() => ({
+  ApplicationDefinition.makeFieldsStep(() => ({
     transitionLog: transitionLog =>
       pipe(
         transitionLog,
@@ -35,7 +35,7 @@ const logTransition = (transition: AppTransition) =>
   }))
 
 const loadCatalogOnGalleryEntry = (transition: AppTransition) =>
-  ApplicationDefinition.step(model =>
+  ApplicationDefinition.makeStep(model =>
     Transition.isEntering(transition, 'Gallery') &&
     model.catalogStatus !== 'Loading'
       ? {
@@ -46,7 +46,7 @@ const loadCatalogOnGalleryEntry = (transition: AppTransition) =>
   )
 
 const loadPaintingOnEntry = (transition: AppTransition) =>
-  ApplicationDefinition.step(model =>
+  ApplicationDefinition.makeStep(model =>
     Option.match(Transition.entered(transition, 'Painting'), {
       onNone: () => ({ model }),
       onSome: ({ paintingId }) => ({
@@ -59,7 +59,7 @@ const loadPaintingOnEntry = (transition: AppTransition) =>
   )
 
 const reloadPaintingOnIdChange = (transition: AppTransition) =>
-  ApplicationDefinition.step(model =>
+  ApplicationDefinition.makeStep(model =>
     Option.match(Transition.stayed(transition, 'Painting'), {
       onNone: () => ({ model }),
       onSome: ({ previousRoute, nextRoute }) =>
@@ -78,7 +78,7 @@ const reloadPaintingOnIdChange = (transition: AppTransition) =>
   )
 
 const saveDraftOnStudioExit = (transition: AppTransition) =>
-  ApplicationDefinition.step(model =>
+  ApplicationDefinition.makeStep(model =>
     Option.match(Transition.exited(transition, 'Studio'), {
       onNone: () => ({ model }),
       onSome: () =>

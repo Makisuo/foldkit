@@ -16,7 +16,7 @@ The counter's update function has only changed the count so far. Add a button th
 
 ### Definition Fields
 
-`ApplicationDefinition.command` gives the work a name within the Application and declares its result contract. This example keeps the definition and its handler together:
+`ApplicationDefinition.makeCommand` gives the work a name within the Application and declares its result contract. This example keeps the definition and its handler together:
 
 ::Snippet{name="counterCommands" label="Counter with a delayed reset"}
 
@@ -35,7 +35,7 @@ Constructors prepare execution machinery. Application state and workflow decisio
 
 Three pieces connect the work to update:
 
-- `ApplicationDefinition.command` names `WaitBeforeReset`, declares the Messages it can produce, and stores its handler constructor in `config.handler`. The returned handler waits one second, then produces `CompletedWaitBeforeReset`.
+- `ApplicationDefinition.makeCommand` names `WaitBeforeReset`, declares the Messages it can produce, and stores its handler constructor in `config.handler`. The returned handler waits one second, then produces `CompletedWaitBeforeReset`.
 - `WaitBeforeReset.layer` is the Layer recipe for that handler.
 - `WaitBeforeReset()` creates the Command value that update returns. Creating that value does not start the timer.
 

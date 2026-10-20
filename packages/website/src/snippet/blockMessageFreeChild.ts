@@ -22,6 +22,6 @@ const PageDefinition = Block.makeDefinition('Page', {
   Message: PageMessage,
 })
 
-export const PreviewBinding = PageDefinition.bindChild(PreviewBlock, {
+export const PreviewBinding = PageDefinition.makeBinding(PreviewBlock, {
   field: 'preview',
 })

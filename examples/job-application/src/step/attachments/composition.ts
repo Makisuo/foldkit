@@ -5,7 +5,7 @@ import { FileDropBlock } from '@foldkit/ui'
 
 import { AttachmentsDefinition } from './definition'
 
-export const ResumeDropBinding = AttachmentsDefinition.bindChild(
+export const ResumeDropBinding = AttachmentsDefinition.makeBinding(
   FileDropBlock,
   {
     field: 'resumeDrop',
@@ -14,15 +14,15 @@ export const ResumeDropBinding = AttachmentsDefinition.bindChild(
 ).withOutMessagePolicy({
   fold: AttachmentsDefinition.makeOutMessageFold(FileDropBlock, {
     ReceivedFiles: ({ files }) =>
-      AttachmentsDefinition.stepFields(() => ({
+      AttachmentsDefinition.makeFieldsStep(() => ({
         maybeResume: maybeResume =>
           Option.orElse(Array.head(files), () => maybeResume),
       })),
-    RejectedNonFiles: AttachmentsDefinition.stepNoop,
+    RejectedNonFiles: AttachmentsDefinition.makeNoopStep,
   }),
 })
 
-export const AdditionalFilesDropBinding = AttachmentsDefinition.bindChild(
+export const AdditionalFilesDropBinding = AttachmentsDefinition.makeBinding(
   FileDropBlock,
   {
     field: 'additionalFilesDrop',
@@ -31,10 +31,10 @@ export const AdditionalFilesDropBinding = AttachmentsDefinition.bindChild(
 ).withOutMessagePolicy({
   fold: AttachmentsDefinition.makeOutMessageFold(FileDropBlock, {
     ReceivedFiles: ({ files }) =>
-      AttachmentsDefinition.stepFields(() => ({
+      AttachmentsDefinition.makeFieldsStep(() => ({
         additionalFiles: Array.appendAll(files),
       })),
-    RejectedNonFiles: AttachmentsDefinition.stepNoop,
+    RejectedNonFiles: AttachmentsDefinition.makeNoopStep,
   }),
 })
 

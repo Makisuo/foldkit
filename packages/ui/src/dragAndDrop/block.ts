@@ -181,7 +181,7 @@ export const init = DragAndDropComposition.makeInit((config: InitConfig) => ({
 type Direction = (typeof Message.PressedArrowKey.Type)['direction']
 
 /** Focuses a draggable item by ID after a keyboard move, drop, or cancel. */
-export const FocusItem = DragAndDropDefinition.command('FocusItem', {
+export const FocusItem = DragAndDropDefinition.makeCommand('FocusItem', {
   args: { itemId: Schema.String },
   messages: [Message.CompletedFocusItem],
   handler: function* () {
@@ -317,7 +317,7 @@ export const ResolveKeyboardMoveArgs = Schema.Struct({
 })
 
 /** Resolves the next keyboard drag position by querying the DOM for adjacent sortable items and containers. */
-export const ResolveKeyboardMove = DragAndDropDefinition.command(
+export const ResolveKeyboardMove = DragAndDropDefinition.makeCommand(
   'ResolveKeyboardMove',
   {
     args: ResolveKeyboardMoveArgs.fields,
@@ -625,7 +625,7 @@ const streamKeyboardDragEvents = () =>
     },
   })
 
-export const subscriptions = DragAndDropDefinition.subscriptions(entry => ({
+export const subscriptions = DragAndDropDefinition.makeSubscriptions(entry => ({
   documentPointer: entry(
     'DragAndDropDocumentPointer',
     {

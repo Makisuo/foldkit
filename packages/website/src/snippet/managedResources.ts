@@ -7,7 +7,7 @@ import { Camera, CameraComposition, CameraStream } from './resource'
 import { update } from './update'
 import { view } from './view'
 
-const managedResources = Camera.managedResources(entry => ({
+const managedResources = Camera.makeManagedResources(entry => ({
   camera: entry(
     'ManageCamera',
     Schema.Option(Schema.Struct({ facingMode: Schema.String })),

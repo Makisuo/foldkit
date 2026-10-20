@@ -57,7 +57,7 @@ describe('Composition update delivery', () => {
 
     expect(contextualBlock.update.length).toBe(2)
     expect(() =>
-      Reflect.apply(ContextualParent.bindChild, undefined, [
+      Reflect.apply(ContextualParent.makeBinding, undefined, [
         contextualBlock,
         {
           field: 'child',
@@ -128,7 +128,7 @@ describe('Composition update delivery', () => {
       Model: ParentModel,
       Message: Schema.Never,
     })
-    const CounterBinding = Parent.bindChild(counterBlock, {
+    const CounterBinding = Parent.makeBinding(counterBlock, {
       readAll: model => model.counters,
       key: instance => instance.id,
       read: instance => instance.counter,

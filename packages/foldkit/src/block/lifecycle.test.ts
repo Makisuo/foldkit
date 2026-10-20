@@ -60,14 +60,14 @@ const buildGraph = (
     ReleasedSession: {},
   })
 
-  const Session = ChildNamespace.resource<string>()('Session')
+  const Session = ChildNamespace.makeResource<string>()('Session')
 
   const ChildChannelsDefinition = ChildNamespace.makeDefinition({
     Model: ChildModel,
     Message: ChildMessage,
   })
 
-  const subscriptions = ChildChannelsDefinition.subscriptions(entry => ({
+  const subscriptions = ChildChannelsDefinition.makeSubscriptions(entry => ({
     activity: entry('ObserveActivity', {
       messages: [],
       handler: function* () {
@@ -103,35 +103,37 @@ const buildGraph = (
     }),
   }))
 
-  const managedResources = ChildChannelsDefinition.managedResources(entry => ({
-    session: entry('ManageSession', Schema.Option(Schema.Null), {
-      resource: Session,
-      modelToMaybeRequirements: () => Option.some(null),
-      onAcquired: () => ChildMessage.AcquiredSession(),
-      onReleased: () => ChildMessage.ReleasedSession(),
-      onAcquireError: () => ChildMessage.FailedAcquireSession(),
-      handler: function* () {
-        yield* trackHandler(
-          'ManagedResource handler built',
-          'ManagedResource handler released',
-        )
+  const managedResources = ChildChannelsDefinition.makeManagedResources(
+    entry => ({
+      session: entry('ManageSession', Schema.Option(Schema.Null), {
+        resource: Session,
+        modelToMaybeRequirements: () => Option.some(null),
+        onAcquired: () => ChildMessage.AcquiredSession(),
+        onReleased: () => ChildMessage.ReleasedSession(),
+        onAcquireError: () => ChildMessage.FailedAcquireSession(),
+        handler: function* () {
+          yield* trackHandler(
+            'ManagedResource handler built',
+            'ManagedResource handler released',
+          )
 
-        return {
-          acquire: () =>
-            Effect.sync(() => {
-              events.push('ManagedResource acquired')
-              return 'session'
-            }),
-          release: () =>
-            Effect.sync(() => {
-              events.push('ManagedResource released')
-            }),
-        }
-      },
+          return {
+            acquire: () =>
+              Effect.sync(() => {
+                events.push('ManagedResource acquired')
+                return 'session'
+              }),
+            release: () =>
+              Effect.sync(() => {
+                events.push('ManagedResource released')
+              }),
+          }
+        },
+      }),
     }),
-  }))
+  )
 
-  const ObservePanel = ChildNamespace.mount('ObservePanel', {
+  const ObservePanel = ChildNamespace.makeMount('ObservePanel', {
     messages: [ChildMessage.CompletedObservePanel],
     handler: function* () {
       yield* trackHandler('Mount handler built', 'Mount handler released')
@@ -196,7 +198,7 @@ const buildGraph = (
   })
   const ChildBinding = (() => {
     if (mode === 'Route') {
-      return ParentBaseDefinition.bindChild(Child, {
+      return ParentBaseDefinition.makeBinding(Child, {
         placement: 'child',
         field: 'maybeChild',
         presentWhen: (model: ParentModel) => model.route === 'Home',
@@ -204,7 +206,7 @@ const buildGraph = (
     }
 
     if (mode === 'Subscriptions') {
-      return ParentBaseDefinition.bindChild(Child, {
+      return ParentBaseDefinition.makeBinding(Child, {
         placement: 'child',
         field: 'maybeChild',
         subscriptions: {
@@ -213,7 +215,7 @@ const buildGraph = (
       })
     }
 
-    return ParentBaseDefinition.bindChild(Child, {
+    return ParentBaseDefinition.makeBinding(Child, {
       placement: 'child',
       field: 'maybeChild',
     })

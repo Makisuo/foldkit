@@ -13,7 +13,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-const PostsBinding = ApplicationDefinition.bindChild(postsQuery, {
+const PostsBinding = ApplicationDefinition.makeBinding(postsQuery, {
   field: 'posts',
 })
 

@@ -18,7 +18,7 @@ const DeclarationStartupDefaultChildDefinition = Block.makeDefinition(
   },
 )
 export const FinishInitialization =
-  DeclarationStartupDefaultChildDefinition.command('FinishInitialization', {
+  DeclarationStartupDefaultChildDefinition.makeCommand('FinishInitialization', {
     args: { count: Schema.Number },
     messages: [ChildMessage.CompletedInitialization],
     handler: function* () {
@@ -27,7 +27,7 @@ export const FinishInitialization =
         Effect.succeed(ChildMessage.CompletedInitialization({ count }))
     },
   })
-const FailConstruction = DeclarationStartupDefaultChildDefinition.command(
+const FailConstruction = DeclarationStartupDefaultChildDefinition.makeCommand(
   'FailConstruction',
   {
     messages: [ChildMessage.CompletedInitialization],
@@ -167,47 +167,49 @@ export const DeclarationStartupDefaultsParentDefinition = Block.makeDefinition(
 )
 // oxlint-disable-next-line foldkit/command-binding-matches-name -- Two owners intentionally declare the same local Command name.
 export const FinishParentInitialization =
-  DeclarationStartupDefaultsParentDefinition.command('FinishInitialization', {
-    messages: [ParentMessage.CompletedParentInitialization],
-    handler: function* () {
-      return () => Effect.succeed(ParentMessage.CompletedParentInitialization())
+  DeclarationStartupDefaultsParentDefinition.makeCommand(
+    'FinishInitialization',
+    {
+      messages: [ParentMessage.CompletedParentInitialization],
+      handler: function* () {
+        return () =>
+          Effect.succeed(ParentMessage.CompletedParentInitialization())
+      },
     },
-  })
-export const FinishStep = DeclarationStartupDefaultsParentDefinition.command(
-  'FinishStep',
-  {
+  )
+export const FinishStep =
+  DeclarationStartupDefaultsParentDefinition.makeCommand('FinishStep', {
     messages: [ParentMessage.CompletedParentStep],
     handler: function* () {
       return () => Effect.succeed(ParentMessage.CompletedParentStep())
     },
-  },
-)
+  })
 export const AutomaticBinding =
-  DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, {
+  DeclarationStartupDefaultsParentDefinition.makeBinding(ChildBlock, {
     field: 'automatic',
   })
 export const DefaultArgumentBinding =
-  DeclarationStartupDefaultsParentDefinition.bindChild(DefaultChildBlock, {
+  DeclarationStartupDefaultsParentDefinition.makeBinding(DefaultChildBlock, {
     field: 'defaultArgument',
   })
 export const OptionalArgumentBinding =
-  DeclarationStartupDefaultsParentDefinition.bindChild(OptionalChildBlock, {
+  DeclarationStartupDefaultsParentDefinition.makeBinding(OptionalChildBlock, {
     field: 'optionalArgument',
   })
 export const RequiredRestBinding =
-  DeclarationStartupDefaultsParentDefinition.bindChild(RestChildBlock, {
+  DeclarationStartupDefaultsParentDefinition.makeBinding(RestChildBlock, {
     field: 'requiredRest',
 
     init: { contextToArgs: childInitContext => [childInitContext.count] },
   })
 export const OptedOutBinding =
-  DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, {
+  DeclarationStartupDefaultsParentDefinition.makeBinding(ChildBlock, {
     field: 'optedOut',
 
     init: false,
   })
 export const OptionalBinding =
-  DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, {
+  DeclarationStartupDefaultsParentDefinition.makeBinding(ChildBlock, {
     field: 'maybeChild',
 
     init: {
@@ -216,7 +218,7 @@ export const OptionalBinding =
     },
   })
 export const EntriesBinding =
-  DeclarationStartupDefaultsParentDefinition.bindChild(ChildBlock, {
+  DeclarationStartupDefaultsParentDefinition.makeBinding(ChildBlock, {
     field: 'entries',
     placement: 'entries',
     key: 'id',
@@ -239,7 +241,7 @@ export const DeclarationStartupDefaultsParentComposition =
       EntriesBinding,
     ],
   })
-const applyParentStep = DeclarationStartupDefaultsParentDefinition.step(
+const applyParentStep = DeclarationStartupDefaultsParentDefinition.makeStep(
   model => ({
     model: Struct.modifyFields(model, { status: () => 'Stepped' }),
     commands: [FinishStep()],
@@ -281,20 +283,18 @@ export const DeclarationStartupGenericParentDefinition =
     ChildInitContext,
   })
 export const GenericBinding =
-  DeclarationStartupGenericParentDefinition.bindChild(ChildBlock, {
+  DeclarationStartupGenericParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
 
     init: { contextToArgs: _childInitContext => [] },
   })
-export const WiderBinding = DeclarationStartupGenericParentDefinition.bindChild(
-  ChildBlock,
-  {
+export const WiderBinding =
+  DeclarationStartupGenericParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
     placement: 'wider',
 
     init: { contextToArgs: (_childInitContext: object) => [] },
-  },
-)
+  })
 export const DeclarationStartupGenericParentComposition =
   DeclarationStartupGenericParentDefinition.makeComposition({
     bindings: [WiderBinding],
@@ -302,7 +302,7 @@ export const DeclarationStartupGenericParentComposition =
 export const initializeWithoutSelectorStartup =
   DeclarationStartupGenericParentDefinition.makeComposition({
     bindings: [
-      DeclarationStartupGenericParentDefinition.bindChild(ChildBlock, {
+      DeclarationStartupGenericParentDefinition.makeBinding(ChildBlock, {
         field: 'child',
 
         init: { contextToArgs: () => [] },
@@ -318,7 +318,7 @@ export const ForeignGenericParentDefinition =
     Message: SingleChildParentMessage,
     ChildInitContext: ForeignChildInitContext,
   })
-export const ForeignGenericBinding = ForeignGenericParentDefinition.bindChild(
+export const ForeignGenericBinding = ForeignGenericParentDefinition.makeBinding(
   ChildBlock,
   {
     field: 'child',
@@ -332,11 +332,14 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message: SingleChildParentMessage,
   ChildInitContext,
 })
-export const ApplicationBinding = ApplicationDefinition.bindChild(ChildBlock, {
-  field: 'child',
+export const ApplicationBinding = ApplicationDefinition.makeBinding(
+  ChildBlock,
+  {
+    field: 'child',
 
-  init: { contextToArgs: _childInitContext => [] },
-})
+    init: { contextToArgs: _childInitContext => [] },
+  },
+)
 
 export const DeclarationStartupOrdinaryParentDefinition = Block.makeDefinition(
   'DeclarationStartupOrdinaryParent',
@@ -346,7 +349,7 @@ export const DeclarationStartupOrdinaryParentDefinition = Block.makeDefinition(
   },
 )
 export const OrdinaryBinding =
-  DeclarationStartupOrdinaryParentDefinition.bindChild(ChildBlock, {
+  DeclarationStartupOrdinaryParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
   })
 
@@ -363,7 +366,7 @@ const DeclarationCompatibleStartupParentDefinition = Block.makeDefinition(
   },
 )
 const CountStartupBinding =
-  DeclarationCompatibleStartupParentDefinition.bindChild(ChildBlock, {
+  DeclarationCompatibleStartupParentDefinition.makeBinding(ChildBlock, {
     field: 'first',
 
     init: {
@@ -371,7 +374,7 @@ const CountStartupBinding =
     },
   })
 const LabelStartupBinding =
-  DeclarationCompatibleStartupParentDefinition.bindChild(ChildBlock, {
+  DeclarationCompatibleStartupParentDefinition.makeBinding(ChildBlock, {
     field: 'second',
 
     init: {
@@ -397,7 +400,7 @@ const DeclarationMixedStartupParentDefinition = Block.makeDefinition(
     Message: CompatibleParentMessage,
   },
 )
-const NoInputBinding = DeclarationMixedStartupParentDefinition.bindChild(
+const NoInputBinding = DeclarationMixedStartupParentDefinition.makeBinding(
   ChildBlock,
   {
     field: 'first',
@@ -405,7 +408,7 @@ const NoInputBinding = DeclarationMixedStartupParentDefinition.bindChild(
     init: { contextToArgs: () => [] },
   },
 )
-const ContextInputBinding = DeclarationMixedStartupParentDefinition.bindChild(
+const ContextInputBinding = DeclarationMixedStartupParentDefinition.makeBinding(
   ChildBlock,
   {
     field: 'second',

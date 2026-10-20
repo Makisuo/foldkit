@@ -31,7 +31,7 @@ const ScopeParent = makeDefinition('ScopeTestParent', {
 
 const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
   const FeatureNamespace = makeNamespace(id)
-  const ReadValue = FeatureNamespace.command('ReadValue', {
+  const ReadValue = FeatureNamespace.makeCommand('ReadValue', {
     messages: [Message.CompletedReadValue],
     handler: function* () {
       const source = yield* ValueSource
@@ -56,7 +56,7 @@ const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
     EffectsLayer: ReadValue.layer,
   })
   const bind = (placement: string) =>
-    ScopeParent.bindChild(block, {
+    ScopeParent.makeBinding(block, {
       placement,
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
@@ -152,7 +152,7 @@ describe('Block capability contexts', () => {
         Layer.provide(Layer.succeed(ValueSource, { value: 'left' })),
       ),
     )
-    const LeftBinding = ScopeParent.bindChild(leftBlock, {
+    const LeftBinding = ScopeParent.makeBinding(leftBlock, {
       placement: 'Left',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
@@ -162,7 +162,7 @@ describe('Block capability contexts', () => {
         Layer.provide(Layer.succeed(ValueSource, { value: 'right' })),
       ),
     )
-    const RightBinding = ScopeParent.bindChild(rightBlock, {
+    const RightBinding = ScopeParent.makeBinding(rightBlock, {
       placement: 'Right',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
@@ -241,7 +241,7 @@ describe('Block capability contexts', () => {
         Layer.provide(Layer.succeed(ValueSource, { value: 'selected' })),
       ),
     )
-    const SelectedBinding = ScopeParent.bindChild(selectedBlock, {
+    const SelectedBinding = ScopeParent.makeBinding(selectedBlock, {
       placement: 'Selected',
       read: model => Option.some(model),
       write: (_model, nextChild) => nextChild,
@@ -339,8 +339,8 @@ describe('Block capability contexts', () => {
 
   it('uses independent resource slots for repeated placements while sharing the handler', async () => {
     const FeatureNamespace = makeNamespace('ResourceScope')
-    const Value = FeatureNamespace.resource<string>()('Value')
-    const ReadValue = FeatureNamespace.command('ReadValue', {
+    const Value = FeatureNamespace.makeResource<string>()('Value')
+    const ReadValue = FeatureNamespace.makeCommand('ReadValue', {
       messages: [Message.CompletedReadValue],
       handler: function* () {
         return () =>
@@ -414,7 +414,7 @@ describe('Block capability contexts', () => {
     const feature = makeFeature('ProjectedScope')
     const sibling = makeFeature('SiblingScope')
     const ResourceScopeNamespace = makeNamespace('ProjectedResourceScope')
-    const Value = ResourceScopeNamespace.resource<string>()('Value')
+    const Value = ResourceScopeNamespace.makeResource<string>()('Value')
     const service = identityOf(feature.ReadValue)!.service
     const siblingService = identityOf(sibling.ReadValue)!.service
     const source = { value: 'shared' }
@@ -518,7 +518,7 @@ describe('Block capability contexts', () => {
 
   it('rejects ManagedResource access from an arbitrary Layer in a handler recipe', async () => {
     const FeatureNamespace = makeNamespace('ConstructionScope')
-    const Value = FeatureNamespace.resource<string>()('Value')
+    const Value = FeatureNamespace.makeResource<string>()('Value')
     const layer = selectLayer(
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
       FeatureNamespace as never,

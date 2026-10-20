@@ -40,7 +40,9 @@ const ParentDefinition = makeDefinition('OriginViewParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ChildBinding = ParentDefinition.bindChild(ChildBlock, { field: 'child' })
+const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
+  field: 'child',
+})
 const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding],
 })

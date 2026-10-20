@@ -21,7 +21,7 @@ const MountRegistration = makeDefinition('MountRegistration', {
   Message,
 })
 const constructed = vi.fn()
-const ObserveFirst = MountRegistration.mount('ObserveFirst', {
+const ObserveFirst = MountRegistration.makeMount('ObserveFirst', {
   messages: [Message.CompletedObserveFirst],
   handler: function* () {
     yield* Effect.sync(constructed)
@@ -29,7 +29,7 @@ const ObserveFirst = MountRegistration.mount('ObserveFirst', {
     return () => Effect.succeed(Message.CompletedObserveFirst())
   },
 })
-const ObserveSecond = MountRegistration.mount('ObserveSecond', {
+const ObserveSecond = MountRegistration.makeMount('ObserveSecond', {
   messages: [Message.CompletedObserveSecond],
   handler: function* () {
     yield* Effect.sync(constructed)
@@ -77,10 +77,10 @@ const MountParent = makeDefinition('MountParent', {
   Model: ParentModel,
   Message: Schema.Never,
 })
-const ChildBinding = MountParent.bindChild(firstBlock, {
+const ChildBinding = MountParent.makeBinding(firstBlock, {
   field: 'child',
 })
-const EntriesBinding = MountParent.bindChild(firstBlock, {
+const EntriesBinding = MountParent.makeBinding(firstBlock, {
   field: 'entries',
   key: 'id',
   childField: 'child',
@@ -226,7 +226,7 @@ describe('captured local Mount registrations', () => {
       Model,
       Message,
     })
-    const FocusFirst = ApplicationDefinition.mount('FocusFirst', {
+    const FocusFirst = ApplicationDefinition.makeMount('FocusFirst', {
       messages: [Message.CompletedObserveFirst],
       handler: function* () {
         yield* Effect.sync(constructed)
@@ -234,7 +234,7 @@ describe('captured local Mount registrations', () => {
         return () => Effect.succeed(Message.CompletedObserveFirst())
       },
     })
-    const FocusSecond = ApplicationDefinition.mount('FocusSecond', {
+    const FocusSecond = ApplicationDefinition.makeMount('FocusSecond', {
       messages: [Message.CompletedObserveSecond],
       handler: function* () {
         yield* Effect.sync(constructed)

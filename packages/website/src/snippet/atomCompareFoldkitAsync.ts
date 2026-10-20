@@ -24,7 +24,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
 })
 
 // Api is an Effect service; ApiLayer provides it.
-const FetchUser = ApplicationDefinition.command('FetchUser', {
+const FetchUser = ApplicationDefinition.makeCommand('FetchUser', {
   messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
   handler: function* () {
     const api = yield* Api

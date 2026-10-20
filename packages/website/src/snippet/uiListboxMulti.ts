@@ -43,7 +43,7 @@ const foldListboxMultiOutMessage = PeoplePickerDefinition.makeOutMessageFold(
   PeopleListbox,
   {
     Selected: ({ value }) =>
-      PeoplePickerDefinition.stepFields(() => ({
+      PeoplePickerDefinition.makeFieldsStep(() => ({
         selectedPeople: selectedPeople =>
           Array.contains(selectedPeople, value)
             ? Array.filter(selectedPeople, person => person !== value)
@@ -56,7 +56,7 @@ const foldListboxMultiOutMessage = PeoplePickerDefinition.makeOutMessageFold(
 // navigation, typeahead, and open/close to PeopleListbox.update, writes the
 // next Listbox Model back, routes generated delivery and Command results, and
 // hands any OutMessage to the OutMessage fold.
-const PeopleListboxBinding = PeoplePickerDefinition.bindChild(PeopleListbox, {
+const PeopleListboxBinding = PeoplePickerDefinition.makeBinding(PeopleListbox, {
   field: 'listboxMulti',
   init: { contextToArgs: () => Tuple.make({ id: 'people' }) },
 }).withOutMessagePolicy({ fold: foldListboxMultiOutMessage })

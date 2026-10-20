@@ -38,7 +38,7 @@ export const ChildDefinition = Block.makeDefinition('ExposeMessageProofChild', {
   Message: ChildMessage,
   OutMessage: ChildOutMessage,
 })
-export const RecordValue = ChildDefinition.command('RecordValue', {
+export const RecordValue = ChildDefinition.makeCommand('RecordValue', {
   args: { value: Schema.String },
   messages: [ChildMessage.CompletedRecord],
 })
@@ -151,14 +151,14 @@ export const ParentDefinition = Block.makeDefinition(
     Message: ParentMessage,
   },
 )
-export const ChildBinding = ParentDefinition.bindChild(ChildBlock, {
+export const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
   field: 'child',
 }).withOutMessagePolicy({
   fold: ChildOutMessage.match<Update.Step<ParentModel, ParentMessage>>({
     ChangedValue: () => model => ({ model }),
   }),
 })
-export const EntryBinding = ParentDefinition.bindChild(ChildBlock, {
+export const EntryBinding = ParentDefinition.makeBinding(ChildBlock, {
   placement: 'entries',
   field: 'entries',
   key: 'id',
@@ -208,7 +208,7 @@ export function makeChoice<
   })
   // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
   const ChoiceOwnerNamespace = Block.makeNamespace('ExposeMessageProofChoice')
-  const Observe = ChoiceOwnerNamespace.mount('Observe', {
+  const Observe = ChoiceOwnerNamespace.makeMount('Observe', {
     messages: [Message.CompletedObserve],
   })
   // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
@@ -267,7 +267,7 @@ export const MountedChoiceDefinition = Block.makeDefinition('MountedChoice', {
   Model: MountedChoiceModel,
   Message: MountedChoiceMessage,
 })
-export const ObserveSelection = MountedChoiceDefinition.mount(
+export const ObserveSelection = MountedChoiceDefinition.makeMount(
   'ObserveSelection',
   {
     messages: [MountedChoiceMessage.CompletedObserveSelection],

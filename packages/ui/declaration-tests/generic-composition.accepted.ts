@@ -60,7 +60,7 @@ export const foldMenuChoice = MenuFoldFixtureDefinition.makeOutMessageFold(
       model => ({
         model: Struct.modifyFields(model, { selected: () => value }),
       }),
-    Closed: () => MenuFoldFixtureDefinition.stepNoop(),
+    Closed: () => MenuFoldFixtureDefinition.makeNoopStep(),
   },
 )
 export type FoldedMenuModel = Expect<
@@ -109,16 +109,16 @@ const ToastFixtureDefinition = Block.makeDefinition('ToastFixture', {
   Model: ToastFixtureModel,
   Message: Schema.Never,
 })
-export const ToastBinding = ToastFixtureDefinition.bindChild(ToastBlock, {
+export const ToastBinding = ToastFixtureDefinition.makeBinding(ToastBlock, {
   placement: 'Toast',
   read: model => Option.some(model.toast),
   write: (model, toast) => Struct.modifyFields(model, { toast: () => toast }),
 }).withOutMessagePolicy({
   fold: ToastFixtureDefinition.makeOutMessageFold(ToastBlock, {
-    DismissedToast: () => ToastFixtureDefinition.stepNoop(),
+    DismissedToast: () => ToastFixtureDefinition.makeNoopStep(),
   }),
 })
-export const OtherToastBinding = ToastFixtureDefinition.bindChild(
+export const OtherToastBinding = ToastFixtureDefinition.makeBinding(
   OtherToastBlock,
   {
     placement: 'OtherToast',
@@ -128,7 +128,7 @@ export const OtherToastBinding = ToastFixtureDefinition.bindChild(
   },
 ).withOutMessagePolicy({
   fold: ToastFixtureDefinition.makeOutMessageFold(OtherToastBlock, {
-    DismissedToast: () => ToastFixtureDefinition.stepNoop(),
+    DismissedToast: () => ToastFixtureDefinition.makeNoopStep(),
   }),
 })
 export const drainToastEntry = ToastBlock.test.drainEntry({
@@ -146,10 +146,10 @@ const KeyedToastFixtureDefinition = Block.makeDefinition('KeyedToastFixture', {
 const foldKeyedToastOutMessage = KeyedToastFixtureDefinition.makeOutMessageFold(
   ToastBlock,
   {
-    DismissedToast: () => KeyedToastFixtureDefinition.stepNoop(),
+    DismissedToast: () => KeyedToastFixtureDefinition.makeNoopStep(),
   },
 )
-export const KeyedToastBinding = KeyedToastFixtureDefinition.bindChild(
+export const KeyedToastBinding = KeyedToastFixtureDefinition.makeBinding(
   ToastBlock,
   {
     field: 'toasts',
@@ -178,11 +178,11 @@ const foldDragAndDropOutMessage =
   DragAndDropFixtureDefinition.makeOutMessageFold(
     DragAndDrop.DragAndDropBlock,
     {
-      Reordered: () => DragAndDropFixtureDefinition.stepNoop(),
-      Cancelled: () => DragAndDropFixtureDefinition.stepNoop(),
+      Reordered: () => DragAndDropFixtureDefinition.makeNoopStep(),
+      Cancelled: () => DragAndDropFixtureDefinition.makeNoopStep(),
     },
   )
-export const DragAndDropBinding = DragAndDropFixtureDefinition.bindChild(
+export const DragAndDropBinding = DragAndDropFixtureDefinition.makeBinding(
   DragAndDrop.DragAndDropBlock,
   {
     placement: 'DragAndDrop',
@@ -220,12 +220,12 @@ const foldKeyedDragAndDropOutMessage =
   KeyedDragAndDropFixtureDefinition.makeOutMessageFold(
     DragAndDrop.DragAndDropBlock,
     {
-      Reordered: () => KeyedDragAndDropFixtureDefinition.stepNoop(),
-      Cancelled: () => KeyedDragAndDropFixtureDefinition.stepNoop(),
+      Reordered: () => KeyedDragAndDropFixtureDefinition.makeNoopStep(),
+      Cancelled: () => KeyedDragAndDropFixtureDefinition.makeNoopStep(),
     },
   )
 export const KeyedDragAndDropBinding =
-  KeyedDragAndDropFixtureDefinition.bindChild(DragAndDrop.DragAndDropBlock, {
+  KeyedDragAndDropFixtureDefinition.makeBinding(DragAndDrop.DragAndDropBlock, {
     placement: 'DragAndDrops',
     keySchema: Schema.Literal('Primary'),
     readAll: model => model.dragAndDrops,
@@ -268,19 +268,17 @@ const KeyedAnimationFixtureDefinition = Block.makeDefinition(
     Message: Schema.Never,
   },
 )
-export const KeyedAnimationBinding = KeyedAnimationFixtureDefinition.bindChild(
-  Animation.AnimationBlock,
-  {
+export const KeyedAnimationBinding =
+  KeyedAnimationFixtureDefinition.makeBinding(Animation.AnimationBlock, {
     field: 'animations',
     key: 'id',
     childField: 'model',
-  },
-)
+  })
 const makeKeyedAnimationOutMessageFold = (key: 'Primary') =>
   KeyedAnimationFixtureDefinition.makeOutMessageFold(Animation.AnimationBlock, {
     StartedLeaveAnimating: () =>
       KeyedAnimationBinding.requestWaitForLeaveSettlement(key),
-    TransitionedOut: KeyedAnimationFixtureDefinition.stepNoop,
+    TransitionedOut: KeyedAnimationFixtureDefinition.makeNoopStep,
   })
 export const KeyedAnimationComposition =
   KeyedAnimationFixtureDefinition.makeComposition({
@@ -308,7 +306,7 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message: ParentMessage,
 })
 
-export const AnimationBinding = ApplicationDefinition.bindChild(
+export const AnimationBinding = ApplicationDefinition.makeBinding(
   Animation.AnimationBlock,
   {
     field: 'animation',
@@ -320,13 +318,13 @@ const foldAnimationOutMessage = ApplicationDefinition.makeOutMessageFold(
   {
     StartedLeaveAnimating: () =>
       AnimationBinding.requestWaitForLeaveSettlement(),
-    TransitionedOut: ApplicationDefinition.stepNoop,
+    TransitionedOut: ApplicationDefinition.makeNoopStep,
   },
 )
 export const AnimationBindingWithOutMessagePolicy =
   AnimationBinding.withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
-export const DialogBinding = ApplicationDefinition.bindChild(
+export const DialogBinding = ApplicationDefinition.makeBinding(
   Dialog.DialogBlock,
   {
     field: 'dialog',
@@ -334,25 +332,25 @@ export const DialogBinding = ApplicationDefinition.bindChild(
   },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(Dialog.DialogBlock, {
-    Opened: () => ApplicationDefinition.stepNoop(),
-    Closed: () => ApplicationDefinition.stepNoop(),
-    CompletedClose: () => ApplicationDefinition.stepNoop(),
+    Opened: () => ApplicationDefinition.makeNoopStep(),
+    Closed: () => ApplicationDefinition.makeNoopStep(),
+    CompletedClose: () => ApplicationDefinition.makeNoopStep(),
   }),
 })
 
-export const PickerBinding = ApplicationDefinition.bindChild(Picker, {
+export const PickerBinding = ApplicationDefinition.makeBinding(Picker, {
   field: 'picker',
   init: { contextToArgs: () => [{ id: 'fruit' }] },
 }).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(Picker, {
     Selected: ({ value }) =>
-      ApplicationDefinition.step(model => ({
+      ApplicationDefinition.makeStep(model => ({
         model: Struct.modifyFields(model, {
           maybeSelected: () => Option.some(value),
         }),
       })),
     ClearedSelection: () =>
-      ApplicationDefinition.step(model => ({
+      ApplicationDefinition.makeStep(model => ({
         model: Struct.modifyFields(model, {
           maybeSelected: () => Option.none(),
         }),
@@ -360,7 +358,7 @@ export const PickerBinding = ApplicationDefinition.bindChild(Picker, {
   }),
 })
 
-export const PopoverBinding = ApplicationDefinition.bindChild(
+export const PopoverBinding = ApplicationDefinition.makeBinding(
   Popover.PopoverBlock,
   {
     field: 'popover',
@@ -368,8 +366,8 @@ export const PopoverBinding = ApplicationDefinition.bindChild(
   },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(Popover.PopoverBlock, {
-    Opened: () => ApplicationDefinition.stepNoop(),
-    Closed: () => ApplicationDefinition.stepNoop(),
+    Opened: () => ApplicationDefinition.makeNoopStep(),
+    Closed: () => ApplicationDefinition.makeNoopStep(),
   }),
 })
 

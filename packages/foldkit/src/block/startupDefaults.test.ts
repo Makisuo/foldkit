@@ -25,7 +25,7 @@ const Child = makeDefinition('StartupDefaultsChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const FinishChildInitialization = Child.command('FinishInitialization', {
+const FinishChildInitialization = Child.makeCommand('FinishInitialization', {
   args: { count: Schema.Number },
   messages: [ChildMessage.CompletedInitialization],
   handler: function* () {
@@ -38,7 +38,7 @@ const FinishChildInitialization = Child.command('FinishInitialization', {
   },
 })
 const effects = { constructorBuilds: 0, commandExecutions: 0 }
-const FailChildConstruction = Child.command('FailConstruction', {
+const FailChildConstruction = Child.makeCommand('FailConstruction', {
   messages: [ChildMessage.CompletedInitialization],
 })
 const FailChildConstructionLayer = FailChildConstruction.toLayer<
@@ -157,53 +157,53 @@ const Parent = makeDefinition('StartupDefaultsParent', {
   Message: ParentMessage,
   ChildInitContext,
 })
-const FinishParentInitialization = Parent.command('FinishInitialization', {
+const FinishParentInitialization = Parent.makeCommand('FinishInitialization', {
   messages: [ParentMessage.CompletedParentInitialization],
   handler: function* () {
     return () => Effect.succeed(ParentMessage.CompletedParentInitialization())
   },
 })
-const FinishParentStep = Parent.command('FinishStep', {
+const FinishParentStep = Parent.makeCommand('FinishStep', {
   messages: [ParentMessage.CompletedParentStep],
   handler: function* () {
     return () => Effect.succeed(ParentMessage.CompletedParentStep())
   },
 })
 
-const AutomaticBinding = Parent.bindChild(ChildBlock, {
+const AutomaticBinding = Parent.makeBinding(ChildBlock, {
   field: 'automatic',
 })
-const DefaultArgumentBinding = Parent.bindChild(DefaultChildBlock, {
+const DefaultArgumentBinding = Parent.makeBinding(DefaultChildBlock, {
   field: 'defaultArgument',
 })
-const OptionalArgumentBinding = Parent.bindChild(OptionalArgumentChildBlock, {
+const OptionalArgumentBinding = Parent.makeBinding(OptionalArgumentChildBlock, {
   field: 'optionalArgument',
 })
-const RequiredRestBinding = Parent.bindChild(RequiredRestChildBlock, {
+const RequiredRestBinding = Parent.makeBinding(RequiredRestChildBlock, {
   field: 'requiredRest',
   init: { contextToArgs: childInitContext => [childInitContext.count] },
 })
-const OptedOutBinding = Parent.bindChild(ChildBlock, {
+const OptedOutBinding = Parent.makeBinding(ChildBlock, {
   field: 'optedOut',
   init: false,
 })
-const PassiveOptionalBinding = Parent.bindChild(ChildBlock, {
+const PassiveOptionalBinding = Parent.makeBinding(ChildBlock, {
   field: 'maybePassive',
 })
-const AutomaticOptionalBinding = Parent.bindChild(ChildBlock, {
+const AutomaticOptionalBinding = Parent.makeBinding(ChildBlock, {
   field: 'maybeAutomatic',
   init: {
     contextToArgs: childInitContext =>
       childInitContext.includeOptional ? Option.some([]) : Option.none(),
   },
 })
-const PassiveEntriesBinding = Parent.bindChild(ChildBlock, {
+const PassiveEntriesBinding = Parent.makeBinding(ChildBlock, {
   placement: 'passiveEntries',
   field: 'passiveEntries',
   key: 'id',
   childField: 'child',
 })
-const AutomaticEntriesBinding = Parent.bindChild(ChildBlock, {
+const AutomaticEntriesBinding = Parent.makeBinding(ChildBlock, {
   placement: 'automaticEntries',
   field: 'automaticEntries',
   key: 'id',
@@ -240,7 +240,7 @@ const ParentComposition = Parent.makeComposition({
     AutomaticEntriesBinding,
   ],
 })
-const applyParentStep = Parent.step(model => ({
+const applyParentStep = Parent.makeStep(model => ({
   model: modifyFields(model, { status: () => 'Stepped' }),
   commands: [FinishParentStep()],
 }))
@@ -318,20 +318,20 @@ expectTypeOf<
 if (false) {
   // @ts-expect-error The startup selector is named contextToArgs.
   // oxfmt-ignore
-  Parent.bindChild(ChildBlock, { field: 'automatic', init: { args: () => [] } })
+  Parent.makeBinding(ChildBlock, { field: 'automatic', init: { args: () => [] } })
   // @ts-expect-error The removed args key cannot accompany contextToArgs.
   // oxfmt-ignore
-  Parent.bindChild(ChildBlock, { field: 'automatic', init: { contextToArgs: () => [], args: () => [] } })
+  Parent.makeBinding(ChildBlock, { field: 'automatic', init: { contextToArgs: () => [], args: () => [] } })
   // @ts-expect-error A required-argument child needs init.contextToArgs or init: false.
   // oxfmt-ignore
-  Parent.bindChild(RequiredChildBlock, { field: 'automatic' })
+  Parent.makeBinding(RequiredChildBlock, { field: 'automatic' })
   // @ts-expect-error Child init arguments retain their exact tuple.
   // oxfmt-ignore
-  Parent.bindChild(RequiredChildBlock, { field: 'automatic', init: { contextToArgs: () => ['wrong'] } })
+  Parent.makeBinding(RequiredChildBlock, { field: 'automatic', init: { contextToArgs: () => ['wrong'] } })
   // @ts-expect-error A selector must accept every value allowed by ChildInitContext.
   // oxfmt-ignore
-  Parent.bindChild(ChildBlock, { field: 'automatic', placement: 'narrowStartup', init: { contextToArgs: (_childInitContext: Readonly<{ count: 1 }>) => [] } })
-  Parent.bindChild(ChildBlock, {
+  Parent.makeBinding(ChildBlock, { field: 'automatic', placement: 'narrowStartup', init: { contextToArgs: (_childInitContext: Readonly<{ count: 1 }>) => [] } })
+  Parent.makeBinding(ChildBlock, {
     field: 'automatic',
     placement: 'readonlyStartup',
     init: {
@@ -344,10 +344,10 @@ if (false) {
   })
   // @ts-expect-error Optional child initialization requires an explicit presence selector.
   // oxfmt-ignore
-  Parent.bindChild(ChildBlock, { field: 'maybePassive', init: true })
+  Parent.makeBinding(ChildBlock, { field: 'maybePassive', init: true })
   // @ts-expect-error Keyed init false cannot replace an occurrence policy.
   // oxfmt-ignore
-  Parent.bindChild(ChildBlock, { field: 'passiveEntries', key: 'id', childField: 'child', init: false })
+  Parent.makeBinding(ChildBlock, { field: 'passiveEntries', key: 'id', childField: 'child', init: false })
 
   const optionalInitConfig: Readonly<{
     field: 'automatic'
@@ -356,7 +356,7 @@ if (false) {
     field: 'automatic',
   }
   // @ts-expect-error An optional init policy cannot ambiguously change default startup.
-  Parent.bindChild(ChildBlock, optionalInitConfig)
+  Parent.makeBinding(ChildBlock, optionalInitConfig)
 
   const unionInitConfig: Readonly<{
     field: 'automatic'
@@ -366,7 +366,7 @@ if (false) {
     init: true,
   }
   // @ts-expect-error A union init policy does not establish one concrete startup policy.
-  Parent.bindChild(ChildBlock, unionInitConfig)
+  Parent.makeBinding(ChildBlock, unionInitConfig)
 }
 
 const ExactStartupModel = Schema.Struct({ child: ChildModel })
@@ -376,7 +376,7 @@ const ExactStartupDefinition = ExactStartupNamespace.makeDefinition({
   Message: Schema.Never,
   ChildInitContext,
 })
-const WiderStartupBinding = ExactStartupDefinition.bindChild(ChildBlock, {
+const WiderStartupBinding = ExactStartupDefinition.makeBinding(ChildBlock, {
   field: 'child',
   init: { contextToArgs: (_childInitContext: object) => [] },
 })
@@ -389,7 +389,7 @@ ExactStartupComposition.makeInit(() => ({
   model: {},
 }))
 
-const ZeroParameterStartupBinding = ExactStartupDefinition.bindChild(
+const ZeroParameterStartupBinding = ExactStartupDefinition.makeBinding(
   ChildBlock,
   {
     field: 'child',
@@ -407,7 +407,7 @@ const ForeignStartupDefinition = ExactStartupNamespace.makeDefinition({
   Message: Schema.Never,
   ChildInitContext: ForeignChildInitContext,
 })
-const ForeignStartupBinding = ForeignStartupDefinition.bindChild(ChildBlock, {
+const ForeignStartupBinding = ForeignStartupDefinition.makeBinding(ChildBlock, {
   field: 'child',
   init: { contextToArgs: _childInitContext => [] },
 })
@@ -423,7 +423,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message: Schema.Never,
   ChildInitContext,
 })
-ApplicationDefinition.bindChild(ChildBlock, {
+ApplicationDefinition.makeBinding(ChildBlock, {
   field: 'child',
   init: {
     contextToArgs: childInitContext => {
@@ -437,7 +437,7 @@ const Ordinary = makeDefinition('StartupDefaultsOrdinary', {
   Model: ExactStartupModel,
   Message: Schema.Never,
 })
-Ordinary.bindChild(ChildBlock, {
+Ordinary.makeBinding(ChildBlock, {
   field: 'child',
 })
 
@@ -489,7 +489,7 @@ it('rejects an erased Binding from an incompatible ChildInitContext contract', (
 
 it('rejects the removed init.args startup selector at runtime', () => {
   const bindWithInit = (init: object) =>
-    Reflect.apply(Parent.bindChild, undefined, [
+    Reflect.apply(Parent.makeBinding, undefined, [
       ChildBlock,
       {
         field: 'automatic',

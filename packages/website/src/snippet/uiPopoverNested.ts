@@ -27,12 +27,12 @@ const AccountMenuDefinition = Block.makeDefinition('AccountMenu', {
 const foldPopoverOutMessage = AccountMenuDefinition.makeOutMessageFold(
   Popover.PopoverBlock,
   {
-    Opened: AccountMenuDefinition.stepNoop,
-    Closed: AccountMenuDefinition.stepNoop,
+    Opened: AccountMenuDefinition.makeNoopStep,
+    Closed: AccountMenuDefinition.makeNoopStep,
   },
 )
 
-const AccountPopoverBinding = AccountMenuDefinition.bindChild(
+const AccountPopoverBinding = AccountMenuDefinition.makeBinding(
   Popover.PopoverBlock,
   {
     field: 'accountPopover',
@@ -43,7 +43,7 @@ const AccountPopoverBinding = AccountMenuDefinition.bindChild(
   },
 ).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
-const AccountDetailsPopoverBinding = AccountMenuDefinition.bindChild(
+const AccountDetailsPopoverBinding = AccountMenuDefinition.makeBinding(
   Popover.PopoverBlock,
   {
     field: 'accountDetailsPopover',

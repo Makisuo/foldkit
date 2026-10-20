@@ -6,7 +6,7 @@ const forwardDatePickerOutMessage = DateRangeDefinition.makeOutMessageForward(
   },
 )
 
-export const DatePickerBinding = DateRangeDefinition.bindChild(
+export const DatePickerBinding = DateRangeDefinition.makeBinding(
   DatePickerBlock,
   { field: 'datePicker' },
 ).withOutMessagePolicy({ forward: forwardDatePickerOutMessage })

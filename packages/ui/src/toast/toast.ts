@@ -132,7 +132,7 @@ const LEFT_MOUSE_BUTTON = 0
  *  Consume the completed Block everywhere. Use `Toast.Model` in your app
  *  Model, `Toast.Message` in your parent Message union, `Toast.operations.requestShow`
  *  and `Toast.operations.requestDismiss` for raw Model operations, and
- *  `Parent.bindChild(Toast, config)` in the parent Block. Exposed
+ *  `Parent.makeBinding(Toast, config)` in the parent Block. Exposed
  *  operations such as `show` and `dismiss` are available directly on the
  *  binding. The separate exports provide
  *  payload-independent Schemas, constants, and Commands.

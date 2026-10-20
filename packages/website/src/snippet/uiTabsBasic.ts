@@ -55,7 +55,7 @@ const foldTabsOutMessage = TabsExampleDefinition.makeOutMessageFold(
     // dispatch Commands, for example route to a new URL, persist the
     // selection, or trigger a panel content fetch.
     Selected: ({ value }) =>
-      TabsExampleDefinition.stepFields(() => ({
+      TabsExampleDefinition.makeFieldsStep(() => ({
         activeFramework: () => value,
       })),
   },
@@ -65,7 +65,7 @@ const foldTabsOutMessage = TabsExampleDefinition.makeOutMessageFold(
 // FrameworkTabs.update, writes the next Tabs Model back, maps the Block's
 // Commands into your Message type, and hands any OutMessage to
 // the OutMessage fold.
-const TabsBinding = TabsExampleDefinition.bindChild(FrameworkTabs, {
+const TabsBinding = TabsExampleDefinition.makeBinding(FrameworkTabs, {
   field: 'tabs',
   init: { contextToArgs: () => Tuple.make({ id: 'framework-tabs' }) },
 }).withOutMessagePolicy({ fold: foldTabsOutMessage })

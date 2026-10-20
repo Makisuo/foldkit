@@ -28,14 +28,14 @@ MenuFoldFixtureDefinition.makeOutMessageFold(MenuPicker, {
   Selected: ({ value }) => {
     // @ts-expect-error Parent-owned folds preserve the generic Menu payload.
     const _wrong: 'Banana' = value
-    return MenuFoldFixtureDefinition.stepNoop()
+    return MenuFoldFixtureDefinition.makeNoopStep()
   },
-  Closed: () => MenuFoldFixtureDefinition.stepNoop(),
+  Closed: () => MenuFoldFixtureDefinition.makeNoopStep(),
 })
 
 // @ts-expect-error Parent-owned folds require every generic Menu OutMessage variant.
 MenuFoldFixtureDefinition.makeOutMessageFold(MenuPicker, {
-  Selected: () => MenuFoldFixtureDefinition.stepNoop(),
+  Selected: () => MenuFoldFixtureDefinition.makeNoopStep(),
 })
 
 // @ts-expect-error Animation content must be rendered through the caller-scoped slot.

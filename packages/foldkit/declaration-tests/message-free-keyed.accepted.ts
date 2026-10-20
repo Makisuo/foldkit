@@ -32,7 +32,7 @@ const SilentDefinition = Block.makeDefinition(
     Message: Schema.Never,
   },
 )
-const WaitForever = SilentDefinition.command('WaitForever', {
+const WaitForever = SilentDefinition.makeCommand('WaitForever', {
   messages: [],
   handler: function* () {
     const client = yield* SilentClient
@@ -65,7 +65,7 @@ export const ParentDefinition = Block.makeDefinition(
   },
 )
 
-export const GeneralKeyedBinding = ParentDefinition.bindChild(SilentBlock, {
+export const GeneralKeyedBinding = ParentDefinition.makeBinding(SilentBlock, {
   placement: 'general-silent',
   readAll: model => {
     const proof: Expect<Equal<typeof model, typeof ParentModel.Type>> = true
@@ -107,15 +107,16 @@ export const GeneralKeyedBinding = ParentDefinition.bindChild(SilentBlock, {
 export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [GeneralKeyedBinding],
 })
-export const initializeGeneral = ParentDefinition.step((model, key: string) =>
-  GeneralKeyedBinding.init({
-    key,
-    args: [key],
-    toParentModel: silent =>
-      modifyFields(model, {
-        entries: Array.append(Entry.make({ key, silent })),
-      }),
-  }),
+export const initializeGeneral = ParentDefinition.makeStep(
+  (model, key: string) =>
+    GeneralKeyedBinding.init({
+      key,
+      args: [key],
+      toParentModel: silent =>
+        modifyFields(model, {
+          entries: Array.append(Entry.make({ key, silent })),
+        }),
+    }),
 )
 export const ParentBlock = ParentComposition.assembleBlock({
   init: ParentComposition.makeInit(() => ({ model: { entries: [] } })),

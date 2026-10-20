@@ -21,7 +21,7 @@ const RegistryDefinition = makeDefinition('SubscriptionRegistry', {
   Message,
 })
 
-const subscriptions = RegistryDefinition.subscriptions(entry => ({
+const subscriptions = RegistryDefinition.makeSubscriptions(entry => ({
   clock: entry('Clock', {
     messages: [Message.Ticked],
     handler: function* () {
@@ -114,8 +114,8 @@ describe('Definition subscriptions registry', () => {
   })
 
   it('adds Layer.empty to an empty registry and omits layer for mixed ownership', () => {
-    const empty = RegistryDefinition.subscriptions(() => ({}))
-    const mixed = RegistryDefinition.subscriptions(entry => ({
+    const empty = RegistryDefinition.makeSubscriptions(() => ({}))
+    const mixed = RegistryDefinition.makeSubscriptions(entry => ({
       attached: entry('Attached', {
         messages: [Message.Ticked],
         handler: function* () {
@@ -135,7 +135,7 @@ describe('Definition subscriptions registry', () => {
   })
 
   it('decorates fresh registries when callbacks return frozen or sealed records', () => {
-    const frozen = RegistryDefinition.subscriptions(entry =>
+    const frozen = RegistryDefinition.makeSubscriptions(entry =>
       Object.freeze({
         clock: entry('FrozenClock', {
           messages: [Message.Ticked],
@@ -145,7 +145,7 @@ describe('Definition subscriptions registry', () => {
         }),
       }),
     )
-    const sealed = RegistryDefinition.subscriptions(entry =>
+    const sealed = RegistryDefinition.makeSubscriptions(entry =>
       Object.seal({
         logger: entry('SealedLogger', {
           messages: [Message.Logged],
@@ -166,8 +166,8 @@ describe('Definition subscriptions registry', () => {
 
   it('reserves layer as the aggregate recipe name', () => {
     expect(() =>
-      RegistryDefinition.subscriptions(entry => ({
-        // @ts-expect-error Definition.subscriptions reserves layer for its aggregate Layer.
+      RegistryDefinition.makeSubscriptions(entry => ({
+        // @ts-expect-error Definition.makeSubscriptions reserves layer for its aggregate Layer.
         layer: entry('Conflicting', { messages: [Message.Ticked] }),
       })),
     ).toThrow(/reserves "layer"/u)
@@ -175,18 +175,20 @@ describe('Definition subscriptions registry', () => {
 
   it('rejects an erased callback result that is not an entry record', () => {
     expect(() =>
-      Reflect.apply(RegistryDefinition.subscriptions, undefined, [
+      Reflect.apply(RegistryDefinition.makeSubscriptions, undefined, [
         () => undefined,
       ]),
     ).toThrow('callback must return a Subscription entry record')
     expect(() =>
-      Reflect.apply(RegistryDefinition.subscriptions, undefined, [() => []]),
+      Reflect.apply(RegistryDefinition.makeSubscriptions, undefined, [
+        () => [],
+      ]),
     ).toThrow('callback must return a Subscription entry record')
   })
 
   it('rejects attached entries with invalid Layer values', () => {
     expect(() =>
-      RegistryDefinition.subscriptions(entry => ({
+      RegistryDefinition.makeSubscriptions(entry => ({
         broken: {
           ...entry('Broken', {
             messages: [Message.Ticked],

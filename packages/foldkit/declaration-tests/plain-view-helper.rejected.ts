@@ -14,14 +14,12 @@ import {
   childViewHelper,
 } from './plain-view-helper.accepted.js'
 
-const AlternativeChildBinding = DeclarationViewHelperParentDefinition.bindChild(
-  ChildBlock,
-  {
+const AlternativeChildBinding =
+  DeclarationViewHelperParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
     placement: 'alternativeChild',
     init: false,
-  },
-)
+  })
 const OmittedParentComposition =
   DeclarationViewHelperParentDefinition.makeComposition({
     bindings: [AlternativeChildBinding],
@@ -79,7 +77,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const AlternativeApplicationChildBinding = ApplicationDefinition.bindChild(
+const AlternativeApplicationChildBinding = ApplicationDefinition.makeBinding(
   ChildBlock,
   {
     field: 'child',

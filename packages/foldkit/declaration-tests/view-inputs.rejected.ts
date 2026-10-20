@@ -29,7 +29,7 @@ const DeclarationGenericViewInputsParentDefinition = Block.makeDefinition(
   },
 )
 const CallbackItemBinding =
-  DeclarationGenericViewInputsParentDefinition.bindChild(callbackItemBlock, {
+  DeclarationGenericViewInputsParentDefinition.makeBinding(callbackItemBlock, {
     field: 'child',
   })
 

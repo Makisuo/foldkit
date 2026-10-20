@@ -6,16 +6,16 @@ import { EditorDefinition } from '../definition'
 const foldDialogOutMessage = EditorDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: EditorDefinition.stepNoop,
-    CompletedClose: EditorDefinition.stepNoop,
+    Opened: EditorDefinition.makeNoopStep,
+    CompletedClose: EditorDefinition.makeNoopStep,
     Closed: () =>
-      EditorDefinition.step(model => ({
+      EditorDefinition.makeStep(model => ({
         model,
         commands: [SaveDraft({ contents: model.contents })],
       })),
   },
 )
 
-export const DialogBinding = EditorDefinition.bindChild(Dialog.DialogBlock, {
+export const DialogBinding = EditorDefinition.makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })

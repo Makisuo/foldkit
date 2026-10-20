@@ -67,11 +67,11 @@ const makeBlockParts = <Item, Value extends string>() => {
     OutMessage: RefinedOutMessage,
   })
   const itemUpdate = makeUpdate(
-    ListboxDefinition.bindChild,
+    ListboxDefinition.makeBinding,
     ListboxDefinition.makeOutMessageFold,
-    ListboxDefinition.step,
-    ListboxDefinition.stepFields,
-    ListboxDefinition.stepNoop,
+    ListboxDefinition.makeStep,
+    ListboxDefinition.makeFieldsStep,
+    ListboxDefinition.makeNoopStep,
     'KeepOpen',
     (model, item) => ({
       model,
@@ -91,7 +91,7 @@ const makeBlockParts = <Item, Value extends string>() => {
     mounts,
     bindings: [itemUpdate.AnimationBinding],
   })
-  const authoredUpdate = ListboxDefinition.step(
+  const authoredUpdate = ListboxDefinition.makeStep(
     (model, message: Parameters<typeof itemUpdate.update>[1]) =>
       castReturn(itemUpdate.update(model, message)),
   )

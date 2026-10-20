@@ -133,7 +133,7 @@ const ViewInputsModel = Schema.Struct({ id: Schema.String })
 type ViewInputsModel = typeof ViewInputsModel.Type
 const ViewInputsMessage = defineMessageUnion({ CompletedObserve: {} })
 type ViewInputsMessage = typeof ViewInputsMessage.Type
-const Observe = ViewInputsNamespace.mount('Observe', {
+const Observe = ViewInputsNamespace.makeMount('Observe', {
   messages: [ViewInputsMessage.CompletedObserve],
 })
 const ViewInputsComposition = ViewInputsNamespace.makeDefinition({
@@ -192,10 +192,10 @@ const ParentDefinition = makeNamespace(
   Model: ParentModel,
   Message: Schema.Never,
 })
-const CallbackItemBinding = ParentDefinition.bindChild(callbackItemBlock, {
+const CallbackItemBinding = ParentDefinition.makeBinding(callbackItemBlock, {
   field: 'child',
 })
-const StringItemBinding = ParentDefinition.bindChild(stringItemBlock, {
+const StringItemBinding = ParentDefinition.makeBinding(stringItemBlock, {
   field: 'child',
 })
 

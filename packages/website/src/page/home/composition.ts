@@ -8,13 +8,16 @@ import { OutMessage } from './message'
 import { NotePlayerDemoBlock } from './notePlayerDemo'
 import { PlaygroundMenuBlock } from './playgroundMenu'
 
-export const DemoTabsBinding = HomeDefinition.bindChild(DemoTab.DemoTabsBlock, {
-  field: 'demoTabs',
-  init: { contextToArgs: () => Tuple.make({ id: 'demo-tabs' }) },
-}).withOutMessagePolicy({
+export const DemoTabsBinding = HomeDefinition.makeBinding(
+  DemoTab.DemoTabsBlock,
+  {
+    field: 'demoTabs',
+    init: { contextToArgs: () => Tuple.make({ id: 'demo-tabs' }) },
+  },
+).withOutMessagePolicy({
   fold: HomeDefinition.makeOutMessageFold(DemoTab.DemoTabsBlock, {
     Selected: ({ value }) =>
-      HomeDefinition.stepFields(() => ({ activeDemoTab: () => value })),
+      HomeDefinition.makeFieldsStep(() => ({ activeDemoTab: () => value })),
   }),
 })
 
@@ -22,17 +25,17 @@ const foldPlaygroundMenuOutMessage = HomeDefinition.makeOutMessageFold(
   PlaygroundMenuBlock,
   {
     Selected: ({ value }) =>
-      HomeDefinition.step(model => ({
+      HomeDefinition.makeStep(model => ({
         model,
         outMessage: OutMessage.SelectedPlaygroundExample({
           exampleSlug: value,
         }),
       })),
-    Closed: HomeDefinition.stepNoop,
+    Closed: HomeDefinition.makeNoopStep,
   },
 )
 
-export const PlaygroundMenuBinding = HomeDefinition.bindChild(
+export const PlaygroundMenuBinding = HomeDefinition.makeBinding(
   PlaygroundMenuBlock,
   {
     field: 'playgroundMenu',
@@ -43,14 +46,14 @@ export const PlaygroundMenuBinding = HomeDefinition.bindChild(
   },
 ).withOutMessagePolicy({ fold: foldPlaygroundMenuOutMessage })
 
-export const AsyncCounterDemoBinding = HomeDefinition.bindChild(
+export const AsyncCounterDemoBinding = HomeDefinition.makeBinding(
   AsyncCounterDemoBlock,
   {
     field: 'asyncCounterDemo',
   },
 )
 
-export const NotePlayerDemoBinding = HomeDefinition.bindChild(
+export const NotePlayerDemoBinding = HomeDefinition.makeBinding(
   NotePlayerDemoBlock,
   {
     field: 'notePlayerDemo',

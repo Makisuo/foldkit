@@ -20,7 +20,7 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-export const PeopleBinding = ApplicationDefinition.bindChild(
+export const PeopleBinding = ApplicationDefinition.makeBinding(
   People.PeopleBlock,
   {
     field: 'people',
@@ -33,7 +33,7 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
 })
 
 const setRoute = (nextRoute: typeof ApplicationRoute.Type) =>
-  ApplicationDefinition.stepFields(() => ({ route: () => nextRoute }))
+  ApplicationDefinition.makeFieldsStep(() => ({ route: () => nextRoute }))
 
 export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {

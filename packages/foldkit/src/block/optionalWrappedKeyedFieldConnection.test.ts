@@ -211,7 +211,7 @@ const Child = makeDefinition('OptionalWrappedKeyedChild', {
   Message: ChildMessage,
 })
 const ChildComposition = Child.makeComposition()
-const FinishInitialization = Child.command('FinishInitialization', {
+const FinishInitialization = Child.makeCommand('FinishInitialization', {
   args: { count: Schema.Number },
   messages: [ChildMessage.CompletedInitialization],
   handler: function* () {
@@ -248,7 +248,7 @@ const Parent = makeDefinition('OptionalWrappedKeyedParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ChildBinding = Parent.bindChild(ChildBlock, {
+const ChildBinding = Parent.makeBinding(ChildBlock, {
   field: 'maybeEntry',
   key: 'id',
   childField: 'child',

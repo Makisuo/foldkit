@@ -8,7 +8,7 @@ This keeps one parent-child relationship in one place. The parent does not separ
 
 ## Declare Local Subscriptions
 
-Use the Block definition's `subscriptions` helper. It fixes the Model and Message types while each entry keeps its named handler identity, dependency Schema, declared Messages, and attached Layer recipe.
+Use the Block definition's `makeSubscriptions` helper. It fixes the Model and Message types while each entry keeps its named handler identity, dependency Schema, declared Messages, and attached Layer recipe.
 
 ::Snippet{name="subscriptionOrganizationChild" label="Block Subscription definitions"}
 
@@ -64,7 +64,7 @@ An omitted entry has no additional parent gate. It still stops when `read` retur
 
 ## Keyed Children
 
-For an array storing child Models directly, use `ParentDefinition.bindChild` with `field` and a string-valued `key`. The child Schema must expose its declared Struct fields. An exact array of closed Struct wrappers adds `childField`, whose required Schema has exactly the same decoded shape as the child Model; its distinct required `key` belongs to the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration use `readAll`, function-valued `key`, `read`, and `writeAt`. The Binding declares storage, stable identity, and generated child delivery once. Every active key receives independent Stream scopes and its own gate evaluation.
+For an array storing child Models directly, use `ParentDefinition.makeBinding` with `field` and a string-valued `key`. The child Schema must expose its declared Struct fields. An exact array of closed Struct wrappers adds `childField`, whose required Schema has exactly the same decoded shape as the child Model; its distinct required `key` belongs to the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration use `readAll`, function-valued `key`, `read`, and `writeAt`. The Binding declares storage, stable identity, and generated child delivery once. Every active key receives independent Stream scopes and its own gate evaluation.
 
 Removing a key stops those Streams. Reusing the key later creates a fresh occurrence, so callbacks captured by the old occurrence cannot dispatch into the replacement.
 

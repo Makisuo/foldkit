@@ -89,7 +89,7 @@ export const init = PlaygroundComposition.makeInit(
 // MANAGED RESOURCE
 
 const WebContainerPlayground =
-  PlaygroundDefinition.resource<PlaygroundWebContainer>()(
+  PlaygroundDefinition.makeResource<PlaygroundWebContainer>()(
     'WebContainerPlayground',
   )
 
@@ -108,7 +108,7 @@ const STYLES_CSS_PATH = 'src/styles.css'
 
 const WRITE_DEBOUNCE_MILLIS = 250
 
-export const WaitForPlaygroundServerFailure = PlaygroundDefinition.command(
+export const WaitForPlaygroundServerFailure = PlaygroundDefinition.makeCommand(
   'WaitForPlaygroundServerFailure',
   {
     messages: [Message.CompletedWaitForPlaygroundServerFailure],
@@ -130,7 +130,7 @@ export const WaitForPlaygroundServerFailure = PlaygroundDefinition.command(
   },
 )
 
-export const SchedulePlaygroundFileWrite = PlaygroundDefinition.command(
+export const SchedulePlaygroundFileWrite = PlaygroundDefinition.makeCommand(
   'SchedulePlaygroundFileWrite',
   {
     args: { path: Schema.String, content: Schema.String },
@@ -182,7 +182,7 @@ export const SchedulePlaygroundFileWrite = PlaygroundDefinition.command(
   },
 )
 
-export const managedResources = PlaygroundDefinition.managedResources(
+export const managedResources = PlaygroundDefinition.makeManagedResources(
   entry => ({
     webContainerPlayground: entry(
       'ManageWebContainerPlayground',

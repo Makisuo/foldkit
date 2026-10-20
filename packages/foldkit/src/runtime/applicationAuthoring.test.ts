@@ -57,14 +57,14 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const ChildBinding = ApplicationDefinition.bindChild(childBlock, {
+const ChildBinding = ApplicationDefinition.makeBinding(childBlock, {
   read: model => Option.some(model.child),
   write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
 })
 const graphlessComposition = ApplicationDefinition.makeComposition({
   bindings: [ChildBinding],
 })
-const ReadRootValue = ApplicationDefinition.command('ReadRootValue', {
+const ReadRootValue = ApplicationDefinition.makeCommand('ReadRootValue', {
   messages: [Message.CompletedReadRootValue],
   handler: function* () {
     const source = yield* ValueSource
@@ -80,7 +80,7 @@ const documentView = graphlessComposition.makeView((model, h) => ({
 const graphlessElementView = graphlessComposition.makeView((model, h) =>
   h.div([], [model.rootValue]),
 )
-const ObserveRoot = ApplicationDefinition.mount('ObserveRoot', {
+const ObserveRoot = ApplicationDefinition.makeMount('ObserveRoot', {
   messages: [Message.CompletedReadRootValue],
   handler: function* () {
     return () =>
@@ -173,30 +173,30 @@ const typecheckRootCompletion = (): void => {
   // @ts-expect-error An Application Definition does not expose the Composition-owned init helper.
   ApplicationDefinition.makeInit
 
-  ApplicationDefinition.command('AcceptedCommand', {
+  ApplicationDefinition.makeCommand('AcceptedCommand', {
     messages: [Message.CompletedReadRootValue],
   })
-  ApplicationDefinition.mount('AcceptedMount', {
+  ApplicationDefinition.makeMount('AcceptedMount', {
     messages: [Message.CompletedReadRootValue],
   })
-  ApplicationDefinition.mountStream('AcceptedMountStream', {
+  ApplicationDefinition.makeMountStream('AcceptedMountStream', {
     messages: [Message.CompletedReadRootValue],
   })
 
-  ApplicationDefinition.command('ForeignCommand', {
+  ApplicationDefinition.makeCommand('ForeignCommand', {
     // @ts-expect-error Root Commands must produce the Application Message.
     messages: [ForeignMessage.ForeignCompleted],
   })
-  ApplicationDefinition.mount('ForeignMount', {
+  ApplicationDefinition.makeMount('ForeignMount', {
     // @ts-expect-error Root Mounts must produce the Application Message.
     messages: [ForeignMessage.ForeignCompleted],
   })
-  ApplicationDefinition.mountStream('ForeignMountStream', {
+  ApplicationDefinition.makeMountStream('ForeignMountStream', {
     // @ts-expect-error Root stream Mounts must produce the Application Message.
     messages: [ForeignMessage.ForeignCompleted],
   })
   // @ts-expect-error Primitive authoring remains on the Application Definition.
-  composition.command
+  composition.makeCommand
 
   composition.makeUpdate((model, message) =>
     Message.match(message, {
@@ -436,16 +436,16 @@ describe('Program root Block authoring', () => {
   it('stages primitive authoring before composition', () => {
     expectTypeOf(ApplicationDefinition.Model).toEqualTypeOf(Model)
     expectTypeOf(ApplicationDefinition.Message).toEqualTypeOf(Message)
-    expect(ApplicationDefinition.command).toBeTypeOf('function')
-    expect(ApplicationDefinition.mount).toBeTypeOf('function')
-    expect(ApplicationDefinition.mountStream).toBeTypeOf('function')
-    expect(ApplicationDefinition.resource).toBeTypeOf('function')
+    expect(ApplicationDefinition.makeCommand).toBeTypeOf('function')
+    expect(ApplicationDefinition.makeMount).toBeTypeOf('function')
+    expect(ApplicationDefinition.makeMountStream).toBeTypeOf('function')
+    expect(ApplicationDefinition.makeResource).toBeTypeOf('function')
     expect(composition.makeUpdate).toBeTypeOf('function')
-    expect(ApplicationDefinition.step).toBeTypeOf('function')
-    expect(ApplicationDefinition.subscriptions).toBeTypeOf('function')
-    expect(ApplicationDefinition.managedResources).toBeTypeOf('function')
-    expect(composition).not.toHaveProperty('command')
-    expect(composition).not.toHaveProperty('step')
+    expect(ApplicationDefinition.makeStep).toBeTypeOf('function')
+    expect(ApplicationDefinition.makeSubscriptions).toBeTypeOf('function')
+    expect(ApplicationDefinition.makeManagedResources).toBeTypeOf('function')
+    expect(composition).not.toHaveProperty('makeCommand')
+    expect(composition).not.toHaveProperty('makeStep')
     expect(composition.makeInit).toBeTypeOf('function')
     expect(init).not.toBe(initSource)
     expect(init().model).toEqual({

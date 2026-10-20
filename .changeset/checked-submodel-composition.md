@@ -51,9 +51,12 @@ export const Message = defineMessageUnion({
 import { ApplicationDefinition } from './definition'
 import { SettingsBlock } from './settings'
 
-export const SettingsBinding = ApplicationDefinition.bindChild(SettingsBlock, {
-  field: 'settings',
-})
+export const SettingsBinding = ApplicationDefinition.makeBinding(
+  SettingsBlock,
+  {
+    field: 'settings',
+  },
+)
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [SettingsBinding],
@@ -178,7 +181,7 @@ Put the local Message constructor directly under `operations` when its payload i
 
 Keep a tuple producer under `operations` when the public inputs need mapping, refinement, defaults, or an exact update context tuple. Inline tuples receive contextual typing. An extracted producer returns `Tuple.make(Message.RequestedReset())`, with `Tuple` imported from `effect`. Local Message constructors and tuple producers complete through the same execution path. The registry accepts these two Message-producing forms, not arbitrary Steps, and there is no `expose` compatibility alias.
 
-Remove `exposedSteps` and any `pure` or `reflect*` public state transition. A public operation must select a local Message constructor so the child's update remains the only state transition boundary. Keep internal Model-only work as a Step: `Definition.stepFields` creates a unary field-transform Step. Pass `Definition.stepNoop` point-free as a `makeOutMessageFold` handler when the parent intentionally keeps its Model unchanged. Continue to use `Definition.step` for parameterized, contextual, Command-producing, OutMessage-producing, connected, or composed results.
+Remove `exposedSteps` and any `pure` or `reflect*` public state transition. A public operation must select a local Message constructor so the child's update remains the only state transition boundary. Keep internal Model-only work as a Step: `Definition.makeFieldsStep` creates a unary field-transform Step. Pass `Definition.makeNoopStep` point-free as a `makeOutMessageFold` handler when the parent intentionally keeps its Model unchanged. Continue to use `Definition.makeStep` for parameterized, contextual, Command-producing, OutMessage-producing, connected, or composed results.
 
 Every completed operation uses the full return contract of the Block's update. If any update branch returns a Command or OutMessage, all operations carry that requirement or optional result in their type. Dispatching a Message for a pure branch does not run effects from another branch.
 
@@ -194,7 +197,7 @@ Name action operations with `request*`, paired with `Requested*` Messages. For e
 
 ### Bundle owned Subscription handlers
 
-When all entries returned by `Definition.subscriptions(...)` have attached handlers, the registry exposes an aggregate `.layer`:
+When all entries returned by `Definition.makeSubscriptions(...)` have attached handlers, the registry exposes an aggregate `.layer`:
 
 Individual recipes (still supported):
 
@@ -226,7 +229,7 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-export const HomeBinding = ApplicationDefinition.bindChild(HomeBlock, {
+export const HomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
   field: 'home',
 })
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
@@ -238,7 +241,7 @@ The direct field form infers the parent Model and child Model relationship for e
 
 Placement identifies one child Binding within the parent's composition graph. It does not identify a DOM position and need not match a Model field. Unkeyed direct fields default placement to the field. Accessor Bindings and all keyed Bindings default to the child Block ID, including direct and wrapped array adapters. For keyed Bindings, `key` identifies dynamic occurrences under that one placement. Supply an explicit placement only when sibling defaults collide or an established graph identity must deliberately remain different from the new default.
 
-A split feature without a `composition/` directory uses `composition.ts` for straightforward Bindings, its complete `makeComposition({ bindings, mounts })` registration, Composition and an optional owner-specific ViewBuilder alias. When `composition/` exists, `composition/composition.ts` owns that assembly and `composition/index.ts` exports it. Mount-only features use the same home, with definitions shared with the view in `mount.ts`. Extract a substantial one-way policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. Assembly imports actual policy exports directly from sibling modules, and the barrel re-exports intended values such as `HomeBinding`, `RoomBinding`, and `ApplicationComposition`. External consumers import from `composition.ts` or that barrel, never from a policy or assembly implementation path. Use a factory only when Binding construction needs caller-owned configuration. Keep reciprocal sibling policies together in the same parent assembly and defer sibling Binding calls through policy callbacks; a callback may close over a Binding declared later without a circular import. Internal implementation modules may use direct relative sibling imports to avoid barrel cycles. This assembly module is also required for a split graphless feature. Retain `definition.ts` and `FooDefinition` when authoring methods use that value; otherwise put the top-level Definition factory and contract imports in `composition.ts` and chain `makeComposition()` directly. Never put a Composition or owner-specific ViewBuilder in a retained `definition.ts`. A compact graphless feature keeps all stages beside its cohesive implementation. A genuinely compact root keeps Model, Message, init, update, view, `ApplicationDefinition`, and `ApplicationComposition` together in `application.ts`. A split root always uses `composition.ts` or `composition/composition.ts`, including when graphless, and removes the emptied `application.ts`. `bindChild` only configures the relationship; including its result under `bindings` registers it. Neither step constructs Layers or starts effects.
+A split feature without a `composition/` directory uses `composition.ts` for straightforward Bindings, its complete `makeComposition({ bindings, mounts })` registration, Composition and an optional owner-specific ViewBuilder alias. When `composition/` exists, `composition/composition.ts` owns that assembly and `composition/index.ts` exports it. Mount-only features use the same home, with definitions shared with the view in `mount.ts`. Extract a substantial one-way policy to `composition/<child>.ts`; then `composition/composition.ts` remains the single assembly point and `composition/index.ts` is an explicit barrel. Assembly imports actual policy exports directly from sibling modules, and the barrel re-exports intended values such as `HomeBinding`, `RoomBinding`, and `ApplicationComposition`. External consumers import from `composition.ts` or that barrel, never from a policy or assembly implementation path. Use a factory only when Binding construction needs caller-owned configuration. Keep reciprocal sibling policies together in the same parent assembly and defer sibling Binding calls through policy callbacks; a callback may close over a Binding declared later without a circular import. Internal implementation modules may use direct relative sibling imports to avoid barrel cycles. This assembly module is also required for a split graphless feature. Retain `definition.ts` and `FooDefinition` when authoring methods use that value; otherwise put the top-level Definition factory and contract imports in `composition.ts` and chain `makeComposition()` directly. Never put a Composition or owner-specific ViewBuilder in a retained `definition.ts`. A compact graphless feature keeps all stages beside its cohesive implementation. A genuinely compact root keeps Model, Message, init, update, view, `ApplicationDefinition`, and `ApplicationComposition` together in `application.ts`. A split root always uses `composition.ts` or `composition/composition.ts`, including when graphless, and removes the emptied `application.ts`. `makeBinding` only configures the relationship; including its result under `bindings` registers it. Neither step constructs Layers or starts effects.
 
 The Binding projects `init`, `fold`, `embedView`, and operations selected under `operations`. Every registered child routes through `fold` automatically, so the Composition update callback handles only local facts:
 
@@ -269,12 +272,12 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
 const foldDialogOutMessage = ApplicationDefinition.makeOutMessageFold(
   DialogBlock,
   {
-    Opened: ApplicationDefinition.stepNoop,
-    Closed: ApplicationDefinition.stepNoop,
+    Opened: ApplicationDefinition.makeNoopStep,
+    Closed: ApplicationDefinition.makeNoopStep,
     CompletedClose: () => resetSearch,
   },
 )
-const DialogBinding = ApplicationDefinition.bindChild(DialogBlock, {
+const DialogBinding = ApplicationDefinition.makeBinding(DialogBlock, {
   field: 'dialog',
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 const ApplicationComposition = ApplicationDefinition.makeComposition({
@@ -310,7 +313,7 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
 const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(HomeBlock, {
   SelectedArticle: ({ articleId }) => openArticle(articleId),
 })
-export const HomeBinding = ApplicationDefinition.bindChild(HomeBlock, {
+export const HomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
   field: 'home',
 }).withOutMessagePolicy({ fold: foldHomeOutMessage })
 ```
@@ -327,7 +330,7 @@ import { Message } from './message'
 import { Model } from './model'
 import { RowBlock } from './row'
 const TableDefinition = Block.makeDefinition('Table', { Model, Message })
-export const RowsBinding = TableDefinition.bindChild(RowBlock, {
+export const RowsBinding = TableDefinition.makeBinding(RowBlock, {
   field: 'rows',
   key: 'id',
 })
@@ -343,7 +346,7 @@ A required `Schema.Array` field on a parent Struct can store closed Struct wrapp
 Configure the wrapper field on the parent-owned Binding:
 
 ```ts
-export const ApplicantsBinding = ApplicationDefinition.bindChild(
+export const ApplicantsBinding = ApplicationDefinition.makeBinding(
   ApplicantBlock,
   {
     field: 'applicants',
@@ -384,7 +387,7 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-export const PostsBinding = ApplicationDefinition.bindChild(postsQuery, {
+export const PostsBinding = ApplicationDefinition.makeBinding(postsQuery, {
   field: 'posts',
 })
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
@@ -414,7 +417,7 @@ import type { Block } from 'foldkit'
 import { HomeBlock } from './page'
 import { ApplicationDefinition } from './definition'
 import { mounts } from './mount'
-export const HomeBinding = ApplicationDefinition.bindChild(HomeBlock, {
+export const HomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
   field: 'home',
 })
 export const ApplicationComposition = ApplicationDefinition.makeComposition({

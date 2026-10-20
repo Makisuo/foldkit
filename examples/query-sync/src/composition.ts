@@ -23,7 +23,7 @@ const foldDietListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
   DietListboxBlock,
   {
     Selected: ({ value }) =>
-      ApplicationDefinition.step(model => {
+      ApplicationDefinition.makeStep(model => {
         const fields = routeToBrowseFields(model.route)
         return {
           model,
@@ -38,7 +38,7 @@ const foldDietListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
   },
 )
 
-export const DietListboxBinding = ApplicationDefinition.bindChild(
+export const DietListboxBinding = ApplicationDefinition.makeBinding(
   DietListboxBlock,
   {
     field: 'dietListbox',
@@ -50,7 +50,7 @@ const foldPeriodListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
   PeriodListboxBlock,
   {
     Selected: ({ value }) =>
-      ApplicationDefinition.step(model => {
+      ApplicationDefinition.makeStep(model => {
         const fields = routeToBrowseFields(model.route)
         return {
           model,
@@ -65,7 +65,7 @@ const foldPeriodListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
   },
 )
 
-export const PeriodListboxBinding = ApplicationDefinition.bindChild(
+export const PeriodListboxBinding = ApplicationDefinition.makeBinding(
   PeriodListboxBlock,
   {
     field: 'periodListbox',

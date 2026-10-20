@@ -67,7 +67,7 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 
 ### Defining Entries
 
-`FeatureDefinition.subscriptions` receives a function that builds a named record of entries for the Block. When a Layer-backed entry depends on the Model, `entry` takes three arguments:
+`FeatureDefinition.makeSubscriptions` receives a function that builds a named record of entries for the Block. When a Layer-backed entry depends on the Model, `entry` takes three arguments:
 
 - A stable handler name for the Layer requirement.
 - A field map defining the dependency Schema, in the same shape passed to `Schema.Struct`.
@@ -147,7 +147,7 @@ For a Layer-backed Subscription with no local Model dependencies, pass its stabl
 
 ::Snippet{name="subscriptionPersistent" label="Heartbeat without Model dependencies"}
 
-For work whose lifetime depends on the Model, define an entry with `FeatureDefinition.subscriptions` and derive its dependencies from the Model.
+For work whose lifetime depends on the Model, define an entry with `FeatureDefinition.makeSubscriptions` and derive its dependencies from the Model.
 
 ## Dom Streams
 
@@ -175,7 +175,7 @@ Most entries should use the first `dependencies` argument directly. Reach for `r
 
 When a parent embeds a Block with Subscriptions, its Binding lifts the child's Messages into the parent Message type and applies the same presence policy used by update. `None` in a direct Option field, `false` from `presentWhen`, or `None` from a custom `read` stops every child Stream without reading child dependencies.
 
-`ParentDefinition.bindChild(ChildBlock, { field, ... })` performs that lift once for a direct child field. Custom storage uses `read` and `write`. Include the Binding in the parent's `bindings` list, and the parent collects the lifted entries under placement-qualified keys. The same Composition routes the child's generated envelopes through its Binding and installs the collected graph through `assembleBlock({ init, update, view, ... })`.
+`ParentDefinition.makeBinding(ChildBlock, { field, ... })` performs that lift once for a direct child field. Custom storage uses `read` and `write`. Include the Binding in the parent's `bindings` list, and the parent collects the lifted entries under placement-qualified keys. The same Composition routes the child's generated envelopes through its Binding and installs the collected graph through `assembleBlock({ init, update, view, ... })`.
 
 ### Gating Child Subscriptions
 
@@ -183,6 +183,6 @@ The optional `when` field lets the parent add a Stream condition the child canno
 
 Use direct-field `presentWhen` when the condition governs the whole child rather than its Streams. That predicate makes the Binding absent for updates and every lifecycle channel. A custom accessor expresses the same policy by returning `None` from `read`.
 
-The child continues to own its dependency projection. For a direct array of child Models with declared Struct key fields, use `bindChild` with `field` and a string-valued `key`. An exact array of closed Struct wrappers adds a distinct required `childField`, leaving its key on the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration retain general keyed accessors; Foldkit starts one independently scoped Stream set per active key. See [Subscription Organization](/patterns/subscription-organization) for the full composition pattern.
+The child continues to own its dependency projection. For a direct array of child Models with declared Struct key fields, use `makeBinding` with `field` and a string-valued `key`. An exact array of closed Struct wrappers adds a distinct required `childField`, leaving its key on the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration retain general keyed accessors; Foldkit starts one independently scoped Stream set per active key. See [Subscription Organization](/patterns/subscription-organization) for the full composition pattern.
 
 The application now has state transitions, one-shot Commands, element-scoped Mounts, and ongoing Subscriptions. The remaining question is where the first Model and startup Commands come from. [Init & Flags](/core/init-and-flags) defines that boundary.

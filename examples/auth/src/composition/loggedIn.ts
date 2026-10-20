@@ -9,20 +9,23 @@ const foldLoggedInOutMessage = ApplicationDefinition.makeOutMessageFold(
   LoggedInBlock,
   {
     RequestedLogout: () =>
-      ApplicationDefinition.step(() => ({
+      ApplicationDefinition.makeStep(() => ({
         model: LoggedOutBlock.init(ApplicationRoute.Home()).model,
         commands: [ClearSession(), RedirectToHome()],
       })),
   },
 )
 
-export const LoggedInBinding = ApplicationDefinition.bindChild(LoggedInBlock, {
-  read: model =>
-    Match.value(model).pipe(
-      Match.tagsExhaustive({
-        LoggedOut: () => Option.none(),
-        LoggedIn: loggedInModel => Option.some(loggedInModel),
-      }),
-    ),
-  write: (_model, nextLoggedIn) => nextLoggedIn,
-}).withOutMessagePolicy({ fold: foldLoggedInOutMessage })
+export const LoggedInBinding = ApplicationDefinition.makeBinding(
+  LoggedInBlock,
+  {
+    read: model =>
+      Match.value(model).pipe(
+        Match.tagsExhaustive({
+          LoggedOut: () => Option.none(),
+          LoggedIn: loggedInModel => Option.some(loggedInModel),
+        }),
+      ),
+    write: (_model, nextLoggedIn) => nextLoggedIn,
+  },
+).withOutMessagePolicy({ fold: foldLoggedInOutMessage })

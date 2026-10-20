@@ -35,13 +35,13 @@ const DisabledButtonTestDefinition = Block.makeDefinition(
 const foldDialogOutMessage = DisabledButtonTestDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: DisabledButtonTestDefinition.stepNoop,
-    Closed: DisabledButtonTestDefinition.stepNoop,
-    CompletedClose: DisabledButtonTestDefinition.stepNoop,
+    Opened: DisabledButtonTestDefinition.makeNoopStep,
+    Closed: DisabledButtonTestDefinition.makeNoopStep,
+    CompletedClose: DisabledButtonTestDefinition.makeNoopStep,
   },
 )
 
-const DialogBinding = DisabledButtonTestDefinition.bindChild(
+const DialogBinding = DisabledButtonTestDefinition.makeBinding(
   Dialog.DialogBlock,
   {
     field: 'dialog',

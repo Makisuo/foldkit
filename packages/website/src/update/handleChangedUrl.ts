@@ -22,14 +22,14 @@ import { ApplicationRoute, urlToApplicationRoute } from '../route'
 type ApplicationTransition = Transition.Transition<typeof ApplicationRoute.Type>
 
 export const handleChangedUrl = (url: Url) =>
-  ApplicationDefinition.step(model => {
+  ApplicationDefinition.makeStep(model => {
     const { route: previousRoute } = model
     const nextRoute = urlToApplicationRoute(url)
     const transition = Transition.make(previousRoute, nextRoute)
     const isDifferentPathname = model.url.pathname !== url.pathname
 
     return Update.combineSteps([
-      ApplicationDefinition.stepFields(stepModel => ({
+      ApplicationDefinition.makeFieldsStep(stepModel => ({
         route: () => nextRoute,
         url: () => url,
         sidebarGroups: () => nextSidebarGroups(stepModel, nextRoute),
@@ -57,7 +57,7 @@ const nextSidebarGroups = (
   })
 
 const stepHome = (transition: ApplicationTransition) =>
-  ApplicationDefinition.step(model => {
+  ApplicationDefinition.makeStep(model => {
     if (Transition.isEntering(transition, 'Home')) {
       return HomeBinding.init({
         args: [],
@@ -76,7 +76,7 @@ const stepHome = (transition: ApplicationTransition) =>
   })
 
 const stepPlayground = (transition: ApplicationTransition) =>
-  ApplicationDefinition.step(model => {
+  ApplicationDefinition.makeStep(model => {
     const { nextRoute } = transition
 
     if (nextRoute._tag !== 'Playground') {
@@ -103,7 +103,7 @@ const stepPlayground = (transition: ApplicationTransition) =>
   })
 
 const loadRouteData = (transition: ApplicationTransition) =>
-  ApplicationDefinition.step(model =>
+  ApplicationDefinition.makeStep(model =>
     ApplicationRoute.matchOrElse(
       transition.nextRoute,
       {
@@ -139,7 +139,7 @@ const loadRouteData = (transition: ApplicationTransition) =>
   )
 
 const scrollAfterUrlChange = (url: Url, isChangingPathname: boolean) =>
-  ApplicationDefinition.step(model => {
+  ApplicationDefinition.makeStep(model => {
     if (Option.isSome(url.hash)) {
       return {
         model,

@@ -52,7 +52,7 @@ const heavyPayload = makeHeavyArray(HEAVY_ITEM_COUNT)
 
 // COMMAND
 
-const FillHistoryStep = ApplicationDefinition.command('FillHistoryStep', {
+const FillHistoryStep = ApplicationDefinition.makeCommand('FillHistoryStep', {
   args: { remaining: Schema.Number },
   messages: [Message.CompletedFillHistoryStep],
   handler: function* () {

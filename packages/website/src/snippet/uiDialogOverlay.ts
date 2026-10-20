@@ -39,9 +39,9 @@ const FilterDialogDefinition = Block.makeDefinition('FilterDialog', {
 const foldDialogOutMessage = FilterDialogDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: FilterDialogDefinition.stepNoop,
-    Closed: FilterDialogDefinition.stepNoop,
-    CompletedClose: FilterDialogDefinition.stepNoop,
+    Opened: FilterDialogDefinition.makeNoopStep,
+    Closed: FilterDialogDefinition.makeNoopStep,
+    CompletedClose: FilterDialogDefinition.makeNoopStep,
   },
 )
 
@@ -49,19 +49,19 @@ const foldComboboxOutMessage = FilterDialogDefinition.makeOutMessageFold(
   CityCombobox,
   {
     Selected: ({ value }) =>
-      FilterDialogDefinition.stepFields(() => ({
+      FilterDialogDefinition.makeFieldsStep(() => ({
         maybeCity: () => Option.some(value),
       })),
-    ClearedSelection: FilterDialogDefinition.stepNoop,
+    ClearedSelection: FilterDialogDefinition.makeNoopStep,
   },
 )
 
-const DialogBinding = FilterDialogDefinition.bindChild(Dialog.DialogBlock, {
+const DialogBinding = FilterDialogDefinition.makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => Tuple.make({ id: 'edit-filters' }) },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
-const ComboboxBinding = FilterDialogDefinition.bindChild(CityCombobox, {
+const ComboboxBinding = FilterDialogDefinition.makeBinding(CityCombobox, {
   field: 'combobox',
   init: { contextToArgs: () => Tuple.make({ id: 'city' }) },
 }).withOutMessagePolicy({ fold: foldComboboxOutMessage })

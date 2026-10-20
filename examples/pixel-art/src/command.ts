@@ -9,7 +9,7 @@ import { Grid, PaletteIndex } from './model'
 import { SavedCanvasJsonString } from './model'
 import { PALETTE_THEMES, resolveColor } from './palette'
 
-export const SaveCanvas = ApplicationDefinition.command('SaveCanvas', {
+export const SaveCanvas = ApplicationDefinition.makeCommand('SaveCanvas', {
   args: {
     grid: Grid,
     gridSize: Schema.Number,
@@ -45,7 +45,7 @@ export const saveCanvas = (model: typeof Model.Type) =>
     selectedColorIndex: model.selectedColorIndex,
   })
 
-export const ExportPng = ApplicationDefinition.command('ExportPng', {
+export const ExportPng = ApplicationDefinition.makeCommand('ExportPng', {
   args: {
     grid: Grid,
     gridSize: Schema.Number,

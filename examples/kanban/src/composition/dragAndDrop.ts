@@ -95,7 +95,7 @@ const foldDragAndDropOutMessage = ApplicationDefinition.makeOutMessageFold(
   DragAndDropBlock,
   {
     Reordered: (outMessage, { modelBeforeUpdate }) =>
-      ApplicationDefinition.step(model => {
+      ApplicationDefinition.makeStep(model => {
         const { itemId, fromContainerId, toContainerId, toIndex } = outMessage
         const nextColumns = Column.reorder(
           model.columns,
@@ -114,14 +114,14 @@ const foldDragAndDropOutMessage = ApplicationDefinition.makeOutMessageFold(
         }
       }),
     Cancelled: (outMessage, { modelBeforeUpdate }) =>
-      ApplicationDefinition.stepFields(() => ({
+      ApplicationDefinition.makeFieldsStep(() => ({
         announcement: () =>
           screenReaderTextForDrop(modelBeforeUpdate, outMessage),
       })),
   },
 )
 
-export const DragAndDropBinding = ApplicationDefinition.bindChild(
+export const DragAndDropBinding = ApplicationDefinition.makeBinding(
   DragAndDropBlock,
   {
     read: model => Option.some(model.dragAndDrop),

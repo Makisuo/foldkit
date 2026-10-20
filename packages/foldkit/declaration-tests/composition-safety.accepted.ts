@@ -122,12 +122,15 @@ const CompositionSafetyParameterizedDefinition = Block.makeDefinition(
   },
 )
 export const LoadParameterizedChild =
-  CompositionSafetyParameterizedDefinition.command('LoadParameterizedChild', {
-    messages: [ParameterizedChildMessage.CompletedLoad],
-    handler: function* () {
-      return () => Effect.succeed(ParameterizedChildMessage.CompletedLoad())
+  CompositionSafetyParameterizedDefinition.makeCommand(
+    'LoadParameterizedChild',
+    {
+      messages: [ParameterizedChildMessage.CompletedLoad],
+      handler: function* () {
+        return () => Effect.succeed(ParameterizedChildMessage.CompletedLoad())
+      },
     },
-  })
+  )
 const CompositionSafetyParameterizedComposition =
   CompositionSafetyParameterizedDefinition.makeComposition()
 export const ParameterizedBlock =
@@ -173,15 +176,19 @@ export const CompositionSafetyParentDefinition = Block.makeDefinition(
   },
 )
 export const CompleteParentInitialization =
-  CompositionSafetyParentDefinition.command('CompleteParentInitialization', {
-    messages: [ParentMessage.CompletedParentInitialization],
-    handler: function* () {
-      return () => Effect.succeed(ParentMessage.CompletedParentInitialization())
+  CompositionSafetyParentDefinition.makeCommand(
+    'CompleteParentInitialization',
+    {
+      messages: [ParentMessage.CompletedParentInitialization],
+      handler: function* () {
+        return () =>
+          Effect.succeed(ParentMessage.CompletedParentInitialization())
+      },
     },
-  })
+  )
 
 export const StableProjectedBinding =
-  CompositionSafetyParentDefinition.bindChild(PlainBlock, {
+  CompositionSafetyParentDefinition.makeBinding(PlainBlock, {
     placement: 'stableProjected',
     read: model => Option.some(model.first),
     write: (model, nextChild) =>
@@ -192,7 +199,7 @@ export const StableProjectedBinding =
       toParentFields: child => ({ first: child }),
     },
   })
-export const PlainBinding = CompositionSafetyParentDefinition.bindChild(
+export const PlainBinding = CompositionSafetyParentDefinition.makeBinding(
   PlainBlock,
   {
     field: 'plain',
@@ -201,21 +208,21 @@ export const PlainBinding = CompositionSafetyParentDefinition.bindChild(
   },
 )
 export const ParentCommandsBinding =
-  CompositionSafetyParentDefinition.bindChild(PlainBlock, {
+  CompositionSafetyParentDefinition.makeBinding(PlainBlock, {
     placement: 'parentCommands',
     read: model => Option.some(model.plain),
     write: (model, nextChild) =>
       Struct.modifyFields(model, { plain: () => nextChild }),
   })
 export const OptionalContextBinding =
-  CompositionSafetyParentDefinition.bindChild(OptionalContextBlock, {
+  CompositionSafetyParentDefinition.makeBinding(OptionalContextBlock, {
     field: 'optionalContext',
 
     delivery: {
       toUpdateContext: () => [],
     },
   })
-export const RestContextBinding = CompositionSafetyParentDefinition.bindChild(
+export const RestContextBinding = CompositionSafetyParentDefinition.makeBinding(
   RestContextBlock,
   {
     field: 'restContext',
@@ -225,7 +232,7 @@ export const RestContextBinding = CompositionSafetyParentDefinition.bindChild(
     },
   },
 )
-export const EntryBinding = CompositionSafetyParentDefinition.bindChild(
+export const EntryBinding = CompositionSafetyParentDefinition.makeBinding(
   ParameterizedBlock,
   {
     field: 'entries',
@@ -274,13 +281,15 @@ const keyedInitializerDocumentation = EntryBinding.init({
 void plainInitializerDocumentation
 void keyedInitializerDocumentation
 
-export const initializePlain = CompositionSafetyParentDefinition.step(model =>
-  PlainBinding.init({
-    args: [],
-    toParentModel: child => Struct.modifyFields(model, { plain: () => child }),
-  }),
+export const initializePlain = CompositionSafetyParentDefinition.makeStep(
+  model =>
+    PlainBinding.init({
+      args: [],
+      toParentModel: child =>
+        Struct.modifyFields(model, { plain: () => child }),
+    }),
 )
-export const initializeEntry = CompositionSafetyParentDefinition.step(
+export const initializeEntry = CompositionSafetyParentDefinition.makeStep(
   (model, id: string, count: number) =>
     EntryBinding.init({
       key: id,
@@ -291,7 +300,7 @@ export const initializeEntry = CompositionSafetyParentDefinition.step(
         }),
     }),
 )
-const initializeParentCommandEntry = CompositionSafetyParentDefinition.step(
+const initializeParentCommandEntry = CompositionSafetyParentDefinition.makeStep(
   model =>
     EntryBinding.init({
       key: 'parent-command-entry',
@@ -304,7 +313,7 @@ const initializeParentCommandEntry = CompositionSafetyParentDefinition.step(
         }),
     }),
 )
-const initializeParentCommandChild = CompositionSafetyParentDefinition.step(
+const initializeParentCommandChild = CompositionSafetyParentDefinition.makeStep(
   model =>
     ParentCommandsBinding.init({
       args: [],
@@ -325,7 +334,7 @@ export const makeParentCommandInitRecipe = () =>
     commands: [CompleteParentInitialization()],
   })
 export const initializePlainWithOwningParentCommand =
-  CompositionSafetyParentDefinition.step(model =>
+  CompositionSafetyParentDefinition.makeStep(model =>
     ParentCommandsBinding.init({
       args: [],
       toParentModel: child =>
@@ -333,15 +342,16 @@ export const initializePlainWithOwningParentCommand =
       commands: [CompleteParentInitialization()],
     }),
   )
-const initializeDerivedEntry = CompositionSafetyParentDefinition.step(model =>
-  EntryBinding.init({
-    key: 'derived-entry',
-    args: [2],
-    toParentModel: child =>
-      Struct.modifyFields(model, {
-        entries: Array.append(Entry.make({ id: 'derived-entry', child })),
-      }),
-  }),
+const initializeDerivedEntry = CompositionSafetyParentDefinition.makeStep(
+  model =>
+    EntryBinding.init({
+      key: 'derived-entry',
+      args: [2],
+      toParentModel: child =>
+        Struct.modifyFields(model, {
+          entries: Array.append(Entry.make({ id: 'derived-entry', child })),
+        }),
+    }),
 )
 export const initializeDerivedSteps = Update.combineSteps([
   initializeDerivedEntry,

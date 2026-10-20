@@ -2,7 +2,7 @@
 '@foldkit/ui': minor
 ---
 
-Expose each stateful Foldkit UI component as a completed Block. The owning parent creates Bindings with `bindChild` and includes them under its Composition's `bindings`. Composition carries handler Layers, Mounts, Subscriptions, and ManagedResources to the application root.
+Expose each stateful Foldkit UI component as a completed Block. The owning parent creates Bindings with `makeBinding` and includes them under its Composition's `bindings`. Composition carries handler Layers, Mounts, Subscriptions, and ManagedResources to the application root.
 
 Before:
 
@@ -41,10 +41,10 @@ import { menuViewInputs } from './viewInputs'
 const MenuBlock = Menu.create()
 const TabsBlock = Tabs.create<Tab>()
 const PanelDefinition = Block.makeDefinition('Panel', { Model, Message })
-const MenuBinding = PanelDefinition.bindChild(MenuBlock, {
+const MenuBinding = PanelDefinition.makeBinding(MenuBlock, {
   field: 'menu',
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
-const TabsBinding = PanelDefinition.bindChild(TabsBlock, {
+const TabsBinding = PanelDefinition.makeBinding(TabsBlock, {
   field: 'tabs',
 }).withOutMessagePolicy({ fold: foldTabsOutMessage })
 const PanelComposition = PanelDefinition.makeComposition({
@@ -78,14 +78,14 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const ToastBinding = ApplicationDefinition.bindChild(ToastBlock, {
+const ToastBinding = ApplicationDefinition.makeBinding(ToastBlock, {
   field: 'toast',
 }).withOutMessagePolicy({ fold: foldToastOutMessage })
 ```
 
 The Binding contributes Toast's swipe Subscription and handler recipe automatically. Scene swipe events continue to use `Subscription.emit` with the registration carried by the completed Block.
 
-For dynamic keyed component collections, use the keyed `bindChild` shape. Every rendered occurrence needs a stable string or finite number key.
+For dynamic keyed component collections, use the keyed `makeBinding` shape. Every rendered occurrence needs a stable string or finite number key.
 
 ```ts
 import { Schema } from 'effect'
@@ -99,7 +99,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const DialogsBinding = ApplicationDefinition.bindChild(DialogBlock, {
+const DialogsBinding = ApplicationDefinition.makeBinding(DialogBlock, {
   readAll: model => model.dialogs,
   key: dialog => dialog.id,
   read: dialog => dialog.model,

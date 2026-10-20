@@ -10,7 +10,7 @@ const MountCapabilityLeaf = makeDefinition('MountCapabilityLeaf', {
   Model: LeafModel,
   Message: LeafMessage,
 })
-const ObserveLeaf = MountCapabilityLeaf.mount('ObserveLeaf', {
+const ObserveLeaf = MountCapabilityLeaf.makeMount('ObserveLeaf', {
   messages: [LeafMessage.CompletedObserveLeaf],
   handler: function* () {
     return () => Effect.succeed(LeafMessage.CompletedObserveLeaf())
@@ -34,7 +34,7 @@ const MountCapabilityMiddle = makeDefinition('MountCapabilityMiddle', {
   Model: MiddleModel,
   Message: Schema.Never,
 })
-const LeafBinding = MountCapabilityMiddle.bindChild(leafBlock, {
+const LeafBinding = MountCapabilityMiddle.makeBinding(leafBlock, {
   field: 'leaf',
   init: false,
 })
@@ -69,7 +69,7 @@ const MountCapabilityRoot = makeDefinition('MountCapabilityRoot', {
   Model: RootModel,
   Message: Schema.Never,
 })
-const MiddleBinding = MountCapabilityRoot.bindChild(middleBlock, {
+const MiddleBinding = MountCapabilityRoot.makeBinding(middleBlock, {
   field: 'middle',
   init: false,
 })
@@ -104,7 +104,7 @@ const MountCapabilitySibling = makeDefinition('MountCapabilitySibling', {
   Model: MiddleModel,
   Message: SiblingMessage,
 })
-const ObserveSibling = MountCapabilitySibling.mount('ObserveSibling', {
+const ObserveSibling = MountCapabilitySibling.makeMount('ObserveSibling', {
   messages: [SiblingMessage.CompletedObserveSibling],
 })
 

@@ -160,7 +160,7 @@ const gridSelector = (modelId: string): string => idSelector(gridId(modelId))
 
 /** Focuses the calendar grid container. Parent components like DatePicker
  * dispatch this after opening to hand focus to the grid's keyboard layer. */
-export const FocusGrid = CalendarDefinition.command('FocusGrid', {
+export const FocusGrid = CalendarDefinition.makeCommand('FocusGrid', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusGrid],
   handler: function* () {

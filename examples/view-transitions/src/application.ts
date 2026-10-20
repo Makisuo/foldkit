@@ -44,7 +44,7 @@ export const init = ApplicationComposition.makeInit((url: Url) => ({
   model: Model.make({ route: urlToApplicationRoute(url), filterText: '' }),
 }))
 
-const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {
+const NavigateInternal = ApplicationDefinition.makeCommand('NavigateInternal', {
   args: { url: Schema.String },
   messages: [Message.CompletedNavigateInternal],
   handler: function* () {
@@ -53,7 +53,7 @@ const NavigateInternal = ApplicationDefinition.command('NavigateInternal', {
   },
 })
 
-const LoadExternal = ApplicationDefinition.command('LoadExternal', {
+const LoadExternal = ApplicationDefinition.makeCommand('LoadExternal', {
   args: { href: Schema.String },
   messages: [Message.CompletedLoadExternal],
   handler: function* () {

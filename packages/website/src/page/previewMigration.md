@@ -67,13 +67,13 @@ The handler constructor runs once when the Runtime builds the application Layer.
 
 Apply the same ownership to every effect primitive:
 
-| Stable shape                                        | Candidate shape                                                                                                                                      |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Command.define(..., { execute })`                  | `FeatureDefinition.command(..., { handler: function* () { return args => Effect } })`                                                                |
-| `Subscription.make` with `dependenciesToStream`     | `FeatureDefinition.subscriptions`, a stable handler name, declared `messages`, `modelToDependencies`, and a handler that returns the Stream function |
-| `Subscription.persistentEntry(stream)`              | A named Definition-owned entry whose handler returns a zero-argument Stream function                                                                 |
-| `Mount.define(..., { execute })`                    | `FeatureDefinition.mount(..., { handler })`; register the Mount in the Composition                                                                   |
-| ManagedResource with inline `acquire` and `release` | `FeatureDefinition.managedResources`; the handler returns both `acquire` and `release`                                                               |
+| Stable shape                                        | Candidate shape                                                                                                                                          |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Command.define(..., { execute })`                  | `FeatureDefinition.makeCommand(..., { handler: function* () { return args => Effect } })`                                                                |
+| `Subscription.make` with `dependenciesToStream`     | `FeatureDefinition.makeSubscriptions`, a stable handler name, declared `messages`, `modelToDependencies`, and a handler that returns the Stream function |
+| `Subscription.persistentEntry(stream)`              | A named Definition-owned entry whose handler returns a zero-argument Stream function                                                                     |
+| `Mount.define(..., { execute })`                    | `FeatureDefinition.makeMount(..., { handler })`; register the Mount in the Composition                                                                   |
+| ManagedResource with inline `acquire` and `release` | `FeatureDefinition.makeManagedResources`; the handler returns both `acquire` and `release`                                                               |
 
 Every attached handler exposes a `.layer`. Merge only the definitions owned by that feature into its local `EffectsLayer`, then pass that bundle to `assembleBlock`. Registered child Bindings contribute their own handler graphs automatically.
 
@@ -129,7 +129,7 @@ Make these changes together:
 
 1. Delete the parent's authored `GotSettingsMessage` variant.
 2. Complete Settings as `SettingsBlock`, including its init, update, primary view, OutMessage, lifecycle declarations, and local handlers.
-3. Replace the `Update.foldChild` configuration with `ParentDefinition.bindChild(SettingsBlock, ...)`. Move its Model access, delivery context, presence, key, and OutMessage policy into the Binding.
+3. Replace the `Update.foldChild` configuration with `ParentDefinition.makeBinding(SettingsBlock, ...)`. Move its Model access, delivery context, presence, key, and OutMessage policy into the Binding.
 4. Register that Binding with `ParentDefinition.makeComposition({ bindings: [SettingsBinding] })`.
 5. Delete `toParentMessage` and the local update branch that unpacks the child Message. Author the parent update with `ParentComposition.makeUpdate`; it matches only the parent's local Message union.
 
@@ -155,7 +155,7 @@ Never key repeated occurrences by array position. Generated delivery records the
 
 ### Fold OutMessages in the Parent
 
-A child OutMessage reports a fact across the boundary. The parent owns the response. Pass the completed child explicitly whether a fold is inline or named: `bindChild(ChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(ChildBlock, handlers) })`.
+A child OutMessage reports a fact across the boundary. The parent owns the response. Pass the completed child explicitly whether a fold is inline or named: `makeBinding(ChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(ChildBlock, handlers) })`.
 
 ::Snippet{name="blockOutMessagePolicy" label="Parent-owned child OutMessage policy"}
 
@@ -175,9 +175,9 @@ The completed Settings Block exposes `requestThemeChange`. In a `makeUpdate` bra
 
 Rename existing `Update.combine` calls to `Update.combineSteps`. Both data-first and data-last calls retain the same arguments and inference.
 
-When several Steps must run in order, pass the unapplied Binding operations alongside the parent Steps to `Update.combineSteps`. A Definition-owned `step` may return the connected Step for later use under that Composition, and Composition startup may list it under `steps`. Do not return an unapplied Binding operation from an ordinary update branch that must produce an update result.
+When several Steps must run in order, pass the unapplied Binding operations alongside the parent Steps to `Update.combineSteps`. A Definition-owned `makeStep` may return the connected Step for later use under that Composition, and Composition startup may list it under `steps`. Do not return an unapplied Binding operation from an ordinary update branch that must produce an update result.
 
-Author parent transitions that read current state with `Definition.step` or `stepFields`, then combine them with the Binding operations. The owner supplies the Model type, and each Step reads the Model produced by preceding Steps when it is applied.
+Author parent transitions that read current state with `Definition.makeStep` or `makeFieldsStep`, then combine them with the Binding operations. The owner supplies the Model type, and each Step reads the Model produced by preceding Steps when it is applied.
 
 Use `request*` with `Requested*` Messages for actions and `inform*` with `InformedOf*` Messages for notifications. Keep internal Model-only transformations as Definition-owned Steps. Remove stable public helpers that silently accept and return a child Model, especially `reflect*` helpers.
 
@@ -335,7 +335,7 @@ Treat the first error in an ownership chain as the useful one.
 | `Submodel.defineView` or `h.submodel` is missing                           | Author the view through the owning Composition and render the child through `h.block(Binding.embedView(...))`.                                                                                                                                                |
 | `Runtime.makeApplication` or `Runtime.makeElement` is missing              | Complete `ApplicationBlock`, then create the matching page or element Program separately.                                                                                                                                                                     |
 | A view cannot embed a child or use a Mount                                 | Register the exact Binding or Mount in the same Composition that authored the view. Derive helper builders from that Composition.                                                                                                                             |
-| A Binding operation is a Step where an update result is required           | Apply it to the contextual Model, such as `Binding.requestOpen()(model)`. Pass the unapplied Step only to `Update.combineSteps`, a Definition-owned `step`, or Composition startup.                                                                           |
+| A Binding operation is a Step where an update result is required           | Apply it to the contextual Model, such as `Binding.requestOpen()(model)`. Pass the unapplied Step only to `Update.combineSteps`, a Definition-owned `makeStep`, or Composition startup.                                                                       |
 | The parent update loses Commands or an OutMessage                          | Return the executed result after applying the Binding operation to the contextual Model. Do not select or copy only `.model`; that discards the other channels.                                                                                               |
 | Child initialization leaves a field missing or loses Commands              | Put startup args and instances on the Binding. Let `makeInit` assemble children, and use `Binding.init` for dynamic occurrences.                                                                                                                              |
 | `Runtime.run` still requires a handler                                     | Include the owning definition's `.layer` in the feature's local `EffectsLayer`, or explicitly complete an intentional host handler contract.                                                                                                                  |

@@ -493,7 +493,7 @@ const scrollTopForRequest = (
 
 const mountedContainers = new Map<string, Set<HTMLElement>>()
 
-export const ApplyScroll = VirtualListDefinition.command('ApplyScroll', {
+export const ApplyScroll = VirtualListDefinition.makeCommand('ApplyScroll', {
   args: {
     id: Schema.String,
     request: ScrollRequest,
@@ -566,7 +566,7 @@ export type ScrollToOptions = Readonly<{
 }>
 
 const buildScrollRequest = (request: typeof ScrollRequest.Type) =>
-  VirtualListDefinition.step(model => {
+  VirtualListDefinition.makeStep(model => {
     const nextVersion = Number.increment(model.pendingScrollVersion)
     return {
       model: modifyFields(model, {
@@ -595,7 +595,7 @@ const currentScrollRequest = (model: Model): typeof ScrollRequest.Type =>
     Pending: ({ request }) => request,
   })
 
-const reconcileLayout = VirtualListDefinition.step(model =>
+const reconcileLayout = VirtualListDefinition.makeStep(model =>
   buildScrollRequest(currentScrollRequest(model)),
 )
 
@@ -657,14 +657,16 @@ const measureContainer = (
     Unmeasured: () => false,
     Measured: measurement => measurement.containerWidth !== containerWidth,
   })
-  const recordContainerMeasurement = VirtualListDefinition.stepFields(() => ({
-    measurement: () =>
-      Measurement.Measured({ containerWidth, containerHeight }),
-    measuredRowHeights: measuredRowHeights =>
-      didWidthChange ? Record.empty() : measuredRowHeights,
-    layoutVersion: layoutVersion =>
-      didWidthChange ? Number.increment(layoutVersion) : layoutVersion,
-  }))
+  const recordContainerMeasurement = VirtualListDefinition.makeFieldsStep(
+    () => ({
+      measurement: () =>
+        Measurement.Measured({ containerWidth, containerHeight }),
+      measuredRowHeights: measuredRowHeights =>
+        didWidthChange ? Record.empty() : measuredRowHeights,
+      layoutVersion: layoutVersion =>
+        didWidthChange ? Number.increment(layoutVersion) : layoutVersion,
+    }),
+  )
 
   const { initialScroll } = model
   if (initialScroll._tag === 'Pending') {
@@ -733,7 +735,7 @@ const applyRowMeasurements = (
       Record.set(heights, measurement.key, measurement.height),
   )
   return Update.combineSteps(model, [
-    VirtualListDefinition.stepFields(() => ({
+    VirtualListDefinition.makeFieldsStep(() => ({
       measuredRowHeights: () => measuredRowHeights,
     })),
     reconcileLayout,
@@ -822,7 +824,7 @@ const requestScroll = (
   maybeAlignment: Option.Option<ScrollAlignment>,
 ) =>
   Update.combineSteps(model, [
-    VirtualListDefinition.stepFields(() => ({
+    VirtualListDefinition.makeFieldsStep(() => ({
       initialScroll: () => InitialScroll.Applied(),
     })),
     buildScrollRequest(
@@ -836,7 +838,7 @@ const requestScroll = (
 const applyItemsChange = (model: Model, itemKeys: ReadonlyArray<string>) => {
   const currentKeys = HashSet.fromIterable(itemKeys)
   return Update.combineSteps(model, [
-    VirtualListDefinition.stepFields(() => ({
+    VirtualListDefinition.makeFieldsStep(() => ({
       measuredRowHeights: Record.filter((_, key) =>
         HashSet.has(currentKeys, key),
       ),
@@ -1275,7 +1277,7 @@ const observeVirtualList = (
 
 /** Container-owned Mount that tracks scrolling, container resizing, and
  *  rendered row measurements for dynamic-height lists. */
-export const ObserveVirtualList = VirtualListDefinition.mountStream(
+export const ObserveVirtualList = VirtualListDefinition.makeMountStream(
   'ObserveVirtualList',
   {
     args: { id: Schema.String },

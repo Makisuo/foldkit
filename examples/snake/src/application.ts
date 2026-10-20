@@ -214,7 +214,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const GenerateApplePosition = ApplicationDefinition.command(
+export const GenerateApplePosition = ApplicationDefinition.makeCommand(
   'GenerateApplePosition',
   {
     args: { snake: Snake.Snake },
@@ -230,7 +230,7 @@ export const GenerateApplePosition = ApplicationDefinition.command(
   },
 )
 
-export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
   gameClockTicks: entry(
     'GameClockTicks',
     {

@@ -49,7 +49,7 @@ const foldPlanRadioGroupOutMessage = PlanPickerDefinition.makeOutMessageFold(
   PlanRadioGroup,
   {
     Selected: ({ value }) =>
-      PlanPickerDefinition.stepFields(() => ({
+      PlanPickerDefinition.makeFieldsStep(() => ({
         maybePlan: () => Option.some(value),
       })),
   },
@@ -58,7 +58,7 @@ const foldPlanRadioGroupOutMessage = PlanPickerDefinition.makeOutMessageFold(
 // The Binding wires the completed child Block into the parent: it runs the child update,
 // writes the child Model back, routes generated delivery and Command results,
 // and hands any OutMessage to the OutMessage fold.
-const PlanRadioGroupBinding = PlanPickerDefinition.bindChild(PlanRadioGroup, {
+const PlanRadioGroupBinding = PlanPickerDefinition.makeBinding(PlanRadioGroup, {
   field: 'planRadioGroup',
   init: { contextToArgs: () => Tuple.make({ id: 'plan' }) },
 }).withOutMessagePolicy({ fold: foldPlanRadioGroupOutMessage })

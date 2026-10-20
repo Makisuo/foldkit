@@ -3,7 +3,7 @@ import { Dialog, Menu } from '@foldkit/ui'
 
 import { ApplicationDefinition } from './definition'
 
-export const DialogBinding = ApplicationDefinition.bindChild(
+export const DialogBinding = ApplicationDefinition.makeBinding(
   Dialog.DialogBlock,
   {
     field: 'dialog',
@@ -12,7 +12,7 @@ export const DialogBinding = ApplicationDefinition.bindChild(
 
 export const ApplicationMenu = Menu.create<string>()
 
-export const MenuBinding = ApplicationDefinition.bindChild(ApplicationMenu, {
+export const MenuBinding = ApplicationDefinition.makeBinding(ApplicationMenu, {
   field: 'menu',
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
 

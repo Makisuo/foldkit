@@ -39,7 +39,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-const RoomBinding = ApplicationDefinition.bindChild(RoomBlock, {
+const RoomBinding = ApplicationDefinition.makeBinding(RoomBlock, {
   field: 'maybeRoomInstance',
   key: 'roomId',
   childField: 'model',

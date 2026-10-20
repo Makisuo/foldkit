@@ -58,13 +58,13 @@ The returned `postsQuery` is a completed viewless Block with a Model Schema, a M
 
 ### Bind the Query to Its Parent
 
-Composition derives delivery for the Query's Messages from its registered Binding. `bindChild` also projects the loading operations so they read and write the Query field inside the parent Model:
+Composition derives delivery for the Query's Messages from its registered Binding. `makeBinding` also projects the loading operations so they read and write the Query field inside the parent Model:
 
 ::Snippet{name="queryLift" label="Binding Query to its parent"}
 
 #### Binding Configuration
 
-The `field` form tells `bindChild` which exact field contains the Query Model or `Option<QueryModel>`. Composition derives a `Got*Message` envelope carrying the Binding's placement and originating instance generation; parents do not declare a wrapper or supply a Message mapper. The Binding returns the child fold and Query operations expressed in the parent Model and Message types. Its projected operations return connected Steps whose Model input requires the registering Composition's graph. Apply them inside `makeUpdate`, include them in `makeInit` startup, or preserve them through a Definition-owned Step. Return or compose their opaque results intact; the Composition consumes them during checked execution. They do not perform Effects.
+The `field` form tells `makeBinding` which exact field contains the Query Model or `Option<QueryModel>`. Composition derives a `Got*Message` envelope carrying the Binding's placement and originating instance generation; parents do not declare a wrapper or supply a Message mapper. The Binding returns the child fold and Query operations expressed in the parent Model and Message types. Its projected operations return connected Steps whose Model input requires the registering Composition's graph. Apply them inside `makeUpdate`, include them in `makeInit` startup, or preserve them through a Definition-owned Step. Return or compose their opaque results intact; the Composition consumes them during checked execution. They do not perform Effects.
 
 #### Bound Operations
 

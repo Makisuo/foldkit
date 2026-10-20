@@ -2798,7 +2798,7 @@ const assertBindingConfig: (
 
   if (Object.hasOwn(config, 'outMessage')) {
     throw new Error(
-      '[foldkit] Definition.bindChild no longer accepts outMessage. Select a callable policy with Binding.withOutMessagePolicy({ fold, forward }).',
+      '[foldkit] Definition.makeBinding no longer accepts outMessage. Select a callable policy with Binding.withOutMessagePolicy({ fold, forward }).',
     )
   }
 }

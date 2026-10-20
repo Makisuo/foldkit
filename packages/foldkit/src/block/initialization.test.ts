@@ -42,7 +42,7 @@ const Child = makeDefinition('InitializationChild', {
 })
 
 const commandEffects = { child: 0, parent: 0 }
-const FinishChildInitialization = Child.command('FinishInitialization', {
+const FinishChildInitialization = Child.makeCommand('FinishInitialization', {
   args: { count: Schema.Number },
   messages: [ChildMessage.CompletedInitialization],
   handler: function* () {
@@ -54,7 +54,7 @@ const FinishChildInitialization = Child.command('FinishInitialization', {
       })
   },
 })
-const FinishIncrement = Child.command('FinishIncrement', {
+const FinishIncrement = Child.makeCommand('FinishIncrement', {
   messages: [ChildMessage.CompletedIncrement],
   handler: function* () {
     return () => Effect.succeed(ChildMessage.CompletedIncrement())
@@ -63,7 +63,7 @@ const FinishIncrement = Child.command('FinishIncrement', {
 
 const calls: globalThis.Array<string> = []
 const single = (value: number): [number] => [value]
-const increment = Child.step(model => {
+const increment = Child.makeStep(model => {
   calls.push('child-step')
   return {
     model: modifyFields(model, { count: count => count + 100 }),
@@ -114,7 +114,7 @@ const Parent = makeDefinition('InitializationParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const FinishParentInitialization = Parent.command('FinishInitialization', {
+const FinishParentInitialization = Parent.makeCommand('FinishInitialization', {
   messages: [ParentMessage.CompletedParentInitialization],
   handler: function* () {
     yield* ParentClient
@@ -125,7 +125,7 @@ const FinishParentInitialization = Parent.command('FinishInitialization', {
       })
   },
 })
-const FinishParentStep = Parent.command('FinishStep', {
+const FinishParentStep = Parent.makeCommand('FinishStep', {
   messages: [ParentMessage.CompletedParentStep],
   handler: function* () {
     return () => Effect.succeed(ParentMessage.CompletedParentStep())
@@ -137,7 +137,7 @@ type ChildInitContext = Readonly<{
   maybeSecondCount: Option.Option<number>
 }>
 
-const FirstBinding = Parent.bindChild(ChildBlock, {
+const FirstBinding = Parent.makeBinding(ChildBlock, {
   field: 'first',
   init: {
     contextToArgs: (childInitContext: ChildInitContext) => {
@@ -146,7 +146,7 @@ const FirstBinding = Parent.bindChild(ChildBlock, {
     },
   },
 })
-const SecondBinding = Parent.bindChild(ChildBlock, {
+const SecondBinding = Parent.makeBinding(ChildBlock, {
   field: 'maybeSecond',
   init: {
     contextToArgs: (childInitContext: ChildInitContext) => {
@@ -158,7 +158,7 @@ const SecondBinding = Parent.bindChild(ChildBlock, {
 const ParentComposition = Parent.makeComposition({
   bindings: [FirstBinding, SecondBinding],
 })
-const finishParentStep = Parent.step(model => {
+const finishParentStep = Parent.makeStep(model => {
   calls.push('parent-step')
   return {
     model: modifyFields(model, { status: () => 'Stepped' }),
@@ -258,7 +258,7 @@ it('stays passive, initializes in Binding order, applies Steps sequentially, and
 })
 
 it('preserves a combined Binding operation and Command-producing Definition Step in init', () => {
-  const finishCombined = Parent.step(() =>
+  const finishCombined = Parent.makeStep(() =>
     Update.combineSteps([FirstBinding.increment(), finishParentStep]),
   )
   const initializeCombined = ParentComposition.makeInit((count: number) => ({
@@ -559,7 +559,7 @@ it('initializes a projected accessor child and verifies Schema reconstruction', 
     Model: AccessorParentModel,
     Message: Schema.Never,
   })
-  const AccessorBinding = AccessorParent.bindChild(ChildBlock, {
+  const AccessorBinding = AccessorParent.makeBinding(ChildBlock, {
     placement: 'selectedChild',
     read: (model: typeof AccessorParentModel.Type) => Option.some(model.second),
     write: (model, nextSecond) =>
@@ -595,7 +595,7 @@ it('rejects a projected field that the accessor does not select', () => {
     Model: AccessorParentModel,
     Message: Schema.Never,
   })
-  const InvalidAccessorBinding = AccessorParent.bindChild(ChildBlock, {
+  const InvalidAccessorBinding = AccessorParent.makeBinding(ChildBlock, {
     placement: 'invalidSelectedChild',
     read: (model: typeof AccessorParentModel.Type) => Option.some(model.first),
     write: (model, nextFirst) =>
@@ -624,12 +624,12 @@ it('runs initialization callbacks and Steps under the exact registered operation
       maybeSecond: Option.none(),
       status: 'Ready',
     })
-  const ForeignBinding = Parent.bindChild(ChildBlock, {
+  const ForeignBinding = Parent.makeBinding(ChildBlock, {
     field: 'first',
     placement: 'foreignFirst',
     init: false,
   })
-  const SelectorBinding = Parent.bindChild(ChildBlock, {
+  const SelectorBinding = Parent.makeBinding(ChildBlock, {
     field: 'first',
     placement: 'selectorFirst',
     init: {
@@ -640,7 +640,7 @@ it('runs initialization callbacks and Steps under the exact registered operation
       },
     },
   })
-  const SelectorSecondBinding = Parent.bindChild(ChildBlock, {
+  const SelectorSecondBinding = Parent.makeBinding(ChildBlock, {
     field: 'maybeSecond',
     init: false,
   })
@@ -655,12 +655,12 @@ it('runs initialization callbacks and Steps under the exact registered operation
     Model: ProjectedParentModel,
     Message: Schema.Never,
   })
-  const ForeignProjectedBinding = ProjectedParent.bindChild(ChildBlock, {
+  const ForeignProjectedBinding = ProjectedParent.makeBinding(ChildBlock, {
     field: 'first',
     placement: 'foreignProjectedFirst',
     init: false,
   })
-  const ProjectedBinding = ProjectedParent.bindChild(ChildBlock, {
+  const ProjectedBinding = ProjectedParent.makeBinding(ChildBlock, {
     placement: 'projectedSecond',
     read: (model: typeof ProjectedParentModel.Type) =>
       Option.some(model.second),
@@ -865,11 +865,11 @@ it('omits startup when every child selector has no input', () => {
     Model: ParentModel,
     Message: ParentMessage,
   })
-  const FirstBinding = ConstantStartupParent.bindChild(ChildBlock, {
+  const FirstBinding = ConstantStartupParent.makeBinding(ChildBlock, {
     field: 'first',
     init: { contextToArgs: () => [3] },
   })
-  const SecondBinding = ConstantStartupParent.bindChild(ChildBlock, {
+  const SecondBinding = ConstantStartupParent.makeBinding(ChildBlock, {
     field: 'maybeSecond',
     init: { contextToArgs: () => Option.some([4]) },
   })

@@ -40,7 +40,7 @@ const ChildDefinition = ChildNamespace.makeDefinition({
   Message,
 })
 const resetInvocation = vi.fn()
-const reset = ChildDefinition.step(_model => {
+const reset = ChildDefinition.makeStep(_model => {
   resetInvocation()
 
   return { model: ChildModel.make({ count: 0 }) }
@@ -73,14 +73,14 @@ const OmittedParentDefinition = makeNamespace(
   Model: ParentModel,
   Message: ParentMessage,
 })
-const OmittedChildBinding = OmittedParentDefinition.bindChild(ChildBlock, {
+const OmittedChildBinding = OmittedParentDefinition.makeBinding(ChildBlock, {
   placement: 'omitted-child',
   read: (model: ParentModel) => Option.some(model.primary),
   write: (model, nextChild) =>
     modifyFields(model, { primary: () => nextChild }),
 })
 
-const initializeOmittedChild = OmittedParentDefinition.step(model =>
+const initializeOmittedChild = OmittedParentDefinition.makeStep(model =>
   OmittedChildBinding.init({
     args: [],
     toParentModel: child => modifyFields(model, { primary: () => child }),
@@ -107,7 +107,7 @@ const OmittedParent = omittedParentComposition.assembleBlock({
   EffectsLayer: Layer.empty,
 })
 
-const ForeignOmittedChildBinding = OmittedParentDefinition.bindChild(
+const ForeignOmittedChildBinding = OmittedParentDefinition.makeBinding(
   ChildBlock,
   {
     placement: 'foreign-child',
@@ -239,7 +239,7 @@ const ExactParentBaseDefinition = makeNamespace(
   Model: ParentModel,
   Message: ParentMessage,
 })
-const RegisteredPlacementBinding = ExactParentBaseDefinition.bindChild(
+const RegisteredPlacementBinding = ExactParentBaseDefinition.makeBinding(
   ChildBlock,
   {
     placement: 'same-placement',
@@ -251,19 +251,22 @@ const RegisteredPlacementBinding = ExactParentBaseDefinition.bindChild(
       modifyFields(model, { primary: () => nextChild }),
   },
 )
-const WrongPlacementBinding = ExactParentBaseDefinition.bindChild(ChildBlock, {
-  placement: 'same-placement',
-  readAll: readAllWrongPlacement,
-  key: () => 'only',
-  keySchema: Schema.Literal('only'),
-  read: readWrongPlacement,
-  writeAt: (model, _key, nextChild) => writeWrongPlacement(model, nextChild),
-})
+const WrongPlacementBinding = ExactParentBaseDefinition.makeBinding(
+  ChildBlock,
+  {
+    placement: 'same-placement',
+    readAll: readAllWrongPlacement,
+    key: () => 'only',
+    keySchema: Schema.Literal('only'),
+    read: readWrongPlacement,
+    writeAt: (model, _key, nextChild) => writeWrongPlacement(model, nextChild),
+  },
+)
 
 const exactParentComposition = ExactParentBaseDefinition.makeComposition({
   bindings: [RegisteredPlacementBinding],
 })
-const initializeWrongPlacement = ExactParentBaseDefinition.step(model =>
+const initializeWrongPlacement = ExactParentBaseDefinition.makeStep(model =>
   WrongPlacementBinding.init({
     key: 'only',
     args: [],
@@ -320,7 +323,7 @@ const PendingParent = makeDefinition('PendingParent', {
   Model: PendingParentModel,
   Message: ParentMessage,
 })
-const PendingChildBinding = PendingParent.bindChild(ChildBlock, {
+const PendingChildBinding = PendingParent.makeBinding(ChildBlock, {
   field: 'entries',
   key: 'id',
   childField: 'child',
@@ -365,10 +368,10 @@ it('resolves a pending keyed operation against the active Model after its key is
   expect(resetInvocation).toHaveBeenCalledTimes(previousInvocationCount)
 })
 
-const RecordBeforeReplay = PendingParent.command('RecordBeforeReplay', {
+const RecordBeforeReplay = PendingParent.makeCommand('RecordBeforeReplay', {
   messages: [ParentMessage.CompletedRecordBeforeReplay],
 })
-const RecordAfterReplay = PendingParent.command('RecordAfterReplay', {
+const RecordAfterReplay = PendingParent.makeCommand('RecordAfterReplay', {
   messages: [ParentMessage.CompletedRecordAfterReplay],
 })
 
@@ -434,13 +437,13 @@ const PolicyParentBaseDefinition = makeNamespace(
   Model: ParentModel,
   Message: PolicyParentMessage,
 })
-const SiblingChildBinding = PolicyParentBaseDefinition.bindChild(ChildBlock, {
+const SiblingChildBinding = PolicyParentBaseDefinition.makeBinding(ChildBlock, {
   placement: 'sibling-child',
   read: (model: ParentModel) => Option.some(model.sibling),
   write: (model, nextChild) =>
     modifyFields(model, { sibling: () => nextChild }),
 })
-const PolicyChildBinding = PolicyParentBaseDefinition.bindChild(PolicyChild, {
+const PolicyChildBinding = PolicyParentBaseDefinition.makeBinding(PolicyChild, {
   placement: 'policy-child',
   read: (model: ParentModel) => Option.some(model.primary),
   write: (model, nextChild) =>

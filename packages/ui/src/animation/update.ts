@@ -36,7 +36,7 @@ const elementSelector = (id: string): string => idSelector(id)
 
 /** Waits for paint via double-rAF, then reports the transition generation that
  *  scheduled the wait. */
-export const WaitForPaint = AnimationDefinition.command('WaitForPaint', {
+export const WaitForPaint = AnimationDefinition.makeCommand('WaitForPaint', {
   args: { generation: Schema.Number },
   messages: [Message.CompletedWaitForPaint],
   handler: function* () {
@@ -49,7 +49,7 @@ export const WaitForPaint = AnimationDefinition.command('WaitForPaint', {
 
 /** Waits for all CSS transitions and keyframe animations on the element to
  *  settle, then reports the transition generation that scheduled the wait. */
-export const WaitForAnimationSettled = AnimationDefinition.command(
+export const WaitForAnimationSettled = AnimationDefinition.makeCommand(
   'WaitForAnimationSettled',
   {
     args: { id: Schema.String, generation: Schema.Number },

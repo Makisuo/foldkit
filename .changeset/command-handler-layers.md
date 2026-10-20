@@ -19,7 +19,7 @@ Commands, Mounts, Subscription entries, and ManagedResource entries may omit `ha
 
 Each before/after pair shows the affected part of an existing module. Imports from `./message` and `./model` refer to the application's existing Message and Model Schemas. When several definitions belong to one Block or application module, compose their `.layer` recipes in that owner's local `EffectsLayer`.
 
-Completed Blocks collect child Bindings automatically. Pass only local handler recipes to `FeatureComposition.assembleBlock({ EffectsLayer })`, include Bindings through `FeatureDefinition.makeComposition({ bindings })`, and export the completed `FeatureBlock`. Define locally owned Commands through `FeatureDefinition.command` so the composition path qualifies their protocol names.
+Completed Blocks collect child Bindings automatically. Pass only local handler recipes to `FeatureComposition.assembleBlock({ EffectsLayer })`, include Bindings through `FeatureDefinition.makeComposition({ bindings })`, and export the completed `FeatureBlock`. Define locally owned Commands through `FeatureDefinition.makeCommand` so the composition path qualifies their protocol names.
 
 ### Commands
 
@@ -60,7 +60,7 @@ import { Message } from './message'
 
 const DRAFT_STORAGE_KEY = 'draft'
 
-export const StoreDraft = DraftEditorDefinition.command('StoreDraft', {
+export const StoreDraft = DraftEditorDefinition.makeCommand('StoreDraft', {
   args: { contents: Schema.String },
   messages: [Message.CompletedStoreDraft, Message.FailedStoreDraft],
   handler: function* () {
@@ -92,7 +92,7 @@ import { NotificationsDefinition } from './definition'
 
 const DISMISSAL_DELAY = Duration.seconds(5)
 
-export const WaitBeforeDismissal = NotificationsDefinition.command(
+export const WaitBeforeDismissal = NotificationsDefinition.makeCommand(
   'WaitBeforeDismissal',
   {
     messages: [Message.CompletedWaitBeforeDismissal],
@@ -156,7 +156,7 @@ import { Message } from './message'
 
 const TICK_INTERVAL = Duration.seconds(1)
 
-export const subscriptions = FeatureDefinition.subscriptions(entry => ({
+export const subscriptions = FeatureDefinition.makeSubscriptions(entry => ({
   gameClockTicks: entry(
     // Handler name; gameClockTicks is this Stream's registration key.
     'GameClockTicks',
@@ -209,7 +209,7 @@ export const subscriptions = Subscription.make<Model, Message>()(_entry => ({
 **After**
 
 ```ts
-export const subscriptions = FeatureDefinition.subscriptions(entry => ({
+export const subscriptions = FeatureDefinition.makeSubscriptions(entry => ({
   // No dependency Schema or Model projection is needed.
   heartbeatTicks: entry('HeartbeatTicks', {
     messages: [Message.TickedHeartbeat],
@@ -231,7 +231,7 @@ export const EffectsLayer = subscriptions.heartbeatTicks.layer
 Use `messages: []` when a Subscription owns scoped work but never emits a Message. The handler must then return `Stream<never>`. This example installs its own selection style while a drag is active and removes that style when the dependency changes or the application stops:
 
 ```ts
-export const subscriptions = FeatureDefinition.subscriptions(entry => ({
+export const subscriptions = FeatureDefinition.makeSubscriptions(entry => ({
   dragSelectionStyles: entry(
     'DragSelectionStyles',
     { isDragging: Schema.Boolean },
@@ -296,7 +296,7 @@ import { Effect } from 'effect'
 import { Message } from './message'
 import { PanelDefinition } from './definition'
 
-export const MeasurePanel = PanelDefinition.mount('MeasurePanel', {
+export const MeasurePanel = PanelDefinition.makeMount('MeasurePanel', {
   messages: [Message.CompletedMeasurePanel],
   handler: function* () {
     // Measure each mounted element, not during application construction.
@@ -316,7 +316,7 @@ export const EffectsLayer = MeasurePanel.layer
 
 Use `h.OnMount(MeasurePanel())` in the view as before. Include `MeasurePanel` in the owning `FeatureDefinition.makeComposition({ mounts })` and include `MeasurePanel.layer` in the local `EffectsLayer` passed to `FeatureComposition.assembleBlock`. The Mount reads the rendered panel's actual `getBoundingClientRect().height` after that element enters the DOM and reports it as `CompletedMeasurePanel`. TypeScript rejects unregistered Mounts; Foldkit also checks the exact rendered definition before patching the DOM. A registered Mount that is absent from the rendered tree performs no element work.
 
-`FeatureDefinition.mountStream` uses the same `config.handler` generator, returning an element function that produces a Stream. Keep element acquisition and cleanup inside that returned handler so each element owns its own scope.
+`FeatureDefinition.makeMountStream` uses the same `config.handler` generator, returning an element function that produces a Stream. Keep element acquisition and cleanup inside that returned handler so each element owns its own scope.
 
 ### Views that use Mounts
 
@@ -439,38 +439,43 @@ import { Effect, Schema } from 'effect'
 import { CameraDefinition } from './definition'
 import { Message } from './message'
 
-const CameraStream = CameraDefinition.resource<MediaStream>()('CameraStream')
+const CameraStream =
+  CameraDefinition.makeResource<MediaStream>()('CameraStream')
 const CameraRequirements = Schema.Option(
   Schema.Struct({ facingMode: Schema.String }),
 )
 
-export const managedResources = CameraDefinition.managedResources(entry => ({
-  camera: entry('ManageCamera', CameraRequirements, {
-    resource: CameraStream,
-    modelToMaybeRequirements: model => model.maybeCamera,
-    onAcquired: () => Message.AcquiredCamera(),
-    onReleased: () => Message.ReleasedCamera(),
-    onAcquireError: error =>
-      Message.FailedAcquireCamera({ reason: String(error) }),
-    handler: function* () {
-      // Construct the handler now; acquire the camera when the Model requests it.
-      return {
-        acquire: ({ facingMode }) =>
-          Effect.tryPromise(() =>
-            navigator.mediaDevices.getUserMedia({ video: { facingMode } }),
-          ),
-        // Required cleanup runs when the active camera handle is released.
-        release: stream =>
-          Effect.sync(() => stream.getTracks().forEach(track => track.stop())),
-      }
-    },
+export const managedResources = CameraDefinition.makeManagedResources(
+  entry => ({
+    camera: entry('ManageCamera', CameraRequirements, {
+      resource: CameraStream,
+      modelToMaybeRequirements: model => model.maybeCamera,
+      onAcquired: () => Message.AcquiredCamera(),
+      onReleased: () => Message.ReleasedCamera(),
+      onAcquireError: error =>
+        Message.FailedAcquireCamera({ reason: String(error) }),
+      handler: function* () {
+        // Construct the handler now; acquire the camera when the Model requests it.
+        return {
+          acquire: ({ facingMode }) =>
+            Effect.tryPromise(() =>
+              navigator.mediaDevices.getUserMedia({ video: { facingMode } }),
+            ),
+          // Required cleanup runs when the active camera handle is released.
+          release: stream =>
+            Effect.sync(() =>
+              stream.getTracks().forEach(track => track.stop()),
+            ),
+        }
+      },
+    }),
   }),
-}))
+)
 
 export const EffectsLayer = managedResources.camera.layer
 ```
 
-Create a Block-owned resource identity once with `CameraDefinition.resource`, then import that same `CameraStream` binding wherever a Command reads it or a ManagedResource entry registers it. Give separately managed resources distinct local names because assembly treats each qualified resource key as one lifecycle identity. Pass `managedResources` and its local `EffectsLayer` to `CameraComposition.assembleBlock`; parent Bindings carry both to the root. Both `acquire` and `release` are required whenever a constructor is supplied. A no-op `release` is appropriate only when scoped acquisition, such as `Layer.build` or `Effect.acquireRelease`, already registered the real cleanup. The handler lives for the application start; camera acquisition and release follow `model.maybeCamera`.
+Create a Block-owned resource identity once with `CameraDefinition.makeResource`, then import that same `CameraStream` binding wherever a Command reads it or a ManagedResource entry registers it. Give separately managed resources distinct local names because assembly treats each qualified resource key as one lifecycle identity. Pass `managedResources` and its local `EffectsLayer` to `CameraComposition.assembleBlock`; parent Bindings carry both to the root. Both `acquire` and `release` are required whenever a constructor is supplied. A no-op `release` is appropriate only when scoped acquisition, such as `Layer.build` or `Effect.acquireRelease`, already registered the real cleanup. The handler lives for the application start; camera acquisition and release follow `model.maybeCamera`.
 
 ### Application assembly and runtime resources
 
@@ -581,7 +586,7 @@ type HostApi = Readonly<{
 const HostApi = Context.Service<HostApi>('HostApi')
 
 // A host contract omits handler, so this definition has no attached .layer.
-export const RequestHostToken = HostBridgeDefinition.command(
+export const RequestHostToken = HostBridgeDefinition.makeCommand(
   'RequestHostToken',
   {
     messages: [Message.CompletedRequestHostToken],
@@ -660,7 +665,7 @@ type CommandRequirements = Update.RequirementsOf<typeof update>
 
 #### Named Steps
 
-Use the owning Block or Application's `step` method for a named Step that returns Commands. With the same imports and `DraftEditorDefinition`:
+Use the owning Block or Application's `makeStep` method for a named Step that returns Commands. With the same imports and `DraftEditorDefinition`:
 
 **Before**
 
@@ -679,17 +684,17 @@ const storeDraft: Update.Step<
 
 ```ts
 // The owner supplies Model typing; the result supplies Command requirements.
-const storeDraft = DraftEditorDefinition.step(model => ({
+const storeDraft = DraftEditorDefinition.makeStep(model => ({
   model,
   commands: [StoreDraft({ contents: model.contents })],
 }))
 ```
 
-The owning definition supplies the callback's Model type. Its `step` method infers the handler requirements and OutMessage from the return. Keep annotations for additional operation or dispatch-context parameters; omit repeated Model and Message annotations.
+The owning definition supplies the callback's Model type. Its `makeStep` method infers the handler requirements and OutMessage from the return. Keep annotations for additional operation or dispatch-context parameters; omit repeated Model and Message annotations.
 
 Bind an OutMessage fold directly to its union's matcher instead of wrapping a call that forwards the OutMessage. A pure fold can supply `Update.Step<Model, Message>` as the matcher output, which types its pure Model callbacks directly. For a generic child, pass the refined OutMessage type as the second matcher type argument.
 
-A Command-producing fold can infer its requirements through the owning definition's `step` method, or derive the matcher output from an existing Step producer's `ReturnType`. `Update.Step<Model, Message>` sets requirements to `never` and cannot represent Commands that require handler Layers. Retain collection keys, other context consumed by the matcher branches, and `FoldContext` lifters.
+A Command-producing fold can infer its requirements through the owning definition's `makeStep` method, or derive the matcher output from an existing Step producer's `ReturnType`. `Update.Step<Model, Message>` sets requirements to `never` and cannot represent Commands that require handler Layers. Retain collection keys, other context consumed by the matcher branches, and `FoldContext` lifters.
 
 ## Layer composition and lifetimes
 

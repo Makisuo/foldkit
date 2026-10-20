@@ -43,7 +43,7 @@ const foldMenuOutMessage = MenuStoryDefinition.makeOutMessageFold(TestMenu, {
   Closed: () => model => ({ model }),
 })
 
-const MenuBinding = MenuStoryDefinition.bindChild(TestMenu, {
+const MenuBinding = MenuStoryDefinition.makeBinding(TestMenu, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
@@ -60,7 +60,7 @@ const RefinedMenuStoryDefinition = Block.makeDefinition('RefinedMenuStory', {
   Message: Schema.Never,
 })
 
-const RefinedMenuBinding = RefinedMenuStoryDefinition.bindChild(RefinedMenu, {
+const RefinedMenuBinding = RefinedMenuStoryDefinition.makeBinding(RefinedMenu, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
 }).withOutMessagePolicy({

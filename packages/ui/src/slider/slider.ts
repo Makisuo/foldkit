@@ -827,7 +827,7 @@ const defineSubscriptionsForRoot = <Id extends string>(
 
 /** Default drag Subscriptions, with the track looked up via `document`. */
 export const subscriptions = defineSubscriptionsForRoot(
-  SliderDefinition.subscriptions,
+  SliderDefinition.makeSubscriptions,
   () => document,
 )
 
@@ -866,7 +866,7 @@ export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
   const rootUpdate = SliderComposition.makeUpdate(update)
   const rootView = SliderComposition.makeView.withInputs<ViewInputs>(renderView)
   const subscriptions = defineSubscriptionsForRoot(
-    SliderDefinition.subscriptions,
+    SliderDefinition.makeSubscriptions,
     getTrackRoot,
   )
   const EffectsLayer = subscriptions.layer

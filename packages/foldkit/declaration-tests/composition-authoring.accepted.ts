@@ -154,7 +154,7 @@ const SettingsDefinition = Block.makeDefinition('Settings', {
 const handlerConstruction: Effect.Effect<void, 'SettingsHandlerUnavailable'> =
   Effect.void
 
-export const SyncSettings = SettingsDefinition.command('SyncSettings', {
+export const SyncSettings = SettingsDefinition.makeCommand('SyncSettings', {
   args: { accountId: Schema.String, theme: Schema.String },
   messages: [SettingsMessage.CompletedSync],
   handler: function* () {
@@ -181,7 +181,7 @@ export const settingsUpdate = SettingsComposition.makeUpdate(
       CompletedSync: () => ({ model }),
     }),
 )
-export const refreshSettings = SettingsDefinition.step(
+export const refreshSettings = SettingsDefinition.makeStep(
   (model, currentUser: CurrentUser) => ({
     model,
     commands: [
@@ -341,7 +341,7 @@ const forwardSettingsOutMessage = ParentDefinition.makeOutMessageForward(
   },
 )
 
-export const SettingsBinding = ParentDefinition.bindChild(SettingsBlock, {
+export const SettingsBinding = ParentDefinition.makeBinding(SettingsBlock, {
   field: 'settings',
   delivery: {
     toUpdateContext: model => {
@@ -360,27 +360,30 @@ export const SettingsBinding = ParentDefinition.bindChild(SettingsBlock, {
   forward: forwardSettingsOutMessage,
 })
 
-export const StatusBinding = ParentDefinition.bindChild(StatusBlock, {
+export const StatusBinding = ParentDefinition.makeBinding(StatusBlock, {
   field: 'status',
   init: true,
 })
 
-export const ProjectedStatusBinding = ParentDefinition.bindChild(StatusBlock, {
-  placement: 'secondaryStatus',
-  read: model => Option.some(model.secondaryStatus),
-  write: (model, nextStatus) =>
-    Struct.modifyFields(model, { secondaryStatus: () => nextStatus }),
-  init: {
-    contextToArgs: () => [],
-    toParentFields: status => {
-      expectExactStatusModel(status)
+export const ProjectedStatusBinding = ParentDefinition.makeBinding(
+  StatusBlock,
+  {
+    placement: 'secondaryStatus',
+    read: model => Option.some(model.secondaryStatus),
+    write: (model, nextStatus) =>
+      Struct.modifyFields(model, { secondaryStatus: () => nextStatus }),
+    init: {
+      contextToArgs: () => [],
+      toParentFields: status => {
+        expectExactStatusModel(status)
 
-      return { secondaryStatus: status }
+        return { secondaryStatus: status }
+      },
     },
   },
-})
+)
 
-export const RoomBinding = ParentDefinition.bindChild(RoomBlock, {
+export const RoomBinding = ParentDefinition.makeBinding(RoomBlock, {
   placement: 'room',
   readAll: model => Option.toArray(model.maybeRoom),
   key: room => room.id,
@@ -403,13 +406,13 @@ export const RoomBinding = ParentDefinition.bindChild(RoomBlock, {
   },
 })
 
-export const FirstStatusBinding = ParentDefinition.bindChild(StatusBlock, {
+export const FirstStatusBinding = ParentDefinition.makeBinding(StatusBlock, {
   field: 'status',
   placement: 'firstStatus',
   init: false,
 })
 
-export const SecondStatusBinding = ParentDefinition.bindChild(StatusBlock, {
+export const SecondStatusBinding = ParentDefinition.makeBinding(StatusBlock, {
   field: 'status',
   placement: 'secondStatus',
   init: false,
@@ -854,7 +857,7 @@ const ServiceApplicationDefinition = Block.makeDefinition('Application', {
   Message: ServiceApplicationMessage,
 })
 
-export const RunApplicationTask = ServiceApplicationDefinition.command(
+export const RunApplicationTask = ServiceApplicationDefinition.makeCommand(
   'RunApplicationTask',
   {
     messages: [ServiceApplicationMessage.CompletedRunApplicationTask],
@@ -940,7 +943,7 @@ const NoStartupDefinition = Block.makeDefinition('NoStartup', {
   Model: NoStartupModel,
   Message: Schema.Never,
 })
-const NoStartupStatusBinding = NoStartupDefinition.bindChild(StatusBlock, {
+const NoStartupStatusBinding = NoStartupDefinition.makeBinding(StatusBlock, {
   field: 'status',
   init: true,
 })

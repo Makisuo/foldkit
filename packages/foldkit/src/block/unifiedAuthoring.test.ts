@@ -23,7 +23,7 @@ const Message = defineMessageUnion({
 const ForeignMessage = defineMessageUnion({ ForeignCompleted: {} })
 const OutMessage = defineMessageUnion({ Saved: { value: Schema.String } })
 const Search = Block.makeDefinition('Search', { Model, Message, OutMessage })
-const Save = Search.command('Save', {
+const Save = Search.makeCommand('Save', {
   args: { value: Schema.String },
   messages: [Message.CompletedSave],
   handler: function* () {
@@ -44,7 +44,7 @@ function overloadedSearchInit(_value: number | string): SearchInitReturn {
   return { model: Model.make({ value: '' }) }
 }
 
-const TrackPointer = Search.mountStream('TrackPointer', {
+const TrackPointer = Search.makeMountStream('TrackPointer', {
   messages: [Message.CompletedSave],
   handler: function* () {
     const storage = yield* Storage
@@ -65,7 +65,7 @@ const TrackPointer = Search.mountStream('TrackPointer', {
   },
 })
 const search = Search.makeComposition({})
-const clear = Search.step(model => ({
+const clear = Search.makeStep(model => ({
   model: modifyFields(model, { value: () => '' }),
 }))
 const update = search.makeUpdate((model, message) =>
@@ -103,7 +103,7 @@ expectTypeOf(clear(Model.make({ value: 'before' })).model).toEqualTypeOf<
   typeof Model.Type
 >()
 const EarlyNamespace = Block.makeNamespace('Early')
-const Shared = EarlyNamespace.command('Shared', {
+const Shared = EarlyNamespace.makeCommand('Shared', {
   messages: [Message.CompletedSave],
   handler: function* () {
     return () => Effect.succeed(Message.CompletedSave())
@@ -182,21 +182,41 @@ it('rejects unexpected erased Composition graph fields', () => {
   )
 })
 
+it('replaces the short factory names without retaining aliases', () => {
+  const oldFactoryNames = [
+    'command',
+    'mount',
+    'mountStream',
+    'resource',
+    'subscriptions',
+    'managedResources',
+    'bindChild',
+    'step',
+    'stepFields',
+    'stepNoop',
+  ]
+
+  for (const name of oldFactoryNames) {
+    expect(Search).not.toHaveProperty(name)
+    expect(EarlyNamespace).not.toHaveProperty(name)
+  }
+})
+
 it('shares one owner across specialized contracts', () => {
   expect(firstBlock.owner).toBe(secondBlock.owner)
 })
 
 it('keeps primitive helpers on the Definition after composition', () => {
-  expect(Search.command).toBeTypeOf('function')
-  expect(Search.mount).toBeTypeOf('function')
-  expect(Search.mountStream).toBeTypeOf('function')
-  expect(Search.resource).toBeTypeOf('function')
+  expect(Search.makeCommand).toBeTypeOf('function')
+  expect(Search.makeMount).toBeTypeOf('function')
+  expect(Search.makeMountStream).toBeTypeOf('function')
+  expect(Search.makeResource).toBeTypeOf('function')
   expect(search.makeUpdate).toBeTypeOf('function')
-  expect(Search.step).toBeTypeOf('function')
-  expect(Search.subscriptions).toBeTypeOf('function')
-  expect(Search.managedResources).toBeTypeOf('function')
-  expect(search).not.toHaveProperty('command')
-  expect(search).not.toHaveProperty('step')
+  expect(Search.makeStep).toBeTypeOf('function')
+  expect(Search.makeSubscriptions).toBeTypeOf('function')
+  expect(Search.makeManagedResources).toBeTypeOf('function')
+  expect(search).not.toHaveProperty('makeCommand')
+  expect(search).not.toHaveProperty('makeStep')
   expect(search).toHaveProperty('makeInit')
 })
 if (false) {
@@ -213,38 +233,38 @@ if (false) {
   // @ts-expect-error Initializers require one concrete call signature.
   search.makeInit(overloadedSearchInit)
 
-  Search.command('AcceptedCommand', {
+  Search.makeCommand('AcceptedCommand', {
     messages: [Message.CompletedSave],
   })
-  Search.mount('AcceptedMount', {
+  Search.makeMount('AcceptedMount', {
     messages: [Message.CompletedSave],
   })
-  Search.mountStream('AcceptedMountStream', {
+  Search.makeMountStream('AcceptedMountStream', {
     messages: [Message.CompletedSave],
   })
 
-  Search.command('ForeignCommand', {
+  Search.makeCommand('ForeignCommand', {
     // @ts-expect-error Typed Block Commands must produce the owner's Message.
     messages: [ForeignMessage.ForeignCompleted],
   })
-  Search.mount('ForeignMount', {
+  Search.makeMount('ForeignMount', {
     // @ts-expect-error Typed Block Mounts must produce the owner's Message.
     messages: [ForeignMessage.ForeignCompleted],
   })
-  Search.mountStream('ForeignMountStream', {
+  Search.makeMountStream('ForeignMountStream', {
     // @ts-expect-error Typed Block stream Mounts must produce the owner's Message.
     messages: [ForeignMessage.ForeignCompleted],
   })
   // @ts-expect-error Primitive authoring remains on the Definition.
-  search.command
+  search.makeCommand
 
-  const DeferredCommand = EarlyNamespace.command('DeferredCommand', {
+  const DeferredCommand = EarlyNamespace.makeCommand('DeferredCommand', {
     messages: [ForeignMessage.ForeignCompleted],
   })
-  const DeferredMount = EarlyNamespace.mount('DeferredMount', {
+  const DeferredMount = EarlyNamespace.makeMount('DeferredMount', {
     messages: [ForeignMessage.ForeignCompleted],
   })
-  const DeferredMountStream = EarlyNamespace.mountStream(
+  const DeferredMountStream = EarlyNamespace.makeMountStream(
     'DeferredMountStream',
     {
       messages: [ForeignMessage.ForeignCompleted],
@@ -263,7 +283,7 @@ if (false) {
     })),
   })
   const Foreign = Block.makeDefinition('Foreign', { Model, Message })
-  const ForeignShared = Foreign.command('Shared', {
+  const ForeignShared = Foreign.makeCommand('Shared', {
     messages: [Message.CompletedSave],
   })
   const ForeignComposition = Foreign.makeComposition()

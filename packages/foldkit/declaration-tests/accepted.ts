@@ -54,18 +54,23 @@ export type ChildMessage = typeof ChildMessage.Type
 const handlerConstruction: Effect.Effect<void, 'HandlerUnavailable'> =
   Effect.void
 
-export const ReadCount = DeclarationTestsChildNamespace.command('ReadCount', {
-  messages: [ChildMessage.CompletedRead],
-  handler: function* () {
-    const clock = yield* Clock
-    yield* handlerConstruction
+export const ReadCount = DeclarationTestsChildNamespace.makeCommand(
+  'ReadCount',
+  {
+    messages: [ChildMessage.CompletedRead],
+    handler: function* () {
+      const clock = yield* Clock
+      yield* handlerConstruction
 
-    return () =>
-      clock.now.pipe(Effect.map(value => ChildMessage.CompletedRead({ value })))
+      return () =>
+        clock.now.pipe(
+          Effect.map(value => ChildMessage.CompletedRead({ value })),
+        )
+    },
   },
-})
+)
 
-export const Measure = DeclarationTestsChildNamespace.mount('Measure', {
+export const Measure = DeclarationTestsChildNamespace.makeMount('Measure', {
   messages: [ChildMessage.CompletedMeasure],
   handler: function* () {
     return ({ element }) =>
@@ -101,7 +106,7 @@ const childUpdate = ChildComposition.makeUpdate((model, message) =>
   }),
 )
 
-const refresh = ChildDefinition.step(model => ({
+const refresh = ChildDefinition.makeStep(model => ({
   model,
   commands: [ReadCount()],
 }))
@@ -228,7 +233,7 @@ const DeclarationTestsDirectDefinition = Block.makeDefinition(
 const DeclarationTestsDirectComposition =
   DeclarationTestsDirectDefinition.makeComposition({})
 
-export const ReadDirectValue = DeclarationTestsDirectDefinition.command(
+export const ReadDirectValue = DeclarationTestsDirectDefinition.makeCommand(
   'ReadDirectValue',
   {
     messages: [DirectMessage.CompletedReadDirectValue],
@@ -245,19 +250,17 @@ export const ReadDirectValue = DeclarationTestsDirectDefinition.command(
   },
 )
 
-export const ObserveDirectValue = DeclarationTestsDirectDefinition.mount(
+export const ObserveDirectValue = DeclarationTestsDirectDefinition.makeMount(
   'ObserveDirectValue',
   {
     messages: [DirectMessage.CompletedReadDirectValue],
   },
 )
 
-export const StreamDirectValue = DeclarationTestsDirectDefinition.mountStream(
-  'StreamDirectValue',
-  {
+export const StreamDirectValue =
+  DeclarationTestsDirectDefinition.makeMountStream('StreamDirectValue', {
     messages: [DirectMessage.CompletedReadDirectValue],
-  },
-)
+  })
 
 export const directUpdate = DeclarationTestsDirectComposition.makeUpdate(
   (model, message) =>
@@ -269,7 +272,7 @@ export const directUpdate = DeclarationTestsDirectComposition.makeUpdate(
     }),
 )
 
-export const refreshDirectValue = DeclarationTestsDirectDefinition.step(
+export const refreshDirectValue = DeclarationTestsDirectDefinition.makeStep(
   model => ({
     model,
     commands: [ReadDirectValue()],
@@ -334,7 +337,7 @@ const DeclarationTestsDirectInitDefinition = Block.makeDefinition(
   },
 )
 export const DirectInitChildBinding =
-  DeclarationTestsDirectInitDefinition.bindChild(ChildBlock, {
+  DeclarationTestsDirectInitDefinition.makeBinding(ChildBlock, {
     placement: 'direct-init-child',
     read: model => Option.some(model),
     write: (_model, nextChild) => nextChild,
@@ -382,7 +385,7 @@ const DeclarationTestsParentDefinition = Block.makeNamespace(
   Message: ParentMessage,
 })
 
-export const ChildBinding = DeclarationTestsParentDefinition.bindChild(
+export const ChildBinding = DeclarationTestsParentDefinition.makeBinding(
   ChildBlock,
   {
     placement: 'child',
@@ -391,7 +394,7 @@ export const ChildBinding = DeclarationTestsParentDefinition.bindChild(
   },
 )
 
-export const DirectChildBinding = DeclarationTestsParentDefinition.bindChild(
+export const DirectChildBinding = DeclarationTestsParentDefinition.makeBinding(
   ChildBlock,
   {
     field: 'child',
@@ -435,7 +438,7 @@ type ChildInspectionMountsAreExact = Expect<
   Equal<(typeof childInspection.mounts)[number], typeof Measure>
 >
 
-export const ObserveParent = DeclarationTestsParentDefinition.mount(
+export const ObserveParent = DeclarationTestsParentDefinition.makeMount(
   'ObserveParent',
   {
     messages: [ParentMessage.RequestedRefresh],
@@ -489,7 +492,7 @@ export const parentUpdate = ParentComposition.makeUpdate((model, message) =>
   }),
 )
 
-const refreshChild = DeclarationTestsParentDefinition.step(() =>
+const refreshChild = DeclarationTestsParentDefinition.makeStep(() =>
   ChildBinding.refresh(),
 )
 
@@ -498,7 +501,7 @@ export const RefreshContext = Schema.Struct({
 })
 export type RefreshContext = typeof RefreshContext.Type
 
-export const contextualRefreshChild = DeclarationTestsParentDefinition.step(
+export const contextualRefreshChild = DeclarationTestsParentDefinition.makeStep(
   (_model, _context?: RefreshContext) => ChildBinding.refresh(),
 )
 
@@ -551,7 +554,7 @@ const makeChoiceParts = <const Values extends ReadonlyArray<string>>(
     Message,
     OutMessage,
   })
-  const finish = ChoiceDefinition.step((_model, value: Value) => ({
+  const finish = ChoiceDefinition.makeStep((_model, value: Value) => ({
     model: Model.make({ value }),
     outMessage: OutMessage.make({ value }),
   }))
@@ -620,12 +623,12 @@ const DeclarationTestsChoiceParentDefinition = Block.makeDefinition(
 )
 const ChoiceParent = DeclarationTestsChoiceParentDefinition
 
-export const RefinedChoiceBinding = ChoiceParent.bindChild(RefinedChoice, {
+export const RefinedChoiceBinding = ChoiceParent.makeBinding(RefinedChoice, {
   placement: 'refined-choice',
   read: model => Option.some(model.choice),
   write: (_model, nextChoice) => ChoiceParentModel.make({ choice: nextChoice }),
 }).withOutMessagePolicy({
-  fold: outMessage => ChoiceParent.step(model => ({ model, outMessage })),
+  fold: outMessage => ChoiceParent.makeStep(model => ({ model, outMessage })),
 })
 
 const RefinedChoiceParentComposition = ChoiceParent.makeComposition({
@@ -759,19 +762,19 @@ const purePageProgram: ProgramType<undefined, void, never, never, never> =
   })
 void pureElementProgram
 void purePageProgram
-export const ReadApplicationValue = ApplicationDefinition.command(
+export const ReadApplicationValue = ApplicationDefinition.makeCommand(
   'ReadApplicationValue',
   {
     messages: [ParentMessage.RequestedRefresh],
   },
 )
-export const ObserveApplicationValue = ApplicationDefinition.mount(
+export const ObserveApplicationValue = ApplicationDefinition.makeMount(
   'ObserveApplicationValue',
   {
     messages: [ParentMessage.RequestedRefresh],
   },
 )
-export const StreamApplicationValue = ApplicationDefinition.mountStream(
+export const StreamApplicationValue = ApplicationDefinition.makeMountStream(
   'StreamApplicationValue',
   {
     messages: [ParentMessage.RequestedRefresh],

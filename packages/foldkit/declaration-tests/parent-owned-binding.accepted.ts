@@ -26,7 +26,7 @@ const DeclarationParentOwnedChildDefinition = Block.makeDefinition(
 )
 const handlerConstruction: Effect.Effect<void, 'HandlerUnavailable'> =
   Effect.void
-export const ReadChildValue = DeclarationParentOwnedChildDefinition.command(
+export const ReadChildValue = DeclarationParentOwnedChildDefinition.makeCommand(
   'ReadChildValue',
   {
     messages: [ChildMessage.CompletedReadChildValue],
@@ -78,7 +78,7 @@ const DeclarationParentOwnedPlainChildDefinition = Block.makeDefinition(
   },
 )
 const PlainChildSubscriptions =
-  DeclarationParentOwnedPlainChildDefinition.subscriptions(entry => ({
+  DeclarationParentOwnedPlainChildDefinition.makeSubscriptions(entry => ({
     values: entry('ObservePlainChildValues', {
       messages: [ChildMessage.UpdatedValue],
       handler: function* () {
@@ -134,13 +134,13 @@ const foldChildOutMessage = ChildOutMessage.match<
 })
 
 export const DirectChildBinding =
-  DeclarationParentOwnedParentDefinition.bindChild(ChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
     init: false,
   }).withOutMessagePolicy({ fold: foldChildOutMessage })
 export const directChildInspection = Block.inspectBinding(DirectChildBinding)
 export const ForwardingChildBinding =
-  DeclarationParentOwnedParentDefinition.bindChild(ChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
     placement: 'forwardingChild',
   }).withOutMessagePolicy({
@@ -152,7 +152,7 @@ export const ForwardingChildBinding =
   })
 
 export const OptionalChildBinding =
-  DeclarationParentOwnedParentDefinition.bindChild(ChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeBinding(ChildBlock, {
     placement: 'optionalChild',
     field: 'maybeChild',
   }).withOutMessagePolicy({
@@ -171,7 +171,7 @@ export const OptionalChildBinding =
   })
 
 export const TaggedChildBinding =
-  DeclarationParentOwnedParentDefinition.bindChild(ChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeBinding(ChildBlock, {
     placement: 'taggedChild',
     read: model =>
       model.slot._tag === 'Child'
@@ -184,7 +184,7 @@ export const TaggedChildBinding =
   }).withOutMessagePolicy({ fold: foldChildOutMessage })
 
 export const KeyedChildBinding =
-  DeclarationParentOwnedParentDefinition.bindChild(ChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeBinding(ChildBlock, {
     placement: 'entries',
     readAll: model => model.entries,
     key: entry => entry.id,
@@ -211,7 +211,7 @@ export const KeyedChildBinding =
 const readNamedEntries = (model: typeof ParentModel.Type) => model.namedEntries
 
 export const KeyedChildWithoutOutMessageBinding =
-  DeclarationParentOwnedParentDefinition.bindChild(PlainChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeBinding(PlainChildBlock, {
     placement: 'namedEntries',
     readAll: readNamedEntries,
     key: entry => {
@@ -250,7 +250,7 @@ export const KeyedChildWithoutOutMessageBinding =
   })
 
 export const InlineKeyedChildWithoutOutMessageBinding =
-  DeclarationParentOwnedParentDefinition.bindChild(PlainChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeBinding(PlainChildBlock, {
     placement: 'inlineNamedEntries',
     readAll: model => {
       const exactModel: typeof ParentModel.Type = model
@@ -310,7 +310,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: ApplicationMessage,
 })
-export const ApplicationChildBinding = ApplicationDefinition.bindChild(
+export const ApplicationChildBinding = ApplicationDefinition.makeBinding(
   ChildBlock,
   {
     field: 'child',
@@ -365,13 +365,13 @@ export const makeGenericKeyedBinding = <const Value extends string>(
     void id
     return ChildOutMessage.match(outMessage, {
       SelectedValue: () =>
-        DeclarationGenericKeyedParentDefinition.step(model => ({
+        DeclarationGenericKeyedParentDefinition.makeStep(model => ({
           model,
           commands: [liftCommand(ReadChildValue())],
         })),
     })
   }
-  const ChildBinding = DeclarationGenericKeyedParentDefinition.bindChild(
+  const ChildBinding = DeclarationGenericKeyedParentDefinition.makeBinding(
     ChildBlock,
     {
       readAll: model => model.entries,

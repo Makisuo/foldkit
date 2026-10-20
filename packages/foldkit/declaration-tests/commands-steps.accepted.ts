@@ -15,7 +15,7 @@ export class Store extends Context.Service<
   Store,
   { save: Effect.Effect<void> }
 >()('CommandsStep/Store') {}
-export const Save = CommandsDefinition.command('Save', {
+export const Save = CommandsDefinition.makeCommand('Save', {
   messages: [Message.CompletedSave],
   handler: function* () {
     return () =>
@@ -29,7 +29,7 @@ export const Save = CommandsDefinition.command('Save', {
 export const commands = [Save()]
 export const save = CommandsDefinition.makeCommandsStep(commands)
 export const combined = Update.combineSteps([
-  CommandsDefinition.stepFields(() => ({ count: Number.increment })),
+  CommandsDefinition.makeFieldsStep(() => ({ count: Number.increment })),
   save,
 ])
 export const CommandsComposition = CommandsDefinition.makeComposition()
@@ -95,7 +95,7 @@ export const ParentDefinition = Block.makeDefinition('CommandsStepParent', {
   Model: ParentModel,
   Message,
 })
-export const ChildBinding = ParentDefinition.bindChild(ChildBlock, {
+export const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
   field: 'child',
 })
 export const ParentComposition = ParentDefinition.makeComposition({

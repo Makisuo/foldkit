@@ -9,7 +9,7 @@ const Message = defineMessageUnion({
 
 const PanelDefinition = Block.makeDefinition('Panel', { Model, Message })
 
-const MeasurePanel = PanelDefinition.mount('MeasurePanel', {
+const MeasurePanel = PanelDefinition.makeMount('MeasurePanel', {
   messages: [Message.CompletedMeasurePanel],
   handler: function* () {
     return ({ element }) =>

@@ -233,7 +233,7 @@ const itemSelector = (id: string, index: number): string =>
   idSelector(`${id}-item-${index}`)
 
 /** Prevents page scrolling while the menu is open. */
-export const LockMenuScroll = MenuNamespace.command('LockMenuScroll', {
+export const LockMenuScroll = MenuNamespace.makeCommand('LockMenuScroll', {
   messages: [Message.CompletedLockMenuScroll],
   handler: function* () {
     return () =>
@@ -241,7 +241,7 @@ export const LockMenuScroll = MenuNamespace.command('LockMenuScroll', {
   },
 })
 /** Re-enables page scrolling after the menu closes. */
-export const UnlockMenuScroll = MenuNamespace.command('UnlockMenuScroll', {
+export const UnlockMenuScroll = MenuNamespace.makeCommand('UnlockMenuScroll', {
   messages: [Message.CompletedUnlockMenuScroll],
   handler: function* () {
     return () =>
@@ -249,7 +249,7 @@ export const UnlockMenuScroll = MenuNamespace.command('UnlockMenuScroll', {
   },
 })
 /** Marks all elements outside the menu as inert for modal behavior. */
-export const InertMenuOthers = MenuNamespace.command('InertMenuOthers', {
+export const InertMenuOthers = MenuNamespace.makeCommand('InertMenuOthers', {
   args: { id: Schema.String },
   messages: [Message.CompletedInertMenuOthers],
   handler: function* () {
@@ -260,7 +260,7 @@ export const InertMenuOthers = MenuNamespace.command('InertMenuOthers', {
   },
 })
 /** Removes the inert attribute from elements outside the Menu. */
-export const RestoreMenuInert = MenuNamespace.command('RestoreMenuInert', {
+export const RestoreMenuInert = MenuNamespace.makeCommand('RestoreMenuInert', {
   args: { id: Schema.String },
   messages: [Message.CompletedRestoreMenuInert],
   handler: function* () {
@@ -269,7 +269,7 @@ export const RestoreMenuInert = MenuNamespace.command('RestoreMenuInert', {
   },
 })
 /** Moves focus to the menu items container after opening. */
-export const FocusMenuItems = MenuNamespace.command('FocusMenuItems', {
+export const FocusMenuItems = MenuNamespace.makeCommand('FocusMenuItems', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusMenuItems],
   handler: function* () {
@@ -281,7 +281,7 @@ export const FocusMenuItems = MenuNamespace.command('FocusMenuItems', {
   },
 })
 /** Moves focus back to the menu button after closing. */
-export const FocusMenuButton = MenuNamespace.command('FocusMenuButton', {
+export const FocusMenuButton = MenuNamespace.makeCommand('FocusMenuButton', {
   args: { id: Schema.String },
   messages: [Message.CompletedFocusMenuButton],
   handler: function* () {
@@ -293,7 +293,7 @@ export const FocusMenuButton = MenuNamespace.command('FocusMenuButton', {
   },
 })
 /** Scrolls the active menu item into view after keyboard navigation. */
-export const ScrollMenuItemIntoView = MenuNamespace.command(
+export const ScrollMenuItemIntoView = MenuNamespace.makeCommand(
   'ScrollMenuItemIntoView',
   {
     args: { id: Schema.String, index: Schema.Number },
@@ -308,7 +308,7 @@ export const ScrollMenuItemIntoView = MenuNamespace.command(
   },
 )
 /** Programmatically clicks the active menu item's DOM element. */
-export const ClickMenuItem = MenuNamespace.command('ClickMenuItem', {
+export const ClickMenuItem = MenuNamespace.makeCommand('ClickMenuItem', {
   args: { id: Schema.String, index: Schema.Number },
   messages: [Message.CompletedClickMenuItem],
   handler: function* () {
@@ -320,7 +320,7 @@ export const ClickMenuItem = MenuNamespace.command('ClickMenuItem', {
   },
 })
 /** Waits for the typeahead search debounce period before clearing the query. */
-export const DelayClearMenuSearch = MenuNamespace.command(
+export const DelayClearMenuSearch = MenuNamespace.makeCommand(
   'DelayClearMenuSearch',
   {
     args: { version: Schema.Number },
@@ -334,7 +334,7 @@ export const DelayClearMenuSearch = MenuNamespace.command(
   },
 )
 /** Detects whether the menu button moved or the leave animation ended. Whichever comes first; both outcomes signal the Animation block that leave is complete. */
-export const DetectMenuMovementOrAnimationEnd = MenuNamespace.command(
+export const DetectMenuMovementOrAnimationEnd = MenuNamespace.makeCommand(
   'DetectMenuMovementOrAnimationEnd',
   {
     args: { id: Schema.String, generation: Schema.Number },
@@ -358,7 +358,7 @@ export const DetectMenuMovementOrAnimationEnd = MenuNamespace.command(
 )
 
 const detectMenuMovementOrAnimationEnd = (generation: number) =>
-  MenuDefinition.step(model => ({
+  MenuDefinition.makeStep(model => ({
     model,
     commands: [DetectMenuMovementOrAnimationEnd({ id: model.id, generation })],
   }))
@@ -368,11 +368,11 @@ const foldAnimationOutMessage = MenuDefinition.makeOutMessageFold(
   {
     StartedLeaveAnimating: ({ generation }) =>
       detectMenuMovementOrAnimationEnd(generation),
-    TransitionedOut: MenuDefinition.stepNoop,
+    TransitionedOut: MenuDefinition.makeNoopStep,
   },
 )
 
-const AnimationBinding = MenuDefinition.bindChild(Animation.AnimationBlock, {
+const AnimationBinding = MenuDefinition.makeBinding(Animation.AnimationBlock, {
   field: 'animation',
   init: false,
 }).withOutMessagePolicy({ fold: foldAnimationOutMessage })
@@ -403,12 +403,12 @@ const internalUpdate =
     const openMenu = (baseModel: Model) => {
       if (model.isAnimated) {
         return Update.combineSteps([
-          MenuDefinition.step(() => ({
+          MenuDefinition.makeStep(() => ({
             model: baseModel,
             commands: openCommands,
           })),
           animationBinding.requestShow(),
-          MenuDefinition.stepFields(() => ({ isOpen: () => true })),
+          MenuDefinition.makeFieldsStep(() => ({ isOpen: () => true })),
         ])
       }
 
@@ -431,10 +431,10 @@ const internalUpdate =
       const closeOutMessage = outMessage ?? OutMessage.Closed()
 
       if (model.isAnimated) {
-        return MenuDefinition.step(() =>
+        return MenuDefinition.makeStep(() =>
           Function.compose(
             Update.combineSteps([
-              MenuDefinition.step(() => ({ model: closed, commands })),
+              MenuDefinition.makeStep(() => ({ model: closed, commands })),
               animationBinding.requestHide(),
             ]),
             Update.withOutMessage(closeOutMessage),
@@ -595,10 +595,10 @@ const internalUpdate =
           })
 
           if (model.isAnimated) {
-            return MenuDefinition.step(() =>
+            return MenuDefinition.makeStep(() =>
               Function.compose(
                 Update.combineSteps([
-                  MenuDefinition.step(() => ({
+                  MenuDefinition.makeStep(() => ({
                     model: closed,
                     commands: closeWithFocusCommands,
                   })),
@@ -694,7 +694,7 @@ const internalUpdate =
  *  Exposed so Scene tests can call
  *  `Scene.Mount.resolve(AnchorMenu, Message.CompletedAnchorMenu())`.
  */
-export const AnchorMenu = MenuNamespace.mount('AnchorMenu', {
+export const AnchorMenu = MenuNamespace.makeMount('AnchorMenu', {
   args: { buttonId: Schema.String, anchor: AnchorConfig },
   messages: [Message.CompletedAnchorMenu],
   handler: function* () {
@@ -718,19 +718,22 @@ export const AnchorMenu = MenuNamespace.mount('AnchorMenu', {
 /** The backdrop-portaling Mount this Menu renders. Exposed so Scene tests can
  *  call `Scene.Mount.resolve(PortalMenuBackdrop, Message.CompletedPortalMenuBackdrop())` to
  *  acknowledge the mount produced by the rendered backdrop. */
-export const PortalMenuBackdrop = MenuNamespace.mount('PortalMenuBackdrop', {
-  messages: [Message.CompletedPortalMenuBackdrop],
-  handler: function* () {
-    return ({ element }) =>
-      Effect.gen(function* () {
-        yield* Effect.acquireRelease(
-          Effect.sync(() => portalBackdrop(element)),
-          cleanup => Effect.sync(cleanup),
-        )
-        return Message.CompletedPortalMenuBackdrop()
-      })
+export const PortalMenuBackdrop = MenuNamespace.makeMount(
+  'PortalMenuBackdrop',
+  {
+    messages: [Message.CompletedPortalMenuBackdrop],
+    handler: function* () {
+      return ({ element }) =>
+        Effect.gen(function* () {
+          yield* Effect.acquireRelease(
+            Effect.sync(() => portalBackdrop(element)),
+            cleanup => Effect.sync(cleanup),
+          )
+          return Message.CompletedPortalMenuBackdrop()
+        })
+    },
   },
-})
+)
 
 /** Mount definitions rendered by Menu. */
 export const mounts = [AnchorMenu, PortalMenuBackdrop]
@@ -747,7 +750,7 @@ export const init = MenuComposition.makeInit((config: InitConfig) => ({
 }))
 type MenuViewBuilder = Block.ViewBuilderFor<typeof MenuComposition>
 const defaultUpdate = internalUpdate(AnimationBinding)
-const authoredUpdate = MenuDefinition.step(
+const authoredUpdate = MenuDefinition.makeStep(
   (model, message: Parameters<typeof defaultUpdate>[1]) =>
     defaultUpdate(model, message),
 )
@@ -1349,10 +1352,10 @@ const makeBlockParts = <Item extends string>() => {
     {
       StartedLeaveAnimating: ({ generation }) =>
         detectMenuMovementOrAnimationEnd(generation),
-      TransitionedOut: MenuDefinition.stepNoop,
+      TransitionedOut: MenuDefinition.makeNoopStep,
     },
   )
-  const ItemAnimationBinding = MenuDefinition.bindChild(
+  const ItemAnimationBinding = MenuDefinition.makeBinding(
     Animation.AnimationBlock,
     {
       field: 'animation',
@@ -1375,7 +1378,7 @@ const makeBlockParts = <Item extends string>() => {
   const init = MenuComposition.makeInit((config: InitConfig) => ({
     model: makeInitialModel(config),
   }))
-  const authoredUpdate = MenuDefinition.step(
+  const authoredUpdate = MenuDefinition.makeStep(
     (model, message: Parameters<typeof itemUpdate>[1]) =>
       castReturn(itemUpdate(model, message)),
   )

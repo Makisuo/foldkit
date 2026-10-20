@@ -39,7 +39,7 @@ const Definition = makeDefinition('OperationConstructorRuntimeChild', {
   Message,
   OutMessage,
 })
-const RecordValue = Definition.command('RecordValue', {
+const RecordValue = Definition.makeCommand('RecordValue', {
   args: { value: Schema.String },
   messages: [Message.CompletedRecordValue],
   handler: function* () {
@@ -106,7 +106,7 @@ const Parent = makeDefinition('OperationConstructorRuntimeParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ChildBinding = Parent.bindChild(Block, {
+const ChildBinding = Parent.makeBinding(Block, {
   placement: 'child',
   read: model => model.maybeChild,
   write: (model, nextChild) =>
@@ -119,7 +119,7 @@ const ChildBinding = Parent.bindChild(Block, {
     ChangedValue: () => model => ({ model }),
   }),
 })
-const EntryBinding = Parent.bindChild(Block, {
+const EntryBinding = Parent.makeBinding(Block, {
   placement: 'entries',
   readAll: model => model.entries,
   key: entry => entry.id,

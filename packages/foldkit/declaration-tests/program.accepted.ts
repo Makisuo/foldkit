@@ -294,7 +294,7 @@ const ManagedDecoderProgramNamespace = Block.makeNamespace(
   'ManagedDecoderProgram',
 )
 const ManagedDecoder =
-  ManagedDecoderProgramNamespace.resource<string>()('DispatchDecoder')
+  ManagedDecoderProgramNamespace.makeResource<string>()('DispatchDecoder')
 const ManagedDecodedString = Schema.String.pipe(
   Schema.decodeTo(
     Schema.String,
@@ -312,7 +312,7 @@ const ManagedDecoderProgramDefinition =
     Model,
     Message: ManagedDecodedMessage,
   })
-const managedDecoders = ManagedDecoderProgramDefinition.managedResources(
+const managedDecoders = ManagedDecoderProgramDefinition.makeManagedResources(
   entry => ({
     dispatchDecoder: entry('DispatchDecoder', Schema.Option(Schema.Null), {
       resource: ManagedDecoder,
@@ -413,7 +413,7 @@ const DeclarationServiceProgramDefinition = Block.makeDefinition(
     Message: ServiceMessage,
   },
 )
-const RunWork = DeclarationServiceProgramDefinition.command('RunWork', {
+const RunWork = DeclarationServiceProgramDefinition.makeCommand('RunWork', {
   messages: [ServiceMessage.CompletedWork],
   handler: function* () {
     const programClient = yield* ProgramClient

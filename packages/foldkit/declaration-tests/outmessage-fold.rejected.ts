@@ -34,7 +34,7 @@ DeclarationCoordinatedComposition.makeOutMessageFold(ChildBlock, {})
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   // @ts-expect-error Normalizing a Step cannot erase additional parent input requirements.
   Chose: () => requiresExtraParentField,
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 declare const foreignMessageRecipe: (
@@ -51,7 +51,7 @@ declare const foreignMessageRecipe: (
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   // @ts-expect-error Opaque results must preserve the owning parent's Message contract.
   Chose: () => foreignMessageRecipe,
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 declare const unknownRequirementsRecipe: (
@@ -68,7 +68,7 @@ declare const unknownRequirementsRecipe: (
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   // @ts-expect-error Fold requirements must stay concrete instead of widening to unknown.
   Chose: () => unknownRequirementsRecipe,
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 DeclarationCoordinatedComposition.makeUpdate((model, message) =>
@@ -81,30 +81,30 @@ DeclarationCoordinatedComposition.makeUpdate((model, message) =>
 
 // @ts-expect-error All named child variants must be handled.
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
-  Chose: () => DeclarationFoldParentDefinition.stepNoop(),
+  Chose: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   Chose: ({ value }) => {
     // @ts-expect-error The generic payload remains the exact Choice union.
     const _wrong: 'Banana' = value
-    return DeclarationFoldParentDefinition.stepNoop()
+    return DeclarationFoldParentDefinition.makeNoopStep()
   },
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
   // @ts-expect-error Undeclared child variants are rejected.
-  Unexpected: () => DeclarationFoldParentDefinition.stepNoop(),
+  Unexpected: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   // @ts-expect-error Every branch must preserve the owning parent Model.
   Chose: () => () => ({ model: { wrong: true } }),
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   // @ts-expect-error A child OutMessage is not the declared parent OutMessage.
   Chose: () => model => ({ model, outMessage: ChildOutMessage.Closed() }),
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 const ForeignCommand = Command.define('DeclarationForeignFoldCommand', {
@@ -116,7 +116,7 @@ const ForeignCommand = Command.define('DeclarationForeignFoldCommand', {
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   // @ts-expect-error Command results must belong to the parent Message contract.
   Chose: () => model => ({ model, commands: [ForeignCommand()] }),
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
@@ -125,7 +125,7 @@ DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
     ({ value }) =>
     model =>
       value === 'Apple' ? { model } : { model, commands: [ForeignCommand()] },
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
@@ -136,7 +136,7 @@ DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
       value === 'Apple'
         ? { model }
         : { model, outMessage: ChildOutMessage.Closed() },
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
@@ -145,42 +145,42 @@ DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
     ({ value }) =>
     model =>
       value === 'Apple' ? { model } : { model: { wrong: true } },
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   // @ts-expect-error Every returned Step must accept exactly the parent Model and its graph.
   Chose: ({ value }) =>
     value === 'Apple'
-      ? DeclarationFoldParentDefinition.stepNoop()
+      ? DeclarationFoldParentDefinition.makeNoopStep()
       : requiresExtraParentField,
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   // @ts-expect-error The Binding applies one Step; that Step must return a result, not another Step.
-  Chose: () => _model => DeclarationFoldParentDefinition.stepNoop(),
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Chose: () => _model => DeclarationFoldParentDefinition.makeNoopStep(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   Chose: (_outMessage, { liftCommand }) => {
     // @ts-expect-error The inferred child lifter cannot accept a parent-only Command Message.
     const _wrong = liftCommand(RecordChoice({ value: 'Apple' }))
-    return DeclarationFoldParentDefinition.stepNoop()
+    return DeclarationFoldParentDefinition.makeNoopStep()
   },
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
-  // @ts-expect-error Definition.step must normalize a Binding init recipe into a connected result.
+  // @ts-expect-error Definition.makeStep must normalize a Binding init recipe into a connected result.
   Chose: () => model =>
     SiblingBinding.init({
       args: [],
       toParentModel: sibling =>
         Struct.modifyFields(model, { sibling: () => sibling }),
     }),
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
@@ -188,7 +188,7 @@ DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   Chose: () => {
     throw new Error('Missing transition')
   },
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 // @ts-expect-error A valid branch cannot hide a foreign Command result Message.
@@ -259,7 +259,7 @@ DeclarationMessageFreeFoldDefinition.makeOutMessageFold(ChildBlock, {
     model,
     commands: [RecordChoice({ value: 'Apple' })],
   }),
-  Closed: () => DeclarationMessageFreeFoldDefinition.stepNoop(),
+  Closed: () => DeclarationMessageFreeFoldDefinition.makeNoopStep(),
 })
 
 const DeclarationNoFoldDefinition = Block.makeDefinition('DeclarationNoFold', {
@@ -297,7 +297,7 @@ const TaggedOutMessageBlock = DeclarationTaggedFoldComposition.assembleBlock({
 })
 // @ts-expect-error Named folds require an exhaustive union matcher, including for a single variant.
 DeclarationFoldParentDefinition.makeOutMessageFold(TaggedOutMessageBlock, {
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 DeclarationFoldParentDefinition.makeOutMessageFold(
@@ -311,12 +311,12 @@ declare const unknownCommands: unknown
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   // @ts-expect-error Command collections cannot widen to unknown.
   Chose: () => model => ({ model, commands: unknownCommands }),
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   // @ts-expect-error A Command collection must be an array of Commands.
   Chose: () => model => ({ model, commands: { unexpected: true } }),
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 // @ts-expect-error Authored update Command collections cannot widen to unknown.
 DeclarationCoordinatedComposition.makeUpdate((model, _message) => ({
@@ -339,12 +339,12 @@ declare const unknownInputStep: (
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   // @ts-expect-error A Step cannot erase its parent Model input with any.
   Chose: () => anyInputStep,
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
   // @ts-expect-error A Step cannot erase its parent Model input with unknown.
   Chose: () => unknownInputStep,
-  Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
 })
 
 DeclarationLiteralFoldDefinition.makeComposition().makeUpdate(

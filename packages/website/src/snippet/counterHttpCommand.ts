@@ -21,7 +21,7 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
 const CountResponse = Schema.Struct({ count: Schema.Int })
 
-export const FetchCount = ApplicationDefinition.command('FetchCount', {
+export const FetchCount = ApplicationDefinition.makeCommand('FetchCount', {
   messages: [Message.SucceededFetchCount, Message.FailedFetchCount],
   handler: function* () {
     const client = yield* HttpClient.HttpClient

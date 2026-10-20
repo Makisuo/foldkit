@@ -38,7 +38,7 @@ describe('Subscription startup supervision', () => {
     })
     const streamStarted = vi.fn()
     const report = vi.fn()
-    const subscriptions = ApplicationDefinition.subscriptions(entry => ({
+    const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
       pulses: entry(
         'Pulses',
         { count: Schema.Number },
@@ -98,7 +98,7 @@ describe('Subscription startup supervision', () => {
       Message: ChildMessage,
     })
     const streamStarted = vi.fn()
-    const subscriptions = ChildDefinition.subscriptions(entry => ({
+    const subscriptions = ChildDefinition.makeSubscriptions(entry => ({
       pulses: entry(
         'Pulses',
         { count: Schema.Number },
@@ -131,7 +131,7 @@ describe('Subscription startup supervision', () => {
       Model,
       Message,
     })
-    const ChildBinding = ApplicationDefinition.bindChild(block, {
+    const ChildBinding = ApplicationDefinition.makeBinding(block, {
       read: model => model.maybeChild,
       write: (model, nextChild) =>
         modifyFields(model, { maybeChild: () => Option.some(nextChild) }),

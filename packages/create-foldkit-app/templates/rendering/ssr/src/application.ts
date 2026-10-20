@@ -54,7 +54,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
 
 const COUNT_COOKIE_MAX_AGE_SECONDS = 31536000
 
-export const PersistCount = ApplicationDefinition.command('PersistCount', {
+export const PersistCount = ApplicationDefinition.makeCommand('PersistCount', {
   args: { count: Schema.Number },
   messages: [Message.CompletedPersistCount],
   handler: function* () {

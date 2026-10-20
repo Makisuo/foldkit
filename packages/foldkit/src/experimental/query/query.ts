@@ -447,7 +447,7 @@ const makeHostQuery = <Name extends string, A, AI, E, EI>(
     Model,
     Message,
   })
-  const Fetch = QueryDefinition.command('Fetch', {
+  const Fetch = QueryDefinition.makeCommand('Fetch', {
     args: { generation: Schema.Number },
     messages: [Message.CompletedFetch],
   })
@@ -510,7 +510,7 @@ const makeCanonicalQuery = <
     Model,
     Message,
   })
-  const Fetch = QueryDefinition.command('Fetch', {
+  const Fetch = QueryDefinition.makeCommand('Fetch', {
     args: { generation: Schema.Number },
     messages: [Message.CompletedFetch],
   })

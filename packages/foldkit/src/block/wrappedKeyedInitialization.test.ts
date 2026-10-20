@@ -19,7 +19,7 @@ const Child = makeDefinition('WrappedInitializationChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const FinishInitialization = Child.command('FinishInitialization', {
+const FinishInitialization = Child.makeCommand('FinishInitialization', {
   args: { count: Schema.Number },
   messages: [ChildMessage.CompletedInitialization],
   handler: function* () {
@@ -27,13 +27,13 @@ const FinishInitialization = Child.command('FinishInitialization', {
       Effect.succeed(ChildMessage.CompletedInitialization({ count }))
   },
 })
-const FinishIncrement = Child.command('FinishIncrement', {
+const FinishIncrement = Child.makeCommand('FinishIncrement', {
   messages: [ChildMessage.CompletedIncrement],
   handler: function* () {
     return () => Effect.succeed(ChildMessage.CompletedIncrement())
   },
 })
-const increment = Child.step(model => ({
+const increment = Child.makeStep(model => ({
   model: modifyFields(model, { count: count => count + 100 }),
   commands: [FinishIncrement()],
 }))
@@ -83,7 +83,7 @@ const Parent = makeDefinition('WrappedInitializationParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const FinishParentInitialization = Parent.command('FinishInitialization', {
+const FinishParentInitialization = Parent.makeCommand('FinishInitialization', {
   messages: [ParentMessage.CompletedParentInitialization],
   handler: function* () {
     return () => Effect.succeed(ParentMessage.CompletedParentInitialization())
@@ -95,7 +95,7 @@ type ChildInitContext = Readonly<{
   secondCount: number
 }>
 
-const EntriesBinding = Parent.bindChild(ChildBlock, {
+const EntriesBinding = Parent.makeBinding(ChildBlock, {
   field: 'entries',
   key: 'id',
   childField: 'child',
@@ -116,7 +116,7 @@ const ParentComposition = Parent.makeComposition({
 })
 
 it('initializes occurrences in order and orders own, child, then Step Commands', () => {
-  const markStepped = Parent.step(model => ({
+  const markStepped = Parent.makeStep(model => ({
     model: modifyFields(model, { status: () => 'Stepped' }),
   }))
   const initialize = ParentComposition.makeInit(
@@ -179,7 +179,7 @@ const initializeKeyedParent = (
     child: KeyedChildModel,
   ) => KeyedChildModel,
 ) => {
-  const binding = KeyedParent.bindChild(KeyedChildBlock, {
+  const binding = KeyedParent.makeBinding(KeyedChildBlock, {
     field: 'entries',
     key: 'id',
     init: {
@@ -224,12 +224,12 @@ it('rejects an unwrapped keyed child that replaces the initialized Model', () =>
 })
 
 it('drops an original init Command when a Step removes its key before another Step readds it', () => {
-  const removeFirst = Parent.step(model => ({
+  const removeFirst = Parent.makeStep(model => ({
     model: modifyFields(model, {
       entries: Array.filter(({ id }) => id !== 'first'),
     }),
   }))
-  const readdFirst = Parent.step(model => ({
+  const readdFirst = Parent.makeStep(model => ({
     model: modifyFields(model, {
       entries: entries => [
         ...entries,
@@ -263,7 +263,7 @@ const makeRuntimeComposition = (init: object) => {
     Model: ParentModel,
     Message: ParentMessage,
   })
-  const binding = Reflect.apply(RuntimeParent.bindChild, undefined, [
+  const binding = Reflect.apply(RuntimeParent.makeBinding, undefined, [
     ChildBlock,
     {
       field: 'entries',
@@ -330,14 +330,14 @@ it('preflights every Binding selector before calling any child init', () => {
     Model: AllPlansModel,
     Message: Schema.Never,
   })
-  const directBinding = Reflect.apply(AllPlansParent.bindChild, undefined, [
+  const directBinding = Reflect.apply(AllPlansParent.makeBinding, undefined, [
     ChildBlock,
     {
       field: 'direct',
       init: { contextToArgs: () => single(9) },
     },
   ])
-  const keyedBinding = Reflect.apply(AllPlansParent.bindChild, undefined, [
+  const keyedBinding = Reflect.apply(AllPlansParent.makeBinding, undefined, [
     ChildBlock,
     {
       field: 'entries',
@@ -405,7 +405,7 @@ it('rejects wrappers that replace the initialized child', () => {
 
 it('remains passive and creates fresh wrappers on every invocation', () => {
   const occurrenceCalls = { count: 0 }
-  const FreshBinding = Parent.bindChild(ChildBlock, {
+  const FreshBinding = Parent.makeBinding(ChildBlock, {
     field: 'entries',
     key: 'id',
     childField: 'child',
@@ -439,7 +439,7 @@ it('remains passive and creates fresh wrappers on every invocation', () => {
 
 it('selects one large wrapped keyed field once in each validation and survival phase', () => {
   const occurrenceCount = 100
-  const ScalingBinding = Parent.bindChild(ChildBlock, {
+  const ScalingBinding = Parent.makeBinding(ChildBlock, {
     field: 'entries',
     key: 'id',
     childField: 'child',
@@ -465,7 +465,7 @@ it('selects one large wrapped keyed field once in each validation and survival p
   const ScalingComposition = Parent.makeComposition({
     bindings: [ScalingBinding],
   })
-  const retainEntries = Parent.step(model => ({ model }))
+  const retainEntries = Parent.makeStep(model => ({ model }))
   const initialize = ScalingComposition.makeInit(() => ({
     model: { status: 'Ready' },
     steps: [retainEntries],
@@ -487,7 +487,7 @@ if (false) {
   // @ts-expect-error Contextful occurrence selectors require shared startup.
   ParentComposition.makeInit(() => ({ model: { status: 'Ready' } }))
 
-  Parent.bindChild(ChildBlock, {
+  Parent.makeBinding(ChildBlock, {
     // @ts-expect-error Wrapped occurrence args must match child init exactly.
     field: 'entries',
     // @ts-expect-error Wrapped occurrence args must match child init exactly.

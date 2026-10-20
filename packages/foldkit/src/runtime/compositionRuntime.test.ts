@@ -27,7 +27,7 @@ import type { SlowSubscriptionDependenciesContext } from './slowPhase.js'
 const ChildOwnerNamespace = makeNamespace('LifecycleChild')
 const ChildModel = Schema.Struct({ id: Schema.Number })
 const ChildMessage = defineMessageUnion({ EmittedPulse: {} })
-const ChildValue = ChildOwnerNamespace.resource<string>()('Value')
+const ChildValue = ChildOwnerNamespace.makeResource<string>()('Value')
 class LifecycleLog extends Context.Service<
   LifecycleLog,
   Readonly<{
@@ -41,7 +41,7 @@ const ChildDefinition = ChildOwnerNamespace.makeDefinition({
   Model: ChildModel,
   Message: ChildMessage,
 })
-const subscriptions = ChildDefinition.subscriptions(entry => ({
+const subscriptions = ChildDefinition.makeSubscriptions(entry => ({
   pulses: entry(
     'Pulses',
     { id: Schema.Number },
@@ -62,7 +62,7 @@ const subscriptions = ChildDefinition.subscriptions(entry => ({
     },
   ),
 }))
-const childManagedResources = ChildDefinition.managedResources(entry => ({
+const childManagedResources = ChildDefinition.makeManagedResources(entry => ({
   value: entry('Value', Schema.Option(Schema.Struct({ id: Schema.Number })), {
     resource: ChildValue,
     modelToMaybeRequirements: model => Option.some({ id: model.id }),
@@ -96,7 +96,7 @@ const childBlock = childComposition.assembleBlock({
   ),
 })
 const RootNamespace = makeNamespace('LifecycleApp')
-const RootValue = RootNamespace.resource<string>()('Value')
+const RootValue = RootNamespace.makeResource<string>()('Value')
 const RootModel = Schema.Struct({
   maybeChild: Schema.Option(ChildModel),
   entries: Schema.Array(ChildModel),
@@ -110,13 +110,13 @@ const RootBaseDefinition = RootNamespace.makeDefinition({
   Model: RootModel,
   Message: RootMessage,
 })
-const OptionalChildBinding = RootBaseDefinition.bindChild(childBlock, {
+const OptionalChildBinding = RootBaseDefinition.makeBinding(childBlock, {
   read: (model: RootModel) => model.maybeChild,
   write: (model, nextChild) =>
     modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
   subscriptions: { when: model => model.subscriptionState === 'Active' },
 })
-const EntriesBinding = RootBaseDefinition.bindChild(childBlock, {
+const EntriesBinding = RootBaseDefinition.makeBinding(childBlock, {
   placement: 'Entries',
   readAll: (model: RootModel) => model.entries,
   key: entry => entry.id,
@@ -131,7 +131,7 @@ const EntriesBinding = RootBaseDefinition.bindChild(childBlock, {
 const root = RootBaseDefinition.makeComposition({
   bindings: [OptionalChildBinding, EntriesBinding],
 })
-const rootManagedResources = RootBaseDefinition.managedResources(entry => ({
+const rootManagedResources = RootBaseDefinition.makeManagedResources(entry => ({
   value: entry('Value', Schema.Option(Schema.Null), {
     resource: RootValue,
     modelToMaybeRequirements: () => Option.some(null),
@@ -168,18 +168,21 @@ const NestedParentBaseDefinition = NestedParentNamespace.makeDefinition({
   Model: NestedParentModel,
   Message: Schema.Never,
 })
-const NestedEntriesBinding = NestedParentBaseDefinition.bindChild(childBlock, {
-  placement: 'entries',
-  readAll: (model: NestedParentModel) => model.entries,
-  key: (entry): number => entry.id,
-  read: entry => entry,
-  writeAt: (model, key, nextChild) =>
-    modifyFields(model, {
-      entries: entries =>
-        entries.map(entry => (entry.id === key ? nextChild : entry)),
-    }),
-  keySchema: Schema.Number,
-})
+const NestedEntriesBinding = NestedParentBaseDefinition.makeBinding(
+  childBlock,
+  {
+    placement: 'entries',
+    readAll: (model: NestedParentModel) => model.entries,
+    key: (entry): number => entry.id,
+    read: entry => entry,
+    writeAt: (model, key, nextChild) =>
+      modifyFields(model, {
+        entries: entries =>
+          entries.map(entry => (entry.id === key ? nextChild : entry)),
+      }),
+    keySchema: Schema.Number,
+  },
+)
 const nestedParent = NestedParentBaseDefinition.makeComposition({
   bindings: [NestedEntriesBinding],
 })
@@ -199,7 +202,7 @@ const NestedRootBaseDefinition = NestedRootNamespace.makeDefinition({
   Model: NestedRootModel,
   Message: Schema.Never,
 })
-const NestedParentsBinding = NestedRootBaseDefinition.bindChild(
+const NestedParentsBinding = NestedRootBaseDefinition.makeBinding(
   nestedParentBlock,
   {
     placement: 'parents',

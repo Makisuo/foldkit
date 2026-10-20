@@ -13,7 +13,7 @@ const Child = makeDefinition('NumericIdentityChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const Read = Child.command('Read', {
+const Read = Child.makeCommand('Read', {
   messages: [ChildMessage.CompletedRead],
   handler: function* () {
     return () => Effect.succeed(ChildMessage.CompletedRead({ value: 4 }))
@@ -40,7 +40,7 @@ const Parent = makeDefinition('NumericIdentityParent', {
   Model,
   Message: Schema.Never,
 })
-const EntriesBinding = Parent.bindChild(child, {
+const EntriesBinding = Parent.makeBinding(child, {
   field: 'entries',
   key: 'id',
   childField: 'child',
@@ -101,7 +101,7 @@ it('rejects zero and negative zero as duplicate occurrences of the requested key
 })
 
 it('retains automatic startup Commands when Schema storage normalizes a zero key', () => {
-  const StartupBinding = Parent.bindChild(child, {
+  const StartupBinding = Parent.makeBinding(child, {
     field: 'entries',
     key: 'id',
     childField: 'child',
@@ -119,7 +119,7 @@ it('retains automatic startup Commands when Schema storage normalizes a zero key
 })
 
 it('rejects duplicate signed-zero startup keys before initializing either occurrence', () => {
-  const StartupBinding = Parent.bindChild(child, {
+  const StartupBinding = Parent.makeBinding(child, {
     field: 'entries',
     key: 'id',
     childField: 'child',

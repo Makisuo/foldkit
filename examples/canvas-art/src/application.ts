@@ -81,7 +81,7 @@ export const init = ApplicationComposition.makeInit(() => ({
   model: Model.make({ balls: [], nextId: 0, isRunning: true }),
 }))
 
-export const GenerateBall = ApplicationDefinition.command('GenerateBall', {
+export const GenerateBall = ApplicationDefinition.makeCommand('GenerateBall', {
   args: { x: Schema.Number, y: Schema.Number },
   messages: [Message.CompletedGenerateBall],
   handler: function* () {
@@ -168,7 +168,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
   animationFrameTicks: entry(
     'AnimationFrameTicks',
     { isActive: Schema.Boolean },

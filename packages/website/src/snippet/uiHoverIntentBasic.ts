@@ -29,12 +29,12 @@ const foldHoverIntentOutMessage =
   HoverIntentExampleDefinition.makeOutMessageFold(
     HoverIntent.HoverIntentBlock,
     {
-      Opened: HoverIntentExampleDefinition.stepNoop,
-      Closed: HoverIntentExampleDefinition.stepNoop,
+      Opened: HoverIntentExampleDefinition.makeNoopStep,
+      Closed: HoverIntentExampleDefinition.makeNoopStep,
     },
   )
 
-const HoverIntentBinding = HoverIntentExampleDefinition.bindChild(
+const HoverIntentBinding = HoverIntentExampleDefinition.makeBinding(
   HoverIntent.HoverIntentBlock,
   {
     field: 'hoverIntent',

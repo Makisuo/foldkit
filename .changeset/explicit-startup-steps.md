@@ -33,7 +33,7 @@ After, declare the initial inputs and register the Binding in composition.ts. Th
 import { DialogBlock } from '@foldkit/ui'
 import { ApplicationDefinition } from './definition'
 import { foldDialogOutMessage } from './operation'
-export const DialogBinding = ApplicationDefinition.bindChild(DialogBlock, {
+export const DialogBinding = ApplicationDefinition.makeBinding(DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'confirm' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })

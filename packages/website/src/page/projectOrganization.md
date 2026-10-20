@@ -13,7 +13,7 @@ Keep three boundaries visible as the application grows:
 | Completion  | `block.ts` or compact `application.ts`                       | Packages implementation as a completed Block                                               |
 | Host        | `entry.ts`                                                   | Chooses page or element ownership, supplies Services, and starts Runtime                   |
 
-`bindChild` configures one parent-child relationship. A child with OutMessages then selects its parent-owned policy through `withOutMessagePolicy`. Including that full Binding in `makeComposition({ bindings })` registers it. These calls and `assembleBlock` are passive: they do not build Layers, run handlers, or start lifecycle work. `Program.make` or `Program.makeElement` adds host behavior without starting anything. A browser Runtime builds Layers, calls init, and starts effects after the entry starts it.
+`makeBinding` configures one parent-child relationship. A child with OutMessages then selects its parent-owned policy through `withOutMessagePolicy`. Including that full Binding in `makeComposition({ bindings })` registers it. These calls and `assembleBlock` are passive: they do not build Layers, run handlers, or start lifecycle work. `Program.make` or `Program.makeElement` adds host behavior without starting anything. A browser Runtime builds Layers, calls init, and starts effects after the entry starts it.
 
 ## Starting Simple
 
@@ -75,7 +75,7 @@ Registration grants the view permission to use the Mount. Completion supplies it
 
 ### Substantial Binding Policy
 
-A Binding also contains the parent's integration policy for its child. Inline a short unkeyed policy with `bindChild(ChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(ChildBlock, handlers) })`. A fold always names its completed child, including when it is inline. Use contextual `makeOutMessageForward(handlers)` when the parent declares OutMessages and forwards at least one variant; pass the completed child explicitly when extracting the forward. Extract a supporting file when the policy includes substantial OutMessage handling, custom Model writes, or Command lifting. For example, an Editor's Dialog policy may save the draft when the Dialog closes:
+A Binding also contains the parent's integration policy for its child. Inline a short unkeyed policy with `makeBinding(ChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(ChildBlock, handlers) })`. A fold always names its completed child, including when it is inline. Use contextual `makeOutMessageForward(handlers)` when the parent declares OutMessages and forwards at least one variant; pass the completed child explicitly when extracting the forward. Extract a supporting file when the policy includes substantial OutMessage handling, custom Model writes, or Command lifting. For example, an Editor's Dialog policy may save the draft when the Dialog closes:
 
 ::Snippet{name="organizationDialogPolicy" label="Extracted Dialog integration policy"}
 
@@ -99,7 +99,7 @@ The owner prefix distinguishes a builder derived from one Composition at a plain
 
 Keep substantial behavior in `init.ts`, `update.ts`, or a folder-named implementation file such as `workHistory/workHistory.ts`. Extracted init and update modules import the named Composition and author their functions through `FeatureComposition.makeInit` and `FeatureComposition.makeUpdate`. Keep child startup ownership beside each Binding. Omit `init` for an argument-free required direct field. Use `init.contextToArgs` for required inputs or automatic unkeyed optional presence, `init: false` for a parent-owned required field, and `init.instances` for an exact keyed array. Use `Binding.init` for an Option-wrapped keyed occurrence, custom storage, or dynamic creation. The init plan supplies parent-owned fields, decoded `childInitContext` when a selector uses it, and ordered Steps; the Composition assembles child fields and Commands. Command collection order does not sequence effects or completion. Init and update never import the completed feature. Composition must not import them in return. A substantial `update/` directory uses `index.ts` as its explicit barrel and `update.ts` as the parent-owned Message matcher. The same rule gives a view directory `view/index.ts` and `view/view.ts`.
 
-Dependencies point from contracts to local declarations and policies, then to Composition, view, and completed Block. An update or view can import a Binding from Composition. Composition must not import the update matcher, primary view, or completed Block in return. If one child policy needs a parent Step, define the policy beside the Binding or extract the pure operation into a leaf module that does not depend on Composition. A helper that returns a connected sibling operation uses the parent's `step` producer so it preserves the Binding requirement and defers application; it does not invoke that operation against a plain Model parameter. Keep reciprocal sibling policies together in the parent assembly and defer each sibling call through its policy callback. A one-way policy may remain in its own file.
+Dependencies point from contracts to local declarations and policies, then to Composition, view, and completed Block. An update or view can import a Binding from Composition. Composition must not import the update matcher, primary view, or completed Block in return. If one child policy needs a parent Step, define the policy beside the Binding or extract the pure operation into a leaf module that does not depend on Composition. A helper that returns a connected sibling operation uses the parent's `makeStep` producer so it preserves the Binding requirement and defers application; it does not invoke that operation against a plain Model parameter. Keep reciprocal sibling policies together in the parent assembly and defer each sibling call through its policy callback. A one-way policy may remain in its own file.
 
 Name an extracted update-handler file after its exported handler, such as `update/handleChangedUrl.ts` for `handleChangedUrl`. Keep substantial URL-change handling there. Prepare the next Route and URL, then compose the child Steps and return the required Commands in a visible order. Keep each Route identity comparison beside the behavior it controls. Put reusable Route selectors in `route.ts` and sidebar selection with the navigation-display helpers. Composition declares child startup; the URL handler decides how child state changes during navigation.
 
@@ -195,7 +195,7 @@ Consumers import completed Blocks as named values and domain modules as namespac
 
 ::Snippet{name="indexUsage" label="Completed features and domain namespaces"}
 
-`ProductsBlock` exposes the feature contracts without revealing its internal file layout. Parent composition starts from `ApplicationDefinition.bindChild(ProductsBlock, ...)`.
+`ProductsBlock` exposes the feature contracts without revealing its internal file layout. Parent composition starts from `ApplicationDefinition.makeBinding(ProductsBlock, ...)`.
 
 ### Keep Barrel Dependencies Pointing Inward
 

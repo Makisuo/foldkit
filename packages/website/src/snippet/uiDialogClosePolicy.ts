@@ -12,16 +12,16 @@ import {
 const foldDialogOutMessage = EditorDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: EditorDefinition.stepNoop,
+    Opened: EditorDefinition.makeNoopStep,
     Closed: () =>
-      EditorDefinition.stepFields(() => ({
+      EditorDefinition.makeFieldsStep(() => ({
         route: () => '/projects',
       })),
-    CompletedClose: EditorDefinition.stepNoop,
+    CompletedClose: EditorDefinition.makeNoopStep,
   },
 )
 
-export const DialogBinding = EditorDefinition.bindChild(Dialog.DialogBlock, {
+export const DialogBinding = EditorDefinition.makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 

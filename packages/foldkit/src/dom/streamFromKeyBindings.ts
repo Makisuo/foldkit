@@ -938,7 +938,7 @@ const keyBindingStream = <Message>(
  * @example
  * ```typescript
  * const ExampleDefinition = Block.makeDefinition('Example', { Model, Message })
- * const subscriptions = ExampleDefinition.subscriptions(entry => ({
+ * const subscriptions = ExampleDefinition.makeSubscriptions(entry => ({
  *   keyBindings: entry(
  *     'KeyBindings',
  *     { isPaletteOpen: Schema.Boolean },

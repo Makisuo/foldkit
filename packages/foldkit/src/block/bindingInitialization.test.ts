@@ -18,7 +18,7 @@ const Child = makeDefinition('InitializedChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const Read = Child.command('Read', {
+const Read = Child.makeCommand('Read', {
   args: { value: Schema.Number },
   messages: [ChildMessage.CompletedRead],
   handler: function* () {
@@ -50,13 +50,13 @@ const Parent = makeDefinition('InitializationParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const Record = Parent.command('Record', {
+const Record = Parent.makeCommand('Record', {
   messages: [ParentMessage.CompletedRecord],
   handler: function* () {
     return () => Effect.succeed(ParentMessage.CompletedRecord())
   },
 })
-const ItemsBinding = Parent.bindChild(child, {
+const ItemsBinding = Parent.makeBinding(child, {
   field: 'items',
   key: 'id',
   childField: 'child',
@@ -105,7 +105,7 @@ describe('connected initialization', () => {
       args: [4],
       toParentModel: child => ({ items: [{ id: 'first', child }] }),
     })
-    const ForeignItemsBinding = Parent.bindChild(child, {
+    const ForeignItemsBinding = Parent.makeBinding(child, {
       placement: 'foreign-items',
       field: 'items',
       key: 'id',
@@ -185,7 +185,7 @@ describe('connected initialization', () => {
   it('preserves other occurrences when inserting a child', () => {
     const existing = { id: 'other', child: ChildModel.make({ count: 8 }) }
     const initialModel = { items: [existing] }
-    const createChild = Parent.step(model =>
+    const createChild = Parent.makeStep(model =>
       ItemsBinding.init({
         key: 'first',
         args: [4],
@@ -217,7 +217,7 @@ describe('connected initialization', () => {
   })
 
   it('threads a derived Model through registered keyed initialization Steps', () => {
-    const initializeFirst = Parent.step(model =>
+    const initializeFirst = Parent.makeStep(model =>
       ItemsBinding.init({
         key: 'first',
         args: [1],
@@ -227,7 +227,7 @@ describe('connected initialization', () => {
           }),
       }),
     )
-    const initializeSecond = Parent.step(model =>
+    const initializeSecond = Parent.makeStep(model =>
       ItemsBinding.init({
         key: 'second',
         args: [2],
@@ -361,19 +361,19 @@ const Direct = makeDefinition('DirectInitializationParent', {
   Model: DirectModel,
   Message: DirectMessage,
 })
-const DirectBinding = Direct.bindChild(child, {
+const DirectBinding = Direct.makeBinding(child, {
   field: 'child',
 })
 const DirectComposition = Direct.makeComposition({
   bindings: [DirectBinding],
 })
-const createDirectChild = Direct.step((_model, label: string) =>
+const createDirectChild = Direct.makeStep((_model, label: string) =>
   DirectBinding.init({
     args: [5],
     toParentModel: child => ({ child: Option.some(child), label }),
   }),
 )
-const createIncompleteDirectChild = Direct.step(
+const createIncompleteDirectChild = Direct.makeStep(
   (_model): ReturnType<typeof createDirectChild> =>
     Reflect.apply(DirectBinding.init, undefined, [
       {
@@ -503,7 +503,7 @@ const SequencedParent = makeDefinition('SequencedInitializationParent', {
   Model: SequencedParentModel,
   Message: SequencedParentMessage,
 })
-const RecordSequencedInitialization = SequencedParent.command(
+const RecordSequencedInitialization = SequencedParent.makeCommand(
   'RecordSequencedInitialization',
   {
     messages: [SequencedParentMessage.CompletedRecord],
@@ -512,15 +512,15 @@ const RecordSequencedInitialization = SequencedParent.command(
     },
   },
 )
-const FirstSequencedBinding = SequencedParent.bindChild(child, {
+const FirstSequencedBinding = SequencedParent.makeBinding(child, {
   placement: 'first',
   field: 'first',
 })
-const SecondSequencedBinding = SequencedParent.bindChild(child, {
+const SecondSequencedBinding = SequencedParent.makeBinding(child, {
   placement: 'second',
   field: 'second',
 })
-const initializeFirstSequencedChild = SequencedParent.step(model =>
+const initializeFirstSequencedChild = SequencedParent.makeStep(model =>
   FirstSequencedBinding.init({
     args: [1],
     toParentModel: child =>
@@ -528,7 +528,7 @@ const initializeFirstSequencedChild = SequencedParent.step(model =>
     commands: [RecordSequencedInitialization()],
   }),
 )
-const initializeSecondSequencedChild = SequencedParent.step(model =>
+const initializeSecondSequencedChild = SequencedParent.makeStep(model =>
   SecondSequencedBinding.init({
     args: [2],
     toParentModel: child =>
@@ -612,7 +612,7 @@ const CompleteKeyed = makeDefinition('CompleteKeyedInitializationParent', {
   Model: CompleteKeyedModel,
   Message: ParentMessage,
 })
-const CompleteItemsBinding = CompleteKeyed.bindChild(child, {
+const CompleteItemsBinding = CompleteKeyed.makeBinding(child, {
   field: 'items',
   key: 'id',
   childField: 'child',
@@ -620,7 +620,7 @@ const CompleteItemsBinding = CompleteKeyed.bindChild(child, {
 const CompleteKeyedComposition = CompleteKeyed.makeComposition({
   bindings: [CompleteItemsBinding],
 })
-const createKeyedChild = CompleteKeyed.step((_model, label: string) =>
+const createKeyedChild = CompleteKeyed.makeStep((_model, label: string) =>
   CompleteItemsBinding.init({
     key: 'first',
     args: [6],
@@ -630,7 +630,7 @@ const createKeyedChild = CompleteKeyed.step((_model, label: string) =>
     }),
   }),
 )
-const createIncompleteKeyedChild = CompleteKeyed.step(
+const createIncompleteKeyedChild = CompleteKeyed.makeStep(
   (_model): ReturnType<typeof createKeyedChild> =>
     Reflect.apply(CompleteItemsBinding.init, undefined, [
       {

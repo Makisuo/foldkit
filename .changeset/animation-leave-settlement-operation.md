@@ -33,17 +33,20 @@ After: create the Animation Binding before its OutMessage fold, then handle `Sta
 ```ts
 import { Animation } from '@foldkit/ui'
 
-const AnimationBinding = ParentDefinition.bindChild(Animation.AnimationBlock, {
-  field: 'animation',
-  init: { contextToArgs: () => [{ id: 'content' }] },
-})
+const AnimationBinding = ParentDefinition.makeBinding(
+  Animation.AnimationBlock,
+  {
+    field: 'animation',
+    init: { contextToArgs: () => [{ id: 'content' }] },
+  },
+)
 
 const foldAnimationOutMessage = ParentDefinition.makeOutMessageFold(
   Animation.AnimationBlock,
   {
     StartedLeaveAnimating: () =>
       AnimationBinding.requestWaitForLeaveSettlement(),
-    TransitionedOut: ParentDefinition.stepNoop,
+    TransitionedOut: ParentDefinition.makeNoopStep,
   },
 )
 

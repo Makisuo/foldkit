@@ -5,7 +5,7 @@ import { ApplicationDefinition } from './definition'
 import { Cart } from './domain'
 import { ProductsBlock } from './page'
 
-export const ProductsPageBinding = ApplicationDefinition.bindChild(
+export const ProductsPageBinding = ApplicationDefinition.makeBinding(
   ProductsBlock,
   {
     field: 'productsPage',
@@ -14,13 +14,15 @@ export const ProductsPageBinding = ApplicationDefinition.bindChild(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ProductsBlock, {
     AddedToCart: ({ item }) =>
-      ApplicationDefinition.stepFields(() => ({ cart: Cart.addItem(item) })),
+      ApplicationDefinition.makeFieldsStep(() => ({
+        cart: Cart.addItem(item),
+      })),
     IncrementedQuantity: ({ itemId }) =>
-      ApplicationDefinition.stepFields(() => ({
+      ApplicationDefinition.makeFieldsStep(() => ({
         cart: Cart.incrementQuantity(itemId),
       })),
     DecrementedQuantity: ({ itemId }) =>
-      ApplicationDefinition.stepFields(() => ({
+      ApplicationDefinition.makeFieldsStep(() => ({
         cart: Cart.decrementQuantity(itemId),
       })),
   }),

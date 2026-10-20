@@ -70,7 +70,7 @@ Prevents constructing Messages by typing or casting object literals. Use the cal
 
 ### foldkit/command-define-pascal-const {#command-define-pascal-const}
 
-Requires a Command declaration to use a nonempty PascalCase `const` whose name matches the declared Command name. It recognizes standalone `Command.define(...)` and owned `Definition.command(...)` declarations. This rule includes the former `command-binding-matches-name` checks; remove that retired rule ID from explicit configurations.
+Requires a Command declaration to use a nonempty PascalCase `const` whose name matches the declared Command name. It recognizes standalone `Command.define(...)` and owned `Definition.makeCommand(...)` declarations. This rule includes the former `command-binding-matches-name` checks; remove that retired rule ID from explicit configurations.
 
 ::Snippet{name="lintCommandDefinePascalConst" label="Rule: foldkit/command-define-pascal-const"}
 
@@ -356,7 +356,7 @@ annotation at those boundaries when lint recognition is needed.
 Replace `foldkit/command-binding-matches-name` with
 `foldkit/command-define-pascal-const` in explicit rule configurations. The latter
 now includes all Command declaration-name checks, including owned
-`Definition.command(...)` declarations.
+`Definition.makeCommand(...)` declarations.
 
 ### Child update results {#require-fold-for-child-update-result}
 

@@ -14,14 +14,14 @@ const PinsDefinition = Block.makeDefinition('Pins', {
   Message: PinsMessage,
 })
 
-export const ReadPins = PinsDefinition.command('ReadPins', {
+export const ReadPins = PinsDefinition.makeCommand('ReadPins', {
   messages: [PinsMessage.CompletedReadPins],
   handler: function* () {
     return () => Effect.succeed(PinsMessage.CompletedReadPins({ count: 0 }))
   },
 })
 
-export const pinsSubscriptions = PinsDefinition.subscriptions(entry => ({
+export const pinsSubscriptions = PinsDefinition.makeSubscriptions(entry => ({
   observations: entry('Observations', {
     messages: [PinsMessage.ObservedPins],
     handler: function* () {
@@ -61,7 +61,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const PinsBinding = ApplicationDefinition.bindChild(PinsBlock, {
+const PinsBinding = ApplicationDefinition.makeBinding(PinsBlock, {
   field: 'pins',
 })
 

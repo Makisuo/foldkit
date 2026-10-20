@@ -17,10 +17,10 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
 const foldToastOutMessage = ApplicationDefinition.makeOutMessageFold(
   ToastBlock,
   {
-    DismissedToast: ApplicationDefinition.stepNoop,
+    DismissedToast: ApplicationDefinition.makeNoopStep,
   },
 )
-const ToastBinding = ApplicationDefinition.bindChild(ToastBlock, {
+const ToastBinding = ApplicationDefinition.makeBinding(ToastBlock, {
   field: 'toast',
   init: {
     contextToArgs: () => Tuple.make({ id: 'notifications' }),

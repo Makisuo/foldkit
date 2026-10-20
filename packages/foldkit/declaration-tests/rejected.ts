@@ -243,14 +243,14 @@ const DeclarationTestsViewHelperDefinition = Block.makeDefinition(
     Message: ParentMessage,
   },
 )
-const ObserveViewHelper = DeclarationTestsViewHelperDefinition.mount(
+const ObserveViewHelper = DeclarationTestsViewHelperDefinition.makeMount(
   'ObserveViewHelper',
   {
     messages: [ParentMessage.RequestedRefresh],
   },
 )
 const AlternativeViewChildBinding =
-  DeclarationTestsViewHelperDefinition.bindChild(ChildBlock, {
+  DeclarationTestsViewHelperDefinition.makeBinding(ChildBlock, {
     field: 'child',
     placement: 'alternativeViewChild',
     init: false,
@@ -543,15 +543,15 @@ const DeclarationTestsTypedPrimitiveOwnerDefinition = Block.makeDefinition(
   },
 )
 
-DeclarationTestsTypedPrimitiveOwnerDefinition.command('ForeignCommand', {
+DeclarationTestsTypedPrimitiveOwnerDefinition.makeCommand('ForeignCommand', {
   // @ts-expect-error A typed Block Command must produce its owner's Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-DeclarationTestsTypedPrimitiveOwnerDefinition.mount('ForeignMount', {
+DeclarationTestsTypedPrimitiveOwnerDefinition.makeMount('ForeignMount', {
   // @ts-expect-error A typed Block Mount must produce its owner's Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-DeclarationTestsTypedPrimitiveOwnerDefinition.mountStream(
+DeclarationTestsTypedPrimitiveOwnerDefinition.makeMountStream(
   'ForeignMountStream',
   {
     // @ts-expect-error A typed Block stream Mount must produce its owner's Message.
@@ -568,29 +568,29 @@ const TypedPrimitiveApplication = (() => {
   return ApplicationDefinition
 })()
 
-TypedPrimitiveApplication.command('ForeignApplicationCommand', {
+TypedPrimitiveApplication.makeCommand('ForeignApplicationCommand', {
   // @ts-expect-error A root Command must produce the Application Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-TypedPrimitiveApplication.mount('ForeignApplicationMount', {
+TypedPrimitiveApplication.makeMount('ForeignApplicationMount', {
   // @ts-expect-error A root Mount must produce the Application Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-TypedPrimitiveApplication.mountStream('ForeignApplicationMountStream', {
+TypedPrimitiveApplication.makeMountStream('ForeignApplicationMountStream', {
   // @ts-expect-error A root stream Mount must produce the Application Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
 
 // @ts-expect-error Owned primitive names cannot contain a scoped identity separator.
-DeclarationTestsConstructorNamespace.command('Invalid::Work', {
+DeclarationTestsConstructorNamespace.makeCommand('Invalid::Work', {
   messages: [ConstructorMessage.CompletedWork],
 })
 
-const HostWork = DeclarationTestsConstructorNamespace.command('HostWork', {
+const HostWork = DeclarationTestsConstructorNamespace.makeCommand('HostWork', {
   messages: [ConstructorMessage.CompletedWork],
 })
 
-DeclarationTestsConstructorNamespace.command('InvalidConstructedWork', {
+DeclarationTestsConstructorNamespace.makeCommand('InvalidConstructedWork', {
   messages: [ConstructorMessage.CompletedWork],
   // @ts-expect-error Foldkit handlers are unavailable while another handler is constructed.
   handler: function* () {
@@ -614,7 +614,7 @@ const DeclarationTestsForeignParentDefinition = Block.makeDefinition(
   },
 )
 const ForeignParent = DeclarationTestsForeignParentDefinition
-const ForeignChildBinding = ForeignParent.bindChild(ChildBlock, {
+const ForeignChildBinding = ForeignParent.makeBinding(ChildBlock, {
   placement: 'foreign-child',
   read: model => Option.some(model.child),
   write: (_model, nextChild) => ParentModel.make({ child: nextChild }),
@@ -629,26 +629,26 @@ const DeclarationTestsBindingParentDefinition = Block.makeDefinition(
 )
 const BindingParent = DeclarationTestsBindingParentDefinition
 
-// @ts-expect-error Authored parent Message constructors are no longer accepted by bindChild.
-BindingParent.bindChild(ChildBlock, {
+// @ts-expect-error Authored parent Message constructors are no longer accepted by makeBinding.
+BindingParent.makeBinding(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.RequestedRefresh,
 })
 
-// @ts-expect-error Authored outgoing Message mappers are no longer accepted by bindChild.
-BindingParent.bindChild(ChildBlock, {
+// @ts-expect-error Authored outgoing Message mappers are no longer accepted by makeBinding.
+BindingParent.makeBinding(ChildBlock, {
   field: 'child',
   toParentMessage: (message: ChildMessage) => message,
 })
 
-// @ts-expect-error Authored incoming Message routes are no longer accepted by bindChild.
-BindingParent.bindChild(ChildBlock, {
+// @ts-expect-error Authored incoming Message routes are no longer accepted by makeBinding.
+BindingParent.makeBinding(ChildBlock, {
   field: 'child',
   fromParentMessage: false,
 })
 
 // @ts-expect-error Generated keyed delivery rejects authored outgoing Message mappers.
-BindingParent.bindChild(ChildBlock, {
+BindingParent.makeBinding(ChildBlock, {
   placement: 'children',
   readAll: (model: ParentModel) => [model.child],
   key: (): 'only' => 'only',
@@ -687,7 +687,7 @@ Block.makeDefinition('DeclarationTestsInvalidDirectContracts', {
 })
 
 const AlternativeChildBinding =
-  DeclarationTestsOmittedChildDefinition.bindChild(ChildBlock, {
+  DeclarationTestsOmittedChildDefinition.makeBinding(ChildBlock, {
     field: 'child',
     placement: 'alternativeChild',
     init: false,
@@ -721,13 +721,13 @@ const DeclarationTestsOmittedInitChildDefinition = Block.makeDefinition(
   },
 )
 const OmittedInitChildBinding =
-  DeclarationTestsOmittedInitChildDefinition.bindChild(ChildBlock, {
+  DeclarationTestsOmittedInitChildDefinition.makeBinding(ChildBlock, {
     placement: 'omitted-init-child',
     read: model => Option.some(model),
     write: (_model, nextChild) => nextChild,
   })
 const AlternativeInitChildBinding =
-  DeclarationTestsOmittedInitChildDefinition.bindChild(ChildBlock, {
+  DeclarationTestsOmittedInitChildDefinition.makeBinding(ChildBlock, {
     placement: 'alternativeInitChild',
     read: model => Option.some(model),
     write: (_model, nextChild) => nextChild,

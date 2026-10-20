@@ -25,7 +25,7 @@ import { Model, RoomAsyncData, RoomPlayerSession } from '../model'
 import { validateUserTextInput } from '../userGameText'
 import { handleRoomUpdated } from './handleRoomUpdated'
 
-export const NavigateHome = RoomDefinition.command('NavigateHome', {
+export const NavigateHome = RoomDefinition.makeCommand('NavigateHome', {
   messages: [Message.CompletedNavigateHome],
   handler: function* () {
     return () =>

@@ -39,7 +39,7 @@ export const init = ApplicationComposition.makeInit(
   }),
 )
 
-export const ReportCount = ApplicationDefinition.command('ReportCount', {
+export const ReportCount = ApplicationDefinition.makeCommand('ReportCount', {
   args: { count: Schema.Number },
   messages: [Message.CompletedReportCount],
   handler: function* () {
@@ -71,7 +71,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
 
 const TICK_INTERVAL = Duration.seconds(1)
 
-export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
   widgetTicks: entry('WidgetTicks', {
     messages: [Message.Ticked],
     handler: function* () {

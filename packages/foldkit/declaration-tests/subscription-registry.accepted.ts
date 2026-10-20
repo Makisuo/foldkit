@@ -21,7 +21,7 @@ export const DeclarationSubscriptionRegistryDefinition = Block.makeDefinition(
   },
 )
 export const subscriptions =
-  DeclarationSubscriptionRegistryDefinition.subscriptions(entry => ({
+  DeclarationSubscriptionRegistryDefinition.makeSubscriptions(entry => ({
     clock: entry('Clock', {
       messages: [Message.Ticked],
       handler: function* () {
@@ -64,9 +64,9 @@ export const lifted = Subscription.lift(subscriptions)<
 })
 
 export const emptySubscriptions =
-  DeclarationSubscriptionRegistryDefinition.subscriptions(() => ({}))
+  DeclarationSubscriptionRegistryDefinition.makeSubscriptions(() => ({}))
 export const mixedSubscriptions =
-  DeclarationSubscriptionRegistryDefinition.subscriptions(entry => ({
+  DeclarationSubscriptionRegistryDefinition.makeSubscriptions(entry => ({
     attached: entry('Attached', {
       messages: [Message.Ticked],
       handler: function* () {

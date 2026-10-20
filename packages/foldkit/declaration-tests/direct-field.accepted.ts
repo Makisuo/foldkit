@@ -11,7 +11,7 @@ const ChildDefinition = Block.makeDefinition('DeclaredDirectFieldChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const setCount = ChildDefinition.step((model, count: number) => ({
+const setCount = ChildDefinition.makeStep((model, count: number) => ({
   model: Struct.modifyFields(model, { count: () => count }),
 }))
 const DeclaredDirectFieldChildComposition = ChildDefinition.makeComposition()
@@ -98,39 +98,42 @@ export const ParentDefinition = Block.makeDefinition(
     Message: ParentMessage,
   },
 )
-export const RequiredBinding = ParentDefinition.bindChild(childBlock, {
+export const RequiredBinding = ParentDefinition.makeBinding(childBlock, {
   field: 'child',
 })
-export const OptionalBinding = ParentDefinition.bindChild(childBlock, {
+export const OptionalBinding = ParentDefinition.makeBinding(childBlock, {
   field: 'maybeChild',
   presentWhen: model => model.route === 'Home',
 })
-export const SuspendedOptionalBinding = ParentDefinition.bindChild(childBlock, {
-  field: 'suspendedMaybeChild',
-})
-export const NestedRequiredBinding = ParentDefinition.bindChild(
+export const SuspendedOptionalBinding = ParentDefinition.makeBinding(
+  childBlock,
+  {
+    field: 'suspendedMaybeChild',
+  },
+)
+export const NestedRequiredBinding = ParentDefinition.makeBinding(
   nestedOptionChildBlock,
   {
     field: 'nestedChild',
   },
 )
-export const NestedOptionalBinding = ParentDefinition.bindChild(
+export const NestedOptionalBinding = ParentDefinition.makeBinding(
   nestedOptionChildBlock,
   {
     field: 'maybeNestedChild',
   },
 )
-export const ArrayChildBinding = ParentDefinition.bindChild(arrayChildBlock, {
+export const ArrayChildBinding = ParentDefinition.makeBinding(arrayChildBlock, {
   field: 'arrayChild',
 })
-export const CustomIgnoredMessageBinding = ParentDefinition.bindChild(
+export const CustomIgnoredMessageBinding = ParentDefinition.makeBinding(
   childBlock,
   {
     placement: 'customIgnoredMessage',
     field: 'suspendedMaybeChild',
   },
 )
-export const InitializedRequiredBinding = ParentDefinition.bindChild(
+export const InitializedRequiredBinding = ParentDefinition.makeBinding(
   childBlock,
   {
     field: 'child',
@@ -138,7 +141,7 @@ export const InitializedRequiredBinding = ParentDefinition.bindChild(
     init: true,
   },
 )
-export const InitializedArgumentBinding = ParentDefinition.bindChild(
+export const InitializedArgumentBinding = ParentDefinition.makeBinding(
   argumentChildBlock,
   {
     field: 'argumentChild',
@@ -147,7 +150,7 @@ export const InitializedArgumentBinding = ParentDefinition.bindChild(
     },
   },
 )
-export const InitializedOptionalBinding = ParentDefinition.bindChild(
+export const InitializedOptionalBinding = ParentDefinition.makeBinding(
   argumentChildBlock,
   {
     field: 'maybeArgumentChild',
@@ -162,7 +165,7 @@ export const InitializedOptionalBinding = ParentDefinition.bindChild(
     },
   },
 )
-export const NativeTupleOptionalBinding = ParentDefinition.bindChild(
+export const NativeTupleOptionalBinding = ParentDefinition.makeBinding(
   argumentChildBlock,
   {
     field: 'maybeArgumentChild',
@@ -173,7 +176,7 @@ export const NativeTupleOptionalBinding = ParentDefinition.bindChild(
     },
   },
 )
-export const InitializedCustomBinding = ParentDefinition.bindChild(
+export const InitializedCustomBinding = ParentDefinition.makeBinding(
   argumentChildBlock,
   {
     placement: 'initializedCustom',
@@ -260,7 +263,7 @@ const folded = foldOptional(
 )
 void result
 void folded
-export const CustomBinding = ParentDefinition.bindChild(childBlock, {
+export const CustomBinding = ParentDefinition.makeBinding(childBlock, {
   placement: 'custom',
   read: model =>
     model.route === 'Home' ? Option.some(model.child) : Option.none(),
@@ -279,7 +282,7 @@ const GeneratedParentDefinition = Block.makeDefinition(
     Message: GeneratedParentMessage,
   },
 )
-export const GeneratedChildBinding = GeneratedParentDefinition.bindChild(
+export const GeneratedChildBinding = GeneratedParentDefinition.makeBinding(
   childBlock,
   { field: 'child' },
 )
@@ -309,13 +312,13 @@ const CallableParentDefinition = Block.makeDefinition(
     Message: CallableParentMessage,
   },
 )
-export const CallableRequiredBinding = CallableParentDefinition.bindChild(
+export const CallableRequiredBinding = CallableParentDefinition.makeBinding(
   childBlock,
   {
     field: 'child',
   },
 )
-export const CallableOptionalBinding = CallableParentDefinition.bindChild(
+export const CallableOptionalBinding = CallableParentDefinition.makeBinding(
   childBlock,
   {
     field: 'maybeChild',

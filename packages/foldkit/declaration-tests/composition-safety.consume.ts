@@ -150,15 +150,15 @@ declare const useSecondField: boolean
 
 // @ts-expect-error Emitted accessor init projections retain one stable parent Model field.
 // oxfmt-ignore
-CompositionSafetyParentDefinition.bindChild(PlainBlock, { placement: 'emittedUnstableProjected', read: model => Option.some(model.first), write: (model, nextChild) => Struct.modifyFields(model, { first: () => nextChild }),  init: { contextToArgs: () => [], toParentFields: child => useSecondField ? { second: child } : { first: child } } })
+CompositionSafetyParentDefinition.makeBinding(PlainBlock, { placement: 'emittedUnstableProjected', read: model => Option.some(model.first), write: (model, nextChild) => Struct.modifyFields(model, { first: () => nextChild }),  init: { contextToArgs: () => [], toParentFields: child => useSecondField ? { second: child } : { first: child } } })
 
 // @ts-expect-error Emitted optional update context requires an explicit delivery context mapper.
 // oxfmt-ignore
-CompositionSafetyParentDefinition.bindChild(OptionalContextBlock, { field: 'optionalContext', })
+CompositionSafetyParentDefinition.makeBinding(OptionalContextBlock, { field: 'optionalContext', })
 
 // @ts-expect-error Emitted required rest update context requires an explicit delivery context mapper.
 // oxfmt-ignore
-CompositionSafetyParentDefinition.bindChild(RestContextBlock, { field: 'restContext', })
+CompositionSafetyParentDefinition.makeBinding(RestContextBlock, { field: 'restContext', })
 
 // @ts-expect-error Emitted connected initializers require their parent configuration.
 PlainBinding.init()

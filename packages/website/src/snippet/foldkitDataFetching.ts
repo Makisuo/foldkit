@@ -29,7 +29,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
 })
 const ApplicationComposition = ApplicationDefinition.makeComposition()
 
-const FetchUser = ApplicationDefinition.command('FetchUser', {
+const FetchUser = ApplicationDefinition.makeCommand('FetchUser', {
   args: { userId: Schema.String },
   messages: [Message.SucceededFetchUser, Message.FailedFetchUser],
   handler: function* () {

@@ -54,7 +54,7 @@ type HomeOutMessage = typeof HomeOutMessage.Type
 
 let createRoomHandlerBuilds = 0
 
-const CreateRoom = HomeNamespace.command('CreateRoom', {
+const CreateRoom = HomeNamespace.makeCommand('CreateRoom', {
   messages: [HomeMessage.CompletedCreateRoom],
   handler: function* () {
     createRoomHandlerBuilds += 1
@@ -63,7 +63,7 @@ const CreateRoom = HomeNamespace.command('CreateRoom', {
   },
 })
 
-const SaveRoom = HomeNamespace.command('SaveRoom', {
+const SaveRoom = HomeNamespace.makeCommand('SaveRoom', {
   args: { roomId: Schema.String, revision: Schema.Number },
   messages: [HomeMessage.CompletedCreateRoom],
   interrupt: {
@@ -82,7 +82,7 @@ const HomeDefinition = HomeNamespace.makeDefinition({
   OutMessage: HomeOutMessage,
 })
 
-const ObserveRooms = HomeNamespace.mountStream('ObserveRooms', {
+const ObserveRooms = HomeNamespace.makeMountStream('ObserveRooms', {
   args: { roomId: Schema.String },
   messages: [HomeMessage.CompletedCreateRoom],
   handler: function* () {
@@ -91,9 +91,9 @@ const ObserveRooms = HomeNamespace.mountStream('ObserveRooms', {
   },
 })
 
-const SelectedRoom = HomeNamespace.resource<string>()('SelectedRoom')
+const SelectedRoom = HomeNamespace.makeResource<string>()('SelectedRoom')
 
-const homeSubscriptions = HomeDefinition.subscriptions(entry => ({
+const homeSubscriptions = HomeDefinition.makeSubscriptions(entry => ({
   rooms: entry(
     'Rooms',
     { joinedCount: Schema.Number },
@@ -112,7 +112,7 @@ const homeSubscriptions = HomeDefinition.subscriptions(entry => ({
   ),
 }))
 
-const homeManagedResources = HomeDefinition.managedResources(entry => ({
+const homeManagedResources = HomeDefinition.makeManagedResources(entry => ({
   selectedRoom: entry('SelectedRoom', Schema.Option(Schema.Null), {
     resource: SelectedRoom,
     modelToMaybeRequirements: model =>
@@ -188,14 +188,16 @@ if (false) {
   parameterizedHomeInit('two')
 }
 
-const homeBoot = HomeDefinition.step(model => ({
+const homeBoot = HomeDefinition.makeStep(model => ({
   model,
   commands: [CreateRoom()],
 }))
 
-const homeInformJoined = HomeDefinition.step((model, joinedCount: number) => ({
-  model: modifyFields(model, { joinedCount: () => joinedCount }),
-}))
+const homeInformJoined = HomeDefinition.makeStep(
+  (model, joinedCount: number) => ({
+    model: modifyFields(model, { joinedCount: () => joinedCount }),
+  }),
+)
 
 const homeUpdate = HomeComposition.makeUpdate((model, message) =>
   HomeMessage.match(message, {
@@ -256,14 +258,14 @@ const makeGenericAuthoring = <const Id extends string, Item, Value>(id: Id) => {
     CompletedGeneric: {},
   })
 
-  const RequestText = GenericNamespace.command('RequestText', {
+  const RequestText = GenericNamespace.makeCommand('RequestText', {
     args: { value: Schema.String },
     messages: [GenericMessage.CompletedGeneric],
     handler: function* () {
       return () => Effect.succeed(GenericMessage.CompletedGeneric())
     },
   })
-  const RequestCount = GenericNamespace.command('RequestCount', {
+  const RequestCount = GenericNamespace.makeCommand('RequestCount', {
     args: { value: Schema.Number },
     messages: [GenericMessage.CompletedGeneric],
     handler: function* () {
@@ -357,7 +359,7 @@ const RoomMessage = defineMessageUnion({
 })
 type RoomMessage = typeof RoomMessage.Type
 
-const LoadRoom = RoomNamespace.command('LoadRoom', {
+const LoadRoom = RoomNamespace.makeCommand('LoadRoom', {
   args: { roomId: Schema.String },
   messages: [RoomMessage.CompletedLoadRoom],
 })
@@ -368,7 +370,7 @@ const RoomDefinition = RoomNamespace.makeDefinition({
 })
 
 const RoomComposition = RoomDefinition.makeComposition()
-const roomInformJoined = RoomDefinition.step(
+const roomInformJoined = RoomDefinition.makeStep(
   (model, joinedCount: number, source?: 'Lobby' | 'Game') => ({
     model: modifyFields(model, {
       joinedCount: () => joinedCount + (source === 'Game' ? 1 : 0),
@@ -421,7 +423,7 @@ const ChoiceNamespace = makeNamespace('AuthoringChoice')
 
 const CompletedObserveChoice = Schema.TaggedStruct('CompletedObserveChoice', {})
 
-const ObserveChoice = ChoiceNamespace.mount('ObserveChoice', {
+const ObserveChoice = ChoiceNamespace.makeMount('ObserveChoice', {
   messages: [CompletedObserveChoice],
 })
 
@@ -460,7 +462,7 @@ const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
       ),
   )
 
-  const finish = BaseDefinition.step((_model, value: Value) => ({
+  const finish = BaseDefinition.makeStep((_model, value: Value) => ({
     model: Model.make({ value }),
     outMessage: OutMessage.make({ value }),
   }))
@@ -541,7 +543,7 @@ const GraphChildMessage = defineMessageUnion({
   CompletedChildWork: {},
 })
 
-const RunChildWork = GraphChildNamespace.command('RunChildWork', {
+const RunChildWork = GraphChildNamespace.makeCommand('RunChildWork', {
   messages: [GraphChildMessage.CompletedChildWork],
   handler: function* () {
     return () => Effect.succeed(GraphChildMessage.CompletedChildWork())
@@ -577,7 +579,7 @@ const GraphParentMessage = defineMessageUnion({
   CompletedParentWork: {},
 })
 
-const RunParentWork = GraphParentNamespace.command('RunParentWork', {
+const RunParentWork = GraphParentNamespace.makeCommand('RunParentWork', {
   messages: [GraphParentMessage.CompletedParentWork],
 })
 
@@ -585,11 +587,14 @@ const GraphParentBaseDefinition = GraphParentNamespace.makeDefinition({
   Model: GraphParentModel,
   Message: GraphParentMessage,
 })
-const GraphChildBinding = GraphParentBaseDefinition.bindChild(GraphChildBlock, {
-  placement: 'child',
-  read: (model: GraphParentModel) => Option.some(model.child),
-  write: (model, child) => ({ ...model, child }),
-})
+const GraphChildBinding = GraphParentBaseDefinition.makeBinding(
+  GraphChildBlock,
+  {
+    placement: 'child',
+    read: (model: GraphParentModel) => Option.some(model.child),
+    write: (model, child) => ({ ...model, child }),
+  },
+)
 
 const graphParentComposition = GraphParentBaseDefinition.makeComposition({
   bindings: [GraphChildBinding],
@@ -627,7 +632,7 @@ const SelectedGraphParentBaseDefinition = makeNamespace(
   Model: GraphParentModel,
   Message: GraphParentMessage,
 })
-const SelectedGraphChildBinding = SelectedGraphParentBaseDefinition.bindChild(
+const SelectedGraphChildBinding = SelectedGraphParentBaseDefinition.makeBinding(
   SelectedGraphChild,
   {
     placement: 'selected-child',
@@ -660,7 +665,7 @@ const PolicyParentBaseDefinition = PolicyParentNamespace.makeDefinition({
   Model: PolicyParentModel,
   Message: PolicyParentMessage,
 })
-const ChoiceWithPolicyCommandBinding = PolicyParentBaseDefinition.bindChild(
+const ChoiceWithPolicyCommandBinding = PolicyParentBaseDefinition.makeBinding(
   StringChoice,
   {
     placement: 'choice',
@@ -741,7 +746,7 @@ type PolicyConflictChildMessage = typeof PolicyConflictChildMessage.Type
 const PolicyConflictChildOutMessage = defineMessageUnion({ RequestedRun: {} })
 type PolicyConflictChildOutMessage = typeof PolicyConflictChildOutMessage.Type
 
-const RunPolicyChild = PolicyConflictChildNamespace.command('Run', {
+const RunPolicyChild = PolicyConflictChildNamespace.makeCommand('Run', {
   args: { value: Schema.String },
   messages: [PolicyConflictChildMessage.CompletedRun],
   handler: function* () {
@@ -749,13 +754,11 @@ const RunPolicyChild = PolicyConflictChildNamespace.command('Run', {
   },
 })
 
-const ConflictingRunPolicyChild = ForeignPolicyConflictChildNamespace.command(
-  'Run',
-  {
+const ConflictingRunPolicyChild =
+  ForeignPolicyConflictChildNamespace.makeCommand('Run', {
     args: { value: Schema.Number },
     messages: [PolicyConflictChildMessage.CompletedRun],
-  },
-)
+  })
 
 const policyConflictChildComposition =
   PolicyConflictChildNamespace.makeDefinition({
@@ -787,29 +790,27 @@ const PolicyConflictParentBaseDefinition = makeNamespace(
   Model: PolicyConflictParentModel,
   Message: PolicyConflictParentMessage,
 })
-const PolicyConflictChildBinding = PolicyConflictParentBaseDefinition.bindChild(
-  PolicyConflictChildBlock,
-  {
+const PolicyConflictChildBinding =
+  PolicyConflictParentBaseDefinition.makeBinding(PolicyConflictChildBlock, {
     placement: 'policy-conflict-child',
     read: (model: PolicyConflictParentModel) => Option.some(model.child),
     write: (model, child) => ({ ...model, child }),
-  },
-).withOutMessagePolicy({
-  fold:
-    (
-      _outMessage: PolicyConflictChildOutMessage,
-      {
-        liftCommand,
-      }: Update.FoldContext<
-        PolicyConflictChildMessage,
-        typeof PolicyConflictParentMessage.Type
-      >,
-    ) =>
-    (model: PolicyConflictParentModel) => ({
-      model,
-      commands: [liftCommand(ConflictingRunPolicyChild({ value: 1 }))],
-    }),
-})
+  }).withOutMessagePolicy({
+    fold:
+      (
+        _outMessage: PolicyConflictChildOutMessage,
+        {
+          liftCommand,
+        }: Update.FoldContext<
+          PolicyConflictChildMessage,
+          typeof PolicyConflictParentMessage.Type
+        >,
+      ) =>
+      (model: PolicyConflictParentModel) => ({
+        model,
+        commands: [liftCommand(ConflictingRunPolicyChild({ value: 1 }))],
+      }),
+  })
 const policyConflictParentComposition =
   PolicyConflictParentBaseDefinition.makeComposition({
     bindings: [PolicyConflictChildBinding],
@@ -817,7 +818,7 @@ const policyConflictParentComposition =
 
 if (false) {
   const ForeignOwnedMessage = defineMessageUnion({ CompletedForeign: {} })
-  HomeDefinition.subscriptions(entry => {
+  HomeDefinition.makeSubscriptions(entry => {
     entry('Foreign', {
       // @ts-expect-error The owned Subscription builder rejects foreign Message schemas.
       messages: [ForeignOwnedMessage.CompletedForeign],
@@ -833,17 +834,17 @@ if (false) {
     Model: HomeModel,
     Message: ForeignOwnedMessage,
   })
-  const foreignSubscriptions = ForeignDefinition.subscriptions(entry => ({
+  const foreignSubscriptions = ForeignDefinition.makeSubscriptions(entry => ({
     foreign: entry('Foreign', {
       messages: [ForeignOwnedMessage.CompletedForeign],
     }),
   }))
-  HomeDefinition.subscriptions(() => ({
+  HomeDefinition.makeSubscriptions(() => ({
     // @ts-expect-error A foreign Subscription registry cannot bypass the owned builder.
     foreign: foreignSubscriptions.foreign,
   }))
 
-  HomeDefinition.managedResources(entry => ({
+  HomeDefinition.makeManagedResources(entry => ({
     foreign: entry('Foreign', Schema.Option(Schema.Null), {
       resource: SelectedRoom,
       modelToMaybeRequirements: () => Option.none(),
@@ -868,7 +869,7 @@ if (false) {
       commands: maybeCreateRoomCommands(shouldCreateRoom),
     }),
   )
-  const bootWithForwardedCommands = HomeDefinition.step(
+  const bootWithForwardedCommands = HomeDefinition.makeStep(
     (model, shouldCreateRoom: boolean) => ({
       model,
       commands: maybeCreateRoomCommands(shouldCreateRoom),
@@ -946,7 +947,7 @@ if (false) {
   // @ts-expect-error A selected recipe must preserve exact handler outputs.
   Home.replaceEffectsLayer(erasedOutputs)
 
-  const ConflictingCreateRoom = HomeNamespace.command('CreateRoom', {
+  const ConflictingCreateRoom = HomeNamespace.makeCommand('CreateRoom', {
     args: { foreignId: Schema.String },
     messages: [HomeMessage.CompletedCreateRoom],
     handler: function* () {
@@ -960,10 +961,10 @@ if (false) {
   )
 
   const CrossKindNamespace = makeNamespace('AuthoringCrossKind')
-  const CommandFocus = CrossKindNamespace.command('Focus', {
+  const CommandFocus = CrossKindNamespace.makeCommand('Focus', {
     messages: [HomeMessage.CompletedCreateRoom],
   })
-  const MountFocus = CrossKindNamespace.mount('Focus', {
+  const MountFocus = CrossKindNamespace.makeMount('Focus', {
     messages: [HomeMessage.CompletedCreateRoom],
     handler: function* () {
       return () =>
@@ -1019,11 +1020,11 @@ if (false) {
     Message: HomeMessage,
   })
   // @ts-expect-error Local definition names cannot introduce a scoped identity separator.
-  HomeNamespace.command('Nested::CreateRoom', {
+  HomeNamespace.makeCommand('Nested::CreateRoom', {
     messages: [HomeMessage.CompletedCreateRoom],
   })
   // @ts-expect-error Local definition names cannot introduce another namespace.
-  HomeNamespace.command('Nested/CreateRoom', {
+  HomeNamespace.makeCommand('Nested/CreateRoom', {
     messages: [HomeMessage.CompletedCreateRoom],
   })
 
@@ -1039,7 +1040,7 @@ if (false) {
     ]),
   )
 
-  const ObserveHomeView = HomeNamespace.mount('ObserveHomeView', {
+  const ObserveHomeView = HomeNamespace.makeMount('ObserveHomeView', {
     messages: [HomeMessage.CompletedCreateRoom],
     handler: function* () {
       return () =>
@@ -1048,7 +1049,7 @@ if (false) {
         )
     },
   })
-  const ObserveSecondaryHomeView = HomeNamespace.mount(
+  const ObserveSecondaryHomeView = HomeNamespace.makeMount(
     'ObserveSecondaryHomeView',
     {
       messages: [HomeMessage.CompletedCreateRoom],
@@ -1207,7 +1208,7 @@ if (false) {
     // @ts-expect-error A bound render config cannot erase its parent Message with any.
     h.block(erasedParentMessage)
 
-    const OmittedChoiceBinding = PolicyParentBaseDefinition.bindChild(
+    const OmittedChoiceBinding = PolicyParentBaseDefinition.makeBinding(
       StringChoice,
       {
         placement: 'omitted-compact-evidence',
@@ -1258,7 +1259,7 @@ if (false) {
     return { model }
   })
 
-  HomeDefinition.step((model, input) => {
+  HomeDefinition.makeStep((model, input) => {
     // @ts-expect-error Extra Step input requires an explicit type annotation.
     input.nonexistent
     return { model }
@@ -1286,7 +1287,7 @@ if (false) {
   })
 
   // @ts-expect-error Explicit any context erases the operation contract.
-  HomeDefinition.step((model, _input: any) => ({ model }))
+  HomeDefinition.makeStep((model, _input: any) => ({ model }))
 
   // @ts-expect-error Explicit any context erases the operation contract.
   HomeComposition.makeUpdate((model, _message, _context: any) => ({ model }))
@@ -1308,13 +1309,13 @@ if (false) {
     Message: GraphParentMessage,
   })
   const UnregisteredGraphChildBinding =
-    UnregisteredGraphParentDefinition.bindChild(GraphChildBlock, {
+    UnregisteredGraphParentDefinition.makeBinding(GraphChildBlock, {
       placement: 'unregistered-child',
       read: (model: GraphParentModel) => Option.some(model.child),
       write: (model, child) => ({ ...model, child }),
     })
   const RegisteredGraphChildBinding =
-    UnregisteredGraphParentDefinition.bindChild(GraphChildBlock, {
+    UnregisteredGraphParentDefinition.makeBinding(GraphChildBlock, {
       placement: 'registered-child',
       read: (model: GraphParentModel) => Option.some(model.child),
       write: (model, child) => ({ ...model, child }),
@@ -1393,7 +1394,7 @@ if (false) {
       Model: GraphParentModel,
       Message: GraphParentMessage,
     })
-  const ForeignCommandBinding = ForeignCommandParentBaseDefinition.bindChild(
+  const ForeignCommandBinding = ForeignCommandParentBaseDefinition.makeBinding(
     StringChoice,
     {
       placement: 'foreign-command-message',
@@ -1419,7 +1420,7 @@ if (false) {
       Message: GraphParentMessage,
       OutMessage: ParentOutMessage,
     })
-  const ForeignForwardBinding = ForeignForwardParentBaseDefinition.bindChild(
+  const ForeignForwardBinding = ForeignForwardParentBaseDefinition.makeBinding(
     StringChoice,
     {
       placement: 'foreign-forward',
@@ -1439,7 +1440,7 @@ if (false) {
       Model: GraphParentModel,
       Message: GraphParentMessage,
     })
-  MissingForwardParentBaseDefinition.bindChild(StringChoice, {
+  MissingForwardParentBaseDefinition.makeBinding(StringChoice, {
     placement: 'missing-forward',
     read: (_model: GraphParentModel) =>
       Option.some(StringChoice.Model.make({ value: 'One' })),
@@ -1455,7 +1456,7 @@ if (false) {
       Message: GraphParentMessage,
       OutMessage: ParentOutMessage,
     })
-  const ForeignDerivedBinding = ForeignDerivedParentBaseDefinition.bindChild(
+  const ForeignDerivedBinding = ForeignDerivedParentBaseDefinition.makeBinding(
     StringChoice,
     {
       placement: 'foreign-derived-out-message',
@@ -1749,12 +1750,12 @@ describe('Block authoring', () => {
       makeNamespace(globalThis.String('Authoring::Invalid')),
     ).toThrow(/ID must be non-empty/)
     expect(() =>
-      HomeNamespace.command(globalThis.String('Nested::CreateRoom'), {
+      HomeNamespace.makeCommand(globalThis.String('Nested::CreateRoom'), {
         messages: [HomeMessage.CompletedCreateRoom],
       }),
     ).toThrow(/primitive name must be non-empty/)
     expect(() =>
-      HomeNamespace.command(globalThis.String('Nested/CreateRoom'), {
+      HomeNamespace.makeCommand(globalThis.String('Nested/CreateRoom'), {
         messages: [HomeMessage.CompletedCreateRoom],
       }),
     ).toThrow(/primitive name must be non-empty/)
@@ -2117,7 +2118,7 @@ describe('Block authoring', () => {
   })
 
   it('scopes a foreign handler explicitly supplied by the host', async () => {
-    const Binding = PolicyBindingParent.bindChild(
+    const Binding = PolicyBindingParent.makeBinding(
       PolicyParentWithHostProvider,
       {
         placement: 'Policy',
@@ -2184,18 +2185,21 @@ describe('Block authoring', () => {
 
   it('retains explicit host provenance for keyed bindings', async () => {
     const model = PolicyParentWithHostProvider.init().model
-    const Binding = PolicyKeyedParent.bindChild(PolicyParentWithHostProvider, {
-      placement: 'Policies',
-      readAll: (models: ReadonlyArray<PolicyParentModel>) => models,
-      key: (): 'only' => 'only',
-      keySchema: Schema.Literal('only'),
-      read: (item: PolicyParentModel) => item,
-      writeAt: (
-        _models: ReadonlyArray<PolicyParentModel>,
-        _key: 'only',
-        nextModel: PolicyParentModel,
-      ) => [nextModel],
-    })
+    const Binding = PolicyKeyedParent.makeBinding(
+      PolicyParentWithHostProvider,
+      {
+        placement: 'Policies',
+        readAll: (models: ReadonlyArray<PolicyParentModel>) => models,
+        key: (): 'only' => 'only',
+        keySchema: Schema.Literal('only'),
+        read: (item: PolicyParentModel) => item,
+        writeAt: (
+          _models: ReadonlyArray<PolicyParentModel>,
+          _key: 'only',
+          nextModel: PolicyParentModel,
+        ) => [nextModel],
+      },
+    )
     const composition = PolicyKeyedParent.makeComposition({
       bindings: [Binding],
     })
@@ -2242,7 +2246,7 @@ describe('Block authoring', () => {
 
   it('rejects a mismatched explicit host provider identity', async () => {
     const OtherRoomNamespace = makeNamespace('AuthoringRoom')
-    const OtherLoadRoom = OtherRoomNamespace.command('LoadRoom', {
+    const OtherLoadRoom = OtherRoomNamespace.makeCommand('LoadRoom', {
       args: { roomId: Schema.String },
       messages: [RoomMessage.CompletedLoadRoom],
       handler: function* () {

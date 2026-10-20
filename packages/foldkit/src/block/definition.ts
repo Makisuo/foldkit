@@ -3343,7 +3343,7 @@ export type Definition<
   /** Authors an internal Model transformation for update, init, or child
    * OutMessage policy composition. Declare parent-driven operations as local
    * Message producers under `assembleBlock({ operations })`. */
-  step: DefineStep<
+  makeStep: DefineStep<
     ModelSchema['Type'],
     MessageSchema['Type'],
     OutMessageSchema extends Schema.Codec<any, any, any, any>
@@ -3360,26 +3360,26 @@ export type Definition<
       : never
   >
   /** Authors a Model-only Step from transformations of this Block's fields. */
-  stepFields: DefineStepFields<ModelSchema['Type']>
+  makeFieldsStep: DefineStepFields<ModelSchema['Type']>
   /** Creates a Step preserving the incoming Model, with no Commands or OutMessage. */
-  stepNoop: DefineStepNoop<ModelSchema['Type']>
+  makeNoopStep: DefineStepNoop<ModelSchema['Type']>
   /** Creates a Model-preserving Step returning the supplied Commands. */
   makeCommandsStep: MakeCommandsStep<ModelSchema['Type'], MessageSchema['Type']>
   /** Defines Subscription entries owned directly by this Block. */
-  subscriptions: DefineSubscriptions<
+  makeSubscriptions: DefineSubscriptions<
     OwnerValue['id'],
     ModelSchema['Type'],
     MessageSchema['Type']
   >
   /** Defines ManagedResource entries owned directly by this Block. */
-  managedResources: DefineManagedResources<
+  makeManagedResources: DefineManagedResources<
     OwnerValue['id'],
     ModelSchema['Type'],
     MessageSchema['Type']
   >
   /** Creates child Bindings fixed to this Definition's parent Model, Message,
    * and OutMessage contracts. */
-  bindChild: BindChild<
+  makeBinding: BindChild<
     ModelSchema,
     MessageSchema,
     OutMessageSchema,
@@ -3823,13 +3823,13 @@ const makeDefineSubscriptions = <Id extends string, Model, Message>(
 
     if (!isSubscriptionEntryRecord(builtSubscriptions)) {
       throw new Error(
-        '[foldkit] Definition.subscriptions callback must return a Subscription entry record.',
+        '[foldkit] Definition.makeSubscriptions callback must return a Subscription entry record.',
       )
     }
 
     if (Object.hasOwn(builtSubscriptions, 'layer')) {
       throw new Error(
-        '[foldkit] Definition.subscriptions reserves "layer" for its aggregate handler Layer.',
+        '[foldkit] Definition.makeSubscriptions reserves "layer" for its aggregate handler Layer.',
       )
     }
 
@@ -3850,7 +3850,7 @@ const makeDefineSubscriptions = <Id extends string, Model, Message>(
 
         if (!isLayer) {
           throw new Error(
-            `[foldkit] Definition.subscriptions entry "${key}" has a "layer" value that is not an Effect Layer.`,
+            `[foldkit] Definition.makeSubscriptions entry "${key}" has a "layer" value that is not an Effect Layer.`,
           )
         }
 
@@ -3964,12 +3964,12 @@ export const makeDefinition = (
     bindings?: ReadonlyArray<AnyBinding>
   }>,
   authoring?: Readonly<{
-    step: AnyFunction
-    stepFields: AnyFunction
-    stepNoop: AnyFunction
+    makeStep: AnyFunction
+    makeFieldsStep: AnyFunction
+    makeNoopStep: AnyFunction
     makeCommandsStep: AnyFunction
-    subscriptions: AnyFunction
-    managedResources: AnyFunction
+    makeSubscriptions: AnyFunction
+    makeManagedResources: AnyFunction
   }>,
 ): any => {
   const localMounts = Object.freeze(globalThis.Array.from(config.mounts ?? []))
@@ -4005,16 +4005,16 @@ export const makeDefinition = (
     bindings,
     authoring !== undefined,
   )
-  const defineStep = authoring?.step ?? makeDefineStep()
+  const defineStep = authoring?.makeStep ?? makeDefineStep()
   const defineOutMessageFold = makeOutMessageFold()
   const defineOutMessageForward = makeOutMessageForward()
-  const stepFields = authoring?.stepFields ?? makeStepFields()
-  const stepNoop = authoring?.stepNoop ?? makeStepNoop
+  const stepFields = authoring?.makeFieldsStep ?? makeStepFields()
+  const stepNoop = authoring?.makeNoopStep ?? makeStepNoop
   const commandsStep = authoring?.makeCommandsStep ?? makeCommandsStep()
   const defineSubscriptions =
-    authoring?.subscriptions ?? makeDefineSubscriptions(owner)
+    authoring?.makeSubscriptions ?? makeDefineSubscriptions(owner)
   const defineManagedResources =
-    authoring?.managedResources ?? makeDefineManagedResources(owner)
+    authoring?.makeManagedResources ?? makeDefineManagedResources(owner)
   const bindChild = makeBindChild<
     typeof config.Model,
     typeof config.Message,
@@ -4229,14 +4229,14 @@ export const makeDefinition = (
     makeView: defineView,
     makeInit: init,
     makeUpdate: update,
-    step: defineStep,
+    makeStep: defineStep,
     makeOutMessageFold: defineOutMessageFold,
-    stepFields,
-    stepNoop,
+    makeFieldsStep: stepFields,
+    makeNoopStep: stepNoop,
     makeCommandsStep: commandsStep,
-    subscriptions: defineSubscriptions,
-    managedResources: defineManagedResources,
-    bindChild,
+    makeSubscriptions: defineSubscriptions,
+    makeManagedResources: defineManagedResources,
+    makeBinding: bindChild,
     assembleBlock,
   }
 }
@@ -4356,14 +4356,14 @@ export const makeBaseDefinition = (
     mounts: base.mounts,
     [LocalMountsTypeId]: base[LocalMountsTypeId],
     bindings: base.bindings,
-    step: base.step,
+    makeStep: base.makeStep,
     makeOutMessageFold: base.makeOutMessageFold,
-    stepFields: base.stepFields,
-    stepNoop: base.stepNoop,
+    makeFieldsStep: base.makeFieldsStep,
+    makeNoopStep: base.makeNoopStep,
     makeCommandsStep: base.makeCommandsStep,
-    subscriptions: base.subscriptions,
-    managedResources: base.managedResources,
-    bindChild: base.bindChild,
+    makeSubscriptions: base.makeSubscriptions,
+    makeManagedResources: base.makeManagedResources,
+    makeBinding: base.makeBinding,
     makeComposition,
   }
 }

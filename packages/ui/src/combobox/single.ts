@@ -49,11 +49,11 @@ export type InitConfig = BaseInitConfig
  *  `Selected({ value })` for the parent to store. A nullable Combobox also
  *  emits `ClearedSelection` when it closes with an empty input. */
 const defaultUpdate = makeUpdate(
-  ComboboxDefinition.bindChild,
+  ComboboxDefinition.makeBinding,
   ComboboxDefinition.makeOutMessageFold,
-  ComboboxDefinition.step,
-  ComboboxDefinition.stepFields,
-  ComboboxDefinition.stepNoop,
+  ComboboxDefinition.makeStep,
+  ComboboxDefinition.makeFieldsStep,
+  ComboboxDefinition.makeNoopStep,
   'CloseWithFocus',
   {
     handleClose: (model, restingInputValue, isClearable) => {
@@ -94,7 +94,7 @@ const ComboboxComposition = ComboboxDefinition.makeComposition({
   bindings: [defaultUpdate.AnimationBinding],
 })
 
-const authoredUpdate = ComboboxDefinition.step(
+const authoredUpdate = ComboboxDefinition.makeStep(
   (model, message: Parameters<typeof defaultUpdate.update>[1]) =>
     defaultUpdate.update(model, message),
 )
@@ -153,11 +153,11 @@ const makeBlockParts = <Item extends string, ItemEncoded>(
     OutMessage: ItemOutMessage,
   })
   const itemUpdate = makeUpdate(
-    ComboboxDefinition.bindChild,
+    ComboboxDefinition.makeBinding,
     ComboboxDefinition.makeOutMessageFold,
-    ComboboxDefinition.step,
-    ComboboxDefinition.stepFields,
-    ComboboxDefinition.stepNoop,
+    ComboboxDefinition.makeStep,
+    ComboboxDefinition.makeFieldsStep,
+    ComboboxDefinition.makeNoopStep,
     'CloseWithFocus',
     {
       handleClose: (model, restingInputValue, isClearable) => {
@@ -196,7 +196,7 @@ const makeBlockParts = <Item extends string, ItemEncoded>(
     mounts,
     bindings: [itemUpdate.AnimationBinding],
   })
-  const authoredUpdate = ComboboxDefinition.step(
+  const authoredUpdate = ComboboxDefinition.makeStep(
     (model, message: Parameters<typeof itemUpdate.update>[1]) =>
       itemUpdate.update(model, message),
   )

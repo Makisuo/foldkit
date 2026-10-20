@@ -26,7 +26,7 @@ const navigationUrlByShortcut: Readonly<
 }
 
 const setRoute = (nextRoute: typeof ApplicationRoute.Type) =>
-  ApplicationDefinition.stepFields(() => ({ route: () => nextRoute }))
+  ApplicationDefinition.makeFieldsStep(() => ({ route: () => nextRoute }))
 
 export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {

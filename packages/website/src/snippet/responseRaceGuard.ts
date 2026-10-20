@@ -30,7 +30,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
 })
 const ApplicationComposition = ApplicationDefinition.makeComposition()
 
-const Search = ApplicationDefinition.command('Search', {
+const Search = ApplicationDefinition.makeCommand('Search', {
   args: { query: Schema.String },
   messages: [Message.SettledSearch],
   handler: function* () {

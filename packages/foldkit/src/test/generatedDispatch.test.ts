@@ -21,7 +21,7 @@ const ChildDefinition = makeDefinition('GeneratedSimulationChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const ReadCount = ChildDefinition.command('ReadCount', {
+const ReadCount = ChildDefinition.makeCommand('ReadCount', {
   messages: [ChildMessage.CompletedReadCount],
   handler: function* () {
     yield* Effect.sync(constructHandler)
@@ -33,7 +33,7 @@ const ReadCount = ChildDefinition.command('ReadCount', {
       })
   },
 })
-const subscriptions = ChildDefinition.subscriptions(entry => ({
+const subscriptions = ChildDefinition.makeSubscriptions(entry => ({
   observations: entry('Observations', {
     messages: [ChildMessage.ObservedCount],
     handler: function* () {
@@ -80,7 +80,9 @@ const ParentDefinition = makeDefinition('GeneratedSimulationParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ChildBinding = ParentDefinition.bindChild(ChildBlock, { field: 'child' })
+const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
+  field: 'child',
+})
 const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding],
 })
@@ -103,7 +105,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const ParentBinding = ApplicationDefinition.bindChild(ParentBlock, {
+const ParentBinding = ApplicationDefinition.makeBinding(ParentBlock, {
   field: 'parent',
 })
 const ApplicationComposition = ApplicationDefinition.makeComposition({
@@ -127,7 +129,7 @@ const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 const sceneSubscriptions = Scene.subscriptions(ApplicationComposition)
-const localSubscriptions = ApplicationDefinition.subscriptions(entry => ({
+const localSubscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
   refresh: entry('Refresh', { messages: [Message.RequestedRefresh] }),
 }))
 
@@ -135,7 +137,7 @@ const ForeignDefinition = makeDefinition('GeneratedSimulationForeign', {
   Model: ChildModel,
   Message: ChildMessage,
 })
-const foreignSubscriptions = ForeignDefinition.subscriptions(entry => ({
+const foreignSubscriptions = ForeignDefinition.makeSubscriptions(entry => ({
   observations: entry('Observations', {
     messages: [ChildMessage.ObservedCount],
   }),

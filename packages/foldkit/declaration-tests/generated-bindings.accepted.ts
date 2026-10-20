@@ -71,7 +71,7 @@ export const GeneratedBindingParentDefinition = Block.makeDefinition(
   },
 )
 
-export const AccessorBinding = GeneratedBindingParentDefinition.bindChild(
+export const AccessorBinding = GeneratedBindingParentDefinition.makeBinding(
   CounterBlock,
   {
     placement: 'selected-child',
@@ -85,7 +85,7 @@ export const AccessorBinding = GeneratedBindingParentDefinition.bindChild(
   },
 )
 
-export const OptionalBinding = GeneratedBindingParentDefinition.bindChild(
+export const OptionalBinding = GeneratedBindingParentDefinition.makeBinding(
   CounterBlock,
   {
     field: 'maybeCounter',
@@ -97,7 +97,7 @@ export const OptionalBinding = GeneratedBindingParentDefinition.bindChild(
   },
 )
 
-export const KeyedFieldBinding = GeneratedBindingParentDefinition.bindChild(
+export const KeyedFieldBinding = GeneratedBindingParentDefinition.makeBinding(
   CounterBlock,
   {
     field: 'counters',
@@ -122,7 +122,7 @@ export const readRoomId = (room: typeof Room.Type): string => room.roomId
 export const readRoomCounter = (
   room: typeof Room.Type,
 ): typeof CounterModel.Type => room.counter
-export const RoomBinding = GeneratedBindingParentDefinition.bindChild(
+export const RoomBinding = GeneratedBindingParentDefinition.makeBinding(
   CounterBlock,
   {
     placement: 'room-counters',
@@ -144,7 +144,7 @@ export const RoomBinding = GeneratedBindingParentDefinition.bindChild(
   },
 )
 
-export const WrappedBinding = GeneratedBindingParentDefinition.bindChild(
+export const WrappedBinding = GeneratedBindingParentDefinition.makeBinding(
   CounterBlock,
   {
     placement: 'wrapped-counters',
@@ -157,7 +157,7 @@ export const WrappedBinding = GeneratedBindingParentDefinition.bindChild(
   },
 )
 
-export const StatusBinding = GeneratedBindingParentDefinition.bindChild(
+export const StatusBinding = GeneratedBindingParentDefinition.makeBinding(
   StatusBlock,
   {
     field: 'status',
@@ -175,13 +175,13 @@ export const GeneratedBindingParentComposition =
       StatusBinding,
     ],
   })
-export const applyGeneratedOperation = GeneratedBindingParentDefinition.step(
-  () =>
+export const applyGeneratedOperation =
+  GeneratedBindingParentDefinition.makeStep(() =>
     Update.combineSteps([
-      GeneratedBindingParentDefinition.stepNoop(),
+      GeneratedBindingParentDefinition.makeNoopStep(),
       StatusBinding.requestToggle(),
     ]),
-)
+  )
 export const update = GeneratedBindingParentComposition.makeUpdate(
   (model, message) =>
     ParentMessage.match(message, {

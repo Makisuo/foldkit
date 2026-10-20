@@ -19,7 +19,7 @@ const Message = defineMessageUnion({
 const CounterDefinition = Block.makeDefinition('Counter', { Model, Message })
 const CounterComposition = CounterDefinition.makeComposition()
 
-const subscriptions = CounterDefinition.subscriptions(entry => ({
+const subscriptions = CounterDefinition.makeSubscriptions(entry => ({
   gameClockTicks: entry(
     'GameClockTicks',
     { isAutoCounting: Schema.Boolean },

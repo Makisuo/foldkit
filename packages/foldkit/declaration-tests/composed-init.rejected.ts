@@ -35,7 +35,7 @@ const ComposedInitOutMessageDefinition = Block.makeDefinition(
     OutMessage,
   },
 )
-const outMessageStep = ComposedInitOutMessageDefinition.step(model => ({
+const outMessageStep = ComposedInitOutMessageDefinition.makeStep(model => ({
   model,
   outMessage: OutMessage.Prepared(),
 }))
@@ -46,7 +46,7 @@ ComposedInitOutMessageDefinition.makeComposition().makeInit(() => ({
   steps: [outMessageStep],
 }))
 
-ComposedInitDefinition.step(model => ({
+ComposedInitDefinition.makeStep(model => ({
   model,
   // @ts-expect-error A Definition cannot consume a foreign result Message.
   commands: [ReadCount()],

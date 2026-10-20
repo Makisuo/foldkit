@@ -115,12 +115,12 @@ const makeInitialModel = (config: InitConfig): Model => ({
 
 // UPDATE
 
-const PopoverBinding = DatePickerDefinition.bindChild(Popover.PopoverBlock, {
+const PopoverBinding = DatePickerDefinition.makeBinding(Popover.PopoverBlock, {
   field: 'popover',
   init: false,
 })
 
-const CalendarBinding = DatePickerDefinition.bindChild(
+const CalendarBinding = DatePickerDefinition.makeBinding(
   UiCalendar.CalendarBlock,
   {
     field: 'calendar',
@@ -139,7 +139,7 @@ const foldPopoverOutMessage = DatePickerDefinition.makeOutMessageFold(
 const foldCalendarOutMessage = DatePickerDefinition.makeOutMessageFold(
   UiCalendar.CalendarBlock,
   {
-    ChangedViewMonth: DatePickerDefinition.stepNoop,
+    ChangedViewMonth: DatePickerDefinition.makeNoopStep,
     SelectedDate: () => PopoverBinding.requestClose(),
   },
 )

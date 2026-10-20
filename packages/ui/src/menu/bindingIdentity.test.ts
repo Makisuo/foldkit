@@ -28,7 +28,7 @@ const GenericMenuBindingIdentityDefinition = Block.makeDefinition(
   },
 )
 
-const MenuBinding = GenericMenuBindingIdentityDefinition.bindChild(
+const MenuBinding = GenericMenuBindingIdentityDefinition.makeBinding(
   RefinedMenu,
   {
     field: 'menu',
@@ -37,11 +37,11 @@ const MenuBinding = GenericMenuBindingIdentityDefinition.bindChild(
 ).withOutMessagePolicy({
   fold: GenericMenuBindingIdentityDefinition.makeOutMessageFold(RefinedMenu, {
     Selected: ({ value }) =>
-      GenericMenuBindingIdentityDefinition.step(model => ({
+      GenericMenuBindingIdentityDefinition.makeStep(model => ({
         model,
         outMessage: OutMessage.SelectedMenuItem({ value }),
       })),
-    Closed: () => GenericMenuBindingIdentityDefinition.stepNoop(),
+    Closed: () => GenericMenuBindingIdentityDefinition.makeNoopStep(),
   }),
 })
 

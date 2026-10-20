@@ -2,7 +2,7 @@ import { ApplicationDefinition } from '../definition'
 import { RoomBlock } from '../page'
 import * as ApplicationRoute from '../route'
 
-export const RoomBinding = ApplicationDefinition.bindChild(RoomBlock, {
+export const RoomBinding = ApplicationDefinition.makeBinding(RoomBlock, {
   field: 'maybeRoomInstance',
   key: 'roomId',
   childField: 'model',

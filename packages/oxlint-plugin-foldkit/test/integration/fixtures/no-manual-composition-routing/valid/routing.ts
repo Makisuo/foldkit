@@ -14,13 +14,13 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
 
 defineMessageUnion({ ChangedSettings: {} })
 
-ApplicationDefinition.bindChild(SilentBlock, { field: 'silent' })
+ApplicationDefinition.makeBinding(SilentBlock, { field: 'silent' })
 
-ApplicationDefinition.bindChild(DialogBlock, {
+ApplicationDefinition.makeBinding(DialogBlock, {
   field: 'dialog',
 })
 
-ApplicationDefinition.bindChild(PickerBlock, {
+ApplicationDefinition.makeBinding(PickerBlock, {
   field: 'picker',
   delivery: {
     when: model => Option.isSome(model.maybePicker),
@@ -31,7 +31,7 @@ const sharedMapping = {
   field: 'shared',
 }
 
-ApplicationDefinition.bindChild(SharedBlock, { ...sharedMapping })
+ApplicationDefinition.makeBinding(SharedBlock, { ...sharedMapping })
 
 const ApplicationComposition = ApplicationDefinition.makeComposition()
 

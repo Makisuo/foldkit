@@ -25,7 +25,7 @@ const Child = makeDefinition('ExposedMessageRuntimeChild', {
   Message: ChildMessage,
   OutMessage: ChildOutMessage,
 })
-const RecordValue = Child.command('RecordValue', {
+const RecordValue = Child.makeCommand('RecordValue', {
   args: { value: Schema.String },
   messages: [ChildMessage.CompletedRecordValue],
   handler: function* () {
@@ -133,10 +133,10 @@ const foldChildOutMessage = ChildOutMessage.match<
 >({
   ChangedValue: () => model => ({ model }),
 })
-const ChildBinding = Parent.bindChild(ChildBlock, {
+const ChildBinding = Parent.makeBinding(ChildBlock, {
   field: 'maybeChild',
 }).withOutMessagePolicy({ fold: foldChildOutMessage })
-const EntryBinding = Parent.bindChild(ChildBlock, {
+const EntryBinding = Parent.makeBinding(ChildBlock, {
   placement: 'entries',
   readAll: model => model.entries,
   key: entry => entry.id,

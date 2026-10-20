@@ -97,7 +97,7 @@ const ParentDefinition = Block.makeDefinition('EmittedRestParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-export const ChildBinding = ParentDefinition.bindChild(ChildBlock, {
+export const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
   read: model => Option.some(model.child),
   write: (model, child) => Struct.modifyFields(model, { child: () => child }),
 })

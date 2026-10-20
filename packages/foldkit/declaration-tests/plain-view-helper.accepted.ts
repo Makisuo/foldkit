@@ -43,7 +43,7 @@ export const DeclarationViewHelperParentDefinition = Block.makeDefinition(
     Message: ParentMessage,
   },
 )
-export const ObserveParent = DeclarationViewHelperParentDefinition.mount(
+export const ObserveParent = DeclarationViewHelperParentDefinition.makeMount(
   'ObserveParent',
   {
     messages: [ParentMessage.CompletedObserveParent],
@@ -52,7 +52,7 @@ export const ObserveParent = DeclarationViewHelperParentDefinition.mount(
     },
   },
 )
-export const ChildBinding = DeclarationViewHelperParentDefinition.bindChild(
+export const ChildBinding = DeclarationViewHelperParentDefinition.makeBinding(
   ChildBlock,
   {
     field: 'child',

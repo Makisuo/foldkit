@@ -28,27 +28,27 @@ const Parent = makeDefinition('ChildPlacementParent', {
   Message: Schema.Never,
 })
 
-const PrimaryBinding = Parent.bindChild(ChildBlock, {
+const PrimaryBinding = Parent.makeBinding(ChildBlock, {
   field: 'primary',
 })
 
-const SecondaryAtPrimaryBinding = Parent.bindChild(ChildBlock, {
+const SecondaryAtPrimaryBinding = Parent.makeBinding(ChildBlock, {
   field: 'secondary',
   placement: 'primary',
 })
 
-const SecondaryBinding = Parent.bindChild(ChildBlock, {
+const SecondaryBinding = Parent.makeBinding(ChildBlock, {
   field: 'secondary',
 })
 
-const OptionalBinding = Parent.bindChild(ChildBlock, {
+const OptionalBinding = Parent.makeBinding(ChildBlock, {
   placement: 'optional',
   read: model => model.maybeChild,
   write: (model, nextChild) =>
     modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
 })
 
-const EntriesBinding = Parent.bindChild(ChildBlock, {
+const EntriesBinding = Parent.makeBinding(ChildBlock, {
   placement: 'entries',
   readAll: model => model.entries,
   key: entry => entry.id,
@@ -56,7 +56,7 @@ const EntriesBinding = Parent.bindChild(ChildBlock, {
   writeAt: model => model,
 })
 
-const EntriesAtOptionalBinding = Parent.bindChild(ChildBlock, {
+const EntriesAtOptionalBinding = Parent.makeBinding(ChildBlock, {
   placement: 'optional',
   readAll: model => model.entries,
   key: entry => entry.id,
@@ -64,27 +64,27 @@ const EntriesAtOptionalBinding = Parent.bindChild(ChildBlock, {
   writeAt: model => model,
 })
 
-const DefaultAccessorBinding = Parent.bindChild(ChildBlock, {
+const DefaultAccessorBinding = Parent.makeBinding(ChildBlock, {
   read: model => model.maybeChild,
   write: (model, nextChild) =>
     modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
 })
 
-const DefaultEntriesByIdBinding = Parent.bindChild(ChildBlock, {
+const DefaultEntriesByIdBinding = Parent.makeBinding(ChildBlock, {
   readAll: model => model.entries,
   key: entry => entry.id,
   read: entry => entry.child,
   writeAt: model => model,
 })
 
-const DefaultEntriesByIdLengthBinding = Parent.bindChild(ChildBlock, {
+const DefaultEntriesByIdLengthBinding = Parent.makeBinding(ChildBlock, {
   readAll: model => model.entries,
   key: entry => entry.id.length,
   read: entry => entry.child,
   writeAt: model => model,
 })
 
-const EntriesByIdBinding = Parent.bindChild(ChildBlock, {
+const EntriesByIdBinding = Parent.makeBinding(ChildBlock, {
   placement: 'entriesById',
   readAll: model => model.entries,
   key: entry => entry.id,
@@ -92,7 +92,7 @@ const EntriesByIdBinding = Parent.bindChild(ChildBlock, {
   writeAt: model => model,
 })
 
-const EntriesByIdLengthBinding = Parent.bindChild(ChildBlock, {
+const EntriesByIdLengthBinding = Parent.makeBinding(ChildBlock, {
   placement: 'entriesByIdLength',
   readAll: model => model.entries,
   key: entry => entry.id.length,

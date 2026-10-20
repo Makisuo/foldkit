@@ -4,7 +4,7 @@ const foldSearchOutMessage = ApplicationDefinition.makeOutMessageFold(
   Search.SearchBlock,
   {
     RestoredQuery: ({ query }) =>
-      ApplicationDefinition.stepFields(() => ({
+      ApplicationDefinition.makeFieldsStep(() => ({
         maybeRestoredQuery: () => Option.some(query),
       })),
   },
@@ -14,17 +14,17 @@ const foldEditorOutMessage = ApplicationDefinition.makeOutMessageFold(
   Editor.EditorBlock,
   {
     RestoredDraft: ({ documentId }) =>
-      ApplicationDefinition.stepFields(() => ({
+      ApplicationDefinition.makeFieldsStep(() => ({
         maybeRestoredDocumentId: () => Option.some(documentId),
       })),
   },
 )
 
-const SearchBinding = ApplicationDefinition.bindChild(Search.SearchBlock, {
+const SearchBinding = ApplicationDefinition.makeBinding(Search.SearchBlock, {
   field: 'search',
 }).withOutMessagePolicy({ fold: foldSearchOutMessage })
 
-const EditorBinding = ApplicationDefinition.bindChild(Editor.EditorBlock, {
+const EditorBinding = ApplicationDefinition.makeBinding(Editor.EditorBlock, {
   field: 'editor',
 }).withOutMessagePolicy({ fold: foldEditorOutMessage })
 

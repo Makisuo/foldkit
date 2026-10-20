@@ -22,25 +22,25 @@ import { type ThemePreference } from '../themePreference'
 import { ThemeMenu } from '../view'
 import { HomeBinding } from './home'
 
-export const SearchBinding = ApplicationDefinition.bindChild(SearchBlock, {
+export const SearchBinding = ApplicationDefinition.makeBinding(SearchBlock, {
   field: 'search',
 })
 
-export const SnippetCopyBinding = ApplicationDefinition.bindChild(
+export const SnippetCopyBinding = ApplicationDefinition.makeBinding(
   SnippetCopyBlock,
   {
     field: 'snippetCopy',
   },
 )
 
-export const SnippetDisclosureBinding = ApplicationDefinition.bindChild(
+export const SnippetDisclosureBinding = ApplicationDefinition.makeBinding(
   SnippetDisclosureBlock,
   {
     field: 'snippetDisclosure',
   },
 )
 
-export const ExampleDetailBinding = ApplicationDefinition.bindChild(
+export const ExampleDetailBinding = ApplicationDefinition.makeBinding(
   ExampleDetailBlock,
   {
     field: 'exampleDetail',
@@ -53,7 +53,7 @@ export const ExampleDetailBinding = ApplicationDefinition.bindChild(
   },
 )
 
-export const PlaygroundBinding = ApplicationDefinition.bindChild(
+export const PlaygroundBinding = ApplicationDefinition.makeBinding(
   PlaygroundBlock,
   {
     field: 'playground',
@@ -68,12 +68,12 @@ export const PlaygroundBinding = ApplicationDefinition.bindChild(
   },
 )
 
-export const UiPagesBinding = ApplicationDefinition.bindChild(UiBlock, {
+export const UiPagesBinding = ApplicationDefinition.makeBinding(UiBlock, {
   field: 'uiPages',
   init: { contextToArgs: ({ today }) => [today] },
 })
 
-export const ApiReferenceBinding = ApplicationDefinition.bindChild(
+export const ApiReferenceBinding = ApplicationDefinition.makeBinding(
   ApiReferenceBlock,
   {
     field: 'apiReference',
@@ -81,21 +81,21 @@ export const ApiReferenceBinding = ApplicationDefinition.bindChild(
   },
 )
 
-export const ComingFromReactBinding = ApplicationDefinition.bindChild(
+export const ComingFromReactBinding = ApplicationDefinition.makeBinding(
   ComingFromReactBlock,
   {
     field: 'comingFromReact',
   },
 )
 
-export const CoreBlockPageBinding = ApplicationDefinition.bindChild(
+export const CoreBlockPageBinding = ApplicationDefinition.makeBinding(
   BlockPageBlock,
   {
     field: 'coreBlockPage',
   },
 )
 
-export const MobileMenuDialogBinding = ApplicationDefinition.bindChild(
+export const MobileMenuDialogBinding = ApplicationDefinition.makeBinding(
   DialogBlock,
   {
     field: 'mobileMenuDialog',
@@ -103,14 +103,14 @@ export const MobileMenuDialogBinding = ApplicationDefinition.bindChild(
   },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(DialogBlock, {
-    Opened: ApplicationDefinition.stepNoop,
-    Closed: ApplicationDefinition.stepNoop,
-    CompletedClose: ApplicationDefinition.stepNoop,
+    Opened: ApplicationDefinition.makeNoopStep,
+    Closed: ApplicationDefinition.makeNoopStep,
+    CompletedClose: ApplicationDefinition.makeNoopStep,
   }),
 })
 
 const applyThemePreference = (preference: typeof ThemePreference.Type) =>
-  ApplicationDefinition.step(model => {
+  ApplicationDefinition.makeStep(model => {
     const resolvedTheme = resolveTheme(preference, model.systemTheme)
 
     return {
@@ -125,7 +125,7 @@ const applyThemePreference = (preference: typeof ThemePreference.Type) =>
     }
   })
 
-export const ThemeMenuBinding = ApplicationDefinition.bindChild(
+export const ThemeMenuBinding = ApplicationDefinition.makeBinding(
   ThemeMenu.ThemeMenuBlock,
   {
     field: 'themeMenu',
@@ -134,7 +134,7 @@ export const ThemeMenuBinding = ApplicationDefinition.bindChild(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(ThemeMenu.ThemeMenuBlock, {
     Selected: ({ value }) => applyThemePreference(value),
-    Closed: ApplicationDefinition.stepNoop,
+    Closed: ApplicationDefinition.makeNoopStep,
   }),
 })
 

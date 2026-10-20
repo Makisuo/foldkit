@@ -12,22 +12,25 @@ import { HomeBlock } from '../page'
 import { ApplicationRoute, roomRouter } from '../route'
 import { RoomBinding } from './room'
 
-export const NavigateToRoom = ApplicationDefinition.command('NavigateToRoom', {
-  args: { roomId: Schema.String },
-  messages: [Message.CompletedNavigateToRoom],
-  handler: function* () {
-    return ({ roomId }) =>
-      pushUrl(roomRouter({ roomId })).pipe(
-        Effect.as(Message.CompletedNavigateToRoom()),
-      )
+export const NavigateToRoom = ApplicationDefinition.makeCommand(
+  'NavigateToRoom',
+  {
+    args: { roomId: Schema.String },
+    messages: [Message.CompletedNavigateToRoom],
+    handler: function* () {
+      return ({ roomId }) =>
+        pushUrl(roomRouter({ roomId })).pipe(
+          Effect.as(Message.CompletedNavigateToRoom()),
+        )
+    },
   },
-})
+)
 
 const navigateToRoom = (roomId: string) =>
   ApplicationDefinition.makeCommandsStep([NavigateToRoom({ roomId })])
 
 const initRoomInstance = (roomId: string) =>
-  ApplicationDefinition.step(model =>
+  ApplicationDefinition.makeStep(model =>
     RoomBinding.init({
       key: roomId,
       args: [Option.none()],
@@ -51,7 +54,7 @@ const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(HomeBlock, {
   JoinedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
 })
 
-export const HomeBinding = ApplicationDefinition.bindChild(HomeBlock, {
+export const HomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
   field: 'home',
   presentWhen: model => ApplicationRoute.guards.Home(model.route),
 }).withOutMessagePolicy({ fold: foldHomeOutMessage })

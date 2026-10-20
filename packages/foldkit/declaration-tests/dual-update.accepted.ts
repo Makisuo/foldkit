@@ -42,7 +42,7 @@ const CounterDefinition = Block.makeDefinition('DualUpdatePrototypeCounter', {
   OutMessage,
 })
 
-const Save = CounterDefinition.command('Save', {
+const Save = CounterDefinition.makeCommand('Save', {
   messages: [Message.CompletedSave],
 })
 
@@ -175,7 +175,7 @@ type UpdateRequirements = Expect<
   Equal<Update.RequirementsOf<typeof update>, Command.HandlerOf<typeof Save>>
 >
 
-const incrementAgain = CounterDefinition.step((model, amount: number) => ({
+const incrementAgain = CounterDefinition.makeStep((model, amount: number) => ({
   model: modifyFields(model, { count: count => count + amount }),
 }))
 
@@ -391,7 +391,7 @@ const GraphFullDefinition = Block.makeDefinition('DualUpdateGraphFull', {
   OutMessage: GraphFullOutMessage,
 })
 // oxlint-disable-next-line foldkit/command-binding-matches-name -- This fixture distinguishes this Command from another owner with the same local name.
-const GraphFullSave = GraphFullDefinition.command('Save', {
+const GraphFullSave = GraphFullDefinition.makeCommand('Save', {
   messages: [GraphFullMessage.CompletedSave],
 })
 const GraphFullSaveLayer = GraphFullSave.toLayer<
@@ -406,7 +406,7 @@ const GraphFullSaveLayer = GraphFullSave.toLayer<
     )
   }),
 )
-const GraphFullChildBinding = GraphFullDefinition.bindChild(ChildBlock, {
+const GraphFullChildBinding = GraphFullDefinition.makeBinding(ChildBlock, {
   field: 'child',
 })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
@@ -498,7 +498,7 @@ const ParentDefinition = Block.makeDefinition('DualUpdatePrototypeParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ChildBinding = ParentDefinition.bindChild(ChildBlock, {
+const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
   field: 'child',
 })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
@@ -519,7 +519,7 @@ const parentModel = ParentModel.make({
   updates: 0,
 })
 const parentMessage = ParentMessage.ChangedLabel({ label: 'Primary' })
-const countParentUpdate = ParentDefinition.step(model => ({
+const countParentUpdate = ParentDefinition.makeStep(model => ({
   model: modifyFields(model, { updates: updates => updates + 1 }),
 }))
 
@@ -572,7 +572,7 @@ const RootApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const Persist = RootApplicationDefinition.command('Persist', {
+const Persist = RootApplicationDefinition.makeCommand('Persist', {
   messages: [Message.CompletedSave],
 })
 const PersistLayer = Persist.toLayer<

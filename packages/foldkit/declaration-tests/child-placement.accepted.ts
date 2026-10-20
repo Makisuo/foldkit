@@ -41,18 +41,18 @@ export const DeclarationChildPlacementParentDefinition = Block.makeDefinition(
 )
 
 export const PrimaryBinding =
-  DeclarationChildPlacementParentDefinition.bindChild(ChildBlock, {
+  DeclarationChildPlacementParentDefinition.makeBinding(ChildBlock, {
     field: 'primary',
   })
 
 export const SecondaryBinding =
-  DeclarationChildPlacementParentDefinition.bindChild(ChildBlock, {
+  DeclarationChildPlacementParentDefinition.makeBinding(ChildBlock, {
     field: 'secondary',
     placement: 'secondaryPlacement',
   })
 
 export const OptionalBinding =
-  DeclarationChildPlacementParentDefinition.bindChild(ChildBlock, {
+  DeclarationChildPlacementParentDefinition.makeBinding(ChildBlock, {
     placement: 'optional',
     read: model => model.maybeChild,
     write: (model, nextChild) =>
@@ -62,7 +62,7 @@ export const OptionalBinding =
   })
 
 export const EntriesBinding =
-  DeclarationChildPlacementParentDefinition.bindChild(ChildBlock, {
+  DeclarationChildPlacementParentDefinition.makeBinding(ChildBlock, {
     placement: 'entries',
     readAll: model => model.entries,
     key: entry => entry.id,
@@ -71,7 +71,7 @@ export const EntriesBinding =
   })
 
 export const DefaultAccessorBinding =
-  DeclarationChildPlacementParentDefinition.bindChild(ChildBlock, {
+  DeclarationChildPlacementParentDefinition.makeBinding(ChildBlock, {
     read: model => model.maybeChild,
     write: (model, nextChild) =>
       Struct.modifyFields(model, {
@@ -80,7 +80,7 @@ export const DefaultAccessorBinding =
   })
 
 export const EntriesByIdBinding =
-  DeclarationChildPlacementParentDefinition.bindChild(ChildBlock, {
+  DeclarationChildPlacementParentDefinition.makeBinding(ChildBlock, {
     placement: 'entriesById',
     readAll: model => model.entries,
     key: entry => entry.id,
@@ -89,7 +89,7 @@ export const EntriesByIdBinding =
   })
 
 export const EntriesByIdLengthBinding =
-  DeclarationChildPlacementParentDefinition.bindChild(ChildBlock, {
+  DeclarationChildPlacementParentDefinition.makeBinding(ChildBlock, {
     placement: 'entriesByIdLength',
     readAll: model => model.entries,
     key: entry => entry.id.length,

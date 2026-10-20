@@ -37,7 +37,7 @@ const foldDialogOutMessage = ApplicationDefinition.makeOutMessageFold(
   },
 )
 
-const DialogBinding = ApplicationDefinition.bindChild(Dialog.DialogBlock, {
+const DialogBinding = ApplicationDefinition.makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: dialogId }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })

@@ -26,7 +26,7 @@ const DeclarationFoldChildDefinition = Block.makeDefinition(
 )
 const DeclarationFoldChildComposition =
   DeclarationFoldChildDefinition.makeComposition()
-export const ObserveChoice = DeclarationFoldChildDefinition.command(
+export const ObserveChoice = DeclarationFoldChildDefinition.makeCommand(
   'ObserveChoice',
   {
     messages: [ChildMessage.CompletedObserveChoice],
@@ -123,7 +123,7 @@ export const DeclarationFoldParentDefinition = Block.makeDefinition(
   'DeclarationFoldParent',
   { Model, Message: ParentMessage, OutMessage: ParentOutMessage },
 )
-export const RecordChoice = DeclarationFoldParentDefinition.command(
+export const RecordChoice = DeclarationFoldParentDefinition.makeCommand(
   'RecordChoice',
   {
     args: { value: Choice },
@@ -148,7 +148,7 @@ export const foldChoice = DeclarationFoldParentDefinition.makeOutMessageFold(
         commands: [RecordChoice({ value })],
         outMessage: ParentOutMessage.Chose({ value }),
       }),
-    Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+    Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
   },
 )
 export const foldConditionalChoice =
@@ -163,28 +163,28 @@ export const foldConditionalChoice =
               commands: [RecordChoice({ value })],
               outMessage: ParentOutMessage.Chose({ value }),
             },
-    Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+    Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
   })
-export const ChildBinding = DeclarationFoldParentDefinition.bindChild(
+export const ChildBinding = DeclarationFoldParentDefinition.makeBinding(
   ChildBlock,
   { field: 'child' },
 ).withOutMessagePolicy({ fold: foldChoice })
-export const SiblingBinding = DeclarationFoldParentDefinition.bindChild(
+export const SiblingBinding = DeclarationFoldParentDefinition.makeBinding(
   ChildBlock,
   {
     field: 'sibling',
   },
 ).withOutMessagePolicy({
   fold: DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
-    Chose: () => DeclarationFoldParentDefinition.stepNoop(),
-    Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+    Chose: () => DeclarationFoldParentDefinition.makeNoopStep(),
+    Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
   }),
 })
 export const foldWithInit = DeclarationFoldParentDefinition.makeOutMessageFold(
   ChildBlock,
   {
     Chose: () =>
-      DeclarationFoldParentDefinition.step(model =>
+      DeclarationFoldParentDefinition.makeStep(model =>
         SiblingBinding.init({
           args: [],
           toParentModel: sibling =>
@@ -193,7 +193,7 @@ export const foldWithInit = DeclarationFoldParentDefinition.makeOutMessageFold(
             }),
         }),
       ),
-    Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+    Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
   },
 )
 export const foldLiftedChildCommand =
@@ -206,7 +206,7 @@ export const foldLiftedChildCommand =
         }),
         commands: [liftCommand(ObserveChoice())],
       }),
-    Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+    Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
   })
 export const foldToSibling = DeclarationFoldParentDefinition.makeOutMessageFold(
   ChildBlock,
@@ -216,7 +216,7 @@ export const foldToSibling = DeclarationFoldParentDefinition.makeOutMessageFold(
   },
 )
 export const CoordinatedChildBinding =
-  DeclarationFoldParentDefinition.bindChild(ChildBlock, {
+  DeclarationFoldParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
   }).withOutMessagePolicy({ fold: foldToSibling })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture compares two graphs authored by one Definition.
@@ -259,7 +259,7 @@ export const DeclarationFoldRootDefinition = Block.makeDefinition(
   'DeclarationFoldRoot',
   { Model: RootModel, Message: RootMessage },
 )
-export const RootRecord = DeclarationFoldRootDefinition.command('Record', {
+export const RootRecord = DeclarationFoldRootDefinition.makeCommand('Record', {
   messages: [RootMessage.CompletedRecord],
   handler: function* () {
     const store = yield* ChoiceStore
@@ -268,12 +268,15 @@ export const RootRecord = DeclarationFoldRootDefinition.command('Record', {
       store.record('Apple').pipe(Effect.as(RootMessage.CompletedRecord()))
   },
 })
-export const RootBinding = DeclarationFoldRootDefinition.bindChild(ChildBlock, {
-  field: 'child',
-}).withOutMessagePolicy({
+export const RootBinding = DeclarationFoldRootDefinition.makeBinding(
+  ChildBlock,
+  {
+    field: 'child',
+  },
+).withOutMessagePolicy({
   fold: DeclarationFoldRootDefinition.makeOutMessageFold(ChildBlock, {
     Chose: () => model => ({ model, commands: [RootRecord()] }),
-    Closed: () => DeclarationFoldRootDefinition.stepNoop(),
+    Closed: () => DeclarationFoldRootDefinition.makeNoopStep(),
   }),
 })
 export const DeclarationFoldRootComposition =

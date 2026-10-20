@@ -15,7 +15,7 @@ const ShortcutsDefinition = Block.makeDefinition('Shortcuts', {
   Message,
 })
 
-const subscriptions = ShortcutsDefinition.subscriptions(entry => ({
+const subscriptions = ShortcutsDefinition.makeSubscriptions(entry => ({
   shortcutKeyPresses: entry(
     'ShortcutKeyPresses',
     { isListening: Schema.Boolean },

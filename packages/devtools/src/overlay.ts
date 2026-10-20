@@ -391,7 +391,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   ChildInitContext: Flags,
 })
 
-const InspectorTabsBinding = ApplicationDefinition.bindChild(
+const InspectorTabsBinding = ApplicationDefinition.makeBinding(
   InspectorTabsBlock,
   {
     field: 'inspectorTabs',
@@ -400,13 +400,13 @@ const InspectorTabsBinding = ApplicationDefinition.bindChild(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(InspectorTabsBlock, {
     Selected: ({ value }) =>
-      ApplicationDefinition.stepFields(() => ({
+      ApplicationDefinition.makeFieldsStep(() => ({
         activeInspectorTab: () => value,
       })),
   }),
 })
 
-const BlockFilterListboxBinding = ApplicationDefinition.bindChild(
+const BlockFilterListboxBinding = ApplicationDefinition.makeBinding(
   BlockFilterListboxBlock,
   {
     field: 'blockFilterListbox',
@@ -415,7 +415,7 @@ const BlockFilterListboxBinding = ApplicationDefinition.bindChild(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(BlockFilterListboxBlock, {
     Selected: ({ value }) =>
-      ApplicationDefinition.stepFields(() => ({
+      ApplicationDefinition.makeFieldsStep(() => ({
         maybeBlockFilter: () => Option.liftPredicate(value, String.isNonEmpty),
       })),
   }),
@@ -429,22 +429,25 @@ const makeApplicationComposition = (
   // NOTE: Pointer Messages update the thumb immediately, but jumping to and
   // inspecting the corresponding state is expensive. Keep only the latest host
   // index until TickedScrubFrame flushes one navigation on the next frame.
-  const ScrubberBinding = ApplicationDefinition.bindChild(scrubberSliderBlock, {
-    field: 'scrubberSlider',
-    init: {
-      contextToArgs: flags => [
-        {
-          id: SCRUBBER_SLIDER_ID,
-          min: 0,
-          max: flags.entries.length,
-          step: 1,
-        },
-      ],
+  const ScrubberBinding = ApplicationDefinition.makeBinding(
+    scrubberSliderBlock,
+    {
+      field: 'scrubberSlider',
+      init: {
+        contextToArgs: flags => [
+          {
+            id: SCRUBBER_SLIDER_ID,
+            min: 0,
+            max: flags.entries.length,
+            step: 1,
+          },
+        ],
+      },
     },
-  }).withOutMessagePolicy({
+  ).withOutMessagePolicy({
     fold: ApplicationDefinition.makeOutMessageFold(scrubberSliderBlock, {
       ChangedValue: ({ value }) =>
-        ApplicationDefinition.stepFields(model => ({
+        ApplicationDefinition.makeFieldsStep(model => ({
           scrubberValue: () => value,
           maybePendingScrubIndex: () =>
             Option.some(sliderValueToHostIndex(value, model.startIndex)),
@@ -493,7 +496,7 @@ class ShadowRootService extends Context.Service<
   ShadowRoot
 >()('foldkit/DevToolsShadowRoot') {}
 
-const subscriptions = ApplicationDefinition.subscriptions(entry => ({
+const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
   scrubFrameTicks: entry(
     'ScrubFrameTicks',
     { isActive: Schema.Boolean },
@@ -538,14 +541,14 @@ const subscriptions = ApplicationDefinition.subscriptions(entry => ({
   }),
 }))
 
-export const LockScroll = ApplicationDefinition.command('LockScroll', {
+export const LockScroll = ApplicationDefinition.makeCommand('LockScroll', {
   messages: [Message.CompletedLockScroll],
   handler: function* () {
     return () => lockScroll.pipe(Effect.as(Message.CompletedLockScroll()))
   },
 })
 
-export const UnlockScroll = ApplicationDefinition.command('UnlockScroll', {
+export const UnlockScroll = ApplicationDefinition.makeCommand('UnlockScroll', {
   messages: [Message.CompletedUnlockScroll],
   handler: function* () {
     return () => unlockScroll.pipe(Effect.as(Message.CompletedUnlockScroll()))
@@ -578,7 +581,7 @@ const readPersistedState = Effect.gen(function* () {
   return yield* Schema.decodeEffect(DevToolsPersistedStateJson)(json)
 }).pipe(Effect.catch(() => Effect.succeed(DEFAULT_PERSISTED_STATE)))
 
-export const PersistDevToolsState = ApplicationDefinition.command(
+export const PersistDevToolsState = ApplicationDefinition.makeCommand(
   'PersistDevToolsState',
   {
     args: { isOpen: Schema.Boolean, isFlattened: Schema.Boolean },
@@ -626,7 +629,7 @@ const buildInspectionEffect = (store: DevToolsStore, index: number) =>
 // returns the model it resolved so the inspector reuses that single
 // resolution. Inspect-only navigation (no host pause) still uses
 // `InspectState`, which resolves once on its own.
-export const JumpToAndInspect = ApplicationDefinition.command(
+export const JumpToAndInspect = ApplicationDefinition.makeCommand(
   'JumpToAndInspect',
   {
     args: { index: Schema.Number },
@@ -643,7 +646,7 @@ export const JumpToAndInspect = ApplicationDefinition.command(
   },
 )
 
-export const InspectState = ApplicationDefinition.command('InspectState', {
+export const InspectState = ApplicationDefinition.makeCommand('InspectState', {
   args: { index: Schema.Number },
   messages: [Message.ReceivedInspectedState],
   handler: function* () {
@@ -653,20 +656,23 @@ export const InspectState = ApplicationDefinition.command('InspectState', {
   },
 })
 
-export const InspectLatest = ApplicationDefinition.command('InspectLatest', {
-  messages: [Message.ReceivedInspectedState],
-  handler: function* () {
-    const store = yield* StoreService
+export const InspectLatest = ApplicationDefinition.makeCommand(
+  'InspectLatest',
+  {
+    messages: [Message.ReceivedInspectedState],
+    handler: function* () {
+      const store = yield* StoreService
 
-    return () =>
-      Effect.gen(function* () {
-        const state = yield* SubscriptionRef.get(store.stateRef)
-        return yield* buildInspectionEffect(store, latestEntryIndex(state))
-      })
+      return () =>
+        Effect.gen(function* () {
+          const state = yield* SubscriptionRef.get(store.stateRef)
+          return yield* buildInspectionEffect(store, latestEntryIndex(state))
+        })
+    },
   },
-})
+)
 
-export const Resume = ApplicationDefinition.command('Resume', {
+export const Resume = ApplicationDefinition.makeCommand('Resume', {
   messages: [Message.CompletedResume],
   handler: function* () {
     const store = yield* StoreService
@@ -675,7 +681,7 @@ export const Resume = ApplicationDefinition.command('Resume', {
   },
 })
 
-export const Clear = ApplicationDefinition.command('Clear', {
+export const Clear = ApplicationDefinition.makeCommand('Clear', {
   messages: [Message.CompletedClear],
   handler: function* () {
     const store = yield* StoreService
@@ -684,7 +690,7 @@ export const Clear = ApplicationDefinition.command('Clear', {
   },
 })
 
-export const CopyPayloadToClipboard = ApplicationDefinition.command(
+export const CopyPayloadToClipboard = ApplicationDefinition.makeCommand(
   'CopyPayloadToClipboard',
   {
     args: {
@@ -723,7 +729,7 @@ export const CopyPayloadToClipboardLayer = CopyPayloadToClipboard.layer
 
 const COPY_INDICATOR_DURATION = '1 second'
 
-export const WaitBeforeHidingCopyIndicator = ApplicationDefinition.command(
+export const WaitBeforeHidingCopyIndicator = ApplicationDefinition.makeCommand(
   'WaitBeforeHidingCopyIndicator',
   {
     args: { targetId: Schema.String, requestId: Schema.Number },
@@ -742,7 +748,7 @@ export const WaitBeforeHidingCopyIndicator = ApplicationDefinition.command(
   },
 )
 
-export const ScrollToTop = ApplicationDefinition.command('ScrollToTop', {
+export const ScrollToTop = ApplicationDefinition.makeCommand('ScrollToTop', {
   messages: [Message.CompletedScrollToTop],
   handler: function* () {
     const shadow = yield* ShadowRootService
@@ -992,7 +998,7 @@ const update = ApplicationComposition.makeUpdate((model, message) =>
         : sliderMax
 
       return Update.combineSteps(model, [
-        ApplicationDefinition.step(stepModel => ({
+        ApplicationDefinition.makeStep(stepModel => ({
           model: modifyFields(stepModel, {
             entries: () => entries,
             initCommands: () => initCommands,

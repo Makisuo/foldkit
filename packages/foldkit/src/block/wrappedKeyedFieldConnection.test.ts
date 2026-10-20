@@ -31,7 +31,7 @@ const Counter = makeDefinition('WrappedKeyedFieldCounter', {
   Model: CounterModel,
   Message: CounterMessage,
 })
-const FinishInitialization = Counter.command('FinishInitialization', {
+const FinishInitialization = Counter.makeCommand('FinishInitialization', {
   args: { count: Schema.Number },
   messages: [CounterMessage.CompletedFinishInitialization],
   handler: function* () {
@@ -39,7 +39,7 @@ const FinishInitialization = Counter.command('FinishInitialization', {
       Effect.succeed(CounterMessage.CompletedFinishInitialization({ count }))
   },
 })
-const setCount = Counter.step((model, count: number) => ({
+const setCount = Counter.makeStep((model, count: number) => ({
   model: modifyFields(model, { count: () => count }),
 }))
 const CounterComposition = Counter.makeComposition()
@@ -97,18 +97,18 @@ const Parent = makeDefinition('WrappedKeyedFieldParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const CountersBinding = Parent.bindChild(counterBlock, {
+const CountersBinding = Parent.makeBinding(counterBlock, {
   field: 'counters',
   key: 'id',
   childField: 'counter',
 })
-const AlternateCountersBinding = Parent.bindChild(counterBlock, {
+const AlternateCountersBinding = Parent.makeBinding(counterBlock, {
   field: 'counters',
   key: 'id',
   childField: 'counter',
   placement: 'alternateCounters',
 })
-const TextEntriesBinding = Parent.bindChild(textBlock, {
+const TextEntriesBinding = Parent.makeBinding(textBlock, {
   field: 'textEntries',
   key: 'id',
   childField: 'text',
@@ -353,7 +353,7 @@ const invalidConfig = (
   childField,
 })
 const bindInvalid = (field: string, key?: string, childField?: string) =>
-  Reflect.apply(InvalidParent.bindChild, undefined, [
+  Reflect.apply(InvalidParent.makeBinding, undefined, [
     counterBlock,
     invalidConfig(field, key, childField),
   ])
@@ -405,7 +405,7 @@ it('rejects invalid wrapper key and child fields at runtime', () => {
   })
 
   expect(() =>
-    Reflect.apply(SameFieldParent.bindChild, undefined, [
+    Reflect.apply(SameFieldParent.makeBinding, undefined, [
       textBlock,
       {
         field: 'values',
@@ -419,7 +419,7 @@ it('rejects invalid wrapper key and child fields at runtime', () => {
 it('rejects Schema and custom adapter conflicts at runtime', () => {
   for (const schemaField of ['Model', 'ChildModel']) {
     expect(() =>
-      Reflect.apply(Parent.bindChild, undefined, [
+      Reflect.apply(Parent.makeBinding, undefined, [
         counterBlock,
         { ...invalidConfig('counters'), [schemaField]: CounterModel },
       ]),
@@ -434,7 +434,7 @@ it('rejects Schema and custom adapter conflicts at runtime', () => {
     'presentWhen',
   ]) {
     expect(() =>
-      Reflect.apply(Parent.bindChild, undefined, [
+      Reflect.apply(Parent.makeBinding, undefined, [
         counterBlock,
         { ...invalidConfig('counters'), [conflict]: () => undefined },
       ]),

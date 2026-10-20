@@ -42,11 +42,11 @@ const ConnectionViewsParent = makeDefinition('ConnectionViewsParent', {
   Message: Schema.Never,
 })
 
-const ConnectedBinding = ConnectionViewsParent.bindChild(block, {
+const ConnectedBinding = ConnectionViewsParent.makeBinding(block, {
   field: 'child',
 })
 const entryKey = (entry: typeof Entry.Type): string => entry.id
-const KeyedBinding = ConnectionViewsParent.bindChild(block, {
+const KeyedBinding = ConnectionViewsParent.makeBinding(block, {
   placement: 'entries',
   readAll: (model: ParentModel) => model.entries,
   key: entryKey,
@@ -85,7 +85,7 @@ const TaggedParent = makeDefinition('ConnectionViewsTaggedParent', {
   Model: TaggedParentModel,
   Message: Schema.Never,
 })
-const TaggedBinding = TaggedParent.bindChild(block, {
+const TaggedBinding = TaggedParent.makeBinding(block, {
   read: model =>
     model._tag === 'Active' ? Option.some(model.child) : Option.none(),
   write: (model, nextChild) =>
@@ -177,7 +177,7 @@ it('supports explicit tagged-union readers and writers', () => {
   expect(update(inactive, message).model).toEqual(inactive)
 
   if (false) {
-    TaggedParent.bindChild(block, {
+    TaggedParent.makeBinding(block, {
       // @ts-expect-error The invalid tagged writer prevents accessor overload selection.
       read: (model: TaggedParentModel) =>
         model._tag === 'Active' ? Option.some(model.child) : Option.none(),
@@ -217,7 +217,7 @@ it('lowers required-field shorthand through the shared pure Binding adapter', ()
     Model: optionalModel,
     Message: Schema.Never,
   })
-  const OptionalBinding = OptionalParent.bindChild(block, {
+  const OptionalBinding = OptionalParent.makeBinding(block, {
     read: model => model.maybeChild,
     write: (model, nextChild) =>
       modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
@@ -262,26 +262,26 @@ it('lowers required-field shorthand through the shared pure Binding adapter', ()
   })
 
   if (false) {
-    WiderParent.bindChild(block, {
+    WiderParent.makeBinding(block, {
       // @ts-expect-error A wider field cannot be replaced by this child's Model.
       field: 'child',
     })
-    NarrowerParent.bindChild(block, {
+    NarrowerParent.makeBinding(block, {
       // @ts-expect-error A narrower field cannot accept every child Model update.
       field: 'child',
     })
-    ExtendedParent.bindChild(block, {
+    ExtendedParent.makeBinding(block, {
       // @ts-expect-error The Binding cannot discard additional optional child fields.
       field: 'child',
     })
-    OptionalParent.bindChild(block, {
+    OptionalParent.makeBinding(block, {
       field: 'maybeChild',
     })
-    ConnectionViewsParent.bindChild(block, {
+    ConnectionViewsParent.makeBinding(block, {
       // @ts-expect-error Required-field shorthand rejects undeclared fields.
       field: 'missing',
     })
-    ConnectionViewsParent.bindChild(block, {
+    ConnectionViewsParent.makeBinding(block, {
       // @ts-expect-error Required-field shorthand cannot mix explicit readers.
       field: 'child',
       // @ts-expect-error The direct shorthand cannot mix explicit readers.

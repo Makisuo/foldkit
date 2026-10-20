@@ -51,7 +51,7 @@ const ProfileDefinition = Block.makeDefinition('Profile', {
   ChildInitContext: ProfileChildInitContext,
 })
 
-const ThemePickerBinding = ProfileDefinition.bindChild(ThemePickerBlock, {
+const ThemePickerBinding = ProfileDefinition.makeBinding(ThemePickerBlock, {
   field: 'themePicker',
   init: {
     contextToArgs: ({ savedTheme }) => [savedTheme],

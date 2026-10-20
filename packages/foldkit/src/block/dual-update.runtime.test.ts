@@ -25,7 +25,7 @@ const Counter = makeDefinition('DualUpdateRuntimeCounter', {
   Message,
   OutMessage,
 })
-const Save = Counter.command('Save', {
+const Save = Counter.makeCommand('Save', {
   messages: [Message.CompletedSave],
   handler: function* () {
     return () => Effect.succeed(Message.CompletedSave())
@@ -160,7 +160,7 @@ const Parent = makeDefinition('DualUpdateRuntimeParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ChildBinding = Parent.bindChild(ChildBlock, {
+const ChildBinding = Parent.makeBinding(ChildBlock, {
   field: 'child',
 })
 const ParentComposition = Parent.makeComposition({

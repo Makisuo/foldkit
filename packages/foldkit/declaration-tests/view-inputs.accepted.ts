@@ -45,7 +45,7 @@ const DeclarationViewInputsNamespace = Block.makeNamespace(
   'DeclarationViewInputs',
 )
 
-export const Observe = DeclarationViewInputsNamespace.mount('Observe', {
+export const Observe = DeclarationViewInputsNamespace.makeMount('Observe', {
   messages: [ViewInputsMessage.CompletedObserve],
 })
 
@@ -126,7 +126,7 @@ const DeclarationViewInputsParentDefinition = Block.makeDefinition(
   },
 )
 
-export const ChildBinding = DeclarationViewInputsParentDefinition.bindChild(
+export const ChildBinding = DeclarationViewInputsParentDefinition.makeBinding(
   block,
   {
     field: 'child',

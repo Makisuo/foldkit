@@ -9,14 +9,14 @@ const foldLoggedOutOutMessage = ApplicationDefinition.makeOutMessageFold(
   LoggedOutBlock,
   {
     SucceededLogin: ({ session }) =>
-      ApplicationDefinition.step(() => ({
+      ApplicationDefinition.makeStep(() => ({
         model: LoggedInBlock.init(ApplicationRoute.Dashboard(), session).model,
         commands: [SaveSession({ session }), RedirectToDashboard()],
       })),
   },
 )
 
-export const LoggedOutBinding = ApplicationDefinition.bindChild(
+export const LoggedOutBinding = ApplicationDefinition.makeBinding(
   LoggedOutBlock,
   {
     read: model =>

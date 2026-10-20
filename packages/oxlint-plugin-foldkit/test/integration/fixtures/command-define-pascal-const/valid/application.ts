@@ -9,6 +9,6 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-export const FetchUser = ApplicationDefinition.command('FetchUser', {
+export const FetchUser = ApplicationDefinition.makeCommand('FetchUser', {
   messages: [Message.CompletedFetchUser],
 })

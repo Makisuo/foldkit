@@ -25,7 +25,7 @@ type RoutedFlags = Expect<
   Equal<Parameters<typeof renderRouted>, [flags: { readonly status: string }]>
 >
 
-Server.renderToString(ServerRootBlock, {}, { isHydratable: false })
-renderRouted({ status: 'Ready' })
+void Server.renderToString(ServerRootBlock, {}, { isHydratable: false })
+void renderRouted({ status: 'Ready' })
 
 export type Verified = PureRender | RoutedFlags

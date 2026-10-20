@@ -25,7 +25,7 @@ const NarrowServerRootBlock = NarrowServerRootComposition.assembleBlock({
   })),
 })
 const MixedFlagsRoot = isNarrowRoot ? NarrowServerRootBlock : PageBlock
-Server.renderToString(
+void Server.renderToString(
   MixedFlagsRoot,
   // @ts-expect-error The Flags must match every possible root initializer.
   { Flags, routing: {} },
@@ -36,14 +36,14 @@ Server.renderToString(
   },
 )
 
-Server.renderToString(
+void Server.renderToString(
   // @ts-expect-error An Element root cannot supply a server Document view.
   ElementBlock,
   { Flags },
   { flags: { status: 'Ready' }, isHydratable: false },
 )
 
-Server.renderToString(
+void Server.renderToString(
   PageBlock,
   // @ts-expect-error A routed initializer requires the server routing mode.
   { Flags },
@@ -51,7 +51,7 @@ Server.renderToString(
 )
 
 const OtherFlags = Schema.Struct({ count: Schema.Number })
-Server.renderToString(
+void Server.renderToString(
   PageBlock,
   // @ts-expect-error Undefined cannot enable the URL initialization mode.
   { Flags, routing: undefined },
@@ -62,7 +62,7 @@ Server.renderToString(
   },
 )
 
-Server.renderToString(
+void Server.renderToString(
   PageBlock,
   // @ts-expect-error Flags must match the completed root initializer.
   { Flags: OtherFlags, routing: {} },
@@ -70,14 +70,14 @@ Server.renderToString(
 )
 
 const duplicatedBehavior = { init: ServerRootBlock.init }
-Server.renderToString(
+void Server.renderToString(
   ServerRootBlock,
   // @ts-expect-error Host options cannot replace the completed Block initializer.
   duplicatedBehavior,
   { isHydratable: false },
 )
 
-Server.renderToString(
+void Server.renderToString(
   ServerRootBlock,
   // @ts-expect-error A zero-argument initializer cannot opt into URL initialization.
   { routing: {} },

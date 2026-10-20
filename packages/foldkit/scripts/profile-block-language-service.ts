@@ -30,6 +30,7 @@ type SourceDocument = {
   readonly uri: string
   readonly originalText: string
   version: number
+  text: string
 }
 
 type Position = Readonly<{ line: number; character: number }>
@@ -40,7 +41,10 @@ type RequestTargetBase = Readonly<{
 }>
 
 type RequestTargetConfig =
-  | Readonly<{ method: 'textDocument/hover' }>
+  | Readonly<{
+      method: 'textDocument/hover'
+      expectedBinding?: Readonly<{ name: string; owner: string }>
+    }>
   | Readonly<{ method: 'textDocument/definition' }>
   | Readonly<{
       method: 'textDocument/completion'
@@ -54,6 +58,15 @@ type Measurement = Readonly<{
   latencyMs: number
   resultCount: number | undefined
   resultBytes: number
+  resultSha256: string
+  documentVersion?: number
+  sourceSha256?: string
+  diagnosticEvidence?: Readonly<{
+    expected: 'Clean' | 'RouteError'
+    errorCount: number
+    code?: number
+    range?: Readonly<{ start: Position; end: Position }>
+  }>
 }>
 
 type ServerInfo = Readonly<{
@@ -77,6 +90,10 @@ const benchmarkScriptPath = fileURLToPath(import.meta.url)
 const definitionPath = 'packages/website/src/definition.ts'
 const compositionPath = 'packages/website/src/composition/composition.ts'
 const changedUrlPath = 'packages/website/src/update/handleChangedUrl.ts'
+const bindingCall = 'SearchBinding.informRouteChanged()'
+const routeWriter = 'route: () => nextRoute'
+const routeErrorCode = 2322
+const errorSeverity = 1
 const typescriptManifestPath = join(
   packageRoot,
   'node_modules',
@@ -313,10 +330,12 @@ class LspClient {
 
 const document = (relativePath: string): SourceDocument => {
   const path = join(workspaceRoot, relativePath)
+  const originalText = readFileSync(path, 'utf8')
   return {
     uri: pathToFileURL(path).href,
-    originalText: readFileSync(path, 'utf8'),
+    originalText,
     version: 1,
+    text: originalText,
   }
 }
 
@@ -369,6 +388,7 @@ const openDocument = async (
   source: SourceDocument,
   text = source.originalText,
 ): Promise<void> => {
+  source.text = text
   await client.notify('textDocument/didOpen', {
     textDocument: {
       uri: source.uri,
@@ -385,11 +405,51 @@ const changeDocument = async (
   text: string,
 ): Promise<void> => {
   source.version += 1
+  source.text = text
   await client.notify('textDocument/didChange', {
     textDocument: { uri: source.uri, version: source.version },
     contentChanges: [{ text }],
   })
 }
+
+const uniqueOccurrence = (text: string, needle: string): number => {
+  const start = occurrence(text, needle)
+  if (text.includes(needle, start + needle.length)) {
+    return fail(`Workload marker ${needle} occurs more than once.`)
+  }
+  return start
+}
+
+const replaceDocumentRange = async (
+  client: LspClient,
+  source: SourceDocument,
+  start: number,
+  end: number,
+  replacement: string,
+): Promise<void> => {
+  const range = {
+    start: positionAt(source.text, start),
+    end: positionAt(source.text, end),
+  }
+  source.text = `${source.text.slice(0, start)}${replacement}${source.text.slice(end)}`
+  source.version += 1
+  await client.notify('textDocument/didChange', {
+    textDocument: { uri: source.uri, version: source.version },
+    contentChanges: [{ range, text: replacement }],
+  })
+}
+
+const appendNewline = (
+  client: LspClient,
+  source: SourceDocument,
+): Promise<void> =>
+  replaceDocumentRange(
+    client,
+    source,
+    source.text.length,
+    source.text.length,
+    '\n',
+  )
 
 const serverInfoFrom = (response: Response): ServerInfo => {
   const result = response.result
@@ -430,17 +490,49 @@ const initialize = async (
       rootUri,
       capabilities: {
         general: { positionEncodings: ['utf-16'] },
-        workspace: { configuration: true, workspaceFolders: true },
+        workspace: {
+          configuration: true,
+          workspaceFolders: true,
+          diagnostics: { refreshSupport: true },
+        },
         textDocument: {
-          completion: { completionItem: { snippetSupport: false } },
+          completion: { completionItem: { snippetSupport: true } },
           definition: { linkSupport: true },
           hover: { contentFormat: ['markdown', 'plaintext'] },
+          diagnostic: {
+            dynamicRegistration: true,
+            relatedDocumentSupport: false,
+          },
         },
       },
       workspaceFolders: [{ uri: rootUri, name: 'foldkit-monorepo' }],
     },
     timeoutMs,
   )
+  const result = response.result
+  if (
+    !Predicate.isObject(result) ||
+    !Predicate.isObject(result['capabilities'])
+  ) {
+    return fail(`Language server initialize response has no capabilities.`)
+  }
+  const capabilities = result['capabilities']
+  const sync = capabilities['textDocumentSync']
+  const change = Predicate.isObject(sync) ? sync['change'] : sync
+  if (change !== 2) {
+    return fail(
+      `Language server must support incremental document synchronization.`,
+    )
+  }
+  if (
+    capabilities['positionEncoding'] !== undefined &&
+    capabilities['positionEncoding'] !== 'utf-16'
+  ) {
+    return fail(`Language server must use UTF-16 positions.`)
+  }
+  if (!Predicate.isObject(capabilities['diagnosticProvider'])) {
+    return fail(`Language server must advertise pull diagnostics.`)
+  }
   await client.notify('initialized', {})
   return serverInfoFrom(response)
 }
@@ -515,6 +607,17 @@ const validateResult = (
       return fail(`${label} returned no hover contents.`)
     }
 
+    if (target.expectedBinding !== undefined) {
+      const { name, owner } = target.expectedBinding
+      const text = hoverText(result.contents)
+      if (
+        !new RegExp(`${name}:\\s*InitializedBinding<`).test(text) ||
+        !text.includes(`Owner<"${owner}"`) ||
+        new RegExp(`${name}:\\s*(any|unknown|never)(?:\\s|$|\u0060)`).test(text)
+      ) {
+        return fail(`${label} returned an erased or incorrect Binding hover.`)
+      }
+    }
     return undefined
   }
 
@@ -578,6 +681,9 @@ const measure = async (
     latencyMs: globalThis.Number(response.latencyMs.toFixed(3)),
     resultCount: count,
     resultBytes: Buffer.byteLength(serializedResult),
+    resultSha256: sha256(serializedResult),
+    documentVersion: target.source.version,
+    sourceSha256: sha256(target.source.text),
   }
 }
 
@@ -743,19 +849,23 @@ const completionScenario = (timeoutMs: number): Promise<ScenarioResult> =>
     return measurements
   })
 
+const bindingCompletionTarget = (source: SourceDocument): RequestTarget => ({
+  method: 'textDocument/completion',
+  expectedLabels: ['informRouteChanged', 'embedView'],
+  source,
+  position: positionAt(
+    source.text,
+    uniqueOccurrence(source.text, bindingCall) + 'SearchBinding.'.length,
+  ),
+})
+
 const bindingCompletionScenario = (
   timeoutMs: number,
 ): Promise<ScenarioResult> =>
   runScenario(timeoutMs, async client => {
-    const composition = document(compositionPath)
-    const completionText = `${composition.originalText}\nSearchBinding.`
-    await openDocument(client, composition, completionText)
-    const target: RequestTarget = {
-      method: 'textDocument/completion',
-      expectedLabels: ['fold', 'embedView', 'requestOpen'],
-      source: composition,
-      position: positionAt(completionText, completionText.length),
-    }
+    const changedUrl = document(changedUrlPath)
+    const target = bindingCompletionTarget(changedUrl)
+    await openDocument(client, changedUrl)
     const measurements = [
       ...(await measurePair(
         client,
@@ -765,8 +875,9 @@ const bindingCompletionScenario = (
       )),
     ]
 
+    await appendNewline(client, changedUrl)
     measurements.push(
-      ...(await editThenMeasurePair(
+      ...(await measurePair(
         client,
         timeoutMs,
         [
@@ -774,9 +885,218 @@ const bindingCompletionScenario = (
           'bindingCompletion.postWhitespaceWarm',
         ],
         target,
-        `${completionText}\n`,
       )),
     )
+    return measurements
+  })
+
+const diagnosticPosition = (value: unknown): Position => {
+  if (
+    !Predicate.isObject(value) ||
+    !Predicate.isNumber(value['line']) ||
+    !globalThis.Number.isInteger(value['line']) ||
+    value['line'] < 0 ||
+    !Predicate.isNumber(value['character']) ||
+    !globalThis.Number.isInteger(value['character']) ||
+    value['character'] < 0
+  ) {
+    return fail(`Diagnostic has an invalid position.`)
+  }
+  return { line: value['line'], character: value['character'] }
+}
+
+const measureDiagnostic = async (
+  client: LspClient,
+  timeoutMs: number,
+  label: string,
+  source: SourceDocument,
+  expected: 'Clean' | 'RouteError',
+): Promise<Measurement> => {
+  const response = await client.request(
+    'textDocument/diagnostic',
+    { textDocument: { uri: source.uri } },
+    timeoutMs,
+  )
+  const { result } = response
+  if (
+    !Predicate.isObject(result) ||
+    result['kind'] !== 'full' ||
+    !globalThis.Array.isArray(result['items'])
+  ) {
+    return fail(`${label} did not return a full diagnostic report.`)
+  }
+  const diagnostics: ReadonlyArray<unknown> = result['items']
+  const errors = diagnostics.filter(
+    diagnostic =>
+      Predicate.isObject(diagnostic) &&
+      diagnostic['severity'] === errorSeverity,
+  )
+  const routeStart = positionAt(
+    source.text,
+    uniqueOccurrence(source.text, 'route: () => '),
+  )
+  const routeEnd = {
+    line: routeStart.line,
+    character: routeStart.character + 'route'.length,
+  }
+  const maybeRouteError = EffectArray.findFirst(errors, diagnostic => {
+    if (
+      !Predicate.isObject(diagnostic) ||
+      diagnostic['code'] !== routeErrorCode ||
+      !Predicate.isString(diagnostic['message']) ||
+      !/number/.test(diagnostic['message']) ||
+      !/assignable/.test(diagnostic['message']) ||
+      !Predicate.isObject(diagnostic['range'])
+    ) {
+      return false
+    }
+    const start = diagnosticPosition(diagnostic['range']['start'])
+    const end = diagnosticPosition(diagnostic['range']['end'])
+    return (
+      start.line === routeStart.line &&
+      start.character === routeStart.character &&
+      end.line === routeEnd.line &&
+      end.character === routeEnd.character
+    )
+  })
+  if (expected === 'Clean' && EffectArray.isArrayNonEmpty(errors)) {
+    return fail(`${label} retained errors: ${JSON.stringify(errors)}.`)
+  }
+  if (expected === 'RouteError' && Option.isNone(maybeRouteError)) {
+    return fail(
+      `${label} did not report TS${routeErrorCode} at the route property.`,
+    )
+  }
+  const diagnosticEvidence = Option.match(maybeRouteError, {
+    onNone: () => ({ expected, errorCount: errors.length }),
+    onSome: diagnostic => {
+      if (
+        !Predicate.isObject(diagnostic) ||
+        !Predicate.isObject(diagnostic['range'])
+      ) {
+        return fail(`${label} has no diagnostic range.`)
+      }
+      return {
+        expected,
+        errorCount: errors.length,
+        code: routeErrorCode,
+        range: {
+          start: diagnosticPosition(diagnostic['range']['start']),
+          end: diagnosticPosition(diagnostic['range']['end']),
+        },
+      }
+    },
+  })
+  const serializedResult =
+    JSON.stringify(result) ?? fail(`${label} returned no JSON result.`)
+  return {
+    label,
+    latencyMs: globalThis.Number(response.latencyMs.toFixed(3)),
+    resultCount: diagnostics.length,
+    resultBytes: Buffer.byteLength(serializedResult),
+    resultSha256: sha256(serializedResult),
+    documentVersion: source.version,
+    sourceSha256: sha256(source.text),
+    diagnosticEvidence,
+  }
+}
+
+const changedUrlWorkflowScenario = (
+  timeoutMs: number,
+): Promise<ScenarioResult> =>
+  runScenario(timeoutMs, async client => {
+    const changedUrl = document(changedUrlPath)
+    const bindingStart = uniqueOccurrence(changedUrl.text, bindingCall)
+    uniqueOccurrence(changedUrl.text, routeWriter)
+    const target: RequestTarget = {
+      method: 'textDocument/hover',
+      expectedBinding: { name: 'SearchBinding', owner: 'Search' },
+      source: changedUrl,
+      position: positionAt(changedUrl.text, bindingStart + 'Search'.length),
+    }
+    await openDocument(client, changedUrl)
+    const measurements = [
+      ...(await measurePair(
+        client,
+        timeoutMs,
+        ['changedUrl.hover.first', 'changedUrl.hover.warm'],
+        target,
+      )),
+    ]
+
+    await appendNewline(client, changedUrl)
+    measurements.push(
+      ...(await measurePair(
+        client,
+        timeoutMs,
+        [
+          'changedUrl.hover.postWhitespace',
+          'changedUrl.hover.postWhitespaceWarm',
+        ],
+        target,
+      )),
+      await measureDiagnostic(
+        client,
+        timeoutMs,
+        'changedUrl.diagnostics.clean',
+        changedUrl,
+        'Clean',
+      ),
+    )
+
+    const routeValueStart =
+      uniqueOccurrence(changedUrl.text, routeWriter) + 'route: () => '.length
+    await replaceDocumentRange(
+      client,
+      changedUrl,
+      routeValueStart,
+      routeValueStart + 'nextRoute'.length,
+      '1709',
+    )
+    measurements.push(
+      await measureDiagnostic(
+        client,
+        timeoutMs,
+        'changedUrl.diagnostics.badRoute',
+        changedUrl,
+        'RouteError',
+      ),
+    )
+
+    const invalidValueStart =
+      uniqueOccurrence(changedUrl.text, 'route: () => 1709') +
+      'route: () => '.length
+    await replaceDocumentRange(
+      client,
+      changedUrl,
+      invalidValueStart,
+      invalidValueStart + '1709'.length,
+      'nextRoute',
+    )
+    measurements.push(
+      await measureDiagnostic(
+        client,
+        timeoutMs,
+        'changedUrl.diagnostics.restored',
+        changedUrl,
+        'Clean',
+      ),
+      ...(await measurePair(
+        client,
+        timeoutMs,
+        ['changedUrl.hover.postRestore', 'changedUrl.hover.postRestoreWarm'],
+        target,
+      )),
+      await measure(
+        client,
+        timeoutMs,
+        'changedUrl.completion.postRestoreWarm',
+        bindingCompletionTarget(changedUrl),
+      ),
+    )
+    if (changedUrl.text !== `${changedUrl.originalText}\n`) {
+      return fail(`Changed URL workflow did not restore the original source.`)
+    }
     return measurements
   })
 
@@ -927,6 +1247,9 @@ const main = async (): Promise<void> => {
     const definition = await definitionScenario(options.timeoutMs)
     const completion = await completionScenario(options.timeoutMs)
     const bindingCompletion = await bindingCompletionScenario(options.timeoutMs)
+    const changedUrlWorkflow = await changedUrlWorkflowScenario(
+      options.timeoutMs,
+    )
     serverInfo ??= hover.serverInfo
     const expectedServer = serverInfo
 
@@ -935,6 +1258,7 @@ const main = async (): Promise<void> => {
       definition.serverInfo,
       completion.serverInfo,
       bindingCompletion.serverInfo,
+      changedUrlWorkflow.serverInfo,
     ]
     if (
       scenarioInfos.some(
@@ -955,6 +1279,7 @@ const main = async (): Promise<void> => {
         ...definition.measurements,
         ...completion.measurements,
         ...bindingCompletion.measurements,
+        ...changedUrlWorkflow.measurements,
       ],
     })
   }
@@ -968,7 +1293,7 @@ const main = async (): Promise<void> => {
 
   const output = {
     metadata: {
-      formatVersion: 1,
+      formatVersion: 2,
       measuredAt: new Date().toISOString(),
       sourceCommit,
       sourceWorkloadDirty,
@@ -983,6 +1308,9 @@ const main = async (): Promise<void> => {
       architecture: process.arch,
       runs: options.runs,
       timeoutMs: options.timeoutMs,
+      completionSnippetSupport: true,
+      documentChangeMode:
+        'Incremental ranges for Binding and changed URL workflows',
     },
     workload: {
       hoverFirst: `${definitionPath}#ApplicationDefinition`,
@@ -991,7 +1319,14 @@ const main = async (): Promise<void> => {
         readFileSync(join(workspaceRoot, compositionPath), 'utf8'),
       )}`,
       completion: `${changedUrlPath}#previousRoute.`,
-      bindingCompletion: `${compositionPath}#SearchBinding.`,
+      bindingCompletion: `${changedUrlPath}#SearchBinding.|informRouteChanged()`,
+      changedUrlHover: `${changedUrlPath}#SearchBinding at informRouteChanged()`,
+      changedUrlDiagnostics: {
+        source: changedUrlPath,
+        edit: 'route: () => nextRoute becomes route: () => 1709, then restores nextRoute',
+        expectedErrorCode: routeErrorCode,
+        mode: 'Full pull diagnostics without previousResultId',
+      },
     },
     summary: summarize(runs),
     runs,

@@ -50,18 +50,42 @@ node packages/foldkit/scripts/profile-block-language-service.ts --runs 5 > /tmp/
 ```
 
 The benchmark starts a fresh pinned native TypeScript language server for each
-Website hover, go-to-definition, Route completion, and Binding member
-completion scenario. The Binding scenario requests members on
-`SearchBinding` and verifies `fold`, `embedView`, and `requestOpen`. The
-benchmark records first, warm, post-whitespace, and post-semantic-edit requests
-where applicable. Its JSON output includes raw samples, medians, the source
-commit and dirty state, a hash of the Website and mapped workspace TypeScript
-sources, workspace declarations and declaration maps, package manifests, TypeScript configuration,
-and lockfile, plus separate lockfile and benchmark-script hashes and the
-compiler, server, Node, and platform versions. Set `--timeout-ms` when profiling
-a graph that legitimately takes longer than the default 60 seconds. Missing or
-empty hover contents, definitions, server identity, or expected completion
-labels fail the run instead of recording an artificially fast response.
+Website hover, go-to-definition, Route completion, Binding member completion,
+and changed URL workflow scenario. Route completion retains the narrowed
+`previousRoute.` query. Binding completion uses valid
+`packages/website/src/update/handleChangedUrl.ts`, placing the cursor after
+`SearchBinding.` in `SearchBinding.informRouteChanged()` and requiring
+`informRouteChanged` and `embedView`. It records first and warm requests before
+and after a ranged newline edit.
+
+The changed URL workflow hovers `SearchBinding` at that call, repeats the hover
+after a ranged newline edit, and pulls a full clean diagnostic report. It then
+replaces only `nextRoute` in `route: () => nextRoute` with `1709`, requires an
+error with code 2322 whose range is exactly the `route` property, restores
+`nextRoute`, and requires a full report with no errors. Hover requests after restored diagnostics
+measure the first and warm query costs separately; the final completion is
+explicitly warm. All edits stay in server memory, and the workflow verifies that
+the source returns to its original text plus the deliberate newline.
+
+The client advertises snippet support and pull diagnostics, requires incremental
+synchronization and UTF-16 positions, and returns null workspace configuration
+sections to select server defaults. This protocol profile and the moved Binding
+completion site are recorded in format version 2; compare measurements only when
+these workload settings match. Existing hover and definition scenarios also
+record post-whitespace and post-semantic-edit requests where applicable.
+
+JSON output includes raw samples, medians, full response hashes, document versions
+and content hashes, diagnostic validation evidence, the source commit and dirty state, and a hash of
+the Website and mapped workspace TypeScript sources, workspace declarations and
+declaration maps, package manifests, TypeScript configuration, and lockfile. It
+also records separate lockfile and benchmark-script hashes and the compiler,
+server, Node, and platform versions. Set `--timeout-ms` when profiling a graph
+that legitimately takes longer than the default 60 seconds. Missing or empty
+hover contents, definitions, server identity, or expected completion labels fail
+the run. The actual-file Binding hover requires `InitializedBinding` with the `Search`
+Owner and rejects a direct `any`, `unknown`, or `never` type. Missing route errors
+or errors remaining after restoration fail instead of recording an
+artificially fast response.
 
 The benchmark has no CI latency threshold. Run baseline and candidate samples
 on the same idle host and compare their metadata before comparing medians.

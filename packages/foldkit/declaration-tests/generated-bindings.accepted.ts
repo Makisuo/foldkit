@@ -177,7 +177,7 @@ export const GeneratedBindingParentComposition =
   })
 export const applyGeneratedOperation = GeneratedBindingParentDefinition.step(
   () =>
-    Update.combine([
+    Update.combineSteps([
       GeneratedBindingParentDefinition.stepNoop(),
       StatusBinding.requestToggle(),
     ]),

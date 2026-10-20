@@ -43,7 +43,7 @@ const initRoomInstance = (roomId: string) =>
   )
 
 const enterJoinedRoom = (roomId: string, player: typeof Shared.Player.Type) =>
-  Update.combine([
+  Update.combineSteps([
     initRoomInstance(roomId),
     RoomBinding.informJoined(roomId, { player }, { roomId }),
     navigateToRoom(roomId),

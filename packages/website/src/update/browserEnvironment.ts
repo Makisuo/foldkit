@@ -58,7 +58,7 @@ export const handleCompletedLoadBrowserEnvironment = ApplicationDefinition.step(
       })
     })
 
-    return Update.combine([
+    return Update.combineSteps([
       applyBrowserEnvironment,
       PlaygroundBinding.informSupport({ isSupported: isPlaygroundSupported }),
       initUiPages,

@@ -80,7 +80,7 @@ under `operations` when public inputs need mapping, refinement, defaults, or an
 exact context tuple. Both forms pass their Message through update synchronously
 as part of the pure transition; they do not enqueue another Runtime Message.
 Use `InformedOf*` for parent notifications and `Requested*` for requested
-actions. `Update.combine` accepts unary Steps, so wrap a contextual curried
+actions. `Update.combineSteps` accepts unary Steps, so wrap a contextual curried
 update in a unary adapter that supplies every required context argument.
 
 Parent-facing operation names describe the communication: `requestCloseMenu` produces `Message.RequestedCloseMenu`, `informJoined` produces `Message.InformedOfJoin`, and `informRouteChanged` produces `Message.InformedOfRouteChange`. Use `request*` for actions and `inform*` for notifications. Both enter child update; avoid silent `reflect*` Model synchronization. Keep an actual UI fact separate when it represents a different event.

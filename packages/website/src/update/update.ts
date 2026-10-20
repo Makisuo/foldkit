@@ -59,7 +59,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
     }),
 
     ClickedOpenMobileMenu: () =>
-      Update.combine(model, [
+      Update.combineSteps(model, [
         MobileMenuDialogBinding.requestOpen(),
         stepModel => ({
           model: stepModel,

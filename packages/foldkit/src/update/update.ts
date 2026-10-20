@@ -672,7 +672,7 @@ type WithOutMessageOutput<Input, OutMessage> =
  *  OutMessage that an update already emitted.
  *
  *  ```ts
- *  const editorSave = Update.combine(model, [writeDraft, clearErrors])
+ *  const editorSave = Update.combineSteps(model, [writeDraft, clearErrors])
  *
  *  return pipe(editorSave, Update.withOutMessage(outMessage))
  *  ```
@@ -721,7 +721,7 @@ export const withOutMessage: {
 )
 
 /** One self-contained edit to the Model paired with the Commands to run:
- *  the unit {@link combine} composes. A step that needs arguments is a
+ *  the unit {@link combineSteps} composes. A step that needs arguments is a
  *  function returning a Step
  *  (`(noteId: NoteId) => Update.Step<Model, Message>`). */
 export type Step<Model, Message, R = never> = (
@@ -857,18 +857,18 @@ type CombinedStepRecipe<
  * or completion.
  *
  * Dual: call it data-first with the Model to run the Steps now
- * (`combine(model, steps)` returns a {@link Return}), or data-last with
+ * (`combineSteps(model, steps)` returns a {@link Return}), or data-last with
  * only the Steps to build a composable {@link Step} that runs later
- * (`combine(steps)`, for a `pipe` or a nested Step list).
+ * (`combineSteps(steps)`, for a `pipe` or a nested Step list).
  *
  * Steps only ever accumulate Commands; a Step cannot cancel or replace
  * another Step's Commands, and no Command runs during the fold. The
- * Runtime runs the batch after update returns. `combine([])` returns
+ * Runtime runs the batch after update returns. `combineSteps([])` returns
  * `{ model }`.
  *
  * ```ts
  * SucceededUpdateNote: ({ note }) =>
- *   combine(model, [
+ *   combineSteps(model, [
  *     replaceNoteInCaches(note),
  *     refreshNote(note.id),
  *     refreshAllNotes,
@@ -878,7 +878,7 @@ type CombinedStepRecipe<
  *   ])
  * ```
  */
-export const combine: {
+export const combineSteps: {
   <const Steps extends NonEmptySteps>(
     steps: Steps &
       StepsForModel<Steps, OperationStepModel<Steps>> &
@@ -1258,7 +1258,7 @@ export type FoldContext<
  *    {@link Step}. The Step receives the parent Model with the child
  *    already written back, and its Commands follow the child's in the
  *    returned batch. Match on the OutMessage tag through its union matcher,
- *    and build a multi-step fold with {@link combine}. Takes an optional
+ *    and build a multi-step fold with {@link combineSteps}. Takes an optional
  *    second parameter, a
  *    {@link FoldContext} of lifters bound to `toParentMessage`, for a
  *    Command the Step returns whose result is the child's Message. Parent Model
@@ -1422,7 +1422,7 @@ type AnyChildFold = Readonly<{
 /** The dual function {@link foldChild} returns. Data-first runs the
  *  fold now (`fold(model, input)` returns a {@link Return}); data-last
  *  builds a composable {@link Step} (`fold(input)`, for
- *  {@link combine}). */
+ *  {@link combineSteps}). */
 export type Fold<ParentModel, ParentMessage, Input, R = never> = {
   (model: ParentModel, input: Input): Return<ParentModel, ParentMessage, R>
   (input: Input): Step<ParentModel, ParentMessage, R>
@@ -1493,12 +1493,12 @@ export type FoldWithOutMessage<
  *  {@link foldChildStep}, which returns the {@link Step} directly.
  *
  *  `update` closes over per-dispatch context, and the data-last form
- *  composes with {@link combine}, here to put a navigation Command ahead
+ *  composes with {@link combineSteps}, here to put a navigation Command ahead
  *  of the child's:
  *
  *  ```ts
  *  const enterJoinedRoom = (roomId: string, player: Player): UpdateStep =>
- *    Update.combine([
+ *    Update.combineSteps([
  *      model => ({ model, commands: [NavigateToRoom({ roomId })] }),
  *      Update.foldChild({
  *        update: (room: Room.Model, joinedPlayer: Player) =>
@@ -1622,7 +1622,7 @@ export const foldChild: {
 
 /** {@link Fold} for one child addressed by key. Data-first runs the fold
  * now (`fold(model, key, input)`). Data-last builds a composable
- * {@link Step} (`fold(key, input)`, for {@link combine}). */
+ * {@link Step} (`fold(key, input)`, for {@link combineSteps}). */
 export type FoldAt<ParentModel, ParentMessage, Key, Input, R = never> = {
   (
     model: ParentModel,
@@ -1833,7 +1833,7 @@ type AnyKeyedChildFold = Readonly<{
  * `writeAt` use the key to find and replace the child Model.
  * `toParentMessage` receives the key when wrapping child Messages. The returned
  * {@link FoldAt} runs data-first as `fold(model, key, input)` and data-last
- * as `fold(key, input)` for {@link combine}.
+ * as `fold(key, input)` for {@link combineSteps}.
  *
  * When `readAt` returns `None` for the key, the fold returns `{ model }`.
  *
@@ -2268,7 +2268,7 @@ type AnyChildStepFold = Readonly<{
  *  child already written back.
  *
  *  Reach for it wherever a Block exposes a no-argument entry point, so the
- *  call site composes with {@link combine} as a plain Step and never invents
+ *  call site composes with {@link combineSteps} as a plain Step and never invents
  *  an input the child does not take:
  *
  *  ```ts
@@ -2281,7 +2281,7 @@ type AnyChildStepFold = Readonly<{
  *  })
  *
  *  // in the parent update
- *  Update.combine(model, [writeRouteFields, foldMobileMenuDialogClose])
+ *  Update.combineSteps(model, [writeRouteFields, foldMobileMenuDialogClose])
  *  ```
  *
  *  `foldOutMessage` takes the same optional second parameter as

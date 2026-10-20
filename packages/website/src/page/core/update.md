@@ -48,11 +48,11 @@ Use the curried form for internal Step composition. A Block's `operations` recor
 
 A constructor-backed operation takes one constructor payload object for a constructor with fields, with constructor defaults honored, followed by the update context. An empty-fields constructor takes no payload placeholder. Use a tuple producer under `operations` when the public inputs need mapping, refinement, defaults, or an exact context tuple. Inline tuple producers receive context from `assembleBlock`; use `Tuple.make(Message.Fact(...), ...context)` when extracting one so TypeScript preserves the tuple. Both forms complete through the same update path and use the update function's complete return contract, including its Command requirements and OutMessage type, even when the selected Message branch returns less. Calling a pure operation does not run effects returned by another branch. Keep standalone and Definition-owned Steps for internal composition that does not form part of the Block's public operation API.
 
-The context rule is exact: `update(message)(model, ...context)`. `Update.combine` accepts unary Steps, so an update with required dispatch context needs an explicit unary adapter that supplies that context:
+The context rule is exact: `update(message)(model, ...context)`. `Update.combineSteps` accepts unary Steps, so an update with required dispatch context needs an explicit unary adapter that supplies that context:
 
-::Snippet{name="updateCurriedContext" label="Adapting a contextual update for combine"}
+::Snippet{name="updateCurriedContext" label="Adapting a contextual update for combineSteps"}
 
-`Update.defineStep` does the same inference for a standalone Step producer. Annotate its Model parameter and let the helper infer the returned Command requirements and OutMessage. Author an OutMessage fold with `ParentDefinition.makeOutMessageFold(ChildBlock, handlers)` whether the fold is inline in a Binding policy or extracted to a named value. The completed child and parent Definition supply the child payloads, parent Model, result channels, and `FoldContext`. Callers can compose the returned Steps through `Update.combine` without naming a service union by hand.
+`Update.defineStep` does the same inference for a standalone Step producer. Annotate its Model parameter and let the helper infer the returned Command requirements and OutMessage. Author an OutMessage fold with `ParentDefinition.makeOutMessageFold(ChildBlock, handlers)` whether the fold is inline in a Binding policy or extracted to a named value. The completed child and parent Definition supply the child payloads, parent Model, result channels, and `FoldContext`. Callers can compose the returned Steps through `Update.combineSteps` without naming a service union by hand.
 
 `Update.RequirementsOf<typeof update>` extracts the inferred handler service union from an update. Use it when a parent or exported type needs to name those requirements. Application assembly reads the requirements from the update return type directly.
 
@@ -92,7 +92,7 @@ TypeScript rejects this manual composition when the enclosing update returns `Up
 
 Every Foldkit template enables `exactOptionalPropertyTypes`. With that setting, the optional `commands` property may be absent. When the property is present, it must contain Commands. `dialogOpen.commands` has the type `Update.Commands<Message> | undefined`, so TypeScript rejects `commands: dialogOpen.commands`.
 
-This error often points to update results being composed by hand. When both operations update the same Model, express them as Steps and compose them with `Update.combine`:
+This error often points to update results being composed by hand. When both operations update the same Model, express them as Steps and compose them with `Update.combineSteps`:
 
 ::Snippet{name="updateCombineOpenDialog" label="Composing Update Steps"}
 
@@ -100,7 +100,7 @@ This error often points to update results being composed by hand. When both oper
 
 A child Binding projects `init`, `fold`, and every declared operation. Calling a Binding operation returns a connected parent Step that preserves the child's Message mapping, update-wide Command requirements and OutMessage type, OutMessage policy, and Binding requirement. Its Model input requires the exact registered graph, so typed calls with a raw Model fail. Apply one to the contextual Model inside `makeUpdate`, include it in `makeInit` startup, or return it from the owner's `step` producer. Return or compose the connected result intact: its public type exposes no `.model` or `.commands` before checked execution and cannot be narrowed to a useful `{ model }` return. The raw recipe exposes only channels produced directly by the child transition. `makeUpdate` and `makeInit` resolve the registered OutMessage policy and sibling operations into the final parent Command Message, requirements, and OutMessage channels. Derive an exported parent contract from that Composition-authored update or the completed Block. `Definition.step` preserves or wraps a connected value. A completed `block.operations.operation(model, ...args)` carries its own graph, accepts the raw Block Model, dispatches the produced Message through update, and returns the readable executed result. A keyed Binding prepends its key to the operation arguments. Ordinary internal Steps remain directly callable. TypeScript can erase a function result when assigning it to a method that returns `void`; outside the exact graph, invoking that erased method only constructs and discards passive configuration and executes no child work. Do not treat that structural erasure as a usable execution path or claim that every erasure fails compilation.
 
-The graph requirement is intentional: an ordinary `Model` type says nothing about whether the Dialog Binding and its OutMessage policy are registered. Migrate a helper that accepts a raw Model into a Definition-owned Step, then return that Step from `makeUpdate`, list it in `makeInit`, or compose it with another Step through `Update.combine`.
+The graph requirement is intentional: an ordinary `Model` type says nothing about whether the Dialog Binding and its OutMessage policy are registered. Migrate a helper that accepts a raw Model into a Definition-owned Step, then return that Step from `makeUpdate`, list it in `makeInit`, or compose it with another Step through `Update.combineSteps`.
 
 ::Snippet{name="updateConnectedStepBefore" label="❌ Applying a connected Step to a raw Model"}
 
@@ -108,15 +108,15 @@ The graph requirement is intentional: an ordinary `Model` type says nothing abou
 
 #### Combining Steps
 
-Use `Update.combine` when two or more operations transform the same Model and a later Step should receive the Model produced by an earlier Step. Name that parameter `stepModel` when an inline Step needs it:
+Use `Update.combineSteps` when two or more operations transform the same Model and a later Step should receive the Model produced by an earlier Step. Name that parameter `stepModel` when an inline Step needs it:
 
 ::Snippet{name="updateCombineFoldDialog" label="Composing a child fold and another Step"}
 
 #### Command Order
 
-`combine` collects the Steps' Commands without executing them. The Runtime forks the batch independently, so an application must not depend on the Commands' execution or completion order.
+`combineSteps` collects the Steps' Commands without executing them. The Runtime forks the batch independently, so an application must not depend on the Commands' execution or completion order.
 
-Do not wrap one Step in `Update.combine`; call that operation directly.
+Do not wrap one Step in `Update.combineSteps`; call that operation directly.
 
 ### Combining Child Initialization and Startup Steps {#combining-independent-results}
 

@@ -74,7 +74,7 @@ const update = DragAndDropTestParentComposition.makeUpdate((model, message) =>
         DragAndDropBlock.Message.PressedArrowKey({ direction: 'Right' }),
       ),
     RequestedBothMoves: () =>
-      Update.combine(model, [
+      Update.combineSteps(model, [
         stepModel =>
           LeftBinding.fold(
             stepModel,
@@ -284,7 +284,7 @@ const nestedUpdate = NestedDragAndDropTestParentComposition.makeUpdate(
   (model, message) =>
     NestedMessage.match(message, {
       RequestedBothMoves: () =>
-        Update.combine(model, [
+        Update.combineSteps(model, [
           stepModel =>
             NestedBinding.fold(
               stepModel,

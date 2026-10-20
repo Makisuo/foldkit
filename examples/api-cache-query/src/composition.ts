@@ -28,7 +28,9 @@ const activateTab = (tab: typeof Tab.Type) => {
     Match.exhaustive,
   )
 
-  return ApplicationDefinition.step(() => Update.combine([selectTab, loadTab]))
+  return ApplicationDefinition.step(() =>
+    Update.combineSteps([selectTab, loadTab]),
+  )
 }
 
 export const TabsBinding = ApplicationDefinition.bindChild(AppTabsBlock, {

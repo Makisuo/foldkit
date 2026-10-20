@@ -195,13 +195,13 @@ When composing another update-shaped result, bind the whole result to a value na
 
 Pass optional Commands directly to APIs that accept them, such as `Command.mapMessages(homeInit.commands, toMessage)`. Use `result.commands ?? []` only when the next operation requires a concrete array for spreading, concatenating, execution, or an assertion.
 
-An authored update supports `update(model, message, ...context)` for Runtime dispatch and `update(message)(model, ...context)` as an internal Step. Put the local Message constructor directly under `operations` for a public operation that forwards its payload into that Message. Completion creates the callable operation without constructing a Message. A constructor with fields takes one constructor payload object followed by update context, with constructor defaults honored; an empty-fields constructor takes no payload placeholder. Keep a tuple producer under `operations` when public inputs need mapping, refinement, defaults, or an exact context tuple. Both forms pass the Message through update synchronously as part of the pure transition. Keep standalone Steps for internal Model transformations. Because `Update.combine` accepts unary Steps, adapt an update with required dispatch context through an explicit unary function that supplies that context.
+An authored update supports `update(model, message, ...context)` for Runtime dispatch and `update(message)(model, ...context)` as an internal Step. Put the local Message constructor directly under `operations` for a public operation that forwards its payload into that Message. Completion creates the callable operation without constructing a Message. A constructor with fields takes one constructor payload object followed by update context, with constructor defaults honored; an empty-fields constructor takes no payload placeholder. Keep a tuple producer under `operations` when public inputs need mapping, refinement, defaults, or an exact context tuple. Both forms pass the Message through update synchronously as part of the pure transition. Keep standalone Steps for internal Model transformations. Because `Update.combineSteps` accepts unary Steps, adapt an update with required dispatch context through an explicit unary function that supplies that context.
 
 Parent-facing operation names describe the communication: `requestCloseMenu` produces `Message.RequestedCloseMenu`, `informJoined` produces `Message.InformedOfJoin`, and `informRouteChanged` produces `Message.InformedOfRouteChange`. Use `request*` for actions and `inform*` for notifications. Both enter child update; avoid silent `reflect*` Model synchronization. Keep an actual UI fact separate when it represents a different event.
 
 Each completed operation returns the completed update function's full return contract. If one update branch returns a Command or OutMessage, every operation carries that requirement or optional result in its type even when its own Message reaches a pure branch. Calling a pure operation does not run effects from another branch.
 
-Use `Update.combine` when a later Step should receive the Model produced by an earlier Step. It takes two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly. Name an inline Step parameter `stepModel` when combining several; it receives the Model from the preceding Step. Child composition goes through a registered Binding: connected creation returns a `binding.init({ key?, args, toParentModel, commands? })` recipe, Composition routes generated child envelopes through the Binding fold, and parent-driven operations use `binding.name(...)`. Use `delivery.when`, `delivery.toUpdateContext`, and custom keyed `keySchema` for parent delivery policy. A child whose Message Schema is `Schema.Never` needs no delivery policy.
+Use `Update.combineSteps` when a later Step should receive the Model produced by an earlier Step. It takes two or more Steps. Do not wrap one Step in `Update.combineSteps`; call that operation directly. Name an inline Step parameter `stepModel` when combining several; it receives the Model from the preceding Step. Child composition goes through a registered Binding: connected creation returns a `binding.init({ key?, args, toParentModel, commands? })` recipe, Composition routes generated child envelopes through the Binding fold, and parent-driven operations use `binding.name(...)`. Use `delivery.when`, `delivery.toUpdateContext`, and custom keyed `keySchema` for parent delivery policy. A child whose Message Schema is `Schema.Never` needs no delivery policy.
 
 When the OutMessage is already known while constructing a new result, include it directly: `{ model, commands, outMessage }`. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper: `pipe(dialogClose, Update.withOutMessage(outMessage))`. When constructing the plain return in the same expression, pass it first: `Update.withOutMessage({ model, commands }, outMessage)`.
 
@@ -211,12 +211,12 @@ Keep an ordinary one-way policy as one fluent declaration. For a self-referentia
 
 The module also carries two combinators for handlers that fan out after a mutation succeeds:
 
-- `Update.combine(model, [step, step, ...])` sequences update steps over one Model, threading the Model through and collecting the Commands.
+- `Update.combineSteps(model, [step, step, ...])` sequences update steps over one Model, threading the Model through and collecting the Commands.
 - `Update.refresh({ read, revalidate, write, load })` builds a step that reloads a cache **only when it already holds data**. When a cache is `Idle`, the step returns `{ model }` and does not load it. A `Succeeded*` handler can therefore list every possibly affected cache without fetching caches nobody has opened.
 
 ```ts
 SucceededUpdateNote: ({ note }) =>
-  Update.combine(model, [
+  Update.combineSteps(model, [
     replaceNoteInCaches(note),
     refreshNote(note.id),
     refreshAllNotes,

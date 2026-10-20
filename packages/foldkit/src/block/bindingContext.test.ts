@@ -386,7 +386,7 @@ describe('bound Step sequencing', () => {
       bindings: [SequencedCounterBinding],
     })
     const update = SequencedComposition.makeUpdate(model =>
-      Update.combine(model, [
+      Update.combineSteps(model, [
         SequencedCounterBinding.add(2),
         SequencedCounterBinding.record(),
         SequencedCounterBinding.multiply(3),

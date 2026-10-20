@@ -68,7 +68,7 @@ const ToastFixtureParentComposition =
     bindings: [LeftToastBinding, RightToastBinding, OtherToastBinding],
   })
 
-const requestShowAll = Update.combine([
+const requestShowAll = Update.combineSteps([
   LeftToastBinding.requestShow({
     payload: { body: 'Left' },
     duration: 100,

@@ -402,7 +402,7 @@ const internalUpdate =
 
     const openMenu = (baseModel: Model) => {
       if (model.isAnimated) {
-        return Update.combine([
+        return Update.combineSteps([
           MenuDefinition.step(() => ({
             model: baseModel,
             commands: openCommands,
@@ -433,7 +433,7 @@ const internalUpdate =
       if (model.isAnimated) {
         return MenuDefinition.step(() =>
           Function.compose(
-            Update.combine([
+            Update.combineSteps([
               MenuDefinition.step(() => ({ model: closed, commands })),
               animationBinding.requestHide(),
             ]),
@@ -597,7 +597,7 @@ const internalUpdate =
           if (model.isAnimated) {
             return MenuDefinition.step(() =>
               Function.compose(
-                Update.combine([
+                Update.combineSteps([
                   MenuDefinition.step(() => ({
                     model: closed,
                     commands: closeWithFocusCommands,

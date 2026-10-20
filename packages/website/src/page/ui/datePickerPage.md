@@ -139,7 +139,7 @@ Messages emitted to the parent through the optional `outMessage` field. Handle t
 
 ### Programmatic Helpers
 
-These child entry points let a parent request a controlled selection, focus change, open, or close, and inform the DatePicker when constraints derived from other Model state change. Each Binding call returns a connected parent Step, so return it from the parent handler or compose it with `Update.combine`. Every child Model change then runs through DatePicker update.
+These child entry points let a parent request a controlled selection, focus change, open, or close, and inform the DatePicker when constraints derived from other Model state change. Each Binding call returns a connected parent Step, so return it from the parent handler or compose it with `Update.combineSteps`. Every child Model change then runs through DatePicker update.
 
 The four `inform*Changed` operations implement cross-field date validation. Constraints are set at init time and updated through `InformedOf*Change` Messages. They do not live in ViewInputs, because update needs them for keyboard-navigation disabled-skipping and commit-time validation. For an end date that must be on or after a start date, call `EndDatePickerBinding.informMinDateChanged(maybeStartDate)` in the parent handler that processes the start date change. The notification branch returns `{ model }` and does not echo an OutMessage.
 

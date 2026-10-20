@@ -201,7 +201,7 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
 
 const foldRoomOutMessage = ApplicationDefinition.makeOutMessageFold(RoomBlock, {
   LeftRoom: () =>
-    Update.combine([
+    Update.combineSteps([
       ApplicationDefinition.step(model => ({
         model: Struct.modifyFields(model, {
           route: () => ApplicationRoute.Home(),
@@ -218,7 +218,7 @@ export const HomeBinding = ApplicationDefinition.bindChild(HomeBlock, {
 }).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(HomeBlock, {
     JoinedRoom: ({ roomId, username }) => {
-      return Update.combine([
+      return Update.combineSteps([
         ApplicationDefinition.step(model =>
           RoomBinding.init({
             key: roomId,

@@ -179,7 +179,7 @@ const incrementAgain = CounterDefinition.step((model, amount: number) => ({
   model: modifyFields(model, { count: count => count + amount }),
 }))
 
-const combined = Update.combine(Model.make({ count: 0 }), [
+const combined = Update.combineSteps(Model.make({ count: 0 }), [
   changedCountStep,
   stepModel => incrementAgain(stepModel, 3),
 ])
@@ -271,7 +271,7 @@ type RequiredCurriedParameters = Expect<
   >
 >
 
-const requiredCombined = Update.combine(Model.make({ count: 0 }), [
+const requiredCombined = Update.combineSteps(Model.make({ count: 0 }), [
   stepModel =>
     requiredContextUpdate(changedCount)(stepModel, { multiplier: 2 }),
   stepModel => incrementAgain(stepModel, 1),
@@ -318,9 +318,13 @@ const requiredRestContextUpdate = ContextualComposition.makeUpdate(
   }),
 )
 
-Update.combine(Model.make({ count: 0 }), [optionalContextUpdate(changedCount)])
-Update.combine(Model.make({ count: 0 }), [defaultContextUpdate(changedCount)])
-Update.combine(Model.make({ count: 0 }), [restContextUpdate(changedCount)])
+Update.combineSteps(Model.make({ count: 0 }), [
+  optionalContextUpdate(changedCount),
+])
+Update.combineSteps(Model.make({ count: 0 }), [
+  defaultContextUpdate(changedCount),
+])
+Update.combineSteps(Model.make({ count: 0 }), [restContextUpdate(changedCount)])
 
 requiredRestContextUpdate(changedCount)(Model.make({ count: 0 }), {
   multiplier: 2,
@@ -519,7 +523,7 @@ const countParentUpdate = ParentDefinition.step(model => ({
   model: modifyFields(model, { updates: updates => updates + 1 }),
 }))
 
-const graphCombined = Update.combine(parentModel, [
+const graphCombined = Update.combineSteps(parentModel, [
   parentUpdate(parentMessage),
   countParentUpdate,
 ])
@@ -529,7 +533,7 @@ const ParentBlock = ParentComposition.assembleBlock({
   update: parentUpdate,
 })
 const completedParentStep = ParentBlock.update(parentMessage)
-const completedGraphCombined = Update.combine(parentModel, [
+const completedGraphCombined = Update.combineSteps(parentModel, [
   completedParentStep,
   countParentUpdate,
 ])

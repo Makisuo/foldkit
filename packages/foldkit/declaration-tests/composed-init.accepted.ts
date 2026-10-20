@@ -37,7 +37,7 @@ export const prepare = ComposedInitDefinition.step(model => ({
   commands: [Prepare()],
 }))
 export const prepareTogether = ComposedInitDefinition.step(() =>
-  Update.combine([ChildBinding.requestReadCount(), prepare]),
+  Update.combineSteps([ChildBinding.requestReadCount(), prepare]),
 )
 export const init = ComposedInitComposition.makeInit((isReady: boolean) => ({
   model: { isReady },

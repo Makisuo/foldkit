@@ -30,4 +30,4 @@ const countRefresh = ContextualRefreshDefinition.stepFields(() => ({
 }))
 
 export const requestRefresh = (model: typeof Model.Type) =>
-  Update.combine(model, [refresh, countRefresh])
+  Update.combineSteps(model, [refresh, countRefresh])

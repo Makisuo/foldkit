@@ -294,7 +294,7 @@ const closeDialogModel = DialogDefinition.stepFields(() => ({
   isOpen: () => false,
 }))
 const resetToClosed = DialogDefinition.step(() =>
-  Update.combine([closeDialogModel, resetAnimationImmediately]),
+  Update.combineSteps([closeDialogModel, resetAnimationImmediately]),
 )
 
 const DialogComposition = DialogDefinition.makeComposition({
@@ -325,7 +325,7 @@ export const update = DialogComposition.makeUpdate((model, message) =>
         () => wasClosed,
       )
       const dialogOpen = model.isAnimated
-        ? Update.combine(model, [
+        ? Update.combineSteps(model, [
             DialogDefinition.step(stepModel => ({
               model: stepModel,
               commands,
@@ -347,7 +347,7 @@ export const update = DialogComposition.makeUpdate((model, message) =>
 
       const wasOpen = model.isOpen
       if (model.isAnimated) {
-        const dialogClose = Update.combine(model, [
+        const dialogClose = Update.combineSteps(model, [
           closeDialogModel,
           AnimationBinding.requestHide(),
         ])
@@ -372,7 +372,7 @@ export const update = DialogComposition.makeUpdate((model, message) =>
 
     Unmounted: () => {
       if (isOpenOrAnimating(model)) {
-        return Update.combine(model, [
+        return Update.combineSteps(model, [
           resetToClosed,
           DialogDefinition.step(stepModel => ({
             model: stepModel,

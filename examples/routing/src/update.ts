@@ -55,7 +55,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
         Match.orElse(() => []),
       )
 
-      return Update.combine(model, [setRoute(nextRoute), ...routeSteps])
+      return Update.combineSteps(model, [setRoute(nextRoute), ...routeSteps])
     },
 
     EnteredNavigationShortcut: ({ shortcut }) => {

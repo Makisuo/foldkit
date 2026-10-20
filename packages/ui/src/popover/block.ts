@@ -358,7 +358,7 @@ const internalUpdate = (model: Model, message: AuthoredMessage) => {
     if (model.isAnimated) {
       return PopoverDefinition.step(() =>
         Function.compose(
-          Update.combine([
+          Update.combineSteps([
             PopoverDefinition.step(() => ({
               model: baseModel,
               commands: openCommands,
@@ -391,7 +391,7 @@ const internalUpdate = (model: Model, message: AuthoredMessage) => {
     if (model.isAnimated) {
       return PopoverDefinition.step(() =>
         Function.compose(
-          Update.combine([
+          Update.combineSteps([
             PopoverDefinition.step(() => ({ model: closed, commands })),
             AnimationBinding.requestHide(),
           ]),
@@ -436,7 +436,7 @@ const internalUpdate = (model: Model, message: AuthoredMessage) => {
           if (model.isAnimated) {
             return PopoverDefinition.step(() =>
               Function.compose(
-                Update.combine([
+                Update.combineSteps([
                   PopoverDefinition.step(() => ({
                     model: closed,
                     commands: closeWithFocusCommands,

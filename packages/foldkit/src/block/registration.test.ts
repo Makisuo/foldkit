@@ -136,7 +136,7 @@ const registeredCombinedStep = RegisteredParent.assembleBlock({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
   update: RegisteredParent.makeUpdate(model =>
-    Update.combine(model, [ChildBinding.reset()]),
+    Update.combineSteps(model, [ChildBinding.reset()]),
   ),
   EffectsLayer: Layer.empty,
 })
@@ -147,14 +147,14 @@ const omittedCombinedStep = OmittedParent.assembleBlock({
   })),
   update: OmittedParent.makeUpdate(model =>
     // @ts-expect-error combine cannot execute a child Step without its registered Binding.
-    Update.combine(model, [ChildBinding.reset()]),
+    Update.combineSteps(model, [ChildBinding.reset()]),
   ),
   EffectsLayer: Layer.empty,
 })
 
 const dynamicChildSteps = Array.map([ChildBinding.reset()], step => step)
 const registeredDynamicCombinedUpdate = RegisteredParent.makeUpdate(model =>
-  Update.combine(model, dynamicChildSteps),
+  Update.combineSteps(model, dynamicChildSteps),
 )
 const registeredDynamicCombinedStep = RegisteredParent.assembleBlock({
   init: RegisteredParent.makeInit(() => ({
@@ -164,7 +164,7 @@ const registeredDynamicCombinedStep = RegisteredParent.assembleBlock({
   EffectsLayer: Layer.empty,
 })
 // @ts-expect-error A computed Step list cannot execute without its registered Binding.
-OmittedParent.makeUpdate(model => Update.combine(model, dynamicChildSteps))
+OmittedParent.makeUpdate(model => Update.combineSteps(model, dynamicChildSteps))
 const omittedDynamicCombinedStep = OmittedParent.assembleBlock({
   init: OmittedParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
@@ -449,7 +449,7 @@ const registeredKeyedCombinedStep = RegisteredKeyedParent.assembleBlock({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
   update: RegisteredKeyedParent.makeUpdate(model =>
-    Update.combine(model, [ChildrenBinding.reset(0)]),
+    Update.combineSteps(model, [ChildrenBinding.reset(0)]),
   ),
   EffectsLayer: Layer.empty,
 })
@@ -460,7 +460,7 @@ const omittedKeyedCombinedStep = OmittedKeyedParent.assembleBlock({
   })),
   update: OmittedKeyedParent.makeUpdate(model =>
     // @ts-expect-error combine cannot execute a keyed child Step without its registered Binding.
-    Update.combine(model, [ChildrenBinding.reset(0)]),
+    Update.combineSteps(model, [ChildrenBinding.reset(0)]),
   ),
   EffectsLayer: Layer.empty,
 })

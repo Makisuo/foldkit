@@ -490,7 +490,7 @@ export const makeUpdate = <
       if (didClose && model.isAnimated) {
         return step(() =>
           Function.compose(
-            Update.combine([
+            Update.combineSteps([
               step(() => ({ model: nextModel, commands })),
               AnimationBinding.requestHide(),
             ]),
@@ -508,7 +508,7 @@ export const makeUpdate = <
 
     const openCombobox = (baseModel: Model) => {
       if (model.isAnimated) {
-        return Update.combine([
+        return Update.combineSteps([
           step(() => ({ model: baseModel, commands: openCommands })),
           AnimationBinding.requestShow(),
           stepFields(() => ({ isOpen: () => true })),
@@ -536,7 +536,7 @@ export const makeUpdate = <
       if (model.isAnimated) {
         return step(() =>
           Function.compose(
-            Update.combine([
+            Update.combineSteps([
               step(() => ({ model: comboboxClose.model, commands })),
               AnimationBinding.requestHide(),
             ]),
@@ -744,7 +744,7 @@ export const makeUpdate = <
           })
 
           if (model.isAnimated) {
-            return Update.combine([
+            return Update.combineSteps([
               step(() => ({ model: toggledModel, commands: [focusInput] })),
               step(stepModel => ({ model: stepModel, commands: openCommands })),
               AnimationBinding.requestShow(),

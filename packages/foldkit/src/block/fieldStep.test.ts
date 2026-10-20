@@ -65,7 +65,7 @@ it('combines ordinary field Steps sequentially for Blocks and Applications', () 
     label: 'Example',
     status: 'Idle',
   })
-  const update = Update.combine([
+  const update = Update.combineSteps([
     FieldStepsDefinition.stepFields(() => ({ count: Number.increment })),
     ApplicationDefinition.stepFields(model => ({
       label: () => `${model.count}`,

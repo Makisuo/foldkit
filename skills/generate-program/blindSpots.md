@@ -114,7 +114,7 @@ OutMessage-producing, connected Binding, initialization, delegated, conditional,
 and composed results stay on `FeatureDefinition.step`. Do not construct and
 immediately invoke one of these helpers in an ordinary update branch.
 
-When several operations update the same Model in sequence, use `Update.combine`. Initialize each child through its registered Binding recipe so Composition assembles the parent Model and mapped Commands.
+When several operations update the same Model in sequence, use `Update.combineSteps`. Initialize each child through its registered Binding recipe so Composition assembles the parent Model and mapped Commands.
 
 ### `duplicate-foldkit-module-instance`
 
@@ -128,7 +128,7 @@ Orchestrators mixing "decide what to do" with "do it." Helpers whose `if` branch
 
 ### `manual-cache-orchestration`
 
-Handlers that hand-thread several cache writes and refetches after a mutation succeeds. `Update.combine(model, [step, step, ...])` sequences update steps over one Model, and `Update.refresh({ read, revalidate, write, load })` builds a step that reloads a cache only when it actually holds data. A `Succeeded*` handler doing this by hand with nested `modifyFields` calls and conditional Command arrays should use them.
+Handlers that hand-thread several cache writes and refetches after a mutation succeeds. `Update.combineSteps(model, [step, step, ...])` sequences update steps over one Model, and `Update.refresh({ read, revalidate, write, load })` builds a step that reloads a cache only when it actually holds data. A `Succeeded*` handler doing this by hand with nested `modifyFields` calls and conditional Command arrays should use them.
 
 ## Naming
 
@@ -160,7 +160,7 @@ Mixing `items.map(f)` and `Array.map(items, f)` in the same file. Mixing `Option
 
 ### `stuttery-modifyFields-setters`
 
-A `modifyFields` setter that only transforms that same field should be point-free: `selectedEntryIds: Array.filter(id => id !== removedEntryId)` or `count: Number.increment`. Flag `selectedEntryIds: () => Array.filter(model.selectedEntryIds, id => id !== removedEntryId)` and friends. Replacement values from Messages, child updates, Commands, or other Model fields still use `() => value`. A parent must not pass a child Block helper as a field transformer. Call the child Binding's named operation, and use `Update.combine` when applying operations to several children, so each child update owns its transition.
+A `modifyFields` setter that only transforms that same field should be point-free: `selectedEntryIds: Array.filter(id => id !== removedEntryId)` or `count: Number.increment`. Flag `selectedEntryIds: () => Array.filter(model.selectedEntryIds, id => id !== removedEntryId)` and friends. Replacement values from Messages, child updates, Commands, or other Model fields still use `() => value`. A parent must not pass a child Block helper as a field transformer. Call the child Binding's named operation, and use `Update.combineSteps` when applying operations to several children, so each child update owns its transition.
 
 ### `empty-object-constructors`
 

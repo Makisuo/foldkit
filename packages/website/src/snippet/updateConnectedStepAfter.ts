@@ -8,7 +8,7 @@ import {
 } from './composition'
 
 export const finishEditing = ApplicationDefinition.step(() =>
-  Update.combine([
+  Update.combineSteps([
     DialogBinding.requestClose(),
     SelectionBinding.requestClear(),
   ]),

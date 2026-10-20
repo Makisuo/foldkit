@@ -249,7 +249,7 @@ describe('connected initialization', () => {
               }),
             })
 
-            return Update.combine(nextModel, [
+            return Update.combineSteps(nextModel, [
               initializeFirst,
               initializeSecond,
             ])
@@ -556,7 +556,7 @@ const sequencedParent = SequencedParentComposition.assembleBlock({
       RequestedOpen: () => {
         const nextModel = modifyFields(model, { route: () => 'Play' })
 
-        return Update.combine(nextModel, [
+        return Update.combineSteps(nextModel, [
           initializeFirstSequencedChild,
           initializeSecondSequencedChild,
         ])

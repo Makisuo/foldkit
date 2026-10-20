@@ -28,6 +28,9 @@ import {
   parentView,
 } from './accepted.js'
 
+// @ts-expect-error Update.combine was renamed to Update.combineSteps.
+Update.combine
+
 export type RemovedLegacyRuntimeContracts = [
   // @ts-expect-error Program.make receives a completed root Block instead of loose application configuration.
   Runtime.ApplicationConfig<never, never>,

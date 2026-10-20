@@ -31,7 +31,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
       }),
 
     ChangedUrl: ({ url }) =>
-      Update.combine(model, [
+      Update.combineSteps(model, [
         stepRoute(url),
         UiBinding.requestCloseMobileMenu(),
       ]),

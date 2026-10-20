@@ -114,7 +114,7 @@ export const requestGridSizeChange = (size: number) =>
       maybePendingGridSize: () => Option.some(size),
     }))
 
-    return Update.combine([
+    return Update.combineSteps([
       rememberGridSize,
       GridSizeConfirmDialogBinding.requestOpen(),
     ])

@@ -31,7 +31,7 @@ export const update = EducationComposition.makeUpdate((model, message) =>
     }),
 
     RequestedRevealErrors: () =>
-      Update.combine(
+      Update.combineSteps(
         model,
         Array.map(model.entries, entry =>
           EntriesBinding.requestRevealErrors(entry.id),

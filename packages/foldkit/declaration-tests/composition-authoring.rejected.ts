@@ -364,7 +364,7 @@ const widenedRefresh: (
   unknown
 > = SettingsBinding.refresh(CurrentUser.make({ accountId: 'unknown-erasure' }))
 
-const combinedWidenedRefresh = Update.combine([
+const combinedWidenedRefresh = Update.combineSteps([
   widenedRefresh,
   ParentDefinition.step(model => ({ model })),
 ])

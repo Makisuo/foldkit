@@ -52,7 +52,7 @@ export const update = ApplicationComposition.makeUpdate(model => {
     entries: Array.filter(entry => entry.id !== 'removed'),
   })
 
-  return Update.combine(model, [
+  return Update.combineSteps(model, [
     revealPreferenceErrors,
     ApplicationDefinition.stepNoop(),
     ChildBinding.informThemeChanged({ theme: 'Light' }),

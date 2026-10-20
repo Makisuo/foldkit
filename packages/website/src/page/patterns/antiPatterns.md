@@ -234,7 +234,7 @@ Store Search and Editor in required direct fields and omit `init`. Return the pa
 
 ::Snippet{name="updateIndependentInits" label="✅ Initialize independent child Bindings together"}
 
-Each Binding declares whether a child OutMessage is handled locally, forwarded upward, or both. If several restoration Steps emit parent OutMessages during one `Update.combine`, the last emitted parent OutMessage wins; split the operations when each fact must be observed independently.
+Each Binding declares whether a child OutMessage is handled locally, forwarded upward, or both. If several restoration Steps emit parent OutMessages during one `Update.combineSteps`, the last emitted parent OutMessage wins; split the operations when each fact must be observed independently.
 
 ## Know What Linting Can Catch {#what-linting-can-catch}
 

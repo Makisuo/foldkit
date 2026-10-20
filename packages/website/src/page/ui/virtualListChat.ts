@@ -80,7 +80,7 @@ const foldVirtualListChatOutMessage = UiDefinition.makeOutMessageFold(
           virtualListChatMessages: () => nextMessages,
         }))
 
-        return Update.combine([
+        return Update.combineSteps([
           updateStartProximity,
           updateMessages,
           VirtualListChatDemoBinding.informItemsChanged(
@@ -108,7 +108,7 @@ export const updateVirtualListChatMessages = (
       virtualListChatNextId: () => nextVirtualListChatNextId,
     }))
 
-    return Update.combine([
+    return Update.combineSteps([
       updateMessages,
       VirtualListChatDemoBinding.informItemsChanged(
         Array.map(nextMessages, message => globalThis.String(message.id)),

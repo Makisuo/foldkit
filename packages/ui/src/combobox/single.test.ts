@@ -102,7 +102,7 @@ const FruitComboboxTestComposition =
 
 const fruitParentUpdate = FruitComboboxTestComposition.makeUpdate(
   (model, { item }) =>
-    Update.combine([
+    Update.combineSteps([
       FruitComboboxBinding.requestSelectItem(item, item),
       FruitComboboxBinding.requestClose(''),
     ])(model),

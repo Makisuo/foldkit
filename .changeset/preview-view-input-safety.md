@@ -8,4 +8,4 @@ Block assembly rejects a view that has not been authored through its Composition
 
 Malformed Steps supplied through unchecked JavaScript now report when a Step returns another Step instead of its result. Ordinary standalone Steps must return results; a Definition-owned Step may defer connected operations until its Composition executes them. Valid combined child and Command-producing initialization Steps retain their inferred requirements.
 
-Clarify that `Update.combine` applies Steps sequentially to the Model, then returns their Commands as a batch. Command collection order does not sequence effect execution or completion.
+Clarify that `Update.combineSteps` applies Steps sequentially to the Model, then returns their Commands as a batch. Command collection order does not sequence effect execution or completion.

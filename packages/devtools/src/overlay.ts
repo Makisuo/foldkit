@@ -991,7 +991,7 @@ const update = ApplicationComposition.makeUpdate((model, message) =>
         ? hostIndexToSliderValue(pausedAtIndex, startIndex)
         : sliderMax
 
-      return Update.combine(model, [
+      return Update.combineSteps(model, [
         ApplicationDefinition.step(stepModel => ({
           model: modifyFields(stepModel, {
             entries: () => entries,

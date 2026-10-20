@@ -376,7 +376,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       ),
     }))
 
-    return Update.combine([
+    return Update.combineSteps([
       appendEntry,
       foldEntryAnimationShow(entry),
       scheduleDismissal,
@@ -384,7 +384,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   }
 
   const dismissEntries = (entries: ReadonlyArray<Entry>) =>
-    Update.combine(Array.map(entries, foldEntryAnimationHide))
+    Update.combineSteps(Array.map(entries, foldEntryAnimationHide))
 
   /** Processes a Toast Message and returns the next Model, optional Commands,
    *  and an optional `DismissedToast` OutMessage emitted once an entry has
@@ -571,7 +571,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
               if (isEntryLeaving(entry)) {
                 return { model: nextModel }
               } else {
-                return Update.combine(model, [
+                return Update.combineSteps(model, [
                   ToastDefinition.step(() => ({ model: nextModel })),
                   foldEntryAnimationHide(entry),
                 ])
@@ -591,7 +591,10 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           SwipeState.guards.Dragging(entry.swipeState),
         )
 
-        return Update.combine(model, Array.map(draggingEntries, settleSnapBack))
+        return Update.combineSteps(
+          model,
+          Array.map(draggingEntries, settleSnapBack),
+        )
       },
 
       CompletedWaitForSwipeSettled: ({ entryId, version }) =>

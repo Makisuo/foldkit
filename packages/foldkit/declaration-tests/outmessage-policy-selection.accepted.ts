@@ -223,7 +223,7 @@ export const LeftBindingWithInlineOutMessagePolicy =
         void exactValue
         void exactContext
 
-        return Update.combine([
+        return Update.combineSteps([
           ParentDefinition.step(model => ({
             model,
             commands: [context.liftCommand(ResetChild())],

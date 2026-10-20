@@ -42,7 +42,7 @@ export const runResultRecipe = <Recipe extends AnyResultRecipe>(
 export const assertResolvedStep = (value: unknown): void => {
   if (Predicate.isFunction(value)) {
     throw new Error(
-      '[foldkit] A Step returned another Step instead of its result. Pass the Step directly to Update.combine, apply it to the current Model, or author deferred composition through Definition.step.',
+      '[foldkit] A Step returned another Step instead of its result. Pass the Step directly to Update.combineSteps, apply it to the current Model, or author deferred composition through Definition.step.',
     )
   }
 }

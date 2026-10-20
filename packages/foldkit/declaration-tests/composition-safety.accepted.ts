@@ -313,7 +313,7 @@ const initializeParentCommandChild = CompositionSafetyParentDefinition.step(
       commands: [CompleteParentInitialization()],
     }),
 )
-export const initializePlainWithParentCommands = Update.combine([
+export const initializePlainWithParentCommands = Update.combineSteps([
   initializeParentCommandEntry,
   initializeParentCommandChild,
 ])
@@ -343,7 +343,7 @@ const initializeDerivedEntry = CompositionSafetyParentDefinition.step(model =>
       }),
   }),
 )
-export const initializeDerivedSteps = Update.combine([
+export const initializeDerivedSteps = Update.combineSteps([
   initializeDerivedEntry,
   initializePlainWithOwningParentCommand,
 ])
@@ -356,7 +356,7 @@ export const initializeDerivedModel =
   CompositionSafetyParentComposition.makeUpdate((model, _message) => {
     const nextModel = Struct.modifyFields(model, { route: () => 'Play' })
 
-    return Update.combine(nextModel, [
+    return Update.combineSteps(nextModel, [
       initializeDerivedEntry,
       initializePlainWithOwningParentCommand,
     ])

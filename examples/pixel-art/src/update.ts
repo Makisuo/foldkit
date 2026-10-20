@@ -236,7 +236,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
     CompletedSaveCanvas: () => ({ model }),
 
     FailedExportPng: ({ error }) =>
-      Update.combine(model, [
+      Update.combineSteps(model, [
         ApplicationDefinition.stepFields(() => ({
           maybeExportError: () => Option.some(error),
         })),
@@ -247,7 +247,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
       Option.match(model.maybePendingGridSize, {
         onNone: () => ({ model }),
         onSome: pendingSize =>
-          Update.combine(model, [
+          Update.combineSteps(model, [
             ApplicationDefinition.step(stepModel =>
               applyGridSizeChange(stepModel, pendingSize),
             ),

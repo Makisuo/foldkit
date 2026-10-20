@@ -407,7 +407,7 @@ const foldKind = (
   )
 }
 
-const isCombineCall = (
+const isCombineStepsCall = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
@@ -419,7 +419,7 @@ const isCombineCall = (
       ]
       return (
         namespace === 'Update' &&
-        helperName === 'combine' &&
+        helperName === 'combineSteps' &&
         extraMember === undefined
       )
     })
@@ -428,7 +428,7 @@ const isCombineCall = (
     const [namespace, helperName, extraMember] = path
     return (
       namespace === 'Update' &&
-      helperName === 'combine' &&
+      helperName === 'combineSteps' &&
       extraMember === undefined
     )
   })
@@ -949,7 +949,7 @@ const childFieldsForCombine = (
   }>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): CombineStepDefinition => {
-  if (!isCombineCall(node, references)) {
+  if (!isCombineStepsCall(node, references)) {
     return {
       bindings: [],
       stepFieldsCalls: new Set(),
@@ -1016,7 +1016,7 @@ const combineStepDefinitions = (
       node.type !== 'VariableDeclarator' ||
       !isIdentifier(node.id) ||
       !isCallExpression(node.init) ||
-      !isCombineCall(node.init, references)
+      !isCombineStepsCall(node.init, references)
     ) {
       return
     }
@@ -1262,7 +1262,7 @@ const foldEvidence = (
       }
     }
 
-    const parentModelForCombine = isCombineCall(node, references)
+    const parentModelForCombine = isCombineStepsCall(node, references)
       ? combineModel(node, ancestors)
       : undefined
     if (parentModelForCombine !== undefined) {

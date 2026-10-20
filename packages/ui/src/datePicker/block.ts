@@ -197,13 +197,13 @@ export const mounts = DatePickerComposition.mounts
  *  Commands, and an optional OutMessage. */
 export const update = DatePickerComposition.makeUpdate((model, message) => {
   const openDatePicker = () =>
-    Update.combine(model, [
+    Update.combineSteps(model, [
       PopoverBinding.requestOpen(),
       CalendarBinding.requestDropToDays(),
     ])
 
   const closeDatePicker = () =>
-    Update.combine(model, [
+    Update.combineSteps(model, [
       PopoverBinding.requestClose(),
       CalendarBinding.requestDropToDays(),
     ])

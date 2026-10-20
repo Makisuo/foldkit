@@ -25,7 +25,7 @@ export const preserve = FieldStepsDefinition.stepNoop()
 export const applicationIncrement = ApplicationDefinition.stepFields(() => ({
   count: Number.increment,
 }))
-export const combined = Update.combine([increment, applicationIncrement])
+export const combined = Update.combineSteps([increment, applicationIncrement])
 export const FieldStepsComposition = FieldStepsDefinition.makeComposition()
 export const FieldStepsBlock = FieldStepsComposition.assembleBlock({
   init: FieldStepsComposition.makeInit(() => ({

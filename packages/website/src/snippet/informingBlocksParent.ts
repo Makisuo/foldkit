@@ -42,7 +42,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
 
       return Match.value(nextRoute).pipe(
         Match.tag('People', peopleRoute =>
-          Update.combine(model, [
+          Update.combineSteps(model, [
             setRoute(nextRoute),
             PeopleBinding.informRouteChanged({ route: peopleRoute }),
           ]),

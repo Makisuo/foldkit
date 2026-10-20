@@ -41,7 +41,7 @@ const step = update(message)
 step(model)
 
 // @ts-expect-error A context-bearing curried update is not a unary Step.
-Update.combine(model, [step])
+Update.combineSteps(model, [step])
 
 // @ts-expect-error The two-argument form is the canonical data-first call.
 update(message, { multiplier: 2 })
@@ -68,8 +68,9 @@ const omittedDirectUpdate = OmittedComposition.makeUpdate((current, _message) =>
   parentUpdate(parentMessage)(current),
 )
 const omittedComposedUpdate = OmittedComposition.makeUpdate(
-  // @ts-expect-error Update.combine preserves the originating graph's generated dispatch Schema.
-  (current, _message) => Update.combine(current, [parentUpdate(parentMessage)]),
+  // @ts-expect-error Update.combineSteps preserves the originating graph's generated dispatch Schema.
+  (current, _message) =>
+    Update.combineSteps(current, [parentUpdate(parentMessage)]),
 )
 
 void omittedDirectUpdate

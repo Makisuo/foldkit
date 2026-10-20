@@ -62,6 +62,10 @@ Canonical routing Messages can be passed directly when their payloads are `{ req
 
 ::Snippet{name="serverRenderingBlockServerEntry" label="Rendering the completed root Block"}
 
+## Rename Step Composition
+
+Replace `Update.combine` with `Update.combineSteps` in both data-first and data-last calls. The helper applies pure Steps sequentially to the Model and collects their Commands; it does not sequence Command execution. Its arguments, inferred requirements, and registration checks are unchanged. See [Combining Steps](/core/update#combining-steps).
+
 ## Update UI Call Sites
 
 ### Render Animation content through `toView`

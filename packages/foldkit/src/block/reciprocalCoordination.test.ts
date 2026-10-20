@@ -138,7 +138,7 @@ const Application = Block.makeDefinition('ReciprocalApplication', {
 
 const foldRoomOutMessage = Application.makeOutMessageFold(RoomBlock, {
   LeftRoom: () =>
-    Update.combine([
+    Update.combineSteps([
       Application.step(model => ({
         model: modifyFields(model, {
           route: () => ApplicationRoute.Home(),
@@ -151,7 +151,7 @@ const foldRoomOutMessage = Application.makeOutMessageFold(RoomBlock, {
 
 const foldHomeOutMessage = Application.makeOutMessageFold(HomeBlock, {
   JoinedRoom: ({ roomId, username }) =>
-    Update.combine([
+    Update.combineSteps([
       Application.step(model =>
         RoomBinding.init({
           key: roomId,

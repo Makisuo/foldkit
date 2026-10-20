@@ -1,4 +1,4 @@
-return Update.combine(model, [
+return Update.combineSteps(model, [
   openDialog,
   stepModel => ({
     model: modifyFields(stepModel, { isSubmitting: () => false }),

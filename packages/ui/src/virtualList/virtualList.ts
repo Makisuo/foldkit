@@ -668,7 +668,7 @@ const measureContainer = (
 
   const { initialScroll } = model
   if (initialScroll._tag === 'Pending') {
-    return Update.combine(model, [
+    return Update.combineSteps(model, [
       recordContainerMeasurement,
       buildScrollRequest(
         ScrollRequest.Target({
@@ -683,7 +683,10 @@ const measureContainer = (
     return recordContainerMeasurement(model)
   }
 
-  return Update.combine(model, [recordContainerMeasurement, reconcileLayout])
+  return Update.combineSteps(model, [
+    recordContainerMeasurement,
+    reconcileLayout,
+  ])
 }
 
 const hasChangedMeasurement = (
@@ -729,7 +732,7 @@ const applyRowMeasurements = (
     (heights, measurement) =>
       Record.set(heights, measurement.key, measurement.height),
   )
-  return Update.combine(model, [
+  return Update.combineSteps(model, [
     VirtualListDefinition.stepFields(() => ({
       measuredRowHeights: () => measuredRowHeights,
     })),
@@ -818,7 +821,7 @@ const requestScroll = (
   target: ScrollTarget,
   maybeAlignment: Option.Option<ScrollAlignment>,
 ) =>
-  Update.combine(model, [
+  Update.combineSteps(model, [
     VirtualListDefinition.stepFields(() => ({
       initialScroll: () => InitialScroll.Applied(),
     })),
@@ -832,7 +835,7 @@ const requestScroll = (
 
 const applyItemsChange = (model: Model, itemKeys: ReadonlyArray<string>) => {
   const currentKeys = HashSet.fromIterable(itemKeys)
-  return Update.combine(model, [
+  return Update.combineSteps(model, [
     VirtualListDefinition.stepFields(() => ({
       measuredRowHeights: Record.filter((_, key) =>
         HashSet.has(currentKeys, key),

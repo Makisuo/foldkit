@@ -127,7 +127,7 @@ The feature barrel exports only `HomeBlock`. The parent barrel re-exports that n
 
 Each `make*` authoring method returns a configured value or function. `assembleBlock` returns a passive completed value. These methods do not run init, update the Model, render, construct Layers, or start effects. `Program.make` and `Program.makeElement` add browser host behavior; `Runtime.run`, `Runtime.hydrate`, and `Runtime.embed` start execution.
 
-An authored update supports both call directions. Runtime dispatch uses `update(model, message, ...context)`. The curried `update(message)(model, ...context)` form is an internal Step with the same requirements, OutMessage type, and graph evidence. `Update.combine` accepts unary Steps, so supply required dispatch context through an explicit unary adapter before combining a contextual update.
+An authored update supports both call directions. Runtime dispatch uses `update(model, message, ...context)`. The curried `update(message)(model, ...context)` form is an internal Step with the same requirements, OutMessage type, and graph evidence. `Update.combineSteps` accepts unary Steps, so supply required dispatch context through an explicit unary adapter before combining a contextual update.
 
 Use `Block.makeNamespace('Feature')` only for a generic factory that shares identity and primitive definitions across several typed contracts. Call `FeatureNamespace.makeDefinition(...)` for each specialized contract. Ordinary features call `Block.makeDefinition(id, contracts)` directly.
 

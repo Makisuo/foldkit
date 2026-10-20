@@ -66,7 +66,7 @@ export const update = ApplicationComposition.makeUpdate(model => {
   void modifyFields(model, {
     entries: Array.map(Child.revealErrors),
   })
-  void Update.combine(model, [
+  void Update.combineSteps(model, [
     revealChildFields,
     ChildBinding.informThemeChanged({ theme: 'Light' }),
   ])

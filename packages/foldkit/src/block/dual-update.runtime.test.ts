@@ -263,7 +263,7 @@ it('preserves Model, Commands, and OutMessage through completion and currying', 
 it('keeps graph evidence while authored and removes it after completion', () => {
   const direct = parentUpdate(parentModel, parentMessage)
   const curried = parentUpdate(parentMessage)(parentModel)
-  const combined = Update.combine(parentModel, [
+  const combined = Update.combineSteps(parentModel, [
     parentUpdate(parentMessage),
     stepModel => ({
       model: modifyFields(stepModel, {

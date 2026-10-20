@@ -1822,7 +1822,7 @@ describe('context', () => {
       remoteDataContext: fails,
     }
 
-    const result = Update.combine(model, [
+    const result = Update.combineSteps(model, [
       stepModel => ({
         model: modifyFields(stepModel, {
           remoteDataContext: () => succeeds,

@@ -259,7 +259,7 @@ it('stays passive, initializes in Binding order, applies Steps sequentially, and
 
 it('preserves a combined Binding operation and Command-producing Definition Step in init', () => {
   const finishCombined = Parent.step(() =>
-    Update.combine([FirstBinding.increment(), finishParentStep]),
+    Update.combineSteps([FirstBinding.increment(), finishParentStep]),
   )
   const initializeCombined = ParentComposition.makeInit((count: number) => ({
     childInitContext: {

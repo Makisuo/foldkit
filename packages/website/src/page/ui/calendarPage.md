@@ -208,7 +208,7 @@ Use `SelectedDate` to update the parent-owned selection. Use `ChangedViewMonth` 
 
 ### Programmatic Helpers
 
-Call these operations through the registered Calendar Binding. Each Binding call returns a connected parent Step that dispatches the operation's Message through Calendar update. Return that Step from the parent handler or compose it with `Update.combine`.
+Call these operations through the registered Calendar Binding. Each Binding call returns a connected parent Step that dispatches the operation's Message through Calendar update. Return that Step from the parent handler or compose it with `Update.combineSteps`.
 
 | Binding call                              | Arguments            | Behavior                                                                                                                                                              |
 | ----------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

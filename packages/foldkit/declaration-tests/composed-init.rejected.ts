@@ -17,10 +17,10 @@ Update.defineStep((_model: typeof Model.Type) => prepare)
 
 // @ts-expect-error Standalone Steps cannot return a curried composition.
 Update.defineStep((_model: typeof Model.Type) =>
-  Update.combine([prepare, prepare]),
+  Update.combineSteps([prepare, prepare]),
 )
 
-Update.combine(Model.make({ child: { count: 0 }, isReady: false }), [
+Update.combineSteps(Model.make({ child: { count: 0 }, isReady: false }), [
   // @ts-expect-error Raw nested Step callbacks cannot enter a composition.
   () => prepare,
   prepare,

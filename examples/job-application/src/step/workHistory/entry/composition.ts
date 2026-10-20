@@ -32,14 +32,14 @@ const foldStartDateOutMessage = WorkHistoryEntryDefinition.makeOutMessageFold(
   {
     ChangedViewMonth: WorkHistoryEntryDefinition.stepNoop,
     SelectedDate: ({ date }) =>
-      Update.combine([
+      Update.combineSteps([
         WorkHistoryEntryDefinition.stepFields(() => ({
           maybeStartDate: () => Option.some(date),
         })),
         EndDatePickerBinding.informMinDateChanged(Option.some(date)),
       ]),
     ClearedDate: () =>
-      Update.combine([
+      Update.combineSteps([
         WorkHistoryEntryDefinition.stepFields(() => ({
           maybeStartDate: () => Option.none(),
         })),
@@ -53,14 +53,14 @@ const foldEndDateOutMessage = WorkHistoryEntryDefinition.makeOutMessageFold(
   {
     ChangedViewMonth: WorkHistoryEntryDefinition.stepNoop,
     SelectedDate: ({ date }) =>
-      Update.combine([
+      Update.combineSteps([
         WorkHistoryEntryDefinition.stepFields(() => ({
           maybeEndDate: () => Option.some(date),
         })),
         StartDatePickerBinding.informMaxDateChanged(Option.some(date)),
       ]),
     ClearedDate: () =>
-      Update.combine([
+      Update.combineSteps([
         WorkHistoryEntryDefinition.stepFields(() => ({
           maybeEndDate: () => Option.none(),
         })),

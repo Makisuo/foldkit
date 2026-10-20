@@ -28,7 +28,7 @@ export const DialogBinding = EditorDefinition.bindChild(Dialog.DialogBlock, {
 export const update = EditorComposition.makeUpdate((model, message) =>
   Message.match(message, {
     SavedProject: ({ project }) =>
-      Update.combine(model, [
+      Update.combineSteps(model, [
         stepModel => ({
           model: modifyFields(stepModel, { project: () => project }),
         }),

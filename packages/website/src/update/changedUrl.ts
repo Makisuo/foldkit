@@ -28,7 +28,7 @@ export const handleChangedUrl = ApplicationDefinition.step(
     const transition = Transition.make(previousRoute, nextRoute)
     const isDifferentPathname = model.url.pathname !== url.pathname
 
-    return Update.combine([
+    return Update.combineSteps([
       ApplicationDefinition.stepFields(model => ({
         route: () => nextRoute,
         url: () => url,

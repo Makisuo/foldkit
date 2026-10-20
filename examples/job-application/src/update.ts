@@ -73,7 +73,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
     }),
 
     ClickedSubmit: () =>
-      Update.combine(model, [
+      Update.combineSteps(model, [
         markSubmitAttempted,
         PersonalInfoBinding.requestRevealErrors(),
         WorkHistoryBinding.requestRevealErrors(),

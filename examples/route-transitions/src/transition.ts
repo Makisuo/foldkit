@@ -92,7 +92,7 @@ export const handleTransition = (
   model: typeof Model.Type,
   transition: AppTransition,
 ) =>
-  Update.combine(model, [
+  Update.combineSteps(model, [
     logTransition(transition),
     loadCatalogOnGalleryEntry(transition),
     loadPaintingOnEntry(transition),

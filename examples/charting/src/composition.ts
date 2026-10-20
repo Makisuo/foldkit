@@ -16,12 +16,12 @@ import {
 } from './radioGroups'
 
 export const syncChart = (args: {
-  maybeChartHostId: Model['maybeChartHostId']
-  telemetry: Model['telemetry']
-  chartMode: Model['chartMode']
-  selectedPackageId: Model['selectedPackageId']
-  period: Model['period']
-  maybeSelectedDatumId: Model['maybeSelectedDatumId']
+  maybeChartHostId: (typeof Model.Type)['maybeChartHostId']
+  telemetry: (typeof Model.Type)['telemetry']
+  chartMode: (typeof Model.Type)['chartMode']
+  selectedPackageId: (typeof Model.Type)['selectedPackageId']
+  period: (typeof Model.Type)['period']
+  maybeSelectedDatumId: (typeof Model.Type)['maybeSelectedDatumId']
 }) =>
   pipe(
     args.maybeChartHostId,
@@ -40,7 +40,7 @@ export const syncChart = (args: {
     Array.fromOption,
   )
 
-export const refetchTelemetry = (model: Model) =>
+export const refetchTelemetry = (model: typeof Model.Type) =>
   Option.match(AsyncData.revalidateOrLoad(model.telemetry), {
     onNone: () => ({ model }),
     onSome: nextTelemetry => ({
@@ -49,8 +49,10 @@ export const refetchTelemetry = (model: Model) =>
     }),
   })
 
-const selectedControl =
-  (updateModel: (model: Model) => Model) => (model: Model) => {
+const selectedControl = (
+  updateModel: (model: typeof Model.Type) => typeof Model.Type,
+) =>
+  ApplicationDefinition.step(model => {
     const nextModel = updateModel(
       modifyFields(model, { maybeSelectedDatumId: () => Option.none() }),
     )
@@ -66,12 +68,6 @@ const selectedControl =
         maybeSelectedDatumId: nextModel.maybeSelectedDatumId,
       }),
     }
-  }
-
-const foldChartModeRadioGroupOutMessage =
-  ChartModeRadioGroupBlock.OutMessage.match({
-    Selected: ({ value }) =>
-      selectedControl(modifyFields({ chartMode: () => value })),
   })
 
 export const ChartModeRadioGroupBinding = ApplicationDefinition.bindChild(
@@ -79,13 +75,12 @@ export const ChartModeRadioGroupBinding = ApplicationDefinition.bindChild(
   {
     field: 'chartModeRadioGroup',
     init: { contextToArgs: () => [{ id: CHART_MODE_RADIO_GROUP_ID }] },
-    outMessage: { fold: foldChartModeRadioGroupOutMessage },
   },
-)
-
-const foldPeriodRadioGroupOutMessage = PeriodRadioGroupBlock.OutMessage.match({
-  Selected: ({ value }) =>
-    selectedControl(modifyFields({ period: () => value })),
+).withOutMessagePolicy({
+  fold: ApplicationDefinition.makeOutMessageFold(ChartModeRadioGroupBlock, {
+    Selected: ({ value }) =>
+      selectedControl(modifyFields({ chartMode: () => value })),
+  }),
 })
 
 export const PeriodRadioGroupBinding = ApplicationDefinition.bindChild(
@@ -93,25 +88,26 @@ export const PeriodRadioGroupBinding = ApplicationDefinition.bindChild(
   {
     field: 'periodRadioGroup',
     init: { contextToArgs: () => [{ id: PERIOD_RADIO_GROUP_ID }] },
-    outMessage: { fold: foldPeriodRadioGroupOutMessage },
   },
-)
-
-const foldPackageRadioGroupOutMessage = PackageRadioGroupBlock.OutMessage.match(
-  {
+).withOutMessagePolicy({
+  fold: ApplicationDefinition.makeOutMessageFold(PeriodRadioGroupBlock, {
     Selected: ({ value }) =>
-      selectedControl(modifyFields({ selectedPackageId: () => value })),
-  },
-)
+      selectedControl(modifyFields({ period: () => value })),
+  }),
+})
 
 export const PackageRadioGroupBinding = ApplicationDefinition.bindChild(
   PackageRadioGroupBlock,
   {
     field: 'packageRadioGroup',
     init: { contextToArgs: () => [{ id: PACKAGE_RADIO_GROUP_ID }] },
-    outMessage: { fold: foldPackageRadioGroupOutMessage },
   },
-)
+).withOutMessagePolicy({
+  fold: ApplicationDefinition.makeOutMessageFold(PackageRadioGroupBlock, {
+    Selected: ({ value }) =>
+      selectedControl(modifyFields({ selectedPackageId: () => value })),
+  }),
+})
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   mounts: [MountChart],

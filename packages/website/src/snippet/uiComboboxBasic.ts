@@ -1,14 +1,12 @@
 import { Array, Option, Schema, Tuple } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { Combobox } from '@foldkit/ui'
 import { inputId as ComboboxInputId } from '@foldkit/ui/combobox'
 
 const City = Schema.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
-type City = typeof City.Type
 
 const CityCombobox = Combobox.create(City)
 
@@ -16,33 +14,30 @@ const Model = Schema.Struct({
   maybeCity: Schema.Option(City),
   combobox: CityCombobox.Model,
 })
-type Model = typeof Model.Type
 
 const Message = defineMessageUnion({})
-type Message = typeof Message.Type
-
-// The parent stores the committed selection reported by the child.
-const foldComboboxOutMessage = CityCombobox.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { maybeCity: () => Option.some(value) }),
-    }),
-  ClearedSelection: () => CityPickerDefinition.stepNoop(),
-})
 
 const CityPickerDefinition = Block.makeDefinition('CityPicker', {
   Model,
   Message,
 })
 
+// The parent stores the committed selection reported by the child.
+const foldComboboxOutMessage = CityPickerDefinition.makeOutMessageFold(
+  CityCombobox,
+  {
+    Selected: ({ value }) =>
+      CityPickerDefinition.stepFields(() => ({
+        maybeCity: () => Option.some(value),
+      })),
+    ClearedSelection: CityPickerDefinition.stepNoop,
+  },
+)
+
 const ComboboxBinding = CityPickerDefinition.bindChild(CityCombobox, {
   field: 'combobox',
   init: { contextToArgs: () => Tuple.make({ id: 'city' }) },
-  outMessage: { fold: foldComboboxOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldComboboxOutMessage })
 
 // Including the Binding collects its lifecycle and handler graph.
 
@@ -56,7 +51,7 @@ const init = CityPickerComposition.makeInit(() => ({
 
 const update = CityPickerComposition.makeUpdate()
 
-const cities: ReadonlyArray<City> = [
+const cities: ReadonlyArray<typeof City.Type> = [
   'Johannesburg',
   'Kyiv',
   'Oxford',

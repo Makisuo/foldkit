@@ -1,11 +1,9 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect'
-import {
-  type Application as ApplicationProgram,
-  makeDefinition as makeApplicationDefinition,
-} from 'foldkit/application'
+import { Program } from 'foldkit'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
 import { defineMessageUnion } from 'foldkit/message'
+import { type Program as ProgramType } from 'foldkit/program'
 import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 
@@ -181,7 +179,7 @@ const incrementAgain = CounterDefinition.step((model, amount: number) => ({
   model: modifyFields(model, { count: count => count + amount }),
 }))
 
-const combined = Update.combine(Model.make({ count: 0 }), [
+const combined = Update.combineSteps(Model.make({ count: 0 }), [
   changedCountStep,
   stepModel => incrementAgain(stepModel, 3),
 ])
@@ -273,7 +271,7 @@ type RequiredCurriedParameters = Expect<
   >
 >
 
-const requiredCombined = Update.combine(Model.make({ count: 0 }), [
+const requiredCombined = Update.combineSteps(Model.make({ count: 0 }), [
   stepModel =>
     requiredContextUpdate(changedCount)(stepModel, { multiplier: 2 }),
   stepModel => incrementAgain(stepModel, 1),
@@ -320,9 +318,13 @@ const requiredRestContextUpdate = ContextualComposition.makeUpdate(
   }),
 )
 
-Update.combine(Model.make({ count: 0 }), [optionalContextUpdate(changedCount)])
-Update.combine(Model.make({ count: 0 }), [defaultContextUpdate(changedCount)])
-Update.combine(Model.make({ count: 0 }), [restContextUpdate(changedCount)])
+Update.combineSteps(Model.make({ count: 0 }), [
+  optionalContextUpdate(changedCount),
+])
+Update.combineSteps(Model.make({ count: 0 }), [
+  defaultContextUpdate(changedCount),
+])
+Update.combineSteps(Model.make({ count: 0 }), [restContextUpdate(changedCount)])
 
 requiredRestContextUpdate(changedCount)(Model.make({ count: 0 }), {
   multiplier: 2,
@@ -378,7 +380,6 @@ const GraphFullMessage = defineMessageUnion({
   ChangedCount: { amount: Schema.Number },
   CompletedSave: {},
 })
-type GraphFullMessage = typeof GraphFullMessage.Type
 const GraphFullOutMessage = defineMessageUnion({
   ReportedCount: { count: Schema.Number },
 })
@@ -492,7 +493,6 @@ type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
   ChangedLabel: { label: Schema.Literals(['Primary', 'Secondary']) },
 })
-type ParentMessage = typeof ParentMessage.Type
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 const ParentDefinition = Block.makeDefinition('DualUpdatePrototypeParent', {
   Model: ParentModel,
@@ -523,7 +523,7 @@ const countParentUpdate = ParentDefinition.step(model => ({
   model: modifyFields(model, { updates: updates => updates + 1 }),
 }))
 
-const graphCombined = Update.combine(parentModel, [
+const graphCombined = Update.combineSteps(parentModel, [
   parentUpdate(parentMessage),
   countParentUpdate,
 ])
@@ -533,7 +533,7 @@ const ParentBlock = ParentComposition.assembleBlock({
   update: parentUpdate,
 })
 const completedParentStep = ParentBlock.update(parentMessage)
-const completedGraphCombined = Update.combine(parentModel, [
+const completedGraphCombined = Update.combineSteps(parentModel, [
   completedParentStep,
   countParentUpdate,
 ])
@@ -568,7 +568,10 @@ type GraphCombinedRegistration = Expect<
 >
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
-const RootApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const RootApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 const Persist = RootApplicationDefinition.command('Persist', {
   messages: [Message.CompletedSave],
 })
@@ -598,16 +601,18 @@ const rootView = RootComposition.makeView((model, h) => ({
   body: h.empty,
 }))
 const makePendingApplication = () =>
-  RootComposition.assembleApplication({
+  Program.make({
+    block: RootComposition.assembleBlock({
+      init: rootInit,
+      update: rootUpdate,
+      view: rootView,
+      EffectsLayer: PersistLayer,
+    }),
     container: document.body,
-    init: rootInit,
-    update: rootUpdate,
-    view: rootView,
-    EffectsLayer: PersistLayer,
   })
 
 if (false) {
-  const typedPendingApplication: ApplicationProgram<
+  const typedPendingApplication: ProgramType<
     undefined,
     void,
     SaveClient,

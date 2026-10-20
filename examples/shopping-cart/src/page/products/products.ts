@@ -8,7 +8,7 @@ import { ProductsComposition } from './composition'
 import { Message, Model, OutMessage, ProductsDefinition } from './definition'
 
 export const init = ProductsComposition.makeInit(
-  (products: ReadonlyArray<Item.Item>) => ({
+  (products: ReadonlyArray<typeof Item.Item.Type>) => ({
     model: Model.make({ products, searchText: '' }),
   }),
 )

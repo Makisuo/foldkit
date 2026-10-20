@@ -9,8 +9,7 @@ import {
   flow,
   pipe,
 } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 import { Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -24,7 +23,6 @@ export const Model = Schema.Struct({
   isRunning: Schema.Boolean,
   startTime: Schema.Number,
 })
-export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedStart: {},
@@ -35,9 +33,7 @@ export const Message = defineMessageUnion({
   CompletedDetermineTickTime: { elapsedMs: Schema.Number },
 })
 
-export type Message = typeof Message.Type
-
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
@@ -260,3 +256,11 @@ const startStopButton = (
 
 const buttonStyle =
   'px-6 py-4 flex-1 font-semibold text-white transition-colors'
+
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
+  init,
+  update,
+  view,
+  subscriptions,
+  EffectsLayer,
+})

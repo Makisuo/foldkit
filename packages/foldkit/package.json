@@ -11,10 +11,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./application": {
-      "types": "./dist/runtime/applicationPublic.d.ts",
-      "import": "./dist/runtime/applicationPublic.js"
-    },
     "./asyncData": {
       "types": "./dist/asyncData/public.d.ts",
       "import": "./dist/asyncData/public.js"
@@ -86,6 +82,10 @@
     "./port": {
       "types": "./dist/port/public.d.ts",
       "import": "./dist/port/public.js"
+    },
+    "./program": {
+      "types": "./dist/runtime/programPublic.d.ts",
+      "import": "./dist/runtime/programPublic.js"
     },
     "./render": {
       "types": "./dist/render/public.d.ts",

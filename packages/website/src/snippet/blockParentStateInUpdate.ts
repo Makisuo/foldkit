@@ -4,7 +4,6 @@ import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 const CurrentUser = Schema.Struct({ name: Schema.String })
-type CurrentUser = typeof CurrentUser.Type
 const Theme = Schema.Literals(['Light', 'Dark'])
 
 const AccountSettingsModel = Schema.Struct({
@@ -26,7 +25,7 @@ const accountSettingsInit = AccountSettingsComposition.makeInit(() => ({
   }),
 }))
 const accountSettingsUpdate = AccountSettingsComposition.makeUpdate(
-  (model, message, currentUser: CurrentUser) =>
+  (model, message, currentUser: typeof CurrentUser.Type) =>
     AccountSettingsMessage.match(message, {
       ChangedTheme: ({ theme }) => ({
         model: modifyFields(model, {

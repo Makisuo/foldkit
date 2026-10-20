@@ -1,17 +1,19 @@
 import { Array, Option, Schema } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 import * as KeyedEntry from './keyedEntry'
 
 const Model = Schema.Struct({ entries: Schema.Array(KeyedEntry.Model) })
-type Model = typeof Model.Type
 const Message = defineMessageUnion({
   GotEntryMessage: { id: Schema.String, message: KeyedEntry.Message },
   ClickedUpdateEntryManually: {},
 })
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 const EntriesBinding = ApplicationDefinition.bindChild(KeyedEntry.Entry, {
   field: 'entries',
   key: 'id',

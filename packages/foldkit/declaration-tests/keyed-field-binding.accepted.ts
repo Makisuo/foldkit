@@ -356,21 +356,20 @@ export const OutEntriesBinding =
   DeclarationKeyedFieldParentDefinition.bindChild(OutChildBlock, {
     field: 'outEntries',
     key: 'id',
-    outMessage: {
-      fold: (id, outMessage, context) => {
-        const exactId: string = id
-        const exactOutMessage: typeof ChildOutMessage.Type = outMessage
-        const exactContext: Update.FoldContext<
-          typeof ChildMessage.Type,
-          typeof ParentMessage.Type,
-          typeof ParentModel.Type
-        > = context
-        void exactId
-        void exactOutMessage
-        void exactContext
+  }).withOutMessagePolicy({
+    fold: (id, outMessage, context) => {
+      const exactId: string = id
+      const exactOutMessage: typeof ChildOutMessage.Type = outMessage
+      const exactContext: Update.FoldContext<
+        typeof ChildMessage.Type,
+        typeof ParentMessage.Type,
+        typeof ParentModel.Type
+      > = context
+      void exactId
+      void exactOutMessage
+      void exactContext
 
-        return DeclarationKeyedFieldParentDefinition.step(model => ({ model }))
-      },
+      return DeclarationKeyedFieldParentDefinition.step(model => ({ model }))
     },
   })
 export const outEntriesInspection = Block.inspectBinding(OutEntriesBinding)

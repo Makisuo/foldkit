@@ -7,11 +7,10 @@ import { LoginBlock } from './page/login'
 export const LoginBinding = LoggedOutDefinition.bindChild(LoginBlock, {
   field: 'loginModel',
   init: { contextToArgs: () => [] },
-  outMessage: {
-    forward: LoginBlock.OutMessage.match<OutMessage>({
-      SucceededLogin: ({ session }) => OutMessage.SucceededLogin({ session }),
-    }),
-  },
+}).withOutMessagePolicy({
+  forward: LoggedOutDefinition.makeOutMessageForward({
+    SucceededLogin: ({ session }) => OutMessage.SucceededLogin({ session }),
+  }),
 })
 
 export const LoggedOutComposition = LoggedOutDefinition.makeComposition({

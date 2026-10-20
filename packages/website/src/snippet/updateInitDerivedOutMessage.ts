@@ -15,14 +15,13 @@ const EndDatePickerBinding = DateRangeDefinition.bindChild(
   DatePicker.DatePickerBlock,
   {
     field: 'endDatePicker',
-    outMessage: {
-      fold: foldEndDateOutMessage,
-      forward: DatePicker.DatePickerBlock.OutMessage.match({
-        SelectedDate: ({ date }) => OutMessage.SelectedEndDate({ date }),
-      }),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: foldEndDateOutMessage,
+  forward: DateRangeDefinition.makeOutMessageForward({
+    SelectedDate: ({ date }) => OutMessage.SelectedEndDate({ date }),
+  }),
+})
 
 const restoreEndDate = DateRangeDefinition.step(() =>
   EndDatePickerBinding.requestRestore(),

@@ -19,20 +19,20 @@ import { findActiveSectionKeyForRoute } from '../docsNav'
 import { type Model } from '../model'
 import { ApplicationRoute, urlToApplicationRoute } from '../route'
 
-type ApplicationTransition = Transition.Transition<ApplicationRoute>
+type ApplicationTransition = Transition.Transition<typeof ApplicationRoute.Type>
 
-export const handleChangedUrl = ApplicationDefinition.step(
-  (model, url: Url) => {
+export const handleChangedUrl = (url: Url) =>
+  ApplicationDefinition.step(model => {
     const { route: previousRoute } = model
     const nextRoute = urlToApplicationRoute(url)
     const transition = Transition.make(previousRoute, nextRoute)
     const isDifferentPathname = model.url.pathname !== url.pathname
 
-    return Update.combine([
-      ApplicationDefinition.stepFields(model => ({
+    return Update.combineSteps([
+      ApplicationDefinition.stepFields(stepModel => ({
         route: () => nextRoute,
         url: () => url,
-        sidebarGroups: () => nextSidebarGroups(model, nextRoute),
+        sidebarGroups: () => nextSidebarGroups(stepModel, nextRoute),
       })),
       stepHome(transition),
       stepPlayground(transition),
@@ -42,10 +42,12 @@ export const handleChangedUrl = ApplicationDefinition.step(
       loadRouteData(transition),
       scrollAfterUrlChange(url, isDifferentPathname),
     ])
-  },
-)
+  })
 
-const nextSidebarGroups = (model: Model, nextRoute: ApplicationRoute) =>
+const nextSidebarGroups = (
+  model: typeof Model.Type,
+  nextRoute: typeof ApplicationRoute.Type,
+) =>
   Option.match(findActiveSectionKeyForRoute(nextRoute), {
     onNone: () => model.sidebarGroups,
     onSome: activeSectionKey =>

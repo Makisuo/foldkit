@@ -1,5 +1,5 @@
 import { Array, Option, Schema } from 'effect'
-import { Update, makeApplicationDefinition } from 'foldkit'
+import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -20,7 +20,10 @@ const Message = defineMessageUnion({
   GotChildMessage: { message: Child.Message },
   GotEntryMessage: { id: Schema.String, message: Child.Message },
 })
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 const ChildBinding = ApplicationDefinition.bindChild(Child.block, {
   field: 'child',
   parentMessage: Message.GotChildMessage,
@@ -63,7 +66,7 @@ export const update = ApplicationComposition.makeUpdate(model => {
   void modifyFields(model, {
     entries: Array.map(Child.revealErrors),
   })
-  void Update.combine(model, [
+  void Update.combineSteps(model, [
     revealChildFields,
     ChildBinding.informThemeChanged({ theme: 'Light' }),
   ])

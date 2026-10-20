@@ -24,9 +24,10 @@ Build that boundary through Definition → Composition → assembly. All three s
    `hostHandlers` as the completed Block. It does not run init, construct Layers,
    or start effects.
 
-The root follows the same stages with `makeApplicationDefinition`, then
-`assembleApplication` or `assembleElement`. The Runtime constructs the resulting
-Layer graph and starts effects.
+The root is an ordinary Block built through the same three stages. Name its
+completed value `ApplicationBlock`. `Program.make` or `Program.makeElement`
+adds host behavior, and the Runtime constructs the resulting Layer graph and
+starts effects.
 
 Use a plain view helper when a section only renders state owned elsewhere. Use
 a Block when the section owns a state machine, effect or lifecycle boundary,
@@ -79,7 +80,7 @@ under `operations` when public inputs need mapping, refinement, defaults, or an
 exact context tuple. Both forms pass their Message through update synchronously
 as part of the pure transition; they do not enqueue another Runtime Message.
 Use `InformedOf*` for parent notifications and `Requested*` for requested
-actions. `Update.combine` accepts unary Steps, so wrap a contextual curried
+actions. `Update.combineSteps` accepts unary Steps, so wrap a contextual curried
 update in a unary adapter that supplies every required context argument.
 
 Parent-facing operation names describe the communication: `requestCloseMenu` produces `Message.RequestedCloseMenu`, `informJoined` produces `Message.InformedOfJoin`, and `informRouteChanged` produces `Message.InformedOfRouteChange`. Use `request*` for actions and `inform*` for notifications. Both enter child update; avoid silent `reflect*` Model synchronization. Keep an actual UI fact separate when it represents a different event.
@@ -126,13 +127,16 @@ Choose the narrowest storage form that describes the parent Model:
 | Exact Struct field containing `Child.Model` or `Option<Child.Model>`                 | `field`                                          |
 | Exact array of child Models with a declared stable string or finite-number key field | `field` and string `key`                         |
 | Exact array of closed wrappers around the child Model                                | `field`, string `key`, and distinct `childField` |
+| Exact `Option` of one closed wrapper around the child Model                          | `field`, string `key`, and distinct `childField` |
 | Tagged, nested, opaque, union, open, or custom static storage                        | `read` and `write`                               |
 | Custom keyed storage or enumeration                                                  | `readAll`, function `key`, `read`, and `writeAt` |
 
-The generated wrapped-array writer replaces only the matched `childField`; it
-preserves wrapper metadata, order, and unmatched references, and it never
-inserts a missing item. The parent remains responsible for collection
-membership.
+The generated wrapped writer replaces only the matched `childField`. For an
+array, it preserves order, wrapper metadata, and unmatched references. For an
+Option, it preserves wrapper metadata only when the stored key matches. `None`
+and a different key leave the exact parent Model unchanged. Neither form
+inserts a missing occurrence. The parent remains responsible for presence and
+collection membership.
 
 An unkeyed direct field Binding defaults placement to the field name. Every
 keyed Binding and every static accessor Binding defaults placement to the child
@@ -162,8 +166,7 @@ delivery policy.
 ```ts
 export const SettingsBinding = ProfileDefinition.bindChild(SettingsBlock, {
   field: 'settings',
-  outMessage: { fold: foldSettingsOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldSettingsOutMessage })
 
 export const ProfileComposition = ProfileDefinition.makeComposition({
   bindings: [SettingsBinding],
@@ -184,27 +187,50 @@ update owns the transition. Render through
 
 ## OutMessages and sibling policy
 
-Keep each local OutMessage fold as a standalone exhaustive matcher. Name every
-variant, including the only variant in a union. If the matcher needs only the
-OutMessage, bind the matcher directly. Keep a function or factory when it also
-needs a key, the previous parent Model, another payload, or `FoldContext`.
+Inline an ordinary unkeyed fold as
+`bindChild(WholeChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(WholeChildBlock, handlers) })`.
+Pass the completed child explicitly to `makeOutMessageFold` whether the fold is
+inline, extracted, adapted for keyed policy, or staged for reciprocal
+composition. Keep substantial transition helpers beside their fold. Name every variant directly
+in the handler record, including the only variant in a union. Missing and extra
+handlers fail type checking, and factory-refined payloads stay precise. The
+parent Definition supplies the parent Model, Message, and OutMessage contracts.
+The returned Steps retain inferred Command requirements and sibling Binding
+evidence for Composition to check, so do not repeat Step or payload type
+arguments.
 
-For a generic child, pass its refined OutMessage type as the matcher's second
-type argument. Let Command-producing Steps infer their requirements through
-the owning `step` helper; an explicit requirement-free `Update.Step` can erase
-them. Use `FoldContext.liftCommand` when parent policy returns a Command whose
-result is a child Message.
+A handler takes the inferred `FoldContext` as its second parameter only when it
+uses `liftCommand` or `modelBeforeUpdate`. The resulting fold stays unary when
+every handler omits that parameter. Keep a purposeful factory or adapter when a
+keyed fold uses the collection key or other call-site context. Let
+Command-producing and parent-OutMessage-producing handlers keep the channels
+inferred by the owning Definition.
 
-Use `Update.StepWithOutMessage` when an explicitly typed fold derives a parent
-OutMessage. `Update.Step` describes a result without one. Keep the keyed fold's
-key parameter when policy uses it, and let the returned Step receive the parent
-Model.
+Use `ParentDefinition.makeOutMessageForward(handlers)` inline under
+`withOutMessagePolicy({ forward })` when at least one variant continues through
+the current Block's OutMessage. Pass the completed child explicitly when
+extracting or adapting the forward. The helper is available only when the
+parent Definition declares OutMessages. Every handler returns a declared parent
+OutMessage or `undefined`, and every variant remains named even when it stops.
+Local handling still runs for a forwarded variant, and a derived parent
+OutMessage takes precedence for that dispatch.
 
-`outMessage.fold` applies parent policy locally. Add `outMessage.forward` only
-when at least one variant continues through the current Block's OutMessage.
-Match every variant and return `undefined` for named variants that stop. Local
-handling still runs for a forwarded variant, and a derived parent OutMessage
-takes precedence for that dispatch.
+Select the callable `fold` and `forward` through
+`bindChild(...).withOutMessagePolicy({ fold?, forward? })`. The returned value is
+the full Binding to register and use. Keep an ordinary one-way policy fluent.
+When a fold calls an operation on the same Binding, or two policies call each
+other's Binding operations, declare the original `FooBinding` values first.
+Author the Definition helpers against those values, then select and register
+`FooBindingWithOutMessagePolicy`. Do not use a raw child matcher, annotations,
+casts, or generic argument lists to work around inference.
+
+Policy selection is passive and immutable. It retains the original child
+Binding identity, projected operations, keyed occurrence identity, and
+lifecycle scopes. It does not build Layers, run handlers, or start effects.
+Composition rejects a child with OutMessages whose selected Binding has no
+policy, an incomplete handler record, and an operation that reaches an
+unregistered sibling. Runtime validation supplements these checks for plain
+JavaScript callers.
 
 Policy may return parent Steps and call a registered sibling Binding operation.
 Connected Binding Steps require their exact registered graph when applied to a
@@ -228,6 +254,28 @@ function result when assigning it to a method that returns `void`; outside the
 exact graph, invoking that method only constructs and discards passive
 configuration and executes no child work.
 
+## Test a composed graph
+
+Story and Scene Command and Mount matchers take the original Definition or an
+instance. A Definition matches its source identity through placement-qualified
+runtime names; an instance also checks exact args, and a bound instance selects
+its composition path. Do not
+compare a pending definition's displayed `name` with a string or with
+`Definition.name`.
+
+Resolve child Commands and Mounts with the child's raw result Message. Their
+pending instances retain the generated delivery chain, so the test runner
+replays every parent boundary. Do not construct a generated `Got*` envelope.
+For `@foldkit/ui`, take matcher Definitions from the component's public `test`
+namespace and result Messages from its completed Block.
+
+A Scene that emits a Subscription Message registers
+`Scene.subscriptions(ApplicationComposition, localSubscriptions?)`, passes the
+registry in its config, and calls `Subscription.emit(entry, rawMessage)`. The
+selected entry must declare that raw Message. Keep `*.test.ts` and `*.test.tsx`
+files inside the project's TypeScript `include` coverage so signature changes
+fail during the normal typecheck.
+
 ## Initialize children
 
 Choose startup policy from the storage and child initializer:
@@ -238,6 +286,7 @@ Choose startup policy from the storage and child initializer:
 | Required exact direct field; child init needs arguments               | `init: { contextToArgs }`                                                                                                              |
 | Parent supplies a required direct field itself                        | `init: false`                                                                                                                          |
 | Optional direct field                                                 | Omit `init` when the parent supplies the `Option`; use `init.contextToArgs` when Composition should create `Some(child)` automatically |
+| Exact Option of one keyed wrapper                                     | Parent-owned; use `Binding.init({ key, args, toParentModel })` for creation                                                            |
 | Exact keyed array                                                     | `init.instances` plus `init.toItem`                                                                                                    |
 | Accessor or custom storage                                            | Parent-owned unless initialized explicitly                                                                                             |
 
@@ -254,12 +303,12 @@ contains only parent-owned fields. Composition initializes children once in
 `bindings` order and applies `steps` afterward.
 
 Parent Commands come first, retained child init Commands follow, and Step
-Commands come last. Collection order does not order asynchronous completion.
+Commands come last. Collection order does not sequence their effects or completion.
 Foldkit drops init Commands for occurrences absent or `presentWhen`-inactive in
 the final Model. `subscriptions.when` gates Streams and does not gate init.
 
 Use the exact registered `Binding.init({ key?, args, toParentModel,
-commands? })` for custom storage, deliberate Command interleaving, or dynamic
+commands? })` for custom storage or dynamic
 creation. It returns a passive, noncallable recipe that retains the arguments,
 mapping, key, and optional parent Commands. Return the recipe directly from the
 owning Composition's `makeInit` or `makeUpdate`, or preserve it through the
@@ -278,6 +327,11 @@ args and the parent metadata needed by `toItem`, such as an ID or server
 revision. Use `Binding.init` when an update adds one instance later, or when
 startup needs custom interleaving or writes beyond that collection. Both paths
 retain and lift the child initializer's Commands; never take only its Model.
+
+`init.instances` accepts keyed arrays only. An Option-wrapped keyed occurrence
+uses `Binding.init({ key, args, toParentModel })`; `toParentModel` chooses
+`Some(wrapper)` or another complete parent result. Folds and operations never
+create the occurrence when that field is `None`.
 
 `toItem` receives the planned `{ key, args }` and initialized child, not the full
 parent ChildInitContext value. If wrapper metadata comes from ChildInitContext, make it available
@@ -390,18 +444,22 @@ the ordinary Service providers below them.
 At the root:
 
 ```ts
-const application = ApplicationComposition.assembleApplication({
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
   init,
   update,
   view,
   EffectsLayer,
+})
+
+const program = Program.make({
+  block: ApplicationBlock,
   container: document.getElementById('root'),
 })
 
-Runtime.run(application.provide(ApplicationLayer))
+Runtime.run(program.provide(ApplicationLayer))
 ```
 
-The completed application is still passive. `provide` supplies remaining
+The completed Program is still passive. `provide` supplies remaining
 ordinary Services and returns another passive value. The Runtime builds the
 graph once per start and releases its application scope when that run stops.
 

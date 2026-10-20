@@ -373,7 +373,7 @@ const RecordAfterReplay = PendingParent.command('RecordAfterReplay', {
 })
 
 it('replays a deferred combined operation from the active Model without restoring removed keys', () => {
-  const pending = Reflect.apply(Update.combine, undefined, [
+  const pending = Reflect.apply(Update.combineSteps, undefined, [
     capturedPendingModel,
     [
       (model: typeof PendingParentModel.Type) => ({
@@ -445,9 +445,8 @@ const PolicyChildBinding = PolicyParentBaseDefinition.bindChild(PolicyChild, {
   read: (model: ParentModel) => Option.some(model.primary),
   write: (model, nextChild) =>
     modifyFields(model, { primary: () => nextChild }),
-  outMessage: {
-    fold: (_outMessage: PolicyOutMessage) => SiblingChildBinding.reset(),
-  },
+}).withOutMessagePolicy({
+  fold: (_outMessage: PolicyOutMessage) => SiblingChildBinding.reset(),
 })
 
 const policyParentComposition = PolicyParentBaseDefinition.makeComposition({

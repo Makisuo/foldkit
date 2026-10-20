@@ -1,5 +1,5 @@
 import { Array, Option, Schema } from 'effect'
-import { Block, type Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -84,8 +84,6 @@ const ParentModel = Schema.Struct({
   picker: FruitPicker.Model,
   selectionHistory: Schema.Array(Fruit),
 })
-type ParentModel = typeof ParentModel.Type
-
 const ParentMessage = defineMessageUnion({})
 
 const FruitSelectionDefinition = Block.makeDefinition('FruitSelection', {
@@ -95,19 +93,13 @@ const FruitSelectionDefinition = Block.makeDefinition('FruitSelection', {
 
 const PickerBinding = FruitSelectionDefinition.bindChild(FruitPicker, {
   field: 'picker',
-  outMessage: {
-    fold: FruitPicker.OutMessage.match<
-      Update.Step<ParentModel, typeof ParentMessage.Type>
-    >({
-      Selected:
-        ({ value }) =>
-        model => ({
-          model: modifyFields(model, {
-            selectionHistory: Array.append(value),
-          }),
-        }),
-    }),
-  },
+}).withOutMessagePolicy({
+  fold: FruitSelectionDefinition.makeOutMessageFold(FruitPicker, {
+    Selected: ({ value }) =>
+      FruitSelectionDefinition.stepFields(() => ({
+        selectionHistory: Array.append(value),
+      })),
+  }),
 })
 
 export const selectApple = PickerBinding.requestSelectValue('Apple')

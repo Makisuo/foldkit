@@ -30,8 +30,6 @@ import {
   view,
 } from './generated-dispatch.accepted.js'
 
-// @ts-expect-error This adapter takes an Application Composition, not a feature Composition.
-Scene.subscriptions(GeneratedDispatchChildComposition)
 Scene.subscriptions(
   ApplicationDefinition.makeComposition({ bindings: [] }),
   // @ts-expect-error Root-local Subscriptions must read the Application Model.
@@ -129,12 +127,11 @@ EmptyParentComposition.assembleBlock({
 })
 
 const EmptyApplicationComposition = ApplicationDefinition.makeComposition()
-// @ts-expect-error Nested init keeps root Binding registration evidence.
-EmptyApplicationComposition.assembleElement({
+EmptyApplicationComposition.assembleBlock({
+  // @ts-expect-error Nested init keeps root Binding registration evidence.
   init,
-  update,
-  view,
-  container: null,
+  update: EmptyApplicationComposition.makeUpdate(model => ({ model })),
+  view: EmptyApplicationComposition.makeView((_model, h) => h.empty),
 })
 
 const RepeatedModel = Schema.Struct({

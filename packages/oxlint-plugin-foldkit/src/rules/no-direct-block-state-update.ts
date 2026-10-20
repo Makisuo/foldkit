@@ -21,10 +21,12 @@ import {
   resolveImportedPath,
   resolvedVariable,
   staticMemberPath,
+  staticMemberName,
   staticPropertyName,
   staticStringValue,
   blockBindingMethod,
   blockBindingConfiguration,
+  blockBindingSourceCall,
   isOwnedDefinitionCall,
 } from '../guards.ts'
 
@@ -405,7 +407,7 @@ const foldKind = (
   )
 }
 
-const isCombineCall = (
+const isCombineStepsCall = (
   node: ESTree.CallExpression,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): boolean => {
@@ -417,7 +419,7 @@ const isCombineCall = (
       ]
       return (
         namespace === 'Update' &&
-        helperName === 'combine' &&
+        helperName === 'combineSteps' &&
         extraMember === undefined
       )
     })
@@ -426,7 +428,7 @@ const isCombineCall = (
     const [namespace, helperName, extraMember] = path
     return (
       namespace === 'Update' &&
-      helperName === 'combine' &&
+      helperName === 'combineSteps' &&
       extraMember === undefined
     )
   })
@@ -604,6 +606,20 @@ const foldDefinitions = (
   const byVariable = new WeakMap<Variable, FoldDefinition>()
   const fallbackByName = new Map<string, FoldDefinition>()
   const writeCallbacks = new Set<ESTree.Node>()
+  const registerDefinition = (
+    declarator: ESTree.VariableDeclarator,
+    name: string,
+    definition: FoldDefinition,
+  ): void => {
+    fallbackByName.set(name, definition)
+    for (const scope of scopes ?? []) {
+      for (const variable of scope.variables) {
+        if (variable.defs.some(candidate => candidate.node === declarator)) {
+          byVariable.set(variable, definition)
+        }
+      }
+    }
+  }
 
   for (const statement of program.body) {
     const declaration =
@@ -629,12 +645,13 @@ const foldDefinitions = (
       }
 
       const bindingMethod = blockBindingMethod(declarator.init, references)
-      const [boundChild] = declarator.init.arguments
+      const bindingCall = blockBindingSourceCall(declarator.init)
+      const [boundChild] = bindingCall.arguments
       const childOwner = Option.isSome(bindingMethod)
         ? childBlockOwner(boundChild, references)
         : undefined
       const owner = Option.isSome(bindingMethod)
-        ? definitionOwner(declarator.init, 'bindChild', references)
+        ? definitionOwner(bindingCall, 'bindChild', references)
         : undefined
       const directField =
         Option.isSome(bindingMethod) &&
@@ -654,16 +671,7 @@ const foldDefinitions = (
           ...(owner === undefined ? {} : { owner }),
           ...(wrappedChildField === undefined ? {} : { wrappedChildField }),
         }
-        fallbackByName.set(declarator.id.name, definition)
-        for (const scope of scopes ?? []) {
-          for (const variable of scope.variables) {
-            if (
-              variable.defs.some(candidate => candidate.node === declarator)
-            ) {
-              byVariable.set(variable, definition)
-            }
-          }
-        }
+        registerDefinition(declarator, declarator.id.name, definition)
         continue
       }
 
@@ -705,13 +713,40 @@ const foldDefinitions = (
         ...(childOwner === undefined ? {} : { childOwner }),
         ...(owner === undefined ? {} : { owner }),
       }
-      fallbackByName.set(declarator.id.name, definition)
-      for (const scope of scopes ?? []) {
-        for (const variable of scope.variables) {
-          if (variable.defs.some(candidate => candidate.node === declarator)) {
-            byVariable.set(variable, definition)
-          }
-        }
+      registerDefinition(declarator, declarator.id.name, definition)
+    }
+  }
+
+  for (const statement of program.body) {
+    const declaration =
+      statement.type === 'ExportNamedDeclaration'
+        ? statement.declaration
+        : statement
+    if (declaration?.type !== 'VariableDeclaration') {
+      continue
+    }
+
+    for (const declarator of declaration.declarations) {
+      if (
+        !isIdentifier(declarator.id) ||
+        !isCallExpression(declarator.init) ||
+        !isMemberExpression(declarator.init.callee) ||
+        !Option.contains(
+          staticMemberName(declarator.init.callee),
+          'withOutMessagePolicy',
+        ) ||
+        !isIdentifierReference(declarator.init.callee.object)
+      ) {
+        continue
+      }
+
+      const definition = foldDefinitionFor(
+        declarator.init.callee.object,
+        { byVariable, fallbackByName },
+        references,
+      )
+      if (definition !== undefined) {
+        registerDefinition(declarator, declarator.id.name, definition)
       }
     }
   }
@@ -914,7 +949,7 @@ const childFieldsForCombine = (
   }>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): CombineStepDefinition => {
-  if (!isCombineCall(node, references)) {
+  if (!isCombineStepsCall(node, references)) {
     return {
       bindings: [],
       stepFieldsCalls: new Set(),
@@ -981,7 +1016,7 @@ const combineStepDefinitions = (
       node.type !== 'VariableDeclarator' ||
       !isIdentifier(node.id) ||
       !isCallExpression(node.init) ||
-      !isCombineCall(node.init, references)
+      !isCombineStepsCall(node.init, references)
     ) {
       return
     }
@@ -1227,7 +1262,7 @@ const foldEvidence = (
       }
     }
 
-    const parentModelForCombine = isCombineCall(node, references)
+    const parentModelForCombine = isCombineStepsCall(node, references)
       ? combineModel(node, ancestors)
       : undefined
     if (parentModelForCombine !== undefined) {

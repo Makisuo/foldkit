@@ -18,7 +18,6 @@ export const Submission = defineTaggedUnion({
   SubmitSuccess: {},
   SubmitError: { error: Schema.String },
 })
-export type Submission = typeof Submission.Type
 
 export const Model = Schema.Struct({
   currentStep: Step.Step,
@@ -34,4 +33,3 @@ export const Model = Schema.Struct({
   stepTabs: StepTabsBlock.Model,
   isSubmitAttempted: Schema.Boolean,
 })
-export type Model = typeof Model.Type

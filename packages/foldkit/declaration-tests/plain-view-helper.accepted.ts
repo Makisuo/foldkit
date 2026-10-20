@@ -1,5 +1,5 @@
 import { Effect, Layer, Schema } from 'effect'
-import { Block, type Html, Message, makeApplicationDefinition } from 'foldkit'
+import { Block, Html, Message } from 'foldkit'
 
 export const ChildModel = Schema.Struct({ value: Schema.String })
 const ChildMessage = Message.defineMessageUnion({ ClickedChild: {} })
@@ -99,7 +99,7 @@ const sharedDivider = <SharedMessage, SharedRequirements>(
 
 export const parentSharedViewHelper = (h: ParentViewBuilder) => sharedDivider(h)
 
-export const ApplicationComposition = makeApplicationDefinition({
+export const ApplicationComposition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: ParentMessage,
 }).makeComposition({

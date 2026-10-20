@@ -1,10 +1,10 @@
 import { Context, Effect, Layer, Option, Record, Schema } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
-import type * as ApplicationTypes from 'foldkit/application'
+import { Program } from 'foldkit'
 import * as Block from 'foldkit/block'
 import * as Command from 'foldkit/command'
 import { Server } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
+import type * as ProgramTypes from 'foldkit/program'
 import * as Runtime from 'foldkit/runtime'
 import { Lazy } from 'foldkit/test'
 import * as Update from 'foldkit/update'
@@ -28,10 +28,36 @@ import {
   parentView,
 } from './accepted.js'
 
+// @ts-expect-error Update.combine was renamed to Update.combineSteps.
+Update.combine
+
+export type RemovedLegacyRuntimeContracts = [
+  // @ts-expect-error Program.make receives a completed root Block instead of loose application configuration.
+  Runtime.ApplicationConfig<never, never>,
+  // @ts-expect-error Flags are configured on Program.make rather than a loose application config type.
+  Runtime.ApplicationConfigWithFlags<never, never, never>,
+  // @ts-expect-error Routing belongs to Program.make host configuration.
+  Runtime.RoutingApplicationConfig<never, never>,
+  // @ts-expect-error Routing and Flags belong to Program.make host configuration.
+  Runtime.RoutingApplicationConfigWithFlags<never, never, never>,
+  // @ts-expect-error Program.makeElement receives a completed root Block.
+  Runtime.ElementConfig<never, never>,
+  // @ts-expect-error Element Flags belong to Program.makeElement host configuration.
+  Runtime.ElementConfigWithFlags<never, never, never>,
+  // @ts-expect-error Init is authored through the root Block Composition.
+  Runtime.ApplicationInit<never, never>,
+  // @ts-expect-error Routing init is authored through the root Block Composition.
+  Runtime.RoutingApplicationInit<never, never>,
+  // @ts-expect-error Element init is authored through the root Block Composition.
+  Runtime.ElementInit<never, never>,
+  // @ts-expect-error Public Program types replace the native runtime implementation result.
+  Runtime.MakeRuntimeReturn,
+]
+
 const LocalMessage = defineMessageUnion({ RequestedRefresh: {} })
 
 const InvalidApplication = (() => {
-  const ApplicationDefinition = makeApplicationDefinition({
+  const ApplicationDefinition = Block.makeDefinition('Application', {
     Model: ParentModel,
     Message: LocalMessage,
   })
@@ -43,8 +69,8 @@ const InvalidApplicationComposition = InvalidApplication.makeComposition()
 export type RemovedBlockBuilder = Block.HtmlBuilderOf<
   typeof InvalidApplicationComposition
 >
-// @ts-expect-error The application subpath also removes the previous helper name.
-export type RemovedApplicationBuilder = ApplicationTypes.HtmlBuilderOf<
+// @ts-expect-error The Program subpath also omits the previous helper name.
+export type RemovedProgramBuilder = ProgramTypes.HtmlBuilderOf<
   typeof InvalidApplicationComposition
 >
 type InvalidApplicationViewBuilder = Block.ViewBuilderFor<
@@ -201,11 +227,13 @@ const flagsRoutingInit = InvalidApplicationComposition.makeInit(
 )
 
 // @ts-expect-error Completion requires the Flags and routing inputs declared by init.
-InvalidApplicationComposition.assembleApplication({
+Program.make({
+  block: InvalidApplicationComposition.assembleBlock({
+    init: flagsRoutingInit,
+    update: invalidApplicationImplementation.update,
+    view: invalidDocumentView,
+  }),
   container: null,
-  init: flagsRoutingInit,
-  update: invalidApplicationImplementation.update,
-  view: invalidDocumentView,
 })
 
 const DeclarationTestsViewHelperDefinition = Block.makeDefinition(
@@ -306,20 +334,22 @@ const applicationInputView = InvalidApplicationComposition.makeView.withInputs<
   Readonly<{ label: string }>
 >((_model, { label }, h) => h.main([], [label]))
 
-// @ts-expect-error An Application's primary view cannot require parent-supplied inputs.
-InvalidApplicationComposition.assembleElement({
+const applicationInputBlock = InvalidApplicationComposition.assembleBlock({
   ...invalidApplicationImplementation,
-  container: null,
   view: applicationInputView,
+})
+// @ts-expect-error A Program root view cannot require parent-supplied inputs.
+Program.makeElement({
+  block: applicationInputBlock,
+  container: null,
 })
 
 // @ts-expect-error Application Composition no longer carries a render helper.
 InvalidApplicationComposition.render
 
-// @ts-expect-error A plain view helper cannot complete an Application as its branded view.
-InvalidApplicationComposition.assembleElement({
+InvalidApplicationComposition.assembleBlock({
   ...invalidApplicationImplementation,
-  container: null,
+  // @ts-expect-error A plain view helper cannot complete a Block as its branded view.
   view: applicationViewHelper,
 })
 
@@ -374,10 +404,12 @@ const RequiresConflictingProvisionContract = Layer.effect(
   }),
 )
 
-const provisionContractProgram = InvalidApplicationComposition.assembleElement({
-  ...invalidApplicationImplementation,
+const provisionContractProgram = Program.makeElement({
+  block: InvalidApplicationComposition.assembleBlock({
+    ...invalidApplicationImplementation,
+    view: invalidElementView,
+  }),
   container: null,
-  view: invalidElementView,
 })
 const programWithProvisionContract = provisionContractProgram.provide(
   DeclarationProvisionContract.layer,
@@ -389,18 +421,24 @@ programWithProvisionContract.provide(ConflictingProvisionContract.layer)
 // @ts-expect-error A later provider cannot require a conflicting handler contract.
 programWithProvisionContract.provide(RequiresConflictingProvisionContract)
 
-// @ts-expect-error Page Applications require a Document view.
-InvalidApplicationComposition.assembleApplication({
+const invalidElementBlock = InvalidApplicationComposition.assembleBlock({
   ...invalidApplicationImplementation,
-  container: null,
   view: invalidElementView,
 })
-
-// @ts-expect-error Element Applications require an HTML view.
-InvalidApplicationComposition.assembleElement({
-  ...invalidApplicationImplementation,
+// @ts-expect-error Program.make requires a Document view.
+Program.make({
+  block: invalidElementBlock,
   container: null,
+})
+
+const invalidDocumentBlock = InvalidApplicationComposition.assembleBlock({
+  ...invalidApplicationImplementation,
   view: invalidDocumentView,
+})
+// @ts-expect-error Program.makeElement requires an Html view.
+Program.makeElement({
+  block: invalidDocumentBlock,
+  container: null,
 })
 
 const requiredContextUpdate = InvalidApplicationComposition.makeUpdate(
@@ -410,12 +448,15 @@ const requiredContextUpdate = InvalidApplicationComposition.makeUpdate(
   },
 )
 
-// @ts-expect-error Application update cannot require root dispatch context.
-InvalidApplicationComposition.assembleElement({
+const requiredContextBlock = InvalidApplicationComposition.assembleBlock({
   ...invalidApplicationImplementation,
   update: requiredContextUpdate,
-  container: null,
   view: invalidElementView,
+})
+// @ts-expect-error A Program root update cannot require dispatch context.
+Program.makeElement({
+  block: requiredContextBlock,
+  container: null,
 })
 
 const WiderMessage = defineMessageUnion({
@@ -424,7 +465,7 @@ const WiderMessage = defineMessageUnion({
   RequestedExtraWork: {},
 })
 const WiderMessageApplication = (() => {
-  const ApplicationDefinition = makeApplicationDefinition({
+  const ApplicationDefinition = Block.makeDefinition('Application', {
     Model: ParentModel,
     Message: WiderMessage,
   })
@@ -438,17 +479,16 @@ const widerMessageUpdate = WiderMessageComposition.makeUpdate(
   }),
 )
 
-// @ts-expect-error Application update must accept exactly the root Message.
-InvalidApplicationComposition.assembleElement({
+InvalidApplicationComposition.assembleBlock({
   ...invalidApplicationImplementation,
+  // @ts-expect-error A completed Block accepts only an update owned by its Composition.
   update: widerMessageUpdate,
-  container: null,
   view: invalidElementView,
 })
 
 const WiderInputModel = Schema.Struct({})
 const WiderInputModelApplication = (() => {
-  const ApplicationDefinition = makeApplicationDefinition({
+  const ApplicationDefinition = Block.makeDefinition('Application', {
     Model: WiderInputModel,
     Message: LocalMessage,
   })
@@ -462,19 +502,22 @@ const widerModelUpdate = WiderInputModelComposition.makeUpdate(
   }),
 )
 
-// @ts-expect-error Application update must accept exactly the root Model.
-InvalidApplicationComposition.assembleElement({
+InvalidApplicationComposition.assembleBlock({
   ...invalidApplicationImplementation,
+  // @ts-expect-error A completed Block accepts only an update owned by its Composition.
   update: widerModelUpdate,
-  container: null,
   view: invalidElementView,
 })
 
+const invalidServerBlock = InvalidApplicationComposition.assembleBlock({
+  ...invalidApplicationImplementation,
+  view: invalidElementView,
+})
 // oxlint-disable-next-line effecttsgo/floating-effect
 Server.renderToString(
-  InvalidApplicationComposition,
   // @ts-expect-error Server rendering requires a page-owning Document view.
-  { ...invalidApplicationImplementation, view: invalidElementView },
+  invalidServerBlock,
+  {},
   { isHydratable: false },
 )
 
@@ -517,7 +560,7 @@ DeclarationTestsTypedPrimitiveOwnerDefinition.mountStream(
 )
 
 const TypedPrimitiveApplication = (() => {
-  const ApplicationDefinition = makeApplicationDefinition({
+  const ApplicationDefinition = Block.makeDefinition('Application', {
     Model: ParentModel,
     Message: ParentMessage,
   })

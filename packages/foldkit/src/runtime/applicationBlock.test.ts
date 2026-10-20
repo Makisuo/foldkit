@@ -10,11 +10,12 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { makeNamespace } from '../block/define.js'
+import * as Block from '../block/public.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
-import { makeDefinition as makeApplicationDefinition } from './applicationPublic.js'
 import * as ModelPreservationBridge from './modelPreservationBridge.js'
+import * as Program from './programPublic.js'
 import { embed, run } from './start.js'
 
 class ValueSource extends Context.Service<
@@ -51,7 +52,7 @@ const childBlock = childComposition.assembleBlock({
 })
 
 const Model = Schema.Struct({ left: ChildModel, right: ChildModel })
-const ApplicationDefinition = makeApplicationDefinition({
+const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message: Schema.Never,
 })
@@ -120,7 +121,7 @@ const resolvedHostChild = unresolvedHostChild.provideHandlers(
 )
 
 const HostParentModel = Schema.Struct({ child: HostChildModel })
-const HostParentDefinition = makeApplicationDefinition({
+const HostParentDefinition = Block.makeDefinition('Application', {
   Model: HostParentModel,
   Message: Schema.Never,
 })
@@ -188,7 +189,7 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-describe('registered Application composition completion', () => {
+describe('completed root Block hosting', () => {
   it('includes child recipes and lifts initialization Commands through the real runtime', async () => {
     const container = document.createElement('div')
     container.id = 'composed-element'
@@ -208,12 +209,14 @@ describe('registered Application composition completion', () => {
           }),
       ),
     )
-    const application = composition.assembleElement({
+    const application = Program.makeElement({
+      block: composition.assembleBlock({
+        init,
+        update,
+        view,
+        EffectsLayer: Layer.empty,
+      }),
       container,
-      init,
-      update,
-      view,
-      EffectsLayer: Layer.empty,
     })
     expect(init().model).toEqual({
       left: { label: 'left' },
@@ -346,7 +349,7 @@ describe('registered Application composition completion', () => {
     })
 
     const RootModel = Schema.Struct({ middle: MiddleModel })
-    const RootDefinition = makeApplicationDefinition({
+    const RootDefinition = Block.makeDefinition('Application', {
       Model: RootModel,
       Message: Schema.Never,
     })
@@ -374,12 +377,14 @@ describe('registered Application composition completion', () => {
     container.id = 'nested-command-root'
     document.body.append(container)
     const handle = embed(
-      nestedComposition.assembleElement({
+      Program.makeElement({
+        block: nestedComposition.assembleBlock({
+          init: nestedInit,
+          update: nestedUpdate,
+          view: nestedView,
+          EffectsLayer: Layer.empty,
+        }),
         container,
-        init: nestedInit,
-        update: nestedUpdate,
-        view: nestedView,
-        EffectsLayer: Layer.empty,
       }),
     )
 
@@ -463,7 +468,7 @@ describe('registered Application composition completion', () => {
       ClickedRemoveServiceChild: {},
       ClickedAddServiceChild: {},
     })
-    const ServiceRootDefinition = makeApplicationDefinition({
+    const ServiceRootDefinition = Block.makeDefinition('Application', {
       Model: ServiceRootModel,
       Message: ServiceRootMessage,
     })
@@ -536,15 +541,15 @@ describe('registered Application composition completion', () => {
     container.id = 'service-lifetime-root'
     document.body.append(container)
     const handle = embed(
-      serviceComposition
-        .assembleElement({
-          container,
+      Program.makeElement({
+        block: serviceComposition.assembleBlock({
           init: serviceInit,
           update: serviceUpdate,
           view: serviceView,
           EffectsLayer: Layer.empty,
-        })
-        .provide(SharedValueLayer),
+        }),
+        container,
+      }).provide(SharedValueLayer),
     )
 
     try {
@@ -670,7 +675,7 @@ describe('registered Application composition completion', () => {
       ),
     })
     const RootModel = Schema.Struct({ left: FeatureModel, right: FeatureModel })
-    const RootDefinition = makeApplicationDefinition({
+    const RootDefinition = Block.makeDefinition('Application', {
       Model: RootModel,
       Message: Schema.Never,
     })
@@ -696,15 +701,13 @@ describe('registered Application composition completion', () => {
       placement: 'Left',
       read: (model: typeof RootModel.Type) => Option.some(model.left),
       write: (model, nextLeft) => modifyFields(model, { left: () => nextLeft }),
-      outMessage: { fold: foldFeatureOutMessage('GotLeft') },
-    })
+    }).withOutMessagePolicy({ fold: foldFeatureOutMessage('GotLeft') })
     const RightBinding = RootDefinition.bindChild(featureBlock, {
       placement: 'Right',
       read: (model: typeof RootModel.Type) => Option.some(model.right),
       write: (model, nextRight) =>
         modifyFields(model, { right: () => nextRight }),
-      outMessage: { fold: foldFeatureOutMessage('GotRight') },
-    })
+    }).withOutMessagePolicy({ fold: foldFeatureOutMessage('GotRight') })
     const rootComposition = RootDefinition.makeComposition({
       bindings: [LeftBinding, RightBinding],
     })
@@ -730,12 +733,14 @@ describe('registered Application composition completion', () => {
     container.id = 'mounted-root'
     document.body.append(container)
     const handle = embed(
-      rootComposition.assembleElement({
+      Program.makeElement({
+        block: rootComposition.assembleBlock({
+          init: rootInit,
+          update: rootUpdate,
+          view: rootView,
+          EffectsLayer: Layer.empty,
+        }),
         container,
-        init: rootInit,
-        update: rootUpdate,
-        view: rootView,
-        EffectsLayer: Layer.empty,
       }),
     )
 
@@ -752,38 +757,42 @@ describe('registered Application composition completion', () => {
 })
 
 const checkAssemblyTypes = (container: HTMLElement) => {
-  const application = composition.assembleElement({
-    container,
+  const block = composition.assembleBlock({
     init,
     update,
     view,
     EffectsLayer: Layer.empty,
+  })
+  const application = Program.makeElement({
+    block,
+    container,
   })
   // @ts-expect-error Shared Service requirements must be provided before running.
   run(application)
-  // @ts-expect-error ApplicationComposition.assembleApplication requires a Document view.
-  composition.assembleApplication({
+  // @ts-expect-error Program.make requires a Document view.
+  Program.make({
+    block,
     container,
-    init,
-    update,
-    view,
-    EffectsLayer: Layer.empty,
   })
 
   // @ts-expect-error Root completion requires inherited host handlers to be supplied first.
-  unresolvedHostComposition.assembleElement({
+  Program.makeElement({
+    block: unresolvedHostComposition.assembleBlock({
+      init: unresolvedHostInit,
+      update: unresolvedHostUpdate,
+      view: unresolvedHostView,
+      EffectsLayer: Layer.empty,
+    }),
     container,
-    init: unresolvedHostInit,
-    update: unresolvedHostUpdate,
-    view: unresolvedHostView,
-    EffectsLayer: Layer.empty,
   })
-  const hostApplication = resolvedHostComposition.assembleElement({
+  const hostApplication = Program.makeElement({
+    block: resolvedHostComposition.assembleBlock({
+      init: resolvedHostInit,
+      update: resolvedHostUpdate,
+      view: resolvedHostView,
+      EffectsLayer: Layer.empty,
+    }),
     container,
-    init: resolvedHostInit,
-    update: resolvedHostUpdate,
-    view: resolvedHostView,
-    EffectsLayer: Layer.empty,
   })
   hostApplication.provide(Layer.succeed(HostDependency, { value: 'provided' }))
 }

@@ -1,7 +1,6 @@
 import { Match, Schema } from 'effect'
-import { Update, makeApplicationDefinition } from 'foldkit'
+import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 import { Url } from 'foldkit/url'
 
 import * as People from './informingBlocksIndex'
@@ -11,14 +10,12 @@ export const Model = Schema.Struct({
   route: ApplicationRoute,
   people: People.PeopleBlock.Model,
 })
-export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ChangedUrl: { url: Url },
 })
-export type Message = typeof Message.Type
 
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
@@ -35,9 +32,8 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [PeopleBinding],
 })
 
-const setRoute =
-  (nextRoute: ApplicationRoute): Update.Step<Model, Message> =>
-  model => ({ model: modifyFields(model, { route: () => nextRoute }) })
+const setRoute = (nextRoute: typeof ApplicationRoute.Type) =>
+  ApplicationDefinition.stepFields(() => ({ route: () => nextRoute }))
 
 export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
@@ -46,7 +42,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
 
       return Match.value(nextRoute).pipe(
         Match.tag('People', peopleRoute =>
-          Update.combine(model, [
+          Update.combineSteps(model, [
             setRoute(nextRoute),
             PeopleBinding.informRouteChanged({ route: peopleRoute }),
           ]),

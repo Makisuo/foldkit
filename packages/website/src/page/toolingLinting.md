@@ -256,7 +256,7 @@ Flags turning off the freezeModel or slow dev guardrails. Fix the mutation or sl
 
 ### foldkit/block-name-matches-variable {#block-name-matches-variable}
 
-Requires a direct `Block.makeDefinition` declaration with a literal name to use `<BlockId>Definition` while preserving the runtime Block ID, such as `SearchDefinition = Block.makeDefinition('Search', ...)`. Root authoring uses `ApplicationDefinition`; Composition values keep `<BlockId>Composition` and `ApplicationComposition`. The rule follows imports from `foldkit` and `foldkit/block`, including aliases and namespace imports. It leaves dynamic names, locally shadowed bindings, and unrelated `makeDefinition` methods alone.
+Requires a direct `Block.makeDefinition` declaration with a literal name to use `<BlockId>Definition` while preserving the runtime Block ID, such as `SearchDefinition = Block.makeDefinition('Search', ...)`. Root Blocks use the same rule, so `ApplicationDefinition = Block.makeDefinition('Application', ...)`; Composition values keep `<BlockId>Composition` and `ApplicationComposition`. The rule follows imports from `foldkit` and `foldkit/block`, including aliases and namespace imports. It leaves dynamic names, locally shadowed bindings, and unrelated `makeDefinition` methods alone.
 
 The rule reports without changing the source. Whether the identifier or runtime name should change depends on the Block's public identity.
 
@@ -264,7 +264,7 @@ The rule reports without changing the source. Whether the identifier or runtime 
 
 #### Omit Empty Mappers
 
-Flags an inline `outMessage.forward` mapper that always returns `undefined`, including a keyed factory whose returned mapper does so. That mapper forwards nothing to the parent, so omit the property.
+Flags an inline `forward` selected through `withOutMessagePolicy` when it always returns `undefined`, including a keyed factory whose returned mapper does so. It also flags an inline `makeOutMessageForward` handler record when every named variant returns `undefined`. Those policies forward nothing to the parent, so omit forwarding.
 
 #### Partial Forwarding
 

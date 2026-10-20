@@ -41,7 +41,7 @@ const step = update(message)
 step(model)
 
 // @ts-expect-error A context-bearing curried update is not a unary Step.
-Update.combine(model, [step])
+Update.combineSteps(model, [step])
 
 // @ts-expect-error The two-argument form is the canonical data-first call.
 update(message, { multiplier: 2 })
@@ -63,13 +63,14 @@ const AlternativeChildBinding = ParentDefinition.bindChild(ChildBlock, {
 const OmittedComposition = ParentDefinition.makeComposition({
   bindings: [AlternativeChildBinding],
 })
+// @ts-expect-error An update from another child graph carries that graph's generated dispatch Schema.
 const omittedDirectUpdate = OmittedComposition.makeUpdate((current, _message) =>
-  // @ts-expect-error An update from another child graph carries that graph's generated dispatch Schema.
   parentUpdate(parentMessage)(current),
 )
 const omittedComposedUpdate = OmittedComposition.makeUpdate(
-  // @ts-expect-error Update.combine preserves the originating graph's generated dispatch Schema.
-  (current, _message) => Update.combine(current, [parentUpdate(parentMessage)]),
+  // @ts-expect-error Update.combineSteps preserves the originating graph's generated dispatch Schema.
+  (current, _message) =>
+    Update.combineSteps(current, [parentUpdate(parentMessage)]),
 )
 
 void omittedDirectUpdate
@@ -85,9 +86,8 @@ OmittedComposition.assembleBlock({
   EffectsLayer: Layer.empty,
 })
 
-// @ts-expect-error Root completion still requires the update's Command handler Layer.
-RootComposition.assembleApplication({
-  container: null,
+// @ts-expect-error Block completion requires the update's Command handler Layer.
+RootComposition.assembleBlock({
   init: rootInit,
   update: rootUpdate,
   view: rootView,

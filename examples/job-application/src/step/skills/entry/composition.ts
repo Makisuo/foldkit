@@ -1,27 +1,7 @@
-import { type Update } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
-
-import {
-  Message,
-  type Model,
-  ProficiencyRadioGroup,
-  SkillsEntryDefinition,
-} from './definition'
+import { ProficiencyRadioGroup, SkillsEntryDefinition } from './definition'
 
 const proficiencyRadioGroupId = (entryId: string): string =>
   `${entryId}-proficiency`
-
-const foldProficiencyRadioGroupOutMessage =
-  ProficiencyRadioGroup.OutMessage.match<
-    Update.Step<Model, Message>,
-    typeof ProficiencyRadioGroup.OutMessage.Type
-  >({
-    Selected:
-      ({ value }) =>
-      model => ({
-        model: modifyFields(model, { proficiency: () => value }),
-      }),
-  })
 
 export const ProficiencyRadioGroupBinding = SkillsEntryDefinition.bindChild(
   ProficiencyRadioGroup,
@@ -30,9 +10,13 @@ export const ProficiencyRadioGroupBinding = SkillsEntryDefinition.bindChild(
     init: {
       contextToArgs: entryId => [{ id: proficiencyRadioGroupId(entryId) }],
     },
-    outMessage: { fold: foldProficiencyRadioGroupOutMessage },
   },
-)
+).withOutMessagePolicy({
+  fold: SkillsEntryDefinition.makeOutMessageFold(ProficiencyRadioGroup, {
+    Selected: ({ value }) =>
+      SkillsEntryDefinition.stepFields(() => ({ proficiency: () => value })),
+  }),
+})
 
 export const SkillsEntryComposition = SkillsEntryDefinition.makeComposition({
   bindings: [ProficiencyRadioGroupBinding],

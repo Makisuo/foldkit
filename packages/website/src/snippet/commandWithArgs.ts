@@ -1,6 +1,6 @@
 // application.ts
 import { Duration, Effect, Schema } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -10,9 +10,11 @@ const Message = defineMessageUnion({
   ClickedResetAfterDelay: { delayMs: Schema.Number },
   CompletedWaitBeforeReset: {},
 })
-type Message = typeof Message.Type
 
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 
 const WaitBeforeReset = ApplicationDefinition.command('WaitBeforeReset', {
   args: { delayMs: Schema.Number },

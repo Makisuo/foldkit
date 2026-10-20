@@ -1,6 +1,5 @@
 import { Effect, Schema } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 import { type Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -14,14 +13,12 @@ export const Model = Schema.Struct({
   renderedAt: Schema.String,
   renderedOn: Schema.Literals(['Server', 'Client']),
 })
-export type Model = typeof Model.Type
 
 export const Flags = Schema.Struct({
   initialCount: Schema.Number,
   renderedAt: Schema.String,
   renderedOn: Schema.Literals(['Server', 'Client']),
 })
-export type Flags = typeof Flags.Type
 
 export const Message = defineMessageUnion({
   ClickedDecrement: {},
@@ -29,9 +26,7 @@ export const Message = defineMessageUnion({
   CompletedPersistCount: {},
 })
 
-export type Message = typeof Message.Type
-
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
@@ -79,13 +74,15 @@ export const PersistCount = ApplicationDefinition.command('PersistCount', {
 
 export const EffectsLayer = PersistCount.layer
 
-export const init = ApplicationComposition.makeInit((flags: Flags) => ({
-  model: {
-    count: flags.initialCount,
-    renderedAt: flags.renderedAt,
-    renderedOn: flags.renderedOn,
-  },
-}))
+export const init = ApplicationComposition.makeInit(
+  (flags: typeof Flags.Type) => ({
+    model: {
+      count: flags.initialCount,
+      renderedAt: flags.renderedAt,
+      renderedOn: flags.renderedOn,
+    },
+  }),
+)
 
 export const view = ApplicationComposition.makeView((model, h) => ({
   title: `Count ${model.count}`,
@@ -166,3 +163,10 @@ const parseEquivalenceView = (h: ApplicationViewBuilder): Html =>
 // STYLE
 
 const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
+
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
+  init,
+  update,
+  view,
+  EffectsLayer,
+})

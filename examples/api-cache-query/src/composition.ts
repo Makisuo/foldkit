@@ -17,27 +17,29 @@ export const PostDetailsBinding = ApplicationDefinition.bindChild(postQuery, {
   field: 'postDetails',
 })
 
-const activateTab = (tab: Tab) => {
+const activateTab = (tab: typeof Tab.Type) => {
   const selectTab = ApplicationDefinition.stepFields(() => ({
     activeTab: () => tab,
   }))
+
   const loadTab = Match.value(tab).pipe(
     Match.when('Posts', () => PostsBinding.requestLoadIfMissing()),
     Match.when('Stats', () => StatsBinding.requestLoadIfMissing()),
     Match.exhaustive,
   )
 
-  return Update.combine([selectTab, loadTab])
+  return ApplicationDefinition.step(() =>
+    Update.combineSteps([selectTab, loadTab]),
+  )
 }
-
-const foldTabsOutMessage = AppTabsBlock.OutMessage.match({
-  Selected: ({ value }) => activateTab(value),
-})
 
 export const TabsBinding = ApplicationDefinition.bindChild(AppTabsBlock, {
   field: 'tabs',
   init: { contextToArgs: () => [{ id: TABS_ID }] },
-  outMessage: { fold: foldTabsOutMessage },
+}).withOutMessagePolicy({
+  fold: ApplicationDefinition.makeOutMessageFold(AppTabsBlock, {
+    Selected: ({ value }) => activateTab(value),
+  }),
 })
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({

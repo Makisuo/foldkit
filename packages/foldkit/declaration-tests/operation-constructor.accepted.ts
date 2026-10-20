@@ -159,15 +159,12 @@ export const ChildBinding = OperationConstructorProofParentDefinition.bindChild(
     delivery: {
       toUpdateContext: () => [{ prefix: 'routed' }],
     },
-    outMessage: {
-      fold: OutMessage.match<
-        Update.Step<ParentModel, typeof ParentMessage.Type>
-      >({
-        ChangedValue: () => model => ({ model }),
-      }),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: OutMessage.match<Update.Step<ParentModel, typeof ParentMessage.Type>>({
+    ChangedValue: () => model => ({ model }),
+  }),
+})
 export const EntryBinding = OperationConstructorProofParentDefinition.bindChild(
   ChildBlock,
   {
@@ -185,17 +182,16 @@ export const EntryBinding = OperationConstructorProofParentDefinition.bindChild(
     delivery: {
       toUpdateContext: () => [{ prefix: 'routed' }],
     },
-    outMessage: {
-      fold: (_id, outMessage) =>
-        OutMessage.match<Update.Step<ParentModel, typeof ParentMessage.Type>>(
-          outMessage,
-          {
-            ChangedValue: () => model => ({ model }),
-          },
-        ),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: (_id, outMessage) =>
+    OutMessage.match<Update.Step<ParentModel, typeof ParentMessage.Type>>(
+      outMessage,
+      {
+        ChangedValue: () => model => ({ model }),
+      },
+    ),
+})
 export const OperationConstructorProofParentComposition =
   OperationConstructorProofParentDefinition.makeComposition({
     bindings: [ChildBinding, EntryBinding],

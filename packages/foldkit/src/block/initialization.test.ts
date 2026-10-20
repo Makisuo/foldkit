@@ -12,7 +12,7 @@ import { expect, expectTypeOf, it } from 'vitest'
 import * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
-import type * as Update from '../update/index.js'
+import * as Update from '../update/index.js'
 import { makeDefinition } from './define.js'
 import type { InitializationPlan } from './initialization.js'
 import { assertRegisteredBinding } from './operationGraph.js'
@@ -35,7 +35,6 @@ const ChildMessage = defineMessageUnion({
   CompletedInitialization: { count: Schema.Number },
   CompletedIncrement: {},
 })
-type ChildMessage = typeof ChildMessage.Type
 
 const Child = makeDefinition('InitializationChild', {
   Model: ChildModel,
@@ -256,6 +255,51 @@ it('stays passive, initializes in Binding order, applies Steps sequentially, and
     'InitializationParent/FinishStep',
   ])
   expect(commandEffects).toEqual({ child: 0, parent: 0 })
+})
+
+it('preserves a combined Binding operation and Command-producing Definition Step in init', () => {
+  const finishCombined = Parent.step(() =>
+    Update.combineSteps([FirstBinding.increment(), finishParentStep]),
+  )
+  const initializeCombined = ParentComposition.makeInit((count: number) => ({
+    childInitContext: {
+      firstCount: count,
+      maybeSecondCount: Option.none<number>(),
+    },
+    model: { status: 'Ready' },
+    steps: [finishCombined],
+  }))
+
+  expectTypeOf<Parameters<typeof initializeCombined>>().toEqualTypeOf<
+    [count: number]
+  >()
+  expectTypeOf<
+    ReturnType<typeof initializeCombined>['model']
+  >().toEqualTypeOf<ParentModel>()
+  expectTypeOf<
+    Update.RequirementsOf<typeof initializeCombined>
+  >().toEqualTypeOf<
+    Exclude<
+      Update.RequirementsOf<typeof init>,
+      Command.HandlerOf<typeof FinishParentInitialization>
+    >
+  >()
+  expectTypeOf<
+    Update.RegistrationEvidenceOf<ReturnType<typeof initializeCombined>>
+  >().toEqualTypeOf<Update.RegistrationEvidenceOf<ReturnType<typeof init>>>()
+
+  const initialized = initializeCombined(4)
+
+  expect(initialized.model).toEqual({
+    first: { count: 104 },
+    maybeSecond: Option.none(),
+    status: 'Stepped',
+  })
+  expect(initialized.commands?.map(command => command.name)).toEqual([
+    'first/FinishInitialization',
+    'first/FinishIncrement',
+    'InitializationParent/FinishStep',
+  ])
 })
 
 it('skips an optional child and drops its init Commands after a Step removes it', () => {

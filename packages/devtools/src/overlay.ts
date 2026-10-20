@@ -21,7 +21,7 @@ import {
   pipe,
 } from 'effect'
 import { KeyValueStore } from 'effect/persistence'
-import { Block, Update, makeApplicationDefinition } from 'foldkit'
+import { Block, Program, Update } from 'foldkit'
 import {
   type CommandRecord,
   DEVTOOLS_HOST_ID,
@@ -227,7 +227,6 @@ const Message = defineMessageUnion({
     pausedAtIndex: Schema.Number,
   },
 })
-type Message = typeof Message.Type
 
 // HELPERS
 
@@ -386,21 +385,10 @@ const taggedPayload = (
 
 // UPDATE
 
-const ApplicationDefinition = makeApplicationDefinition({
+const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
   ChildInitContext: Flags,
-})
-
-const foldInspectorTabsOutMessage = InspectorTabsBlock.OutMessage.match<
-  Update.Step<Model, Message>,
-  typeof InspectorTabsBlock.OutMessage.Type
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, { activeInspectorTab: () => value }),
-    }),
 })
 
 const InspectorTabsBinding = ApplicationDefinition.bindChild(
@@ -408,21 +396,14 @@ const InspectorTabsBinding = ApplicationDefinition.bindChild(
   {
     field: 'inspectorTabs',
     init: { contextToArgs: () => [{ id: INSPECTOR_TABS_ID }] },
-    outMessage: { fold: foldInspectorTabsOutMessage },
   },
-)
-
-const foldBlockFilterOutMessage = BlockFilterListboxBlock.OutMessage.match<
-  Update.Step<Model, Message>,
-  typeof BlockFilterListboxBlock.OutMessage.Type
->({
-  Selected:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeBlockFilter: () => Option.liftPredicate(value, String.isNonEmpty),
-      }),
-    }),
+).withOutMessagePolicy({
+  fold: ApplicationDefinition.makeOutMessageFold(InspectorTabsBlock, {
+    Selected: ({ value }) =>
+      ApplicationDefinition.stepFields(() => ({
+        activeInspectorTab: () => value,
+      })),
+  }),
 })
 
 const BlockFilterListboxBinding = ApplicationDefinition.bindChild(
@@ -430,25 +411,14 @@ const BlockFilterListboxBinding = ApplicationDefinition.bindChild(
   {
     field: 'blockFilterListbox',
     init: { contextToArgs: () => [{ id: BLOCK_FILTER_ID }] },
-    outMessage: { fold: foldBlockFilterOutMessage },
   },
-)
-
-// NOTE: Pointer Messages update the thumb immediately, but jumping to and
-// inspecting the corresponding state is expensive. Keep only the latest host
-// index until TickedScrubFrame flushes one navigation on the next frame.
-const foldScrubberSliderOutMessage = Slider.SliderBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  ChangedValue:
-    ({ value }) =>
-    model => ({
-      model: modifyFields(model, {
-        scrubberValue: () => value,
-        maybePendingScrubIndex: () =>
-          Option.some(sliderValueToHostIndex(value, model.startIndex)),
-      }),
-    }),
+).withOutMessagePolicy({
+  fold: ApplicationDefinition.makeOutMessageFold(BlockFilterListboxBlock, {
+    Selected: ({ value }) =>
+      ApplicationDefinition.stepFields(() => ({
+        maybeBlockFilter: () => Option.liftPredicate(value, String.isNonEmpty),
+      })),
+  }),
 })
 
 type DevToolsScrubberBlock = ReturnType<typeof Slider.forRoot>
@@ -456,6 +426,9 @@ type DevToolsScrubberBlock = ReturnType<typeof Slider.forRoot>
 const makeApplicationComposition = (
   scrubberSliderBlock: DevToolsScrubberBlock,
 ) => {
+  // NOTE: Pointer Messages update the thumb immediately, but jumping to and
+  // inspecting the corresponding state is expensive. Keep only the latest host
+  // index until TickedScrubFrame flushes one navigation on the next frame.
   const ScrubberBinding = ApplicationDefinition.bindChild(scrubberSliderBlock, {
     field: 'scrubberSlider',
     init: {
@@ -468,7 +441,15 @@ const makeApplicationComposition = (
         },
       ],
     },
-    outMessage: { fold: foldScrubberSliderOutMessage },
+  }).withOutMessagePolicy({
+    fold: ApplicationDefinition.makeOutMessageFold(scrubberSliderBlock, {
+      ChangedValue: ({ value }) =>
+        ApplicationDefinition.stepFields(model => ({
+          scrubberValue: () => value,
+          maybePendingScrubIndex: () =>
+            Option.some(sliderValueToHostIndex(value, model.startIndex)),
+        })),
+    }),
   })
 
   const bindings = {
@@ -1010,7 +991,7 @@ const update = ApplicationComposition.makeUpdate((model, message) =>
         ? hostIndexToSliderValue(pausedAtIndex, startIndex)
         : sliderMax
 
-      return Update.combine(model, [
+      return Update.combineSteps(model, [
         ApplicationDefinition.step(stepModel => ({
           model: modifyFields(stepModel, {
             entries: () => entries,
@@ -1153,6 +1134,14 @@ const makeView = (
 }
 
 const view = ApplicationComposition.makeView(makeView(bindings))
+
+const ApplicationBlock = ApplicationComposition.assembleBlock({
+  init,
+  update,
+  view,
+  subscriptions,
+  EffectsLayer,
+})
 
 const buildOverlayView = (
   position: DevToolsPosition,
@@ -2988,19 +2977,15 @@ export const createOverlay = (
       }
     })
 
-    const application = ApplicationComposition.assembleElement({
-      init,
-      update,
-      view,
-      subscriptions,
-      EffectsLayer,
+    const program = Program.makeElement({
+      block: ApplicationBlock,
       Flags,
       flags,
       container,
       devTools: false,
       freezeModel: false,
     })
-    const overlay = application.provide(ServicesLayer)
+    const overlay = program.provide(ServicesLayer)
 
     yield* Effect.forkScoped(overlay.start())
   })

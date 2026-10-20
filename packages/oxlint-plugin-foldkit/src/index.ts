@@ -174,22 +174,36 @@ const testOverride = (config: Plugin.OxlintConfig): Override => ({
   ),
 })
 
-const withOverrides = (config: Plugin.OxlintConfig): OverriddenConfig => ({
-  ...config,
-  rules: {
+const withOverrides = (
+  config: Plugin.OxlintConfig,
+  additionalRules: Record<string, Plugin.RuleSeverity> = {},
+): OverriddenConfig => {
+  const rules: Record<string, Plugin.RuleSeverity> = {
     ...config.rules,
+    ...additionalRules,
     'foldkit/no-nonportable-server-globals': 'off',
     ...Object.fromEntries(
       legacyAuthoredDeliveryRuleIds.map(id => [id, 'off'] as const),
     ),
-  },
-  overrides: [serverOverride, entryOverride, testOverride(config)],
-})
+  }
+
+  return {
+    ...config,
+    rules,
+    overrides: [
+      serverOverride,
+      entryOverride,
+      testOverride({ ...config, rules }),
+    ],
+  }
+}
 
 export default {
   ...basePlugin,
   configs: {
-    recommended: withOverrides(basePlugin.configs.recommended),
+    recommended: withOverrides(basePlugin.configs.recommended, {
+      'require-yield': 'off',
+    }),
     all: withOverrides(basePlugin.configs.all),
   },
 }

@@ -2,14 +2,11 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Schema, Tuple } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 import { Animation } from '@foldkit/ui'
 import { defaultLeaveCommand as AnimationDefaultLeaveCommand } from '@foldkit/ui/animation'
-
-type AnimationMessage = typeof Animation.AnimationBlock.Message.Type
-type AnimationOutMessage = typeof Animation.AnimationBlock.OutMessage.Type
 
 // Add a field to your Model for the Animation Block. Animation tracks
 // its own visibility and lifecycle state. No need for a separate flag:
@@ -17,13 +14,11 @@ const Model = Schema.Struct({
   animation: Animation.AnimationBlock.Model,
   // ...your other fields
 })
-type Model = typeof Model.Type
 
 // Declare only parent-owned facts. The Composition derives Animation delivery.
 const Message = defineMessageUnion({
   ClickedToggleAnimation: {},
 })
-type Message = typeof Message.Type
 
 const AnimationExampleDefinition = Block.makeDefinition('AnimationExample', {
   Model,
@@ -34,14 +29,12 @@ const AnimationExampleDefinition = Block.makeDefinition('AnimationExample', {
 // lifecycle events Animation can't handle on its own. Most importantly, it
 // tells you when a leave animation has started so you can provide the Command
 // that listens for animation settlement. That Command's result is an Animation
-// Message, so use `liftCommand` from the fold context to lift it into the
-// parent Message type. Each arm returns an Update.Step over the parent Model,
-// which already has the next Animation Model written back:
-const foldAnimationOutMessage = (
-  outMessage: AnimationOutMessage,
-  { liftCommand }: Update.FoldContext<AnimationMessage, Message>,
-) =>
-  Animation.AnimationBlock.OutMessage.match(outMessage, {
+// Message, so use `liftCommand` from the second handler argument to lift it
+// into the parent Message type. The completed child Block lets the parent
+// Definition infer that context without annotations:
+const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
+  Animation.AnimationBlock,
+  {
     // Animation handles enter completion internally but hands leave
     // settlement detection to you here, because the strategy varies
     // by consumer. For example, Foldkit's Dialog just waits for CSS,
@@ -50,7 +43,7 @@ const foldAnimationOutMessage = (
     // waits for every CSS transition and keyframe animation on the
     // element to settle, then dispatches EndedAnimation back into
     // Animation.AnimationBlock.update. Use it unless you need a custom strategy.
-    StartedLeaveAnimating: () =>
+    StartedLeaveAnimating: (_, { liftCommand }) =>
       AnimationExampleDefinition.step(model => ({
         model,
         commands: [liftCommand(AnimationDefaultLeaveCommand(model.animation))],
@@ -62,8 +55,9 @@ const foldAnimationOutMessage = (
     // release a resource. No Commands here because animateSize keeps the
     // element mounted (collapsed to zero height) so there's nothing to
     // tear down.
-    TransitionedOut: () => AnimationExampleDefinition.stepNoop(),
-  })
+    TransitionedOut: AnimationExampleDefinition.stepNoop,
+  },
+)
 
 // The Binding wires the completed child Block into the parent: it runs Animation.AnimationBlock.update,
 // writes the next Animation Model back, delivers Command results through the
@@ -73,9 +67,8 @@ const AnimationBinding = AnimationExampleDefinition.bindChild(
   {
     field: 'animation',
     init: { contextToArgs: () => Tuple.make({ id: 'content' }) },
-    outMessage: { fold: foldAnimationOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
 const AnimationExampleComposition = AnimationExampleDefinition.makeComposition({
   bindings: [AnimationBinding],
@@ -122,7 +115,7 @@ const view = AnimationExampleComposition.makeView((model, h) =>
             animateSize: true,
             className:
               'transition duration-200 ease-out data-[closed]:opacity-0 data-[closed]:scale-95',
-            content: h.p([], ['This content animates in and out.']),
+            toView: () => h.p([], ['This content animates in and out.']),
           },
         }),
       ),

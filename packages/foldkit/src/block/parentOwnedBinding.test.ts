@@ -2,13 +2,13 @@ import { Array, Layer, Option, Schema, Tuple } from 'effect'
 import { expect, expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
-import { makeDefinition as makeApplicationDefinition } from '../runtime/applicationPublic.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
 import type { RequirementOfBinding } from './binding.js'
 import type { ChildEnvelope } from './childEnvelope.js'
 import type { DeferredBindingPolicy } from './deferredPolicy.js'
 import { makeDefinition, makeNamespace } from './define.js'
+import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ value: Schema.String })
 type ChildModel = typeof ChildModel.Type
@@ -138,21 +138,19 @@ const foldChildOutMessage = ChildOutMessage.match<
 const DirectChildBinding = Parent.bindChild(ChildBlock, {
   field: 'child',
   init: false,
-  outMessage: { fold: foldChildOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldChildOutMessage })
 
 const ForwardingChildBinding = Parent.bindChild(ChildBlock, {
   field: 'child',
   placement: 'forwardingChild',
-  outMessage: {
-    forward: outMessage => {
-      expectTypeOf(outMessage).toEqualTypeOf<ChildOutMessage>()
+}).withOutMessagePolicy({
+  forward: outMessage => {
+    expectTypeOf(outMessage).toEqualTypeOf<ChildOutMessage>()
 
-      return ChildOutMessage.match<ParentOutMessage>(outMessage, {
-        SelectedValue: ({ value }) =>
-          ParentOutMessage.ForwardedSelectedValue({ value }),
-      })
-    },
+    return ChildOutMessage.match<ParentOutMessage>(outMessage, {
+      SelectedValue: ({ value }) =>
+        ParentOutMessage.ForwardedSelectedValue({ value }),
+    })
   },
 })
 
@@ -161,15 +159,14 @@ const OptionalChildBinding = Parent.bindChild(ChildBlock, {
   read: model => model.maybeChild,
   write: (model, nextChild) =>
     modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
-  outMessage: {
-    fold: (outMessage, context) => {
-      expectTypeOf(outMessage).toEqualTypeOf<ChildOutMessage>()
-      expectTypeOf(context).toEqualTypeOf<
-        Update.FoldContext<ChildMessage, ParentMessage, ParentModel>
-      >()
+}).withOutMessagePolicy({
+  fold: (outMessage, context) => {
+    expectTypeOf(outMessage).toEqualTypeOf<ChildOutMessage>()
+    expectTypeOf(context).toEqualTypeOf<
+      Update.FoldContext<ChildMessage, ParentMessage, ParentModel>
+    >()
 
-      return foldChildOutMessage(outMessage)
-    },
+    return foldChildOutMessage(outMessage)
   },
 })
 
@@ -181,8 +178,7 @@ const TaggedChildBinding = Parent.bindChild(ChildBlock, {
     modifyFields(model, {
       slot: () => ChildSlot.make({ child: nextChild }),
     }),
-  outMessage: { fold: foldChildOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldChildOutMessage })
 
 const KeyedChildBinding = Parent.bindChild(ChildBlock, {
   placement: 'entries',
@@ -198,16 +194,15 @@ const KeyedChildBinding = Parent.bindChild(ChildBlock, {
           : entry,
       ),
     }),
-  outMessage: {
-    fold: (id, outMessage, context) => {
-      expectTypeOf(id).toEqualTypeOf<number>()
-      expectTypeOf(outMessage).toEqualTypeOf<ChildOutMessage>()
-      expectTypeOf(context).toEqualTypeOf<
-        Update.FoldContext<ChildMessage, ParentMessage, ParentModel>
-      >()
+}).withOutMessagePolicy({
+  fold: (id, outMessage, context) => {
+    expectTypeOf(id).toEqualTypeOf<number>()
+    expectTypeOf(outMessage).toEqualTypeOf<ChildOutMessage>()
+    expectTypeOf(context).toEqualTypeOf<
+      Update.FoldContext<ChildMessage, ParentMessage, ParentModel>
+    >()
 
-      return foldChildOutMessage(outMessage)
-    },
+    return foldChildOutMessage(outMessage)
   },
 })
 
@@ -270,23 +265,22 @@ const GenericParent = makeDefinition('ParentOwnedGenericParent', {
   Model: GenericParentModel,
   Message: Schema.Never,
 })
+const foldGenericChoiceOutMessage = GenericParent.makeOutMessageFold(
+  GenericChoice.block,
+  {
+    SelectedChoice:
+      ({ value }) =>
+      model => {
+        expectTypeOf(value).toEqualTypeOf<'One' | 'Two'>()
+        return { model }
+      },
+  },
+)
 const GenericChoiceBinding = GenericParent.bindChild(GenericChoice.block, {
   field: 'choice',
   init: false,
-  outMessage: {
-    fold: outMessage =>
-      GenericChoice.OutMessage.match<Update.Step<GenericParentModel, never>>(
-        outMessage,
-        {
-          SelectedChoice:
-            ({ value }) =>
-            model => {
-              expectTypeOf(value).toEqualTypeOf<'One' | 'Two'>()
-              return { model }
-            },
-        },
-      ),
-  },
+}).withOutMessagePolicy({
+  fold: foldGenericChoiceOutMessage,
 })
 
 const makeKeyedGenericParent = <const Value extends string>(
@@ -326,8 +320,7 @@ const makeKeyedGenericParent = <const Value extends string>(
             : entry,
         ),
       }),
-    outMessage: { fold: foldOutMessage },
-  })
+  }).withOutMessagePolicy({ fold: foldOutMessage })
 
   const composition = Parent.makeComposition({ bindings: [ChildBinding] })
   const foldChild = composition.makeUpdate()
@@ -399,13 +392,14 @@ if (false) {
 const SingleParentMessage = defineMessageUnion({
   RequestedInvokePrototypeOperation: { value: Schema.String },
 })
-const ApplicationDefinition = makeApplicationDefinition({
+const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: SingleParentMessage,
 })
 const ApplicationChildBinding = ApplicationDefinition.bindChild(ChildBlock, {
   field: 'child',
-  outMessage: { fold: () => ApplicationDefinition.step(model => ({ model })) },
+}).withOutMessagePolicy({
+  fold: () => ApplicationDefinition.step(model => ({ model })),
 })
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [ApplicationChildBinding],
@@ -430,10 +424,9 @@ if (false) {
   Parent.assembleBlock
   // @ts-expect-error The breaking staging API does not retain register aliases.
   Parent.register
-  // @ts-expect-error Every Application completes through a Composition.
-  ApplicationDefinition.assembleElement
-  // @ts-expect-error An Application Composition does not expose Block completion.
-  ApplicationComposition.assembleBlock
+  // @ts-expect-error Every Block completes through a Composition.
+  ApplicationDefinition.assembleBlock
+  void ApplicationComposition.assembleBlock
   // @ts-expect-error A completed child has no child-owned Binding factory.
   ChildBlock.connection
   // @ts-expect-error Keyed Bindings are also created by the parent.
@@ -441,14 +434,12 @@ if (false) {
 
   Parent.bindChild(ChildBlock, {
     field: 'maybeChild',
-    outMessage: { fold: foldChildOutMessage },
-  })
+  }).withOutMessagePolicy({ fold: foldChildOutMessage })
 
   const AlternativeChildBinding = Parent.bindChild(ChildBlock, {
     field: 'child',
     placement: 'alternative',
-    outMessage: { fold: foldChildOutMessage },
-  })
+  }).withOutMessagePolicy({ fold: foldChildOutMessage })
   const AlternativeParentComposition = Parent.makeComposition({
     bindings: [
       AlternativeChildBinding,
@@ -549,7 +540,7 @@ it('snapshots mutable child and Mount arrays at the Composition boundary', () =>
   expect(Object.isFrozen(composition.mounts)).toBe(true)
 })
 
-it('keeps Application Composition snapshots independent from caller arrays', () => {
+it('keeps root Composition snapshots independent from caller arrays', () => {
   const suppliedChildBindings: Array<typeof ApplicationChildBinding> = [
     ApplicationChildBinding,
   ]
@@ -590,8 +581,7 @@ it('keeps child Binding helpers on the Definition after composition', () => {
   const DefinitionOwnedChildBinding = Parent.bindChild(ChildBlock, {
     field: 'child',
     placement: 'definitionOwnedChild',
-    outMessage: { fold: foldChildOutMessage },
-  })
+  }).withOutMessagePolicy({ fold: foldChildOutMessage })
 
   expect(compositionHelper).not.toHaveProperty('bindChild')
   expect(

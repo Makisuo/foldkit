@@ -1,5 +1,5 @@
 import { Duration, Effect, Layer, Schema, Stream } from 'effect'
-import { Port, makeApplicationDefinition } from 'foldkit'
+import { Block, Port } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -9,7 +9,6 @@ export const Model = Schema.Struct({
   count: Schema.Number,
   step: Schema.Number,
 })
-export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   Ticked: {},
@@ -18,9 +17,7 @@ export const Message = defineMessageUnion({
   CompletedReportCount: {},
 })
 
-export type Message = typeof Message.Type
-
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
@@ -35,11 +32,12 @@ export const ports = {
 }
 
 export const Flags = Schema.Struct({ initialCount: Schema.Number })
-export type Flags = typeof Flags.Type
 
-export const init = ApplicationComposition.makeInit((flags: Flags) => ({
-  model: Model.make({ count: flags.initialCount, step: 1 }),
-}))
+export const init = ApplicationComposition.makeInit(
+  (flags: typeof Flags.Type) => ({
+    model: Model.make({ count: flags.initialCount, step: 1 }),
+  }),
+)
 
 export const ReportCount = ApplicationDefinition.command('ReportCount', {
   args: { count: Schema.Number },
@@ -52,7 +50,7 @@ export const ReportCount = ApplicationDefinition.command('ReportCount', {
   },
 })
 
-const advance = (model: Model) => {
+const advance = (model: typeof Model.Type) => {
   const count = model.count + model.step
   return {
     model: modifyFields(model, { count: () => count }),
@@ -143,3 +141,11 @@ export const view = ApplicationComposition.makeView((model, h) =>
     ],
   ),
 )
+
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
+  init,
+  update,
+  view,
+  subscriptions,
+  EffectsLayer,
+})

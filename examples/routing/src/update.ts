@@ -1,13 +1,12 @@
 import { Match, Option } from 'effect'
 import { Update } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
-import { modifyFields } from 'foldkit/struct'
 import { toString as urlToString } from 'foldkit/url'
 
 import { LoadExternal, NavigateInternal } from './command'
 import { ApplicationComposition, PeoplePageBinding } from './composition'
+import { ApplicationDefinition } from './definition'
 import { Message, type NavigationShortcut } from './message'
-import { Model } from './model'
 import {
   ApplicationRoute,
   filesIndexRouter,
@@ -18,7 +17,7 @@ import {
 } from './route'
 
 const navigationUrlByShortcut: Readonly<
-  Record<NavigationShortcut, () => string>
+  Record<typeof NavigationShortcut.Type, () => string>
 > = {
   GH: homeRouter,
   GP: () => peopleRouter({ searchText: Option.none() }),
@@ -26,9 +25,8 @@ const navigationUrlByShortcut: Readonly<
   GN: nestedRouter,
 }
 
-const setRoute = (nextRoute: ApplicationRoute) => (model: Model) => ({
-  model: modifyFields(model, { route: () => nextRoute }),
-})
+const setRoute = (nextRoute: typeof ApplicationRoute.Type) =>
+  ApplicationDefinition.stepFields(() => ({ route: () => nextRoute }))
 
 export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
@@ -57,7 +55,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
         Match.orElse(() => []),
       )
 
-      return Update.combine(model, [setRoute(nextRoute), ...routeSteps])
+      return Update.combineSteps(model, [setRoute(nextRoute), ...routeSteps])
     },
 
     EnteredNavigationShortcut: ({ shortcut }) => {

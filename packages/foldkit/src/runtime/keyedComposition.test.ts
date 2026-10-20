@@ -15,15 +15,13 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { makeNamespace } from '../block/define.js'
+import * as Block from '../block/public.js'
 import { createKeyedLazy } from '../html/index.js'
 import { requireDispatch } from '../html/runtimeSingleton.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
-import {
-  type ViewBuilderFor,
-  makeDefinition as makeApplicationDefinition,
-} from './applicationPublic.js'
 import * as ModelPreservationBridge from './modelPreservationBridge.js'
+import * as Program from './programPublic.js'
 import { embed } from './start.js'
 
 type Controls = Readonly<{
@@ -212,7 +210,7 @@ const RootMessage = defineMessageUnion({
   ClickedAddReplacement: {},
   ClickedRestoreFirst: {},
 })
-const RootBaseDefinition = makeApplicationDefinition({
+const RootBaseDefinition = Block.makeDefinition('Application', {
   Model: RootModel,
   Message: RootMessage,
 })
@@ -256,7 +254,7 @@ const lazyEntries = createKeyedLazy()
 const entryRenderCounts = new Map<number, number>()
 const renderEntry = (
   entry: typeof ItemModel.Type,
-  h: ViewBuilderFor<typeof root>,
+  h: Block.ViewBuilderFor<typeof root>,
 ) => {
   entryRenderCounts.set(entry.id, (entryRenderCounts.get(entry.id) ?? 0) + 1)
   return h.block(
@@ -336,12 +334,14 @@ describe('keyed Block occurrences', () => {
     const container = document.createElement('div')
     container.id = 'memoized-keyed-composition'
     document.body.append(container)
-    const element = root.assembleElement({
+    const element = Program.makeElement({
+      block: root.assembleBlock({
+        init: rootInit,
+        update: rootUpdate,
+        view: rootView,
+        EffectsLayer: Layer.empty,
+      }),
       container,
-      init: rootInit,
-      update: rootUpdate,
-      view: rootView,
-      EffectsLayer: Layer.empty,
     })
     const provideControls = element.provide
     const application = provideControls(Layer.succeed(TestControls, controls))
@@ -433,15 +433,15 @@ describe('keyed Block occurrences', () => {
     const container = document.createElement('div')
     container.id = 'keyed-composition'
     document.body.append(container)
-    const application = root
-      .assembleElement({
-        container,
+    const application = Program.makeElement({
+      block: root.assembleBlock({
         init: rootInit,
         update: rootUpdate,
         view: rootView,
         EffectsLayer: Layer.empty,
-      })
-      .provide(Layer.succeed(TestControls, controls))
+      }),
+      container,
+    }).provide(Layer.succeed(TestControls, controls))
     const handle = embed(application)
 
     try {
@@ -536,15 +536,15 @@ describe('keyed Block occurrences', () => {
     const container = document.createElement('div')
     container.id = 'keyed-mount-barrier'
     document.body.append(container)
-    const application = root
-      .assembleElement({
-        container,
+    const application = Program.makeElement({
+      block: root.assembleBlock({
         init: rootInit,
         update: rootUpdate,
         view: rootView,
         EffectsLayer: Layer.empty,
-      })
-      .provide(Layer.succeed(TestControls, controls))
+      }),
+      container,
+    }).provide(Layer.succeed(TestControls, controls))
     const handle = embed(application)
 
     try {

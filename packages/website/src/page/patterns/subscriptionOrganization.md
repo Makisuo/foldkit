@@ -30,7 +30,7 @@ Nested Blocks repeat the same pattern. By the time a Stream reaches the root, ev
 
 ## Install the Root
 
-The Application Composition already contains the Subscription and handler graph. Its owned `assembleApplication` method completes the browser program with the implementation:
+The Application Composition already contains the Subscription and handler graph. Its `assembleBlock` method completes `ApplicationBlock` with the implementation; `Program.make` adds the browser host configuration:
 
 ::Snippet{name="subscriptionOrganizationRoot" label="Installing the root Subscription graph"}
 

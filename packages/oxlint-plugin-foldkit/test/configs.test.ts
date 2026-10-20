@@ -60,6 +60,9 @@ describe('configs', () => {
   for (const { name, config } of presets) {
     describe(name, () => {
       it('enables foldkit rules at error severity', () => {
+        expect(config.rules['require-yield']).toBe(
+          name === 'recommended' ? 'off' : undefined,
+        )
         expect(config.rules['foldkit/block-name-matches-variable']).toBe(
           'error',
         )

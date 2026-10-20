@@ -9,7 +9,7 @@ import { ApplicationDefinition } from '../definition'
 import { Message } from '../message'
 import { RoomInstance } from '../model'
 import { HomeBlock } from '../page'
-import { roomRouter } from '../route'
+import { ApplicationRoute, roomRouter } from '../route'
 import { RoomBinding } from './room'
 
 export const NavigateToRoom = ApplicationDefinition.command('NavigateToRoom', {
@@ -42,20 +42,19 @@ const initRoomInstance = (roomId: string) =>
     }),
   )
 
-const enterJoinedRoom = (roomId: string, player: Shared.Player) =>
-  Update.combine([
+const enterJoinedRoom = (roomId: string, player: typeof Shared.Player.Type) =>
+  Update.combineSteps([
     initRoomInstance(roomId),
     RoomBinding.informJoined(roomId, { player }, { roomId }),
     navigateToRoom(roomId),
   ])
 
-const foldHomeOutMessage = HomeBlock.OutMessage.match({
+const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(HomeBlock, {
   CreatedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
   JoinedRoom: ({ roomId, player }) => enterJoinedRoom(roomId, player),
 })
 
 export const HomeBinding = ApplicationDefinition.bindChild(HomeBlock, {
   field: 'home',
-  presentWhen: model => model.route._tag === 'Home',
-  outMessage: { fold: foldHomeOutMessage },
-})
+  presentWhen: model => ApplicationRoute.guards.Home(model.route),
+}).withOutMessagePolicy({ fold: foldHomeOutMessage })

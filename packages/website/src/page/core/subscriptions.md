@@ -79,7 +79,7 @@ When `isAutoCounting` changes to `true`, the new Stream starts ticking. When it 
 
 ### Completing the Block
 
-Include the record when completing its owning Block. The completed value carries the Subscription registrations and their handler recipes through parent Bindings to the root. The typed root owns `assembleApplication`; the entry supplies the implementation and container, calls `application.provide(layer)` when shared Services remain, and then starts the program:
+Include the record when completing its owning Block. The completed value carries the Subscription registrations and their handler recipes through parent Bindings to the root. Assemble `ApplicationBlock` with the same Block API; the entry supplies it and the container to `Program.make`, calls `program.provide(layer)` when shared Services remain, and then starts the Program:
 
 ::Snippet{name="counterEntryWithSubscriptions" label="Subscription application entry"}
 
@@ -175,7 +175,7 @@ Most entries should use the first `dependencies` argument directly. Reach for `r
 
 When a parent embeds a Block with Subscriptions, its Binding lifts the child's Messages into the parent Message type and applies the same presence policy used by update. `None` in a direct Option field, `false` from `presentWhen`, or `None` from a custom `read` stops every child Stream without reading child dependencies.
 
-`ParentDefinition.bindChild(ChildBlock, { field, ... })` performs that lift once for a direct child field. Custom storage uses `read` and `write`. Include the Binding in the parent's `bindings` list, and the parent collects the lifted entries under placement-qualified keys. The same Composition routes the child's generated envelopes through its Binding and installs the collected graph through `assembleApplication({ init, update, view, ... })`.
+`ParentDefinition.bindChild(ChildBlock, { field, ... })` performs that lift once for a direct child field. Custom storage uses `read` and `write`. Include the Binding in the parent's `bindings` list, and the parent collects the lifted entries under placement-qualified keys. The same Composition routes the child's generated envelopes through its Binding and installs the collected graph through `assembleBlock({ init, update, view, ... })`.
 
 ### Gating Child Subscriptions
 

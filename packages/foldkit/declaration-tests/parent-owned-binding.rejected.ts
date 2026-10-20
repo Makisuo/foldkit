@@ -1,5 +1,5 @@
 import { Layer, Option, Schema } from 'effect'
-import { Block, Message, makeApplicationDefinition } from 'foldkit'
+import { Block, Message } from 'foldkit'
 
 import {
   ChildBlock,
@@ -30,31 +30,35 @@ const UnregisteredChildBinding = DeclarationRejectedParentDefinition.bindChild(
   ChildBlock,
   {
     field: 'child',
-    outMessage: {
-      fold: () =>
-        DeclarationRejectedParentDefinition.step(model => ({ model })),
-    },
   },
-)
-
-DeclarationRejectedParentDefinition.bindChild(ChildBlock, {
-  // @ts-expect-error A child with OutMessages requires an OutMessage policy.
-  field: 'child',
+).withOutMessagePolicy({
+  fold: () => DeclarationRejectedParentDefinition.step(model => ({ model })),
 })
 
-// @ts-expect-error A child without OutMessages forbids an OutMessage policy.
-DeclarationRejectedParentDefinition.bindChild(PlainChildBlock, {
-  field: 'child',
-  outMessage: {
-    fold: () => (model: typeof ParentModel.Type) => ({ model }),
+const MissingPolicyBinding = DeclarationRejectedParentDefinition.bindChild(
+  ChildBlock,
+  {
+    field: 'child',
   },
+)
+// @ts-expect-error A child with OutMessages requires an OutMessage policy before Composition.
+DeclarationRejectedParentDefinition.makeComposition({
+  bindings: [MissingPolicyBinding],
+})
+
+const PlainChildBinding = DeclarationRejectedParentDefinition.bindChild(
+  PlainChildBlock,
+  {
+    field: 'child',
+  },
+)
+// @ts-expect-error A child without OutMessages forbids an OutMessage policy.
+PlainChildBinding.withOutMessagePolicy({
+  fold: () => (model: typeof ParentModel.Type) => ({ model }),
 })
 
 // @ts-expect-error An absent OutMessage policy must be omitted, not undefined.
-DeclarationRejectedParentDefinition.bindChild(PlainChildBlock, {
-  field: 'child',
-  outMessage: undefined,
-})
+PlainChildBinding.withOutMessagePolicy(undefined)
 
 type ChildPolicy = Block.OutMessagePolicy<
   typeof ParentModel.Type,
@@ -91,12 +95,11 @@ const WrongForwardBinding = DeclarationRejectedForwardingDefinition.bindChild(
   ChildBlock,
   {
     field: 'child',
-    outMessage: {
-      forward: (_outMessage: typeof ChildBlock.OutMessage.Type) =>
-        ChildBlock.OutMessage.SelectedValue({ value: 'foreign' }),
-    },
   },
-)
+).withOutMessagePolicy({
+  forward: (_outMessage: typeof ChildBlock.OutMessage.Type) =>
+    ChildBlock.OutMessage.SelectedValue({ value: 'foreign' }),
+})
 // @ts-expect-error Forwarded OutMessages must belong to the parent.
 DeclarationRejectedForwardingDefinition.makeComposition({
   bindings: [WrongForwardBinding],
@@ -130,9 +133,8 @@ DeclarationRejectedParentDefinition.bindChild(ChildBlock, {
   keySchema: Schema.Struct({ id: Schema.Number }),
   read: entry => entry.child,
   writeAt: model => model,
-  outMessage: {
-    fold: () => DeclarationRejectedParentDefinition.step(model => ({ model })),
-  },
+}).withOutMessagePolicy({
+  fold: () => DeclarationRejectedParentDefinition.step(model => ({ model })),
 })
 
 const writeAtNumberKey = (
@@ -254,19 +256,18 @@ DeclarationRejectedParentComposition.assembleBlock({
   EffectsLayer: Layer.empty,
 })
 
-const ApplicationDefinition = makeApplicationDefinition({
+const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-// @ts-expect-error An Application cannot forward an OutMessage to a parent.
 ApplicationDefinition.bindChild(ChildBlock, {
   field: 'child',
-  outMessage: {
-    forward: (_outMessage: typeof ChildBlock.OutMessage.Type) =>
-      ParentOutMessage.ForwardedSelectedValue({ value: 'outside-root' }),
-  },
+}).withOutMessagePolicy({
+  // @ts-expect-error An Application cannot forward an OutMessage to a parent.
+  forward: (_outMessage: typeof ChildBlock.OutMessage.Type) =>
+    ParentOutMessage.ForwardedSelectedValue({ value: 'outside-root' }),
 })
 // @ts-expect-error An Application Definition cannot complete before makeComposition.
-ApplicationDefinition.assembleElement
+ApplicationDefinition.assembleBlock
 // @ts-expect-error An Application Definition has no register alias.
 ApplicationDefinition.register

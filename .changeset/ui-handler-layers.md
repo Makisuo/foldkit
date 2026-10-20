@@ -43,12 +43,10 @@ const TabsBlock = Tabs.create<Tab>()
 const PanelDefinition = Block.makeDefinition('Panel', { Model, Message })
 const MenuBinding = PanelDefinition.bindChild(MenuBlock, {
   field: 'menu',
-  outMessage: { fold: foldMenuOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldMenuOutMessage })
 const TabsBinding = PanelDefinition.bindChild(TabsBlock, {
   field: 'tabs',
-  outMessage: { fold: foldTabsOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldTabsOutMessage })
 const PanelComposition = PanelDefinition.makeComposition({
   bindings: [MenuBinding, TabsBinding],
 })
@@ -70,17 +68,19 @@ Factories live on the component namespace: `Combobox.create`, `Combobox.Multi.cr
 ```ts
 import { Toast } from '@foldkit/ui'
 import { Schema } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { foldToastOutMessage } from './outMessage'
 import { Message } from './message'
 import { Model } from './model'
 const ToastPayload = Schema.Struct({ message: Schema.String })
 const ToastBlock = Toast.make(ToastPayload)
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 const ToastBinding = ApplicationDefinition.bindChild(ToastBlock, {
   field: 'toast',
-  outMessage: { fold: foldToastOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldToastOutMessage })
 ```
 
 The Binding contributes Toast's swipe Subscription and handler recipe automatically. Scene swipe events continue to use `Subscription.emit` with the registration carried by the completed Block.
@@ -90,21 +90,23 @@ For dynamic keyed component collections, use the keyed `bindChild` shape. Every 
 ```ts
 import { Schema } from 'effect'
 import { DialogBlock } from '@foldkit/ui'
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { replaceDialog } from './dialog'
 import { foldDialogOutMessage } from './outMessage'
 import { Message } from './message'
 import { Model } from './model'
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 const DialogsBinding = ApplicationDefinition.bindChild(DialogBlock, {
   readAll: model => model.dialogs,
   key: dialog => dialog.id,
   read: dialog => dialog.model,
   writeAt: (model, dialogId, nextDialog) =>
     replaceDialog(model, dialogId, nextDialog),
-  outMessage: { fold: foldDialogOutMessage },
   keySchema: Schema.String,
-})
+}).withOutMessagePolicy({ fold: foldDialogOutMessage })
 ```
 
 ## Use completed component contracts and test matchers

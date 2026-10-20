@@ -4,7 +4,7 @@
 
 Animation coordinates CSS enter and leave phases with a state machine and data attributes. Bind `AnimationBlock` in the parent. Its Binding projects the child-owned `requestShow`, `requestHide`, and `requestToggle` operations into connected parent Steps. Each operation constructs its matching `RequestedShow`, `RequestedHide`, or `RequestedToggle` Message. Animation update records each lifecycle phase in its Model and returns any Commands through the fold. The transitions stay visible in DevTools and can be tested through update without waiting for a browser animation.
 
-Animation uses the [OutMessage](/core/block#surfacing-facts) pattern. The Binding’s `outMessage.fold` policy handles `StartedLeaveAnimating` by providing a Command that detects settlement, then handles `TransitionedOut` when post-animation cleanup can begin. Dialog, Menu, Popover, Listbox, and Combobox use the same Block internally when `isAnimated` is true.
+Animation uses the [OutMessage](/core/block#surfacing-facts) pattern. The Binding’s selected `fold` policy handles `StartedLeaveAnimating` by providing a Command that detects settlement, then handles `TransitionedOut` when post-animation cleanup can begin. Dialog, Menu, Popover, Listbox, and Combobox use the same Block internally when `isAnimated` is true.
 
 ## Lifecycle Coordination {#why}
 
@@ -117,7 +117,7 @@ Call the bound `AnimationBinding.requestToggle()` operation to start the enter o
 
 ### InitConfig {#init-config}
 
-Configuration object passed to `Animation.init()`.
+Configuration passed to the Animation Binding's child initializer. Direct completed Block calls use `Animation.AnimationBlock.init()`.
 
 | Name        | Type      | Default | Description                           |
 | ----------- | --------- | ------- | ------------------------------------- |
@@ -134,11 +134,11 @@ Call the Binding-projected `AnimationBinding.requestFinish(generation)` operatio
 
 ### ViewInputs {#view-config}
 
-Pass the child Model as `model` and these fields as `viewInputs` to the Animation Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
+Pass the child Model as `model` and these fields as `viewInputs` to the Animation Binding's `embedView` method. The Binding supplies the canonical view, Message wrapper, and composition scope. Keep `toView` at the embedding view boundary so its handlers use the parent dispatcher. Use `childAttributes` for handler-bearing attribute inputs; see [Callback dispatch boundaries](/core/block#callback-dispatch-boundaries).
 
 | Name          | Type                            | Default | Description                                                                                                                                        |
 | ------------- | ------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `content`     | `Html`                          | —       | The content to animate in and out.                                                                                                                 |
+| `toView`      | `() => Html`                    | —       | Renders the content to animate in and out.                                                                                                         |
 | `animateSize` | `boolean`                       | `false` | Animates height collapse/expand using CSS grid. When true, the element stays in the DOM with grid-template-rows transitioning between 0fr and 1fr. |
 | `className`   | `string`                        | —       | CSS class for the animation wrapper.                                                                                                               |
 | `attributes`  | `ReadonlyArray<ChildAttribute>` | —       | Additional attributes for the wrapper.                                                                                                             |
@@ -146,7 +146,7 @@ Pass the child Model as `model` and these fields as `viewInputs` to the Animatio
 
 ### OutMessage
 
-Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s `outMessage.fold` policy.
+Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s selected `fold` policy.
 
 | Name                    | Type         | Default | Description                                                                                                                                                                                                                                                                                                                                  |
 | ----------------------- | ------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

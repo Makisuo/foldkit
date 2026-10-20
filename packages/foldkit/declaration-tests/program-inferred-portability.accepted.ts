@@ -1,0 +1,76 @@
+import { Effect, Layer, Option, Schema, Stream } from 'effect'
+import { Block, Message, Program, Struct } from 'foldkit'
+
+const Model = Schema.Struct({ status: Schema.String })
+const RootMessage = Message.defineMessageUnion({
+  CompletedWork: { value: Schema.String },
+})
+const Definition = Block.makeDefinition('InferredPortableProgram', {
+  Model,
+  Message: RootMessage,
+})
+const RunWork = Definition.command('RunWork', {
+  messages: [RootMessage.CompletedWork],
+  handler: function* () {
+    return () => Effect.succeed(RootMessage.CompletedWork({ value: 'command' }))
+  },
+})
+const ObserveElement = Definition.mount('ObserveElement', {
+  messages: [RootMessage.CompletedWork],
+  handler: function* () {
+    return () => Effect.succeed(RootMessage.CompletedWork({ value: 'mount' }))
+  },
+})
+const subscriptions = Definition.subscriptions(entry => ({
+  work: entry('ObserveWork', {
+    messages: [RootMessage.CompletedWork],
+    handler: function* () {
+      return () =>
+        Stream.succeed(RootMessage.CompletedWork({ value: 'subscription' }))
+    },
+  }),
+}))
+const Resource = Definition.resource<string>()('Resource')
+const managedResources = Definition.managedResources(entry => ({
+  resource: entry('ManageResource', Schema.Option(Schema.Null), {
+    resource: Resource,
+    modelToMaybeRequirements: () => Option.none<null>(),
+    onAcquired: value => RootMessage.CompletedWork({ value }),
+    onReleased: () => RootMessage.CompletedWork({ value: 'released' }),
+    onAcquireError: () => RootMessage.CompletedWork({ value: 'failed' }),
+    handler: function* () {
+      return {
+        acquire: () => Effect.succeed('resource'),
+        release: () => Effect.void,
+      }
+    },
+  }),
+}))
+const Composition = Definition.makeComposition({ mounts: [ObserveElement] })
+const RootBlock = Composition.assembleBlock({
+  init: () => ({ model: Model.make({ status: 'ready' }) }),
+  update: Composition.makeUpdate((model, message) =>
+    RootMessage.match(message, {
+      CompletedWork: ({ value }) => ({
+        model: Struct.modifyFields(model, { status: () => value }),
+      }),
+    }),
+  ),
+  view: Composition.makeView((model, h) =>
+    h.button([h.OnMount(ObserveElement())], [model.status]),
+  ),
+  subscriptions,
+  managedResources,
+  EffectsLayer: Layer.mergeAll(
+    RunWork.layer,
+    ObserveElement.layer,
+    subscriptions.work.layer,
+    managedResources.resource.layer,
+  ),
+})
+
+export const inferredPortableProgram = Program.makeElement({
+  block: RootBlock,
+  container: null,
+  devTools: false,
+})

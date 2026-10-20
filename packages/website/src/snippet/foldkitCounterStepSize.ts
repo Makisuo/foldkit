@@ -10,7 +10,6 @@ const Model = Schema.Struct({
   step: Schema.Number,
   isAutoCounting: Schema.Boolean,
 })
-type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   ClickedIncrement: {},
@@ -18,7 +17,6 @@ const Message = defineMessageUnion({
   ChangedStep: { step: Schema.Number },
   Ticked: {},
 })
-type Message = typeof Message.Type
 
 const CounterDefinition = Block.makeDefinition('Counter', { Model, Message })
 const CounterComposition = CounterDefinition.makeComposition()

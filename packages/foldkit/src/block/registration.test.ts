@@ -136,7 +136,7 @@ const registeredCombinedStep = RegisteredParent.assembleBlock({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
   update: RegisteredParent.makeUpdate(model =>
-    Update.combine(model, [ChildBinding.reset()]),
+    Update.combineSteps(model, [ChildBinding.reset()]),
   ),
   EffectsLayer: Layer.empty,
 })
@@ -147,30 +147,30 @@ const omittedCombinedStep = OmittedParent.assembleBlock({
   })),
   update: OmittedParent.makeUpdate(model =>
     // @ts-expect-error combine cannot execute a child Step without its registered Binding.
-    Update.combine(model, [ChildBinding.reset()]),
+    Update.combineSteps(model, [ChildBinding.reset()]),
   ),
   EffectsLayer: Layer.empty,
 })
 
 const dynamicChildSteps = Array.map([ChildBinding.reset()], step => step)
+const registeredDynamicCombinedUpdate = RegisteredParent.makeUpdate(model =>
+  Update.combineSteps(model, dynamicChildSteps),
+)
 const registeredDynamicCombinedStep = RegisteredParent.assembleBlock({
   init: RegisteredParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
-  update: RegisteredParent.makeUpdate(model =>
-    Update.combine(model, dynamicChildSteps),
-  ),
+  update: registeredDynamicCombinedUpdate,
   EffectsLayer: Layer.empty,
 })
-// @ts-expect-error A computed Step list retains its child registration.
+// @ts-expect-error A computed Step list cannot execute without its registered Binding.
+OmittedParent.makeUpdate(model => Update.combineSteps(model, dynamicChildSteps))
 const omittedDynamicCombinedStep = OmittedParent.assembleBlock({
   init: OmittedParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
-  update: OmittedParent.makeUpdate(model =>
-    // @ts-expect-error A computed Step list cannot execute without its registered Binding.
-    Update.combine(model, dynamicChildSteps),
-  ),
+  // @ts-expect-error A computed Step list retains its child registration and generated dispatch Schema.
+  update: registeredDynamicCombinedUpdate,
   EffectsLayer: Layer.empty,
 })
 
@@ -229,16 +229,14 @@ const registeredBranchUpdate = RegisteredParent.assembleBlock({
   update: registeredBranchDefinedUpdate,
   EffectsLayer: Layer.empty,
 })
-const omittedBranchDefinedUpdate = OmittedParent.makeUpdate((model, message) =>
-  // @ts-expect-error A conditional child Step cannot execute without its registered Binding.
-  branchUpdate(model, message),
-)
-// @ts-expect-error A union return retains registration from its child branch.
+// @ts-expect-error A conditional child Step cannot execute without its registered Binding.
+OmittedParent.makeUpdate((model, message) => branchUpdate(model, message))
 const omittedBranchUpdate = OmittedParent.assembleBlock({
   init: OmittedParent.makeInit(() => ({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
-  update: omittedBranchDefinedUpdate,
+  // @ts-expect-error A union return retains registration from its child branch and its dispatch Schema.
+  update: registeredBranchDefinedUpdate,
   EffectsLayer: Layer.empty,
 })
 
@@ -451,7 +449,7 @@ const registeredKeyedCombinedStep = RegisteredKeyedParent.assembleBlock({
     model: makeParentModel(ChildModel.make({ count: 0 })),
   })),
   update: RegisteredKeyedParent.makeUpdate(model =>
-    Update.combine(model, [ChildrenBinding.reset(0)]),
+    Update.combineSteps(model, [ChildrenBinding.reset(0)]),
   ),
   EffectsLayer: Layer.empty,
 })
@@ -462,7 +460,7 @@ const omittedKeyedCombinedStep = OmittedKeyedParent.assembleBlock({
   })),
   update: OmittedKeyedParent.makeUpdate(model =>
     // @ts-expect-error combine cannot execute a keyed child Step without its registered Binding.
-    Update.combine(model, [ChildrenBinding.reset(0)]),
+    Update.combineSteps(model, [ChildrenBinding.reset(0)]),
   ),
   EffectsLayer: Layer.empty,
 })
@@ -539,12 +537,11 @@ const PolicyChildBinding = PolicyParentBaseDefinition.bindChild(
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       ParentModel.make({ ...model, child: nextChild }),
-    outMessage: {
-      fold: (_outMessage: PolicyOutMessage) =>
-        PolicyParentBaseDefinition.step(() => SecondaryChildBinding.reset()),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: (_outMessage: PolicyOutMessage) =>
+    PolicyParentBaseDefinition.step(() => SecondaryChildBinding.reset()),
+})
 
 const RegisteredPolicyParent = PolicyParentBaseDefinition.makeComposition({
   bindings: [PolicyChildBinding, SecondaryChildBinding],
@@ -569,14 +566,13 @@ const OmittedPolicyChildBinding = OmittedPolicyParentBaseDefinition.bindChild(
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       ParentModel.make({ ...model, child: nextChild }),
-    outMessage: {
-      fold: (_outMessage: PolicyOutMessage) =>
-        OmittedPolicyParentBaseDefinition.step(() =>
-          OmittedSecondaryChildBinding.reset(),
-        ),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: (_outMessage: PolicyOutMessage) =>
+    OmittedPolicyParentBaseDefinition.step(() =>
+      OmittedSecondaryChildBinding.reset(),
+    ),
+})
 const AlternateSecondaryChildBinding =
   OmittedPolicyParentBaseDefinition.bindChild(ChildBlock, {
     field: 'child',
@@ -639,12 +635,11 @@ const PolicyChildrenBinding = KeyedPolicyParentBaseDefinition.bindChild(
           childModel.count === key ? nextChild : childModel,
         ),
       }),
-    outMessage: {
-      fold: (_key: number, _outMessage: PolicyOutMessage) =>
-        SecondaryChildrenBinding.reset(0),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: (_key: number, _outMessage: PolicyOutMessage) =>
+    SecondaryChildrenBinding.reset(0),
+})
 
 const RegisteredKeyedPolicyParent =
   KeyedPolicyParentBaseDefinition.makeComposition({
@@ -685,10 +680,9 @@ const OmittedPolicyChildrenBinding =
           childModel.count === key ? nextChild : childModel,
         ),
       }),
-    outMessage: {
-      fold: (_key: number, _outMessage: PolicyOutMessage) =>
-        OmittedSecondaryChildrenBinding.reset(0),
-    },
+  }).withOutMessagePolicy({
+    fold: (_key: number, _outMessage: PolicyOutMessage) =>
+      OmittedSecondaryChildrenBinding.reset(0),
   })
 const AlternateSecondaryChildrenBinding =
   OmittedKeyedPolicyParentBaseDefinition.bindChild(ChildBlock, {

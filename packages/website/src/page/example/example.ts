@@ -70,20 +70,57 @@ export const EffectsLayer = Layer.mergeAll(
   ObserveExampleUrlMessages.layer,
 )
 
-export const init = ExampleDetailComposition.makeInit(() => ({
-  model: {
-    maybeActiveSourceFilePath: Option.none(),
-    maybeExampleUrl: Option.none(),
-    isLivePreviewOpen: true,
-    currentSources: CurrentSourcesAsyncData.Idle(),
-  },
-}))
-
 const isSourceAvailable = (slug: string): boolean =>
   Option.match(findBySlug(slug), {
     onNone: () => true,
     onSome: meta => meta.livePreview !== 'Unavailable',
   })
+
+const maybeFirstSourceFilePath = (sources: typeof ExampleSources.Type) =>
+  pipe(
+    sources.files,
+    Array.head,
+    Option.map(file => file.path),
+  )
+
+export const init = ExampleDetailComposition.makeInit(
+  (
+    maybeInitialSlug: Option.Option<string> = Option.none(),
+    maybeExampleSources: Option.Option<
+      typeof ExampleSources.Type
+    > = Option.none(),
+  ) => {
+    const initialFields = {
+      maybeActiveSourceFilePath: Option.none(),
+      maybeExampleUrl: Option.none(),
+      isLivePreviewOpen: true,
+      currentSources: CurrentSourcesAsyncData.Idle(),
+    }
+
+    return Option.match(Option.filter(maybeInitialSlug, isSourceAvailable), {
+      onNone: () => ({ model: initialFields }),
+      onSome: slug =>
+        Option.match(maybeExampleSources, {
+          onNone: () => ({
+            model: {
+              ...initialFields,
+              currentSources: CurrentSourcesAsyncData.Loading(),
+            },
+            commands: [LoadExampleSources({ slug })],
+          }),
+          onSome: sources => ({
+            model: {
+              ...initialFields,
+              maybeActiveSourceFilePath: maybeFirstSourceFilePath(sources),
+              currentSources: CurrentSourcesAsyncData.Success({
+                data: sources,
+              }),
+            },
+          }),
+        }),
+    })
+  },
+)
 
 const startLoadingExampleSources = (slug: string) =>
   ExampleDetailDefinition.step(model => {
@@ -102,12 +139,7 @@ const startLoadingExampleSources = (slug: string) =>
 
 const showExampleSources = (sources: typeof ExampleSources.Type) =>
   ExampleDetailDefinition.stepFields(() => ({
-    maybeActiveSourceFilePath: () =>
-      pipe(
-        sources.files,
-        Array.head,
-        Option.map(file => file.path),
-      ),
+    maybeActiveSourceFilePath: () => maybeFirstSourceFilePath(sources),
     currentSources: () => CurrentSourcesAsyncData.Success({ data: sources }),
   }))
 
@@ -124,35 +156,8 @@ const clearExampleSources = ExampleDetailDefinition.step(model => {
   })
 })
 
-const loadInitialSources = ExampleDetailDefinition.step(
-  (
-    model,
-    maybeInitialSlug: Option.Option<string>,
-    maybeExampleSources: Option.Option<
-      typeof ExampleSources.Type
-    > = Option.none(),
-  ) => {
-    return Option.match(maybeInitialSlug, {
-      onNone: () => ({ model }),
-      onSome: slug => {
-        if (!isSourceAvailable(slug)) {
-          return { model }
-        }
-
-        return Option.match(maybeExampleSources, {
-          onNone: () => startLoadingExampleSources(slug),
-          onSome: showExampleSources,
-        })
-      },
-    })
-  },
-)
-
 export const update = ExampleDetailComposition.makeUpdate((model, message) =>
   Message.match(message, {
-    RequestedLoadInitialSources: ({ maybeInitialSlug, maybeExampleSources }) =>
-      loadInitialSources(model, maybeInitialSlug, maybeExampleSources),
-
     InformedOfRouteChange: ({ slug }) => changeExampleRoute(model, slug),
 
     ChangedExampleUrl: ({ url }) => ({
@@ -415,7 +420,7 @@ const TAB_BUTTON_INACTIVE =
 
 const sourceCodeView = (
   exampleSlug: string,
-  files: ReadonlyArray<ExampleSourceFile>,
+  files: ReadonlyArray<typeof ExampleSourceFile.Type>,
   tabsModel: typeof SourceFileTabsBlock.Model.Type,
   activeSourceFilePath: string,
   isNarrowViewport: boolean,
@@ -570,7 +575,7 @@ const sourcesFailureView = (error: string): Html =>
   )
 
 const availableExampleContentView = (
-  model: Model,
+  model: typeof Model.Type,
   meta: ExampleMeta,
   slug: string,
   isNarrowViewport: boolean,

@@ -39,12 +39,12 @@ npx create-foldkit-app@latest
 
 ## Counter
 
-A complete Foldkit program. State lives in a single Model, events become Messages, and a pure function handles every transition. `application.ts` exports `ApplicationDefinition`, `ApplicationComposition`, and its implementation. `entry.ts` supplies the browser container and boots the Runtime, so importing the application from a test has no startup side effect.
+A complete Foldkit program. State lives in a single Model, events become Messages, and a pure function handles every transition. `application.ts` exports `ApplicationComposition`, `ApplicationBlock`, and its implementation. `entry.ts` supplies the browser container and boots the Runtime, so importing the application from a test has no startup side effect.
 
 ```ts
 // src/application.ts
 import { Schema } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -58,7 +58,7 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const ApplicationComposition = makeApplicationDefinition({
+export const ApplicationComposition = Block.makeDefinition('Application', {
   Model,
   Message,
 }).makeComposition()
@@ -91,37 +91,41 @@ export const view = ApplicationComposition.makeView((model, h) => ({
     ],
   ),
 }))
+
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
+  init,
+  update,
+  view,
+})
 ```
 
 ```ts
 // src/entry.ts
-import { Runtime } from 'foldkit'
+import { Program, Runtime } from 'foldkit'
 
-import { ApplicationComposition, init, update, view } from './application'
+import { ApplicationBlock } from './application'
 
-const application = ApplicationComposition.assembleApplication({
-  init,
-  update,
-  view,
+const program = Program.make({
+  block: ApplicationBlock,
   container: document.getElementById('root'),
 })
 
-Runtime.run(application)
+Runtime.run(program)
 ```
 
-`makeApplicationDefinition` creates the root Definition, which owns effect constructors, Steps, lifecycle definitions, and child Bindings. Retain that result as `ApplicationDefinition` when those authoring methods use it. This graphless application chains the top-level factory directly into `makeComposition()` and names the result `ApplicationComposition`. Author init, update, and the primary view through that Composition, then assemble it with `assembleApplication` or `assembleElement`. Pass root-owned handler recipes during assembly as `EffectsLayer`.
+The root is an ordinary Block. `Block.makeDefinition('Application', ...)` owns effect constructors, Steps, lifecycle definitions, and child Bindings. Retain that result as `ApplicationDefinition` when those authoring methods use it. This graphless application chains the top-level factory directly into `makeComposition()` and names the result `ApplicationComposition`. Author init, update, and the primary view through that Composition, then assemble `ApplicationBlock` with `assembleBlock`. Pass root-owned handler recipes during assembly as `EffectsLayer`.
 
 A feature follows the same passive Definition → Composition → assembly sequence. Create `FeatureDefinition` with `Block.makeDefinition('Feature', { Model, Message, OutMessage })` and author effects and Steps through that Definition. Name `FeatureComposition = FeatureDefinition.makeComposition({ bindings, mounts })`, using `FeatureDefinition.makeComposition()` for an empty graph, then author init, update, and the primary view and assemble the completed Block through that Composition. A parent imports the `Feature` namespace, creates a Binding with `const FeatureBinding = Parent.bindChild(Feature.block, config)`, and includes that Binding in its Composition's child graph. Only the Runtime starts the assembled program.
 
 When local view helpers need the Composition's exact builder capabilities, declare `type FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` immediately after the Composition and export it only for cross-file use. The owner prefix identifies that specific Composition; structural contracts keep the standard `Model`, `Message`, and `OutMessage` names and normally travel through the feature namespace.
 
-Ordinary Effect services stay in `ApplicationLayer`. Keep a small provider composition in `entry.ts`, and extract `layer.ts` only when it is substantial or reused. Supply that Layer after the Application is complete:
+Ordinary Effect services stay in `ApplicationLayer`. Keep a small provider composition in `entry.ts`, and extract `layer.ts` only when it is substantial or reused. Supply that Layer after the Program is complete:
 
 ```ts
-Runtime.run(application.provide(ApplicationLayer))
+Runtime.run(program.provide(ApplicationLayer))
 ```
 
-`application.provide(ApplicationLayer)` returns another passive program. The Runtime builds the Layer only when it starts that program.
+`program.provide(ApplicationLayer)` returns another passive program. The Runtime builds the Layer only when it starts that program.
 
 Source: [examples/counter](https://github.com/foldkit/foldkit/blob/main/examples/counter/src/application.ts).
 

@@ -1,8 +1,8 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
-import type { Element as ElementProgram } from 'foldkit/application'
+import { Program } from 'foldkit'
 import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
+import type { Element as ElementProgram } from 'foldkit/program'
 import type * as Update from 'foldkit/update'
 
 const WarmupModel = Schema.Struct({ value: Schema.Number })
@@ -12,7 +12,10 @@ const WarmupMessage = defineMessageUnion({ CompletedWarmup: {} })
 Effect.void
 Layer.empty
 Option.none()
-makeApplicationDefinition({ Model: WarmupModel, Message: WarmupMessage })
+Block.makeDefinition('Application', {
+  Model: WarmupModel,
+  Message: WarmupMessage,
+})
 Context.Service
 Block.makeDefinition('TypePerformanceWarmup', {
   Model: WarmupModel,
@@ -2269,7 +2272,7 @@ const Worker = TypePerformanceWorkerComposition.assembleBlock({
   ),
 })
 const ApplicationMessage = Schema.Never
-const ApplicationDefinition = makeApplicationDefinition({
+const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: WorkerModel,
   Message: ApplicationMessage,
 })
@@ -2284,14 +2287,18 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
 const update = ApplicationComposition.makeUpdate()
 const view = ApplicationComposition.makeView((_model, h) => h.main([]))
 
-export const program = ApplicationComposition.assembleElement({
-  container: null,
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
   init: ApplicationComposition.makeInit(() =>
     WorkerBinding.init({ args: [], toParentModel: model => model }),
   ),
   update,
   view,
   EffectsLayer: Layer.empty,
+})
+
+export const program = Program.makeElement({
+  block: ApplicationBlock,
+  container: null,
 })
 export const providedProgram = program.provide(ClockLayer)
 

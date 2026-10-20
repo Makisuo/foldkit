@@ -1,5 +1,5 @@
 import { Layer } from 'effect'
-import { Block, Message, makeApplicationDefinition } from 'foldkit'
+import { Block, Message } from 'foldkit'
 
 import {
   ChildBinding,
@@ -75,7 +75,7 @@ DeclarationViewHelperChildComposition.makeView((model, _h) =>
   invalidOutputHelper(model),
 )
 
-const ApplicationDefinition = makeApplicationDefinition({
+const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: ParentMessage,
 })
@@ -116,15 +116,14 @@ const applicationHelperWithOmittedMount = (h: OmittedApplicationViewBuilder) =>
 // @ts-expect-error Application Composition no longer carries a render helper.
 ApplicationComposition.render
 
-// @ts-expect-error A plain view helper cannot complete an Application as its branded view.
-ApplicationComposition.assembleElement({
-  container: null,
+ApplicationComposition.assembleBlock({
   init: ApplicationComposition.makeInit(() => ({
     model: ParentModel.make({
       child: ChildModel.make({ value: 'initial' }),
     }),
   })),
   update: ApplicationComposition.makeUpdate(model => ({ model })),
+  // @ts-expect-error A plain view helper cannot complete a Block as its branded view.
   view: applicationViewHelper,
 })
 

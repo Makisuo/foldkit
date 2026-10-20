@@ -1,5 +1,5 @@
 import { Array, Schema } from 'effect'
-import { Update, makeApplicationDefinition } from 'foldkit'
+import { Block, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -15,7 +15,10 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({
   ClickedApplyTheme: {},
 })
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 const ChildBinding = ApplicationDefinition.bindChild(
   Child.FunctionReferenceChildBlock,
   {
@@ -49,7 +52,7 @@ export const update = ApplicationComposition.makeUpdate(model => {
     entries: Array.filter(entry => entry.id !== 'removed'),
   })
 
-  return Update.combine(model, [
+  return Update.combineSteps(model, [
     revealPreferenceErrors,
     ApplicationDefinition.stepNoop(),
     ChildBinding.informThemeChanged({ theme: 'Light' }),

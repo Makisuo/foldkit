@@ -7,16 +7,14 @@ export const DialogBinding = ApplicationDefinition.bindChild(
   Dialog.DialogBlock,
   {
     field: 'dialog',
-    outMessage: { fold: foldDialogOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 export const ApplicationMenu = Menu.create<string>()
 
 export const MenuBinding = ApplicationDefinition.bindChild(ApplicationMenu, {
   field: 'menu',
-  outMessage: { fold: foldMenuOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldMenuOutMessage })
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [DialogBinding, MenuBinding],
@@ -57,20 +55,27 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-// entry.ts
-import { Runtime } from 'foldkit'
-
+// block.ts
 import { ApplicationComposition } from './composition'
 import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const application = ApplicationComposition.assembleApplication({
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
   init,
   update,
   view,
-  container: document.getElementById('root'),
-  devTools: { Message: ApplicationComposition.Message },
 })
 
-Runtime.run(application)
+// entry.ts
+import { Program, Runtime } from 'foldkit'
+
+import { ApplicationBlock } from './block'
+
+const program = Program.make({
+  block: ApplicationBlock,
+  container: document.getElementById('root'),
+  devTools: { dispatch: true },
+})
+
+Runtime.run(program)

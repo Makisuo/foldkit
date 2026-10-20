@@ -21,6 +21,8 @@ import {
   foldStableProjected,
   initialParentModel,
   initialize,
+  initializeDerivedModel,
+  initializeDerivedSteps,
   initializeEntry,
   initializePlain,
   initializePlainWithParentCommands,
@@ -64,6 +66,11 @@ const parentMessage = ParentMessage.CompletedParentInitialization()
 foldStableProjected(initial.model, parentMessage, ChildMessage.Incremented())
 foldPlain(initial.model, parentMessage, ChildMessage.Incremented())
 StrictBlock.operations.initializeEntry(initialParentModel, 'emitted-entry', 2)
+const appliedDerivedInitialization = initializeDerivedModel(
+  initialParentModel,
+  parentMessage,
+)
+appliedDerivedInitialization.model.first.count
 
 type EmittedEntryInitRequirementsAreExact = Expect<
   Equal<
@@ -125,7 +132,20 @@ type EmittedParentCommandRecipeRegistrationIsExact = Expect<
     Block.RequirementOfBinding<typeof ParentCommandsBinding>
   >
 >
-
+type EmittedDerivedModelRequirementsAreExact = Expect<
+  Equal<
+    Update.RequirementsOf<typeof initializeDerivedModel>,
+    | Block.Qualify<'entries', Command.HandlerOf<typeof LoadParameterizedChild>>
+    | Command.HandlerOf<typeof CompleteParentInitialization>
+  >
+>
+type EmittedDerivedModelRegistrationIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<typeof initializeDerivedSteps>>,
+    | Block.RequirementOfBinding<typeof EntryBinding>
+    | Block.RequirementOfBinding<typeof ParentCommandsBinding>
+  >
+>
 declare const useSecondField: boolean
 
 // @ts-expect-error Emitted accessor init projections retain one stable parent Model field.
@@ -234,6 +254,8 @@ export type EmittedCompositionSafetyAssertions = [
   EmittedPlainInitRegistrationIsExact,
   EmittedParentCommandRecipeRequirementsAreExact,
   EmittedParentCommandRecipeRegistrationIsExact,
+  EmittedDerivedModelRequirementsAreExact,
+  EmittedDerivedModelRegistrationIsExact,
 ]
 
 // @ts-expect-error Passive operation construction is private to checked composition.

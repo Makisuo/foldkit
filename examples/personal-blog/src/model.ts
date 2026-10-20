@@ -7,4 +7,3 @@ export const Model = Schema.Struct({
   route: ApplicationRoute,
   counter: CounterBlock.Model,
 })
-export type Model = typeof Model.Type

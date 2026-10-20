@@ -17,10 +17,6 @@ import { modifyFields } from 'foldkit/struct'
 import * as Update from 'foldkit/update'
 
 import * as Animation from '../animation/index.js'
-import {
-  Message as AnimationMessage,
-  OutMessage as AnimationOutMessage,
-} from '../animation/schema.js'
 import { defaultLeaveCommand as animationDefaultLeaveCommand } from '../animation/update.js'
 import {
   DEFAULT_DURATION,
@@ -118,7 +114,6 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
 
   type Entry = typeof EntrySchema.Type
   type Model = typeof ModelSchema.Type
-  type Message = typeof MessageSchema.Type
 
   /** Waits for an entry's auto-dismiss duration, then emits a versioned
    *  `CompletedWaitBeforeDismissal` Message so update can ignore stale timers. */
@@ -263,13 +258,9 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
         Option.map(({ animation }) => animation),
       )
 
-  const foldEntryAnimationOutMessage = (
-    entryId: string,
-    outMessage: AnimationOutMessage,
-    { liftCommand }: Update.FoldContext<AnimationMessage, Message>,
-  ) =>
-    AnimationOutMessage.match(outMessage, {
-      StartedLeaveAnimating: () =>
+  const makeEntryAnimationOutMessageFold = (entryId: string) =>
+    ToastDefinition.makeOutMessageFold(Animation.AnimationBlock, {
+      StartedLeaveAnimating: (_outMessage, { liftCommand }) =>
         ToastDefinition.step(model =>
           Option.match(readEntryAnimation(entryId)(model), {
             onNone: () => ({ model }),
@@ -302,9 +293,11 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       field: 'entries',
       key: 'id',
       childField: 'animation',
-      outMessage: { fold: foldEntryAnimationOutMessage },
     },
-  )
+  ).withOutMessagePolicy({
+    fold: (entryId, outMessage, context) =>
+      makeEntryAnimationOutMessageFold(entryId)(outMessage, context),
+  })
 
   const ToastComposition = ToastDefinition.makeComposition({
     bindings: [EntryAnimationBinding],
@@ -383,7 +376,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       ),
     }))
 
-    return Update.combine([
+    return Update.combineSteps([
       appendEntry,
       foldEntryAnimationShow(entry),
       scheduleDismissal,
@@ -391,7 +384,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
   }
 
   const dismissEntries = (entries: ReadonlyArray<Entry>) =>
-    Update.combine(Array.map(entries, foldEntryAnimationHide))
+    Update.combineSteps(Array.map(entries, foldEntryAnimationHide))
 
   /** Processes a Toast Message and returns the next Model, optional Commands,
    *  and an optional `DismissedToast` OutMessage emitted once an entry has
@@ -578,8 +571,8 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
               if (isEntryLeaving(entry)) {
                 return { model: nextModel }
               } else {
-                return Update.combine(model, [
-                  () => ({ model: nextModel }),
+                return Update.combineSteps(model, [
+                  ToastDefinition.step(() => ({ model: nextModel })),
                   foldEntryAnimationHide(entry),
                 ])
               }
@@ -598,7 +591,10 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
           SwipeState.guards.Dragging(entry.swipeState),
         )
 
-        return Update.combine(model, Array.map(draggingEntries, settleSnapBack))
+        return Update.combineSteps(
+          model,
+          Array.map(draggingEntries, settleSnapBack),
+        )
       },
 
       CompletedWaitForSwipeSettled: ({ entryId, version }) =>

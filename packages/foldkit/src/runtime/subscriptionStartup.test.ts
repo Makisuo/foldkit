@@ -2,10 +2,11 @@ import { Effect, Option, Schema, Stream } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { makeDefinition } from '../block/define.js'
+import * as Block from '../block/public.js'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
-import { makeDefinition as makeApplicationDefinition } from './applicationPublic.js'
 import * as ModelPreservationBridge from './modelPreservationBridge.js'
+import * as Program from './programPublic.js'
 import { embed } from './start.js'
 
 const DEPENDENCY_FAILURE = 'Cannot derive Subscription dependencies'
@@ -31,7 +32,10 @@ describe('Subscription startup supervision', () => {
   it('reports initial root dependency defects and keeps the crash view until disposal', async () => {
     const Model = Schema.Struct({ count: Schema.Number })
     const Message = defineMessageUnion({ EmittedPulse: {} })
-    const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+    const ApplicationDefinition = Block.makeDefinition('Application', {
+      Model,
+      Message,
+    })
     const streamStarted = vi.fn()
     const report = vi.fn()
     const subscriptions = ApplicationDefinition.subscriptions(entry => ({
@@ -53,15 +57,17 @@ describe('Subscription startup supervision', () => {
       ),
     }))
     const ApplicationComposition = ApplicationDefinition.makeComposition()
-    const application = ApplicationComposition.assembleElement({
+    const application = Program.makeElement({
+      block: ApplicationComposition.assembleBlock({
+        init: () => ({ model: { count: 0 } }),
+        update: ApplicationComposition.makeUpdate(model => ({ model })),
+        view: ApplicationComposition.makeView((_model, h) =>
+          h.div([], ['Running']),
+        ),
+        subscriptions,
+        EffectsLayer: subscriptions.pulses.layer,
+      }),
       container,
-      init: () => ({ model: { count: 0 } }),
-      update: ApplicationComposition.makeUpdate(model => ({ model })),
-      view: ApplicationComposition.makeView((_model, h) =>
-        h.div([], ['Running']),
-      ),
-      subscriptions,
-      EffectsLayer: subscriptions.pulses.layer,
       crash: {
         view: ({ error }, h) => h.div([], [error.message]),
         report,
@@ -121,7 +127,10 @@ describe('Subscription startup supervision', () => {
     const Message = defineMessageUnion({
       ClickedActivateChild: {},
     })
-    const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+    const ApplicationDefinition = Block.makeDefinition('Application', {
+      Model,
+      Message,
+    })
     const ChildBinding = ApplicationDefinition.bindChild(block, {
       read: model => model.maybeChild,
       write: (model, nextChild) =>
@@ -131,27 +140,29 @@ describe('Subscription startup supervision', () => {
       bindings: [ChildBinding],
     })
     const report = vi.fn()
-    const application = ApplicationComposition.assembleElement({
-      container,
-      init: () => ({ model: { maybeChild: Option.none() } }),
-      update: ApplicationComposition.makeUpdate((model, message) =>
-        Message.match(message, {
-          ClickedActivateChild: () =>
-            ChildBinding.init({
-              args: [],
-              toParentModel: child =>
-                modifyFields(model, {
-                  maybeChild: () => Option.some(child),
-                }),
-            }),
-        }),
-      ),
-      view: ApplicationComposition.makeView((_model, h) =>
-        h.button(
-          [h.Id('activate-child'), h.OnClick(Message.ClickedActivateChild())],
-          ['Activate child'],
+    const application = Program.makeElement({
+      block: ApplicationComposition.assembleBlock({
+        init: () => ({ model: { maybeChild: Option.none() } }),
+        update: ApplicationComposition.makeUpdate((model, message) =>
+          Message.match(message, {
+            ClickedActivateChild: () =>
+              ChildBinding.init({
+                args: [],
+                toParentModel: child =>
+                  modifyFields(model, {
+                    maybeChild: () => Option.some(child),
+                  }),
+              }),
+          }),
         ),
-      ),
+        view: ApplicationComposition.makeView((_model, h) =>
+          h.button(
+            [h.Id('activate-child'), h.OnClick(Message.ClickedActivateChild())],
+            ['Activate child'],
+          ),
+        ),
+      }),
+      container,
       crash: {
         view: ({ error }, h) => h.div([], [error.message]),
         report,

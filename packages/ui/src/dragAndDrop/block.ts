@@ -145,7 +145,6 @@ export const OutMessage = defineMessageUnion({
   },
   Cancelled: {},
 })
-export type OutMessage = typeof OutMessage.Type
 
 const DragAndDropDefinition = Block.makeDefinition('DragAndDrop', {
   Model,
@@ -302,23 +301,26 @@ const resolveKeyboardMoveTarget = (
     ),
   )
 
+/** @internal Complete invocation arguments for ResolveKeyboardMove. */
+export const ResolveKeyboardMoveArgs = Schema.Struct({
+  itemId: Schema.String,
+  currentContainerId: Schema.String,
+  currentIndex: Schema.Number,
+  direction: Schema.Literals([
+    'Up',
+    'Down',
+    'Left',
+    'Right',
+    'NextContainer',
+    'PreviousContainer',
+  ]),
+})
+
 /** Resolves the next keyboard drag position by querying the DOM for adjacent sortable items and containers. */
 export const ResolveKeyboardMove = DragAndDropDefinition.command(
   'ResolveKeyboardMove',
   {
-    args: {
-      itemId: Schema.String,
-      currentContainerId: Schema.String,
-      currentIndex: Schema.Number,
-      direction: Schema.Literals([
-        'Up',
-        'Down',
-        'Left',
-        'Right',
-        'NextContainer',
-        'PreviousContainer',
-      ]),
-    },
+    args: ResolveKeyboardMoveArgs.fields,
     messages: [Message.CompletedResolveKeyboardMove],
     handler: function* () {
       return resolveKeyboardMoveTarget

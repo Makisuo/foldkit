@@ -8,11 +8,9 @@ const Message = defineMessageUnion({
   RequestedWork: {},
   CompletedWork: {},
 })
-type Message = typeof Message.Type
 const makeGenericComplete = <const Id extends string>(id: Id) => {
   const FeatureNamespace = makeNamespace(id)
   const Model = Schema.Struct({ value: Schema.String })
-  type Model = typeof Model.Type
   const Work = FeatureNamespace.command('Work', {
     messages: [Message.CompletedWork],
     handler: function* () {
@@ -41,7 +39,6 @@ const makeGenericComplete = <const Id extends string>(id: Id) => {
 const makeGenericMissing = <const Id extends string>(id: Id) => {
   const FeatureNamespace = makeNamespace(id)
   const Model = Schema.Struct({ value: Schema.String })
-  type Model = typeof Model.Type
   const Work = FeatureNamespace.command('Work', {
     messages: [Message.CompletedWork],
   })

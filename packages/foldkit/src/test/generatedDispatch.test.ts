@@ -2,9 +2,9 @@ import { Effect, Layer, Schema, Stream } from 'effect'
 import { expect, it, vi } from 'vitest'
 
 import { makeDefinition } from '../block/define.js'
+import * as Block from '../block/public.js'
 import { renderToString } from '../experimental/server/server.js'
 import { defineMessageUnion } from '../message/index.js'
-import { makeDefinition as makeApplicationDefinition } from '../runtime/applicationPublic.js'
 import { modifyFields } from '../struct/index.js'
 import * as Scene from './scene.js'
 import * as Story from './story.js'
@@ -99,7 +99,10 @@ const ParentBlock = ParentComposition.assembleBlock({
 
 const Model = Schema.Struct({ parent: ParentBlock.Model })
 const Message = defineMessageUnion({ RequestedRefresh: {} })
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
 const ParentBinding = ApplicationDefinition.bindChild(ParentBlock, {
   field: 'parent',
 })
@@ -229,11 +232,11 @@ it('rejects a root declaration that collides with a child registration', () => {
   ).toThrow('duplicate key "parent/child/observations"')
 })
 
-it('requires a framework-created Application Composition for registry assembly', () => {
+it('requires a framework-created root Composition for registry assembly', () => {
   expect(() =>
     // @ts-expect-error Erased JavaScript input must receive an actionable configuration error.
     Scene.subscriptions({}),
-  ).toThrow('Application composition must come from')
+  ).toThrow('Scene.subscriptions Composition must come from')
 })
 
 it('decodes a complete dispatch contract and replays it through pure update', () => {
@@ -262,8 +265,8 @@ it('decodes a complete dispatch contract and replays it through pure update', ()
 it('renders nested generated Blocks on the server without constructing handlers', async () => {
   const rendered = await Effect.runPromise(
     renderToString(
-      ApplicationComposition,
-      { init, update, view },
+      ApplicationComposition.assembleBlock({ init, update, view }),
+      {},
       { isHydratable: false },
     ),
   )

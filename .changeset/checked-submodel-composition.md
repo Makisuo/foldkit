@@ -123,11 +123,11 @@ The feature barrel exports only `HomeBlock`. The parent barrel re-exports that n
 
 ## Author through factory methods
 
-`Definition.makeComposition` fixes the child and Mount graph. A Composition's `makeInit`, `makeUpdate`, and `makeView` methods author its implementation. `assembleBlock`, `assembleApplication`, and `assembleElement` assemble that fixed graph with its authored implementation. A completed Block uses `makeView` for an alternate embed view against its fixed graph.
+`Definition.makeComposition` fixes the child and Mount graph. A Composition's `makeInit`, `makeUpdate`, and `makeView` methods author its implementation. `assembleBlock` assembles that fixed graph with its authored implementation. A completed Block uses `makeView` for an alternate embed view against its fixed graph.
 
-Each `make*` authoring method returns a configured value or function. Each `assemble*` method returns a passive completed value. These methods do not run init, update the Model, render, construct Layers, or start effects. `Runtime.run`, `Runtime.hydrate`, and `Runtime.embed` start execution.
+Each `make*` authoring method returns a configured value or function. `assembleBlock` returns a passive completed value. These methods do not run init, update the Model, render, construct Layers, or start effects. `Program.make` and `Program.makeElement` add browser host behavior; `Runtime.run`, `Runtime.hydrate`, and `Runtime.embed` start execution.
 
-An authored update supports both call directions. Runtime dispatch uses `update(model, message, ...context)`. The curried `update(message)(model, ...context)` form is an internal Step with the same requirements, OutMessage type, and graph evidence. `Update.combine` accepts unary Steps, so supply required dispatch context through an explicit unary adapter before combining a contextual update.
+An authored update supports both call directions. Runtime dispatch uses `update(model, message, ...context)`. The curried `update(message)(model, ...context)` form is an internal Step with the same requirements, OutMessage type, and graph evidence. `Update.combineSteps` accepts unary Steps, so supply required dispatch context through an explicit unary adapter before combining a contextual update.
 
 Use `Block.makeNamespace('Feature')` only for a generic factory that shares identity and primitive definitions across several typed contracts. Call `FeatureNamespace.makeDefinition(...)` for each specialized contract. Ordinary features call `Block.makeDefinition(id, contracts)` directly.
 
@@ -178,7 +178,7 @@ Put the local Message constructor directly under `operations` when its payload i
 
 Keep a tuple producer under `operations` when the public inputs need mapping, refinement, defaults, or an exact update context tuple. Inline tuples receive contextual typing. An extracted producer returns `Tuple.make(Message.RequestedReset())`, with `Tuple` imported from `effect`. Local Message constructors and tuple producers complete through the same execution path. The registry accepts these two Message-producing forms, not arbitrary Steps, and there is no `expose` compatibility alias.
 
-Remove `exposedSteps` and any `pure` or `reflect*` public state transition. A public operation must select a local Message constructor so the child's update remains the only state transition boundary. Keep internal Model-only work as a Step: `Definition.stepFields` creates a unary field-transform Step, and `Definition.stepNoop()` names an OutMessage branch that intentionally preserves the parent Model. Continue to use `Definition.step` for parameterized, contextual, Command-producing, OutMessage-producing, connected, or composed results.
+Remove `exposedSteps` and any `pure` or `reflect*` public state transition. A public operation must select a local Message constructor so the child's update remains the only state transition boundary. Keep internal Model-only work as a Step: `Definition.stepFields` creates a unary field-transform Step. Pass `Definition.stepNoop` point-free as a `makeOutMessageFold` handler when the parent intentionally keeps its Model unchanged. Continue to use `Definition.step` for parameterized, contextual, Command-producing, OutMessage-producing, connected, or composed results.
 
 Every completed operation uses the full return contract of the Block's update. If any update branch returns a Command or OutMessage, all operations carry that requirement or optional result in their type. Dispatching a Message for a pure branch does not run effects from another branch.
 
@@ -218,11 +218,11 @@ The aggregate only merges passive recipes; it constructs no handlers or Streams.
 The parent authoring value creates the Binding because the parent owns Model access, delivery context, OutMessage policy, and lifecycle policy:
 
 ```ts
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { Message } from './message'
 import { Model } from './model'
 import { HomeBlock } from './page'
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
@@ -234,7 +234,7 @@ export const ApplicationComposition = ApplicationDefinition.makeComposition({
 })
 ```
 
-The direct field form infers the parent Model and child Model relationship for exact `ChildModel` and `Option<ChildModel>` fields. An unkeyed field uses its field name as the default placement. Every keyed form and an unkeyed accessor use the child Block ID. An explicit `placement` overrides either default. `None` makes an optional field absent, and a fold or operation never creates it. Optionality does not require a placement override. Add `presentWhen` when parent policy gates that whole direct child. Use explicit `read` and `write` for tagged, nested, or custom storage. Foldkit compares decoded built-in Schema shapes; reuse the same Schema instance for an opaque declaration or keep custom accessors. Composition generates child delivery; remove authored `Got*` wrappers and mapper fields. Do not pass a redundant Model Schema.
+The direct field form infers the parent Model and child Model relationship for exact `ChildModel` and `Option<ChildModel>` fields. An unkeyed field uses its field name as the default placement. Every keyed form and an unkeyed accessor use the child Block ID. An explicit `placement` overrides either default. `None` makes an optional field absent, and a fold or operation never creates it. Optionality does not require a placement override. Add `presentWhen` when parent policy gates that whole direct child. Use explicit `read` and `write` for tagged, nested, or custom storage. Foldkit compares decoded built-in Schema shapes; reuse the same Schema instance for an opaque declaration or keep custom accessors. Composition generates child delivery; remove authored `Got*` wrappers and mapper fields. Do not pass a redundant Model Schema. A child with OutMessages selects an immutable policy through `.withOutMessagePolicy({ fold?, forward? })`; Composition rejects a missing policy and registers the selected full Binding without changing its child identity or lifecycle scopes. Binding and policy construction remain passive.
 
 Placement identifies one child Binding within the parent's composition graph. It does not identify a DOM position and need not match a Model field. Unkeyed direct fields default placement to the field. Accessor Bindings and all keyed Bindings default to the child Block ID, including direct and wrapped array adapters. For keyed Bindings, `key` identifies dynamic occurrences under that one placement. Supply an explicit placement only when sibling defaults collide or an established graph identity must deliberately remain different from the new default.
 
@@ -252,28 +252,31 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
 )
 ```
 
-The authored parent Message Schema contains only local facts. Composition derives the complete dispatch Schema from its registered Bindings; `Got*` is reserved and cannot be authored locally. Remove manual `Got*` branches, including branches that inspect the wrapped child Message, and move parent reactions to `outMessage.fold`.
+The authored parent Message Schema contains only local facts. Composition derives the complete dispatch Schema from its registered Bindings; `Got*` is reserved and cannot be authored locally. Remove manual `Got*` branches, including branches that inspect the wrapped child Message, and move parent reactions to the Binding's selected `fold` policy.
 
 Register that route and its OutMessage policy on the Binding:
 
 ```ts
-import { makeApplicationDefinition, type Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { DialogBlock } from './dialog'
 import { Message } from './message'
 import { Model } from './model'
 import { resetSearch } from './search'
-const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
-const foldDialogOutMessage = DialogBlock.OutMessage.match<
-  Update.Step<typeof Model.Type, typeof Message.Type>
->({
-  Opened: () => model => ({ model }),
-  Closed: () => model => ({ model }),
-  CompletedClose: () => resetSearch,
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
 })
+const foldDialogOutMessage = ApplicationDefinition.makeOutMessageFold(
+  DialogBlock,
+  {
+    Opened: ApplicationDefinition.stepNoop,
+    Closed: ApplicationDefinition.stepNoop,
+    CompletedClose: () => resetSearch,
+  },
+)
 const DialogBinding = ApplicationDefinition.bindChild(DialogBlock, {
   field: 'dialog',
-  outMessage: { fold: foldDialogOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldDialogOutMessage })
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [DialogBinding],
 })
@@ -295,25 +298,24 @@ The parent configures OutMessage policy in its Binding. That policy executes dur
 parent update → child fold or operation → parent OutMessage handling → parent result
 
 ```ts
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { Message } from './message'
 import { Model } from './model'
 import { openArticle } from './operation'
 import { HomeBlock } from './page'
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const foldHomeOutMessage = HomeBlock.OutMessage.match({
+const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(HomeBlock, {
   SelectedArticle: ({ articleId }) => openArticle(articleId),
 })
 export const HomeBinding = ApplicationDefinition.bindChild(HomeBlock, {
   field: 'home',
-  outMessage: { fold: foldHomeOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldHomeOutMessage })
 ```
 
-`outMessage.fold` handles variants locally. Add an exhaustive `outMessage.forward` only when at least one variant continues through the current Block's OutMessage. A derived OutMessage takes precedence over forwarding for the same dispatch; local handling still runs.
+`withOutMessagePolicy({ fold })` handles variants locally. Inline `Definition.makeOutMessageForward(handlers)` under an unkeyed Binding's `forward` field when at least one variant continues through the current Block's OutMessage; pass the completed child explicitly when extracting the callable forward or adapting keyed policy. A derived OutMessage takes precedence over forwarding for the same dispatch; local handling still runs.
 
 An OutMessage policy may call a parent Step or a registered sibling Binding operation. This supports parent-owned coordination in either direction between siblings. Composition validates the policy's output and the captured sibling evidence when the graph is registered. Keep policy chains synchronous and finite because a sibling operation may run another policy before the original update returns.
 
@@ -353,7 +355,9 @@ export const ApplicantsBinding = ApplicationDefinition.bindChild(
 
 `key` must name a required string or finite-number wrapper field, and `childField` must name a different required field whose Schema has exactly the same decoded shape as the child Model. The child Model may be a primitive or union because its identity stays on the wrapper. A child write replaces only the matching wrapper's child field, preserving its metadata, array position, and every unmatched wrapper reference. It does not insert a wrapper after parent update has removed that key. Placement defaults to the child Block ID.
 
-Use `readAll`, function-valued `key`, `read`, and `writeAt` for custom parent writes, opaque, union, or open/index-signature wrappers, and collections such as `Option<RoomInstance>` that enumerate zero or one child. These explicit accessors continue to define application-specific storage and enumeration policy. Supply a `keySchema` Codec whose decoded value is the selected string or finite-number key. Generated envelope encoding preserves that Codec's encoded key type. Field adapters derive the key Codec from their declared Schema fields.
+An exact required `Schema.Option` field can store zero or one closed keyed wrapper with the same `field`, `key`, and `childField` shorthand. `None` is absent. A child write replaces only the matching wrapper's child field and preserves its metadata; `None` or another key leaves the exact parent Model unchanged. The Binding defaults placement to the child Block ID. Create the occurrence through `Binding.init({ key, args, toParentModel })`; automatic `init.instances` accepts keyed arrays only.
+
+Use `readAll`, function-valued `key`, `read`, and `writeAt` for custom parent writes, opaque, union, or open/index-signature wrappers, and every other zero-or-one storage representation. These explicit accessors continue to define application-specific storage and enumeration policy. Supply a `keySchema` Codec whose decoded value is the selected string or finite-number key. Generated envelope encoding preserves that Codec's encoded key type. Field adapters derive the key Codec from their declared Schema fields.
 
 Use a keyed Binding for a routed child when its domain ID changes, even if only one instance is present at a time. Generated delivery captures the key and generation for delayed Command results and Subscription emissions. Add `delivery.when` for a parent-owned route condition and `delivery.toUpdateContext` for the child update context. Replacing the key retires that occurrence and its dispatchers; reusing the key later creates a new occurrence. Running Commands retain application lifetime, so isolate external writes by domain ID when their completion must not overwrite another instance's data.
 
@@ -362,7 +366,7 @@ A Query uses the same Binding path because Query and KeyedQuery are completed vi
 ```ts
 import { Schema } from 'effect'
 import { Query } from 'foldkit/experimental'
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { fetchPosts } from './api'
 import { Message } from './message'
 import { Model } from './model'
@@ -376,7 +380,7 @@ export const postsQuery = Query.define({
     return () => fetchPosts
   },
 })
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
@@ -398,10 +402,10 @@ Keep the early root contract separate when child Bindings import its helpers:
 
 ```ts
 // definition.ts
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { Message } from './message'
 import { Model } from './model'
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
@@ -427,7 +431,7 @@ Then in the feature's helper module:
 ```ts
 import type { Article } from './article'
 import type { ApplicationViewBuilder } from './composition'
-import type { Model } from './model'
+import { Model } from './model'
 
 export const headerView = (h: ApplicationViewBuilder) =>
   h.header([], ['Articles'])
@@ -435,14 +439,17 @@ export const headerView = (h: ApplicationViewBuilder) =>
 export const articleCard = (article: Article, h: ApplicationViewBuilder) =>
   h.article([], [article.title])
 
-export const articleList = (model: Model, h: ApplicationViewBuilder) =>
+export const articleList = (
+  model: typeof Model.Type,
+  h: ApplicationViewBuilder,
+) =>
   h.ul(
     [],
     model.articles.map(article => h.li([], [article.title])),
   )
 ```
 
-`Block.ViewBuilderFor<typeof ApplicationComposition>` carries the root Message type plus its registered child and Mount capabilities. It is a type alias and constructs no runtime builder. Name the alias for its owner, declare it immediately after the Composition with no blank line, and export it only when another file uses it. The owner prefix identifies one Composition's capabilities at the plain import site. Structural contracts keep the standard names `Model`, `Message`, and `OutMessage` because they normally travel through the feature namespace. A helper takes only the Model, domain value, or context it actually reads; TypeScript infers one `Html` result or an array. Keep the framework's general `HtmlBuilder<Message>` for functions genuinely shared across owners.
+`Block.ViewBuilderFor<typeof ApplicationComposition>` carries the root Message type plus its registered child and Mount capabilities. It is a purposeful generic type alias and constructs no runtime builder. Name the alias for its owner, declare it immediately after the Composition with no blank line, and export it only when another file uses it. The owner prefix identifies one Composition's capabilities at the plain type import site. Routine application annotations query their Schema values directly, such as `typeof Model.Type`; a child consumer queries `typeof ChildBlock.Model.Type`. A helper takes only the Model, domain value, or context it actually reads; TypeScript infers one `Html` result or an array. Keep the framework's general `HtmlBuilder<Message>` for functions genuinely shared across owners.
 
 ## Name the Composition view helper type
 
@@ -460,19 +467,19 @@ Use `Block.ViewBuilderFor` for both Block and Application Compositions. Keep own
 
 ## Name and organize the final roles
 
-Use `FooDefinition` or `ApplicationDefinition` when Definition authoring methods need a named value. Always name the Composition `FooComposition` or `ApplicationComposition`, the completed child `FooBlock`, and the completed root `application` or `element`. Preserve the runtime name in `Block.makeDefinition('Foo', ...)`.
+Use `FooDefinition` or `ApplicationDefinition` when Definition authoring methods need a named value. Always name the Composition `FooComposition` or `ApplicationComposition`, the completed child `FooBlock`, and the completed root `ApplicationBlock`. Name the browser host `program`. Preserve the runtime name in `Block.makeDefinition('Foo', ...)`.
 
 - `definition.ts`: early Model, Message, OutMessage, and Block authoring contracts when split implementation files use Definition authoring methods. It exports `FooDefinition`, never a Composition or owner-specific ViewBuilder. Omit it when the Definition factory only creates the Composition.
 - A folder-named implementation file, such as `workHistory/workHistory.ts`: substantial feature logic that does not warrant separate init/update/command files.
 - `block.ts`: completed feature assembly.
 - `composition.ts`: a split feature without `composition/`, with Bindings, complete child/Mount registration, Composition and optional owner-specific ViewBuilder alias. A substantial one-way policy may use `composition/<child>.ts` with `composition/composition.ts` as assembly and an explicit barrel; reciprocal sibling policies stay together in that assembly and defer sibling calls through policy callbacks. External consumers import from the composition barrel rather than either implementation path. Mount-only and graphless split features use the same home. A split root uses `composition.ts` even when graphless.
 - `composition/composition.ts`: the complete root graph when substantial policies need a directory, including straightforward Bindings, reciprocal policies, and OutMessage folds. Import one-way policy siblings directly inside the assembly module; external consumers import the explicit `composition/index.ts` barrel; external consumers do not deep-import `composition/<child>.ts` or `composition/composition.ts`.
-- `entry.ts`: container, startup inputs, completion, and Runtime startup.
+- `entry.ts`: container, startup inputs, Program construction, and Runtime startup.
 - `services.ts`: root `ApplicationLayer` service providers.
 - `command.ts`: root Command definitions and a small root `EffectsLayer`.
 - `layer.ts`: substantial or reused Layer composition at that directory boundary.
 
-A genuinely compact root defines Model, Message, init, update, view, `ApplicationDefinition`, and `ApplicationComposition` together in `application.ts`. Once any root responsibility is extracted, put a reused `ApplicationDefinition` in `definition.ts`, or put the top-level factory-to-Composition chain in `composition.ts` when no authoring method needs the Definition value. The complete graph and `ApplicationComposition` live in `composition.ts` or `composition/composition.ts`, and every standard implementation lives in its named file. Remove the emptied `application.ts` instead of retaining a partial implementation or re-export barrel. Composition imports the Definition and child or Mount declarations, never root init, update, or view. Entry completion imports each implementation field from its real owner.
+A genuinely compact root defines Model, Message, init, update, view, `ApplicationDefinition`, and `ApplicationComposition` together in `application.ts`. Once any root responsibility is extracted, put a reused `ApplicationDefinition` in `definition.ts`, or put the top-level factory-to-Composition chain in `composition.ts` when no authoring method needs the Definition value. The complete graph and `ApplicationComposition` live in `composition.ts` or `composition/composition.ts`, and every standard implementation lives in its named file. Remove the emptied `application.ts` instead of retaining a partial implementation or re-export barrel. Composition imports the Definition and child or Mount declarations, never root init, update, or view. Block assembly imports each implementation field from its real owner. Entry imports the completed `ApplicationBlock` and its host declarations.
 
 Keep final completion in `block.ts` when the view imports its Composition from `composition.ts`. The final assembly imports that same Composition and the view, so neither module depends on the completed Block. Do not create one file per API stage. Keep small examples compact. Use explicit barrels for intended feature contracts and import private implementations directly in tests.
 
@@ -539,7 +546,7 @@ After:
 ```ts
 // application.ts
 import { Schema } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
@@ -547,7 +554,7 @@ export const Model = Schema.Struct({ count: Schema.Number })
 
 export const Message = defineMessageUnion({ ClickedIncrement: {} })
 
-export const ApplicationComposition = makeApplicationDefinition({
+export const ApplicationComposition = Block.makeDefinition('Application', {
   Model,
   Message,
 }).makeComposition()
@@ -575,37 +582,38 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-// entry.ts
-import { Runtime } from 'foldkit'
-
-import { ApplicationComposition, init, update, view } from './application'
-
-const application = ApplicationComposition.assembleApplication({
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
   init,
   update,
   view,
+})
+
+// entry.ts
+import { Program, Runtime } from 'foldkit'
+
+import { ApplicationBlock } from './application'
+
+const program = Program.make({
+  block: ApplicationBlock,
   container: document.getElementById('root'),
 })
 
-Runtime.run(application)
+Runtime.run(program)
 ```
 
-Call `application.provide(ApplicationLayer)` or `element.provide(ApplicationLayer)` when ordinary Services remain. `application.provide` is an instance method on the completed passive program. There is no standalone `provide` function and no `Application.provide` method.
+Call `program.provide(ApplicationLayer)` when ordinary Services remain. `program.provide` is an instance method on the completed passive Program. There is no standalone `provide` function.
 
-Server rendering receives the same passive Composition and explicit implementation fields:
+Server rendering receives the same completed root Block as the browser Program:
 
 ```ts
 import { Server } from 'foldkit/experimental'
 
-import { ApplicationComposition } from './composition'
+import { ApplicationBlock } from './block'
 import { Flags } from './flags'
-import { init } from './init'
-import { update } from './update'
-import { view } from './view'
 
 Server.renderToString(
-  ApplicationComposition,
-  { init, update, view, Flags, routing: {} },
+  ApplicationBlock,
+  { Flags, routing: {} },
   { url: request.url, flags },
 )
 ```

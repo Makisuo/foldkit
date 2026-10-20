@@ -18,7 +18,35 @@ const PickerNamespace = Block.makeNamespace('Picker')
 const PickerDefinition = PickerNamespace.makeDefinition({ Model, Message })
 ```
 
-Application authoring values use `ApplicationDefinition`, and their Compositions use `ApplicationComposition`. The rule follows supported `foldkit` root, `foldkit/block`, and `foldkit/application` imports, including namespace and import aliases. It follows inline chains and authoring values declared in the same file. A Composition derived from an authoring value imported from another local module is not verified because Oxlint does not expose cross-module symbol or type information. Dynamic names are left for the developer to review.
+The application root is an ordinary Block named `Application`, so its authoring values use `ApplicationDefinition` and `ApplicationComposition`:
+
+```ts
+const ApplicationDefinition = Block.makeDefinition('Application', {
+  Model,
+  Message,
+})
+const ApplicationComposition = ApplicationDefinition.makeComposition()
+const ApplicationBlock = ApplicationComposition.assembleBlock({
+  init,
+  update,
+  view,
+})
+```
+
+The rule follows supported `foldkit` root and `foldkit/block` imports, including namespace and import aliases. It follows inline chains and authoring values declared in the same file. A Composition derived from an authoring value imported from another local module is not verified because Oxlint does not expose cross-module symbol or type information. Dynamic names are left for the developer to review.
+
+`foldkit/no-disabling-dev-guardrails` checks `Program.make` and `Program.makeElement` configurations imported from `foldkit` or `foldkit/program`, including namespace and import aliases. Build the root Block before constructing its Program, and pass routing Message constructors directly:
+
+```ts
+const program = Program.make({
+  block: ApplicationBlock,
+  container,
+  routing: {
+    onUrlRequest: ApplicationBlock.Message.ClickedLink,
+    onUrlChange: ApplicationBlock.Message.ChangedUrl,
+  },
+})
+```
 
 Rules that inspect HTML builder calls share provenance-aware recognition. They recognize `HtmlBuilder`, `Block.ViewBuilderFor<typeof FooComposition>`, local aliases of those types, owner-specific ViewBuilder types imported from a relative module, and the builder parameter of `FooComposition.makeView` and `makeView.withInputs` callbacks. For an imported alias, the plugin resolves the relative TypeScript module and explicit re-export barrels until it finds an actual exported `Block.ViewBuilderFor` declaration; declaration-like text in comments and string literals is ignored. This covers extracted view helpers while leaving unrelated types named `*ViewBuilder` alone. Package aliases, wildcard re-exports, JavaScript declarations, and generated declaration-only modules are not resolved; annotate those helpers directly with `HtmlBuilder` or `Block.ViewBuilderFor` when lint recognition is needed.
 

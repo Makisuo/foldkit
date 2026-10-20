@@ -1,7 +1,6 @@
 import { Option, Schema } from 'effect'
 import { Block, Scene, Story } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
-import type * as Update from 'foldkit/update'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -39,16 +38,15 @@ const MenuStoryDefinition = Block.makeDefinition('MenuStory', {
   Message: Schema.Never,
 })
 
-const foldMenuOutMessage = OutMessage.match<Update.Step<Model, never>>({
-  Selected: () => MenuStoryDefinition.step(model => ({ model })),
-  Closed: () => MenuStoryDefinition.step(model => ({ model })),
+const foldMenuOutMessage = MenuStoryDefinition.makeOutMessageFold(TestMenu, {
+  Selected: () => model => ({ model }),
+  Closed: () => model => ({ model }),
 })
 
 const MenuBinding = MenuStoryDefinition.bindChild(TestMenu, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
-  outMessage: { fold: foldMenuOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldMenuOutMessage })
 
 const MenuStoryComposition = MenuStoryDefinition.makeComposition({
   bindings: [MenuBinding],
@@ -65,12 +63,11 @@ const RefinedMenuStoryDefinition = Block.makeDefinition('RefinedMenuStory', {
 const RefinedMenuBinding = RefinedMenuStoryDefinition.bindChild(RefinedMenu, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
-  outMessage: {
-    fold: RefinedMenu.OutMessage.match<Update.Step<Model, never>>({
-      Selected: () => RefinedMenuStoryDefinition.step(model => ({ model })),
-      Closed: () => RefinedMenuStoryDefinition.step(model => ({ model })),
-    }),
-  },
+}).withOutMessagePolicy({
+  fold: RefinedMenuStoryDefinition.makeOutMessageFold(RefinedMenu, {
+    Selected: () => model => ({ model }),
+    Closed: () => model => ({ model }),
+  }),
 })
 
 const RefinedMenuStoryComposition = RefinedMenuStoryDefinition.makeComposition({

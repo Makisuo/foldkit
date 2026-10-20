@@ -19,20 +19,22 @@ import { isComplete as isPersonalInfoComplete } from './step/personalInfo/update
 import { isComplete as isSkillsComplete } from './step/skills/update'
 import { isComplete as isWorkHistoryComplete } from './step/workHistory/update'
 
-const isApplicationComplete = (model: Model): boolean =>
+const isApplicationComplete = (model: typeof Model.Type): boolean =>
   isPersonalInfoComplete(model.personalInfo) &&
   isWorkHistoryComplete(model.workHistory) &&
   isEducationComplete(model.education) &&
   isSkillsComplete(model.skills)
 
-const toNextStep = (current: Step.Step): Step.Step =>
+const toNextStep = (current: typeof Step.Step.Type): typeof Step.Step.Type =>
   pipe(
     Step.all,
     Array.get(Step.indexOf(current) + 1),
     Option.getOrElse(() => current),
   )
 
-const toPreviousStep = (current: Step.Step): Step.Step =>
+const toPreviousStep = (
+  current: typeof Step.Step.Type,
+): typeof Step.Step.Type =>
   pipe(
     Step.all,
     Array.get(Step.indexOf(current) - 1),
@@ -71,7 +73,7 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
     }),
 
     ClickedSubmit: () =>
-      Update.combine(model, [
+      Update.combineSteps(model, [
         markSubmitAttempted,
         PersonalInfoBinding.requestRevealErrors(),
         WorkHistoryBinding.requestRevealErrors(),

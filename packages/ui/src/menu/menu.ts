@@ -363,22 +363,19 @@ const detectMenuMovementOrAnimationEnd = (generation: number) =>
     commands: [DetectMenuMovementOrAnimationEnd({ id: model.id, generation })],
   }))
 
-type AnimationOutMessageStep = ReturnType<
-  typeof detectMenuMovementOrAnimationEnd
->
-
-const foldAnimationOutMessage =
-  Animation.AnimationBlock.OutMessage.match<AnimationOutMessageStep>({
+const foldAnimationOutMessage = MenuDefinition.makeOutMessageFold(
+  Animation.AnimationBlock,
+  {
     StartedLeaveAnimating: ({ generation }) =>
       detectMenuMovementOrAnimationEnd(generation),
-    TransitionedOut: () => MenuDefinition.stepNoop(),
-  })
+    TransitionedOut: MenuDefinition.stepNoop,
+  },
+)
 
 const AnimationBinding = MenuDefinition.bindChild(Animation.AnimationBlock, {
   field: 'animation',
   init: false,
-  outMessage: { fold: foldAnimationOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
 const internalUpdate =
   (animationBinding: typeof AnimationBinding) =>
@@ -405,12 +402,13 @@ const internalUpdate =
 
     const openMenu = (baseModel: Model) => {
       if (model.isAnimated) {
-        return Update.combine([
-          () => ({ model: baseModel, commands: openCommands }),
+        return Update.combineSteps([
+          MenuDefinition.step(() => ({
+            model: baseModel,
+            commands: openCommands,
+          })),
           animationBinding.requestShow(),
-          stepModel => ({
-            model: modifyFields(stepModel, { isOpen: () => true }),
-          }),
+          MenuDefinition.stepFields(() => ({ isOpen: () => true })),
         ])
       }
 
@@ -435,8 +433,8 @@ const internalUpdate =
       if (model.isAnimated) {
         return MenuDefinition.step(() =>
           Function.compose(
-            Update.combine([
-              () => ({ model: closed, commands }),
+            Update.combineSteps([
+              MenuDefinition.step(() => ({ model: closed, commands })),
               animationBinding.requestHide(),
             ]),
             Update.withOutMessage(closeOutMessage),
@@ -599,8 +597,11 @@ const internalUpdate =
           if (model.isAnimated) {
             return MenuDefinition.step(() =>
               Function.compose(
-                Update.combine([
-                  () => ({ model: closed, commands: closeWithFocusCommands }),
+                Update.combineSteps([
+                  MenuDefinition.step(() => ({
+                    model: closed,
+                    commands: closeWithFocusCommands,
+                  })),
                   animationBinding.requestHide(),
                 ]),
                 Update.withOutMessage(OutMessage.Closed()),
@@ -1343,14 +1344,21 @@ const makeBlockParts = <Item extends string>() => {
     Message,
     OutMessage: RefinedOutMessage,
   })
+  const foldItemAnimationOutMessage = MenuDefinition.makeOutMessageFold(
+    Animation.AnimationBlock,
+    {
+      StartedLeaveAnimating: ({ generation }) =>
+        detectMenuMovementOrAnimationEnd(generation),
+      TransitionedOut: MenuDefinition.stepNoop,
+    },
+  )
   const ItemAnimationBinding = MenuDefinition.bindChild(
     Animation.AnimationBlock,
     {
       field: 'animation',
       init: false,
-      outMessage: { fold: foldAnimationOutMessage },
     },
-  )
+  ).withOutMessagePolicy({ fold: foldItemAnimationOutMessage })
   const itemUpdate = internalUpdate(ItemAnimationBinding)
   type GenericReturn = RefineOutMessage<
     ReturnType<typeof itemUpdate>,

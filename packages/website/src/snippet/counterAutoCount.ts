@@ -1,5 +1,5 @@
 import { Duration, Effect, Schema, Stream } from 'effect'
-import { makeApplicationDefinition } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Message = defineMessageUnion({
@@ -7,15 +7,13 @@ const Message = defineMessageUnion({
   ToggledAutoCounting: {},
   Ticked: {},
 })
-type Message = typeof Message.Type
 
 const Model = Schema.Struct({
   count: Schema.Number,
   isAutoCounting: Schema.Boolean,
 })
-type Model = typeof Model.Type
 
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })

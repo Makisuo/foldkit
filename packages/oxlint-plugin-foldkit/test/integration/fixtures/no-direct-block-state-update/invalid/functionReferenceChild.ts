@@ -8,7 +8,6 @@ export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   InformedOfThemeChange: { theme: Schema.String },
 })
-export type Message = typeof Message.Type
 
 const FunctionReferenceChildDefinition = Block.makeDefinition(
   'FunctionReferenceChild',

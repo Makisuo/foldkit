@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Schema, Tuple } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 import { Dialog } from '@foldkit/ui'
@@ -13,27 +13,26 @@ const Model = Schema.Struct({
   dialog: Dialog.DialogBlock.Model,
   // ...your other fields
 })
-type Model = typeof Model.Type
 
 // This excerpt has no parent-owned facts. The Composition derives Dialog
 // delivery; open from a trigger with `DialogBinding.requestOpen()` as in the
 // basic Dialog example.
 const Message = defineMessageUnion({})
-type Message = typeof Message.Type
-
-const foldDialogOutMessage = Dialog.DialogBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => AnimatedDialogExampleDefinition.stepNoop(),
-  Closed: () => AnimatedDialogExampleDefinition.stepNoop(),
-  CompletedClose: () => AnimatedDialogExampleDefinition.stepNoop(),
-})
 
 const AnimatedDialogExampleDefinition = Block.makeDefinition(
   'AnimatedDialogExample',
   {
     Model,
     Message,
+  },
+)
+
+const foldDialogOutMessage = AnimatedDialogExampleDefinition.makeOutMessageFold(
+  Dialog.DialogBlock,
+  {
+    Opened: AnimatedDialogExampleDefinition.stepNoop,
+    Closed: AnimatedDialogExampleDefinition.stepNoop,
+    CompletedClose: AnimatedDialogExampleDefinition.stepNoop,
   },
 )
 
@@ -44,9 +43,8 @@ const DialogBinding = AnimatedDialogExampleDefinition.bindChild(
     init: {
       contextToArgs: () => Tuple.make({ id: 'confirm', isAnimated: true }),
     },
-    outMessage: { fold: foldDialogOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const AnimatedDialogExampleComposition =
   AnimatedDialogExampleDefinition.makeComposition({

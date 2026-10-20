@@ -7,5 +7,3 @@ export const Model = Schema.Struct({
   route: ApplicationRoute,
   peoplePage: PeopleBlock.Model,
 })
-
-export type Model = typeof Model.Type

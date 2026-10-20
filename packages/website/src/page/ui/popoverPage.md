@@ -4,7 +4,7 @@
 
 An anchored floating panel with natural Tab navigation. Unlike Dialog (which is modal and traps focus) or Menu (which uses aria-activedescendant for item navigation), Popover holds arbitrary content and uses the disclosure ARIA pattern. Focus flows naturally through the panel content.
 
-Bind `PopoverBlock` in the parent. For programmatic control in a parent update, call the Binding’s `requestOpen()` and `requestClose()` operations. Both return connected parent Steps, so apply them to the contextual `makeUpdate` Model directly or through `Update.combine`.
+Bind `PopoverBlock` in the parent. For programmatic control in a parent update, call the Binding’s `requestOpen()` and `requestClose()` operations. Both return connected parent Steps, so apply them to the contextual `makeUpdate` Model directly or through `Update.combineSteps`.
 
 :::Info{label="See it in an app"}
 Check out how Popover is wired up in a [real Foldkit app](https://github.com/foldkit/foldkit/blob/main/examples/ui-showcase/src/ui/view/popover.ts).
@@ -117,7 +117,7 @@ Spreading the `arrow` bundle supplies the arrow id in application markup. A Scen
 
 ### InitConfig {#init-config}
 
-Configuration object passed to `Popover.init()`.
+Configuration passed to the Popover Binding's child initializer. Direct completed Block calls use `Popover.PopoverBlock.init()`.
 
 | Name           | Type      | Default | Description                                                                                                                                                                             |
 | -------------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -154,7 +154,7 @@ Payload delivered to the `toView` callback each render.
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s `outMessage.fold` policy.
+Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s selected `fold` policy.
 
 | Name     | Type | Default | Description                                                                                                                                                            |
 | -------- | ---- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

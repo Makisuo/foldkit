@@ -35,9 +35,8 @@ import { ApplicationDefinition } from './definition'
 import { foldDialogOutMessage } from './operation'
 export const DialogBinding = ApplicationDefinition.bindChild(DialogBlock, {
   field: 'dialog',
-  outMessage: { fold: foldDialogOutMessage },
   init: { contextToArgs: () => [{ id: 'confirm' }] },
-})
+}).withOutMessagePolicy({ fold: foldDialogOutMessage })
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [DialogBinding],
 })

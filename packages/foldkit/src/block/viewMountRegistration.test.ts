@@ -6,10 +6,10 @@ import type { AnyAuthoredView } from '../html/block.js'
 import { __htmlBuilder } from '../html/index.js'
 import { clearRuntime, setRuntime } from '../html/runtimeSingleton.js'
 import { defineMessageUnion } from '../message/index.js'
-import { makeDefinition as makeApplicationDefinition } from '../runtime/applicationPublic.js'
 import * as Scene from '../test/scene.js'
 import { makeDefinition } from './define.js'
 import { lowerBlock } from './lowering.js'
+import * as Block from './public.js'
 
 const Model = Schema.Struct({ count: Schema.Number })
 const Message = defineMessageUnion({
@@ -222,7 +222,10 @@ describe('captured local Mount registrations', () => {
   })
 
   it('checks captured Mount sets during server rendering without building Layers', async () => {
-    const ApplicationDefinition = makeApplicationDefinition({ Model, Message })
+    const ApplicationDefinition = Block.makeDefinition('Application', {
+      Model,
+      Message,
+    })
     const FocusFirst = ApplicationDefinition.mount('FocusFirst', {
       messages: [Message.CompletedObserveFirst],
       handler: function* () {
@@ -250,20 +253,17 @@ describe('captured local Mount registrations', () => {
       title: 'Second',
       body: h.main([h.OnMount(FocusSecond())]),
     }))
+    const firstBlock = firstApplication.assembleBlock({
+      init,
+      update: applicationUpdate,
+      // @ts-expect-error A completed Block rejects a view with a different Mount graph.
+      view,
+      EffectsLayer: FocusFirst.layer,
+    })
 
     await expect(
       Effect.runPromise(
-        renderToString(
-          firstApplication,
-          // @ts-expect-error SSR must reject a view with a different Mount graph.
-          {
-            init,
-            update: applicationUpdate,
-            view,
-            EffectsLayer: FocusFirst.layer,
-          },
-          { isHydratable: false },
-        ),
+        renderToString(firstBlock, {}, { isHydratable: false }),
       ),
     ).rejects.toThrow(
       'This view uses Mounts that are not registered in its selected Block.',

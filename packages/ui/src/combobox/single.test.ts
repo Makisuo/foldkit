@@ -69,34 +69,31 @@ type FruitParentModel = typeof FruitParentModel.Type
 const FruitParentMessage = defineMessageUnion({
   RequestedSelectFruitAndClose: { item: Fruit },
 })
-type FruitParentMessage = typeof FruitParentMessage.Type
 
 const FruitComboboxTestDefinition = Block.makeDefinition('FruitComboboxTest', {
   Model: FruitParentModel,
   Message: FruitParentMessage,
 })
 
-const foldFruitComboboxOutMessage = FruitCombobox.OutMessage.match<
-  Update.Step<FruitParentModel, FruitParentMessage>
->({
-  Selected: ({ value }) =>
-    FruitComboboxTestDefinition.step(model => ({
-      model: modifyFields(model, {
-        maybeSelectedFruit: () => Option.some(value),
+const foldFruitComboboxOutMessage =
+  FruitComboboxTestDefinition.makeOutMessageFold(FruitCombobox, {
+    Selected:
+      ({ value }) =>
+      model => ({
+        model: modifyFields(model, {
+          maybeSelectedFruit: () => Option.some(value),
+        }),
       }),
-    })),
-  ClearedSelection: () =>
-    FruitComboboxTestDefinition.step(model => ({ model })),
-})
+    ClearedSelection: () => model => ({ model }),
+  })
 
 const FruitComboboxBinding = FruitComboboxTestDefinition.bindChild(
   FruitCombobox,
   {
     field: 'combobox',
     init: false,
-    outMessage: { fold: foldFruitComboboxOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldFruitComboboxOutMessage })
 
 const FruitComboboxTestComposition =
   FruitComboboxTestDefinition.makeComposition({
@@ -105,7 +102,7 @@ const FruitComboboxTestComposition =
 
 const fruitParentUpdate = FruitComboboxTestComposition.makeUpdate(
   (model, { item }) =>
-    Update.combine([
+    Update.combineSteps([
       FruitComboboxBinding.requestSelectItem(item, item),
       FruitComboboxBinding.requestClose(''),
     ])(model),

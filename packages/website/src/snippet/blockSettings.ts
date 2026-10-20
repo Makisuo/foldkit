@@ -10,11 +10,13 @@ import {
   Theme,
 } from './blockDefinition'
 
-const changeTheme = SettingsDefinition.step((model, theme: Theme) => ({
-  model: modifyFields(model, { theme: () => theme }),
-  commands: [SaveTheme({ theme })],
-  outMessage: OutMessage.ChangedTheme({ theme }),
-}))
+const changeTheme = SettingsDefinition.step(
+  (model, theme: typeof Theme.Type) => ({
+    model: modifyFields(model, { theme: () => theme }),
+    commands: [SaveTheme({ theme })],
+    outMessage: OutMessage.ChangedTheme({ theme }),
+  }),
+)
 
 const update = SettingsComposition.makeUpdate((model, message) =>
   Message.match(message, {
@@ -48,6 +50,7 @@ export const SettingsBlock = SettingsComposition.assembleBlock({
   update,
   view,
   operations: {
+    requestThemeChange: Message.RequestedThemeChange,
     requestReset: Message.RequestedReset,
   },
   EffectsLayer: SaveTheme.layer,

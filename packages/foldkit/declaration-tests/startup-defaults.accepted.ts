@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect'
-import { Block, Message, Struct, makeApplicationDefinition } from 'foldkit'
+import { Block, Message, Struct } from 'foldkit'
 
 export class StartupClient extends Context.Service<
   StartupClient,
@@ -327,7 +327,7 @@ export const ForeignGenericBinding = ForeignGenericParentDefinition.bindChild(
   },
 )
 
-export const ApplicationDefinition = makeApplicationDefinition({
+export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: Schema.Struct({ child: ChildModel }),
   Message: SingleChildParentMessage,
   ChildInitContext,

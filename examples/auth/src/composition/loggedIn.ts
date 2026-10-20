@@ -5,13 +5,16 @@ import { ApplicationDefinition } from '../definition'
 import { LoggedInBlock, LoggedOutBlock } from '../page'
 import { ApplicationRoute } from '../route'
 
-const foldLoggedInOutMessage = LoggedInBlock.OutMessage.match({
-  RequestedLogout: () =>
-    ApplicationDefinition.step(() => ({
-      model: LoggedOutBlock.init(ApplicationRoute.Home()).model,
-      commands: [ClearSession(), RedirectToHome()],
-    })),
-})
+const foldLoggedInOutMessage = ApplicationDefinition.makeOutMessageFold(
+  LoggedInBlock,
+  {
+    RequestedLogout: () =>
+      ApplicationDefinition.step(() => ({
+        model: LoggedOutBlock.init(ApplicationRoute.Home()).model,
+        commands: [ClearSession(), RedirectToHome()],
+      })),
+  },
+)
 
 export const LoggedInBinding = ApplicationDefinition.bindChild(LoggedInBlock, {
   read: model =>
@@ -22,5 +25,4 @@ export const LoggedInBinding = ApplicationDefinition.bindChild(LoggedInBlock, {
       }),
     ),
   write: (_model, nextLoggedIn) => nextLoggedIn,
-  outMessage: { fold: foldLoggedInOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldLoggedInOutMessage })

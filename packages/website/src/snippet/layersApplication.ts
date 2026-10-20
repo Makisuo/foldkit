@@ -1,6 +1,12 @@
 import { modifyFields } from 'foldkit/struct'
 
-import { ApplicationDefinition, LoadUser, Message, UserState } from './layers'
+import {
+  ApplicationDefinition,
+  EffectsLayer,
+  LoadUser,
+  Message,
+  UserState,
+} from './layers'
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
@@ -28,3 +34,10 @@ export const view = ApplicationComposition.makeView((model, h) => ({
     Failed: ({ error }) => h.p([], [error]),
   }),
 }))
+
+export const ApplicationBlock = ApplicationComposition.assembleBlock({
+  init,
+  update,
+  view,
+  EffectsLayer,
+})

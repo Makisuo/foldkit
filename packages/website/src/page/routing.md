@@ -38,7 +38,7 @@ If a Model or Schema accepts only some application Routes, create that Schema wi
 
 `subset` includes only the tags you name. If you add a Route to `ApplicationRoute` later, `TopLevelRoute` will not accept it until you add its tag. There is no `omit`: an exclusion list would silently accept every Route added later.
 
-If a module needs to name one variant's type, add an alias beside `ApplicationRoute`: `export type NewsletterRoute = typeof ApplicationRoute.Newsletter.Type`.
+When an annotation needs one variant's type, query its Schema directly: `typeof ApplicationRoute.Newsletter.Type`. A routine `NewsletterRoute` alias only hides which union owns the variant.
 
 ## Building Routers
 
@@ -150,11 +150,11 @@ Foldkit provides navigation Commands for programmatically changing the URL. Thes
 
 ### Handle Link Requests
 
-When a link is clicked in your application, the `routing.onUrlRequest` handler receives either an Internal or External request. Handle Internal links with `pushUrl` and External links with `load`:
+When a link is clicked in your application, the `routing.onUrlRequest` handler receives either an Internal or External request. When `ClickedLink` has the canonical `{ request }` payload, pass `ApplicationBlock.Message.ClickedLink` directly in `Program.make`. A callback remains available for a custom payload shape. Handle Internal links with `pushUrl` and External links with `load`:
 
 ::Snippet{name="navigationHandleUrlRequest" label="URL request handling"}
 
-After `pushUrl` or `replaceUrl` changes the URL, Foldkit automatically calls your `routing.onUrlChange` handler with the new URL. This is where you parse the URL into a route and update your model.
+After `pushUrl` or `replaceUrl` changes the URL, Foldkit automatically calls your `routing.onUrlChange` handler with the new URL. Pass `ApplicationBlock.Message.ChangedUrl` directly when the Message has the canonical `{ url }` payload. Update parses that URL into a Route and stores it in the Model.
 
 ## Cold Loads and the Initial Route {#cold-loads}
 

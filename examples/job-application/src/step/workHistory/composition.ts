@@ -1,24 +1,15 @@
 import { Array } from 'effect'
-import { type Update } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
 
-import { Message, type Model, WorkHistoryDefinition } from './definition'
+import { WorkHistoryDefinition } from './definition'
 import { WorkHistoryEntryBlock } from './entry'
 
-const foldEntryOutMessage = (
-  entryId: string,
-  outMessage: typeof WorkHistoryEntryBlock.OutMessage.Type,
-) =>
-  WorkHistoryEntryBlock.OutMessage.match<Update.Step<Model, Message>>(
-    outMessage,
-    {
-      Removed: () => model => ({
-        model: modifyFields(model, {
-          entries: Array.filter(entry => entry.id !== entryId),
-        }),
-      }),
-    },
-  )
+const foldEntryOutMessage = (entryId: string) =>
+  WorkHistoryDefinition.makeOutMessageFold(WorkHistoryEntryBlock, {
+    Removed: () =>
+      WorkHistoryDefinition.stepFields(() => ({
+        entries: Array.filter(entry => entry.id !== entryId),
+      })),
+  })
 
 export const EntriesBinding = WorkHistoryDefinition.bindChild(
   WorkHistoryEntryBlock,
@@ -31,9 +22,10 @@ export const EntriesBinding = WorkHistoryDefinition.bindChild(
       ],
       toItem: (_occurrence, entry) => entry,
     },
-    outMessage: { fold: foldEntryOutMessage },
   },
-)
+).withOutMessagePolicy({
+  fold: (entryId, outMessage) => foldEntryOutMessage(entryId)(outMessage),
+})
 
 export const WorkHistoryComposition = WorkHistoryDefinition.makeComposition({
   bindings: [EntriesBinding],

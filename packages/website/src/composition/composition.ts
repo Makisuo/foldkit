@@ -1,5 +1,6 @@
 import { Option, pipe } from 'effect'
 import { type Block } from 'foldkit'
+import { modifyFields } from 'foldkit/struct'
 
 import { DialogBlock } from '@foldkit/ui'
 
@@ -12,11 +13,12 @@ import {
   PlaygroundBlock,
   UiBlock,
 } from '../page'
-import { ApplicationRoute } from '../route'
+import { ApplicationRoute, maybeExampleSlugForRoute } from '../route'
 import { SearchBlock } from '../search'
 import { SnippetCopyBlock } from '../snippetCopy'
 import { SnippetDisclosureBlock } from '../snippetDisclosure'
-import { selectThemePreference } from '../theme'
+import { ApplyTheme, SaveThemePreference, resolveTheme } from '../theme'
+import { type ThemePreference } from '../themePreference'
 import { ThemeMenu } from '../view'
 import { HomeBinding } from './home'
 
@@ -42,6 +44,12 @@ export const ExampleDetailBinding = ApplicationDefinition.bindChild(
   ExampleDetailBlock,
   {
     field: 'exampleDetail',
+    init: {
+      contextToArgs: ({ route, maybeExampleSources }) => [
+        maybeExampleSlugForRoute(route),
+        maybeExampleSources,
+      ],
+    },
   },
 )
 
@@ -69,6 +77,7 @@ export const ApiReferenceBinding = ApplicationDefinition.bindChild(
   ApiReferenceBlock,
   {
     field: 'apiReference',
+    init: { contextToArgs: ({ maybeApiData }) => [maybeApiData] },
   },
 )
 
@@ -86,34 +95,48 @@ export const CoreBlockPageBinding = ApplicationDefinition.bindChild(
   },
 )
 
-const foldMobileMenuDialogOutMessage = DialogBlock.OutMessage.match({
-  Opened: () => ApplicationDefinition.stepNoop(),
-  Closed: () => ApplicationDefinition.stepNoop(),
-  CompletedClose: () => ApplicationDefinition.stepNoop(),
-})
-
 export const MobileMenuDialogBinding = ApplicationDefinition.bindChild(
   DialogBlock,
   {
     field: 'mobileMenuDialog',
-    outMessage: { fold: foldMobileMenuDialogOutMessage },
     init: { contextToArgs: () => [{ id: 'mobile-menu' }] },
   },
-)
-
-const foldThemeMenuOutMessage = ThemeMenu.ThemeMenuBlock.OutMessage.match({
-  Selected: ({ value }) => selectThemePreference(value),
-  Closed: () => ApplicationDefinition.stepNoop(),
+).withOutMessagePolicy({
+  fold: ApplicationDefinition.makeOutMessageFold(DialogBlock, {
+    Opened: ApplicationDefinition.stepNoop,
+    Closed: ApplicationDefinition.stepNoop,
+    CompletedClose: ApplicationDefinition.stepNoop,
+  }),
 })
+
+const applyThemePreference = (preference: typeof ThemePreference.Type) =>
+  ApplicationDefinition.step(model => {
+    const resolvedTheme = resolveTheme(preference, model.systemTheme)
+
+    return {
+      model: modifyFields(model, {
+        maybeThemePreference: () => Option.some(preference),
+        resolvedTheme: () => resolvedTheme,
+      }),
+      commands: [
+        ApplyTheme({ theme: resolvedTheme }),
+        SaveThemePreference({ preference }),
+      ],
+    }
+  })
 
 export const ThemeMenuBinding = ApplicationDefinition.bindChild(
   ThemeMenu.ThemeMenuBlock,
   {
     field: 'themeMenu',
-    outMessage: { fold: foldThemeMenuOutMessage },
     init: { contextToArgs: () => [{ id: 'theme-menu' }] },
   },
-)
+).withOutMessagePolicy({
+  fold: ApplicationDefinition.makeOutMessageFold(ThemeMenu.ThemeMenuBlock, {
+    Selected: ({ value }) => applyThemePreference(value),
+    Closed: ApplicationDefinition.stepNoop,
+  }),
+})
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [

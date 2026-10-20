@@ -1,7 +1,6 @@
 import { Schema } from 'effect'
 import * as Block from 'foldkit/block'
 import { defineMessageUnion } from 'foldkit/message'
-import type * as Update from 'foldkit/update'
 import { expect, it } from 'vitest'
 
 import * as Animation from '../animation/block.js'
@@ -15,12 +14,10 @@ type Model = typeof Model.Type
 const Message = defineMessageUnion({
   RequestedOpen: {},
 })
-type Message = typeof Message.Type
 
 const OutMessage = defineMessageUnion({
   SelectedMenuItem: { value: Schema.Literals(['Edit', 'Delete']) },
 })
-type OutMessage = typeof OutMessage.Type
 
 const GenericMenuBindingIdentityDefinition = Block.makeDefinition(
   'GenericMenuBindingIdentity',
@@ -36,20 +33,17 @@ const MenuBinding = GenericMenuBindingIdentityDefinition.bindChild(
   {
     field: 'menu',
     init: false,
-    outMessage: {
-      fold: RefinedMenu.OutMessage.match<
-        Update.StepWithOutMessage<Model, Message, OutMessage>
-      >({
-        Selected: ({ value }) =>
-          GenericMenuBindingIdentityDefinition.step(model => ({
-            model,
-            outMessage: OutMessage.SelectedMenuItem({ value }),
-          })),
-        Closed: () => GenericMenuBindingIdentityDefinition.stepNoop(),
-      }),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: GenericMenuBindingIdentityDefinition.makeOutMessageFold(RefinedMenu, {
+    Selected: ({ value }) =>
+      GenericMenuBindingIdentityDefinition.step(model => ({
+        model,
+        outMessage: OutMessage.SelectedMenuItem({ value }),
+      })),
+    Closed: () => GenericMenuBindingIdentityDefinition.stepNoop(),
+  }),
+})
 
 const GenericMenuBindingIdentityComposition =
   GenericMenuBindingIdentityDefinition.makeComposition({

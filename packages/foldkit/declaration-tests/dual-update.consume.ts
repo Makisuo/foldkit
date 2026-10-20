@@ -20,7 +20,7 @@ type Expect<Value extends true> = Value
 
 const step = update(changedCount)
 const initial = Model.make({ count: 0 })
-const combined = Update.combine(initial, [step, update(changedCount)])
+const combined = Update.combineSteps(initial, [step, update(changedCount)])
 const contextual = requiredContextUpdate(changedCount)(initial, {
   multiplier: 2,
 })

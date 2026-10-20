@@ -233,10 +233,6 @@ const HomeBinding = Parent.bindChild(Child, {
   placement: 'home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
-  outMessage: {
-    fold: foldChildOutMessage,
-    forward: forwardChildOutMessage,
-  },
   subscriptions: {
     when: {
       ticks: (model: ParentModel) => model.isListening,
@@ -245,6 +241,9 @@ const HomeBinding = Parent.bindChild(Child, {
   delivery: {
     toUpdateContext: () => [{ roomId: 'room' }],
   },
+}).withOutMessagePolicy({
+  fold: foldChildOutMessage,
+  forward: forwardChildOutMessage,
 })
 const foldChildOutMessageWithCommand = (
   outMessage: ChildOutMessage,
@@ -272,11 +271,10 @@ const CommandHomeBinding = Parent.bindChild(Child, {
   placement: 'command-home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
-  outMessage: { fold: foldChildOutMessageWithCommand },
   delivery: {
     toUpdateContext: () => [{ roomId: 'room' }],
   },
-})
+}).withOutMessagePolicy({ fold: foldChildOutMessageWithCommand })
 
 const PolicyMessage = defineMessageUnion({
   CompletedPolicyWork: {},
@@ -316,21 +314,19 @@ const ParentCommandHomeBinding = ParentPolicyDefinition.bindChild(Child, {
   placement: 'parent-command-home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
-  outMessage: { fold: foldChildOutMessageWithParentCommand },
   delivery: {
     toUpdateContext: () => [{ roomId: 'room' }],
   },
-})
+}).withOutMessagePolicy({ fold: foldChildOutMessageWithParentCommand })
 
 const ForwardOnlyHomeBinding = Parent.bindChild(Child, {
   placement: 'forward-only-home',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
-  outMessage: { forward: forwardChildOutMessage },
   delivery: {
     toUpdateContext: () => [{ roomId: 'room' }],
   },
-})
+}).withOutMessagePolicy({ forward: forwardChildOutMessage })
 
 const bindWithoutOutMessagePolicy = () =>
   Parent.bindChild(Child, {
@@ -361,11 +357,10 @@ const LocallyHandledWithoutForwardingBinding = Parent.bindChild(Child, {
   placement: 'locally-handled',
   read: (model: ParentModel) => model.maybeChild,
   write: writeChild,
-  outMessage: { fold: foldChildOutMessage },
   delivery: {
     toUpdateContext: () => [{ roomId: 'room' }],
   },
-})
+}).withOutMessagePolicy({ fold: foldChildOutMessage })
 void LocallyHandledWithoutForwardingBinding
 
 const initialParent: ParentModel = {
@@ -479,7 +474,6 @@ const ArityParentMessage = defineMessageUnion({
   RequestedAddMany: { amounts: Schema.Array(Schema.Number) },
   RequestedReset: {},
 })
-type ArityParentMessage = typeof ArityParentMessage.Type
 
 const ArityParent = Schema.Struct({ child: ArityModel })
 type ArityParent = typeof ArityParent.Type
@@ -862,14 +856,13 @@ describe('Block binding', () => {
       placement: 'gated-home',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
-      outMessage: { fold: foldChildOutMessage },
       subscriptions: {
         when: (model: ParentModel) => model.isListening,
       },
       delivery: {
         toUpdateContext: () => [{ roomId: 'room' }],
       },
-    })
+    }).withOutMessagePolicy({ fold: foldChildOutMessage })
     const dependencies = inspectBinding(
       GatedBinding,
     ).subscriptions.ticks.modelToDependencies({
@@ -1039,20 +1032,18 @@ describe('Block binding', () => {
       placement: 'home',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
-      outMessage: { fold: foldNamedChildOutMessage },
       delivery: {
         toUpdateContext: () => [{ roomId: 'room' }],
       },
-    })
+    }).withOutMessagePolicy({ fold: foldNamedChildOutMessage })
     const RoomBinding = ParentBaseDefinition.bindChild(pulseChild, {
       placement: 'room',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
-      outMessage: { fold: foldNamedChildOutMessage },
       delivery: {
         toUpdateContext: () => [{ roomId: 'room' }],
       },
-    })
+    }).withOutMessagePolicy({ fold: foldNamedChildOutMessage })
     const namedHomeInspection = inspectBinding(NamedHomeBinding)
     const bindings = [NamedHomeBinding, RoomBinding]
     const parentContract = ParentBaseDefinition.makeComposition({
@@ -1302,11 +1293,10 @@ describe('Block child registration composition', () => {
       placement: 'sidebar',
       read: (model: ParentModel) => model.maybeChild,
       write: writeChild,
-      outMessage: { fold: foldChildOutMessage },
       delivery: {
         toUpdateContext: () => [{ roomId: 'room' }],
       },
-    })
+    }).withOutMessagePolicy({ fold: foldChildOutMessage })
 
     const aggregated = aggregateChildren([HomeBinding, SidebarBinding])
     expect(Object.keys(aggregated.managedResources)).toEqual([
@@ -1329,7 +1319,6 @@ describe('Block child registration composition', () => {
       let buildCount = 0
       const RepeatedNamespace = makeNamespace('BindingRepeated')
       const RepeatedMessage = defineMessageUnion({ CompletedMount: {} })
-      type RepeatedMessage = typeof RepeatedMessage.Type
       const RepeatedMount = RepeatedNamespace.mount('Mount', {
         messages: [RepeatedMessage.CompletedMount],
       })
@@ -1385,16 +1374,13 @@ describe('generic block refinement', () => {
 
   const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
     const Model = Schema.Struct({ value: Value })
-    type Model = typeof Model.Type
     const RequestedFinish = Schema.TaggedStruct('RequestedFinish', {})
     const Message = Schema.Union([
       RequestedFinish,
       Schema.TaggedStruct('SelectedValue', { value: Value }),
       CompletedChoiceWork,
     ])
-    type Message = typeof Message.Type
     const OutMessage = Schema.TaggedStruct('SelectedValue', { value: Value })
-    type OutMessage = typeof OutMessage.Type
     const ChoiceDefinition = GenericNamespace.makeDefinition({
       Model,
       Message,
@@ -1458,8 +1444,7 @@ describe('generic block refinement', () => {
       placement: 'direct-choice',
       read: (model: ChoiceParentModel) => Option.some(model.choice),
       write: (model, choice) => ({ ...model, choice }),
-      outMessage: directChoicePolicy,
-    })
+    }).withOutMessagePolicy(directChoicePolicy)
     const DirectComposition = ChoiceParent.makeComposition({
       bindings: [DirectBinding],
     })
@@ -1470,12 +1455,11 @@ describe('generic block refinement', () => {
         ...model,
         choice,
       }),
-      outMessage: {
-        fold: (outMessage: ChoiceOutMessage) => (model: ChoiceParentModel) => ({
-          model,
-          outMessage,
-        }),
-      },
+    }).withOutMessagePolicy({
+      fold: (outMessage: ChoiceOutMessage) => (model: ChoiceParentModel) => ({
+        model,
+        outMessage,
+      }),
     })
     const ChoiceComposition = ChoiceParent.makeComposition({
       bindings: [Binding],

@@ -52,7 +52,10 @@ export type InitConfig = BaseInitConfig
  *  design. Clear the selection by toggling each value off. */
 const defaultUpdate = makeUpdate(
   ComboboxDefinition.bindChild,
+  ComboboxDefinition.makeOutMessageFold,
   ComboboxDefinition.step,
+  ComboboxDefinition.stepFields,
+  ComboboxDefinition.stepNoop,
   'KeepOpen',
   {
     handleClose: model => ({
@@ -121,7 +124,10 @@ const makeBlockParts = <Item extends string, ItemEncoded>(
   })
   const itemUpdate = makeUpdate(
     ComboboxDefinition.bindChild,
+    ComboboxDefinition.makeOutMessageFold,
     ComboboxDefinition.step,
+    ComboboxDefinition.stepFields,
+    ComboboxDefinition.stepNoop,
     'KeepOpen',
     {
       handleClose: model => ({

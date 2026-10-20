@@ -56,8 +56,7 @@ const foldSearchOutMessage = SearchOutMessage.match<
 })
 const SearchBinding = ParentDefinition.bindChild(SearchBlock, {
   field: 'search',
-  outMessage: { fold: foldSearchOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldSearchOutMessage })
 const ParentComposition = ParentDefinition.makeComposition({
   bindings: [SearchBinding],
 })

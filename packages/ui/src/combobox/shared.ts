@@ -417,7 +417,14 @@ export const makeUpdate = <
     MessageSchema<Item, ItemEncoded>,
     ParentOutMessageSchema
   >,
+  makeOutMessageFold: Block.MakeOutMessageFold<
+    BaseModel,
+    Message<Item>,
+    OutMessage<Item>
+  >,
   step: Block.DefineStep<BaseModel, Message<Item>, OutMessage<Item>>,
+  stepFields: Block.DefineStepFields<BaseModel>,
+  stepNoop: Block.DefineStepNoop<BaseModel>,
   selectionBehavior: 'CloseWithFocus' | 'KeepOpen',
   handlers: Readonly<{
     handleClose: (
@@ -445,23 +452,16 @@ export const makeUpdate = <
       commands: [DetectMovementOrAnimationEnd({ id: model.id, generation })],
     }))
 
-  type AnimationOutMessageStep = ReturnType<typeof detectMovementOrAnimationEnd>
-
-  const ignoreTransitionedOut = step(model => ({ model }))
-
-  const foldAnimationOutMessage = Animation.AnimationBlock.OutMessage.match<
-    AnimationOutMessageStep | typeof ignoreTransitionedOut
-  >({
+  const foldAnimationOutMessage = makeOutMessageFold(Animation.AnimationBlock, {
     StartedLeaveAnimating: ({ generation }) =>
       detectMovementOrAnimationEnd(generation),
-    TransitionedOut: () => ignoreTransitionedOut,
+    TransitionedOut: stepNoop,
   })
 
   const AnimationBinding = bindChild(Animation.AnimationBlock, {
     field: 'animation',
     init: false,
-    outMessage: { fold: foldAnimationOutMessage },
-  })
+  }).withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
   type AuthoredMessage = Message<Item>
 
@@ -490,8 +490,8 @@ export const makeUpdate = <
       if (didClose && model.isAnimated) {
         return step(() =>
           Function.compose(
-            Update.combine([
-              () => ({ model: nextModel, commands }),
+            Update.combineSteps([
+              step(() => ({ model: nextModel, commands })),
               AnimationBinding.requestHide(),
             ]),
             Update.withOutMessage(outMessage),
@@ -508,12 +508,10 @@ export const makeUpdate = <
 
     const openCombobox = (baseModel: Model) => {
       if (model.isAnimated) {
-        return Update.combine([
-          () => ({ model: baseModel, commands: openCommands }),
+        return Update.combineSteps([
+          step(() => ({ model: baseModel, commands: openCommands })),
           AnimationBinding.requestShow(),
-          stepModel => ({
-            model: modifyBaseFields(stepModel, { isOpen: () => true }),
-          }),
+          stepFields(() => ({ isOpen: () => true })),
         ])
       }
 
@@ -538,8 +536,8 @@ export const makeUpdate = <
       if (model.isAnimated) {
         return step(() =>
           Function.compose(
-            Update.combine([
-              () => ({ model: comboboxClose.model, commands }),
+            Update.combineSteps([
+              step(() => ({ model: comboboxClose.model, commands })),
               AnimationBinding.requestHide(),
             ]),
             Update.withOutMessage(comboboxClose.outMessage),
@@ -746,13 +744,11 @@ export const makeUpdate = <
           })
 
           if (model.isAnimated) {
-            return Update.combine([
-              () => ({ model: toggledModel, commands: [focusInput] }),
-              stepModel => ({ model: stepModel, commands: openCommands }),
+            return Update.combineSteps([
+              step(() => ({ model: toggledModel, commands: [focusInput] })),
+              step(stepModel => ({ model: stepModel, commands: openCommands })),
               AnimationBinding.requestShow(),
-              stepModel => ({
-                model: modifyBaseFields(stepModel, { isOpen: () => true }),
-              }),
+              stepFields(() => ({ isOpen: () => true })),
             ])
           }
 

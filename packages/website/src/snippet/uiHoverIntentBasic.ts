@@ -2,7 +2,7 @@
 // block below is an excerpt. Fit them into your own Model, init, Message,
 // update, and view definitions.
 import { Schema, Tuple } from 'effect'
-import { Block, Update } from 'foldkit'
+import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 import { HoverIntent } from '@foldkit/ui'
@@ -13,18 +13,9 @@ const Model = Schema.Struct({
   hoverIntent: HoverIntent.HoverIntentBlock.Model,
   // ...your other fields
 })
-type Model = typeof Model.Type
 
 // This excerpt has no parent-owned facts. The Composition derives delivery.
 const Message = defineMessageUnion({})
-type Message = typeof Message.Type
-
-const foldHoverIntentOutMessage = HoverIntent.HoverIntentBlock.OutMessage.match<
-  Update.Step<Model, Message>
->({
-  Opened: () => HoverIntentExampleDefinition.stepNoop(),
-  Closed: () => HoverIntentExampleDefinition.stepNoop(),
-})
 
 const HoverIntentExampleDefinition = Block.makeDefinition(
   'HoverIntentExample',
@@ -34,6 +25,15 @@ const HoverIntentExampleDefinition = Block.makeDefinition(
   },
 )
 
+const foldHoverIntentOutMessage =
+  HoverIntentExampleDefinition.makeOutMessageFold(
+    HoverIntent.HoverIntentBlock,
+    {
+      Opened: HoverIntentExampleDefinition.stepNoop,
+      Closed: HoverIntentExampleDefinition.stepNoop,
+    },
+  )
+
 const HoverIntentBinding = HoverIntentExampleDefinition.bindChild(
   HoverIntent.HoverIntentBlock,
   {
@@ -41,9 +41,8 @@ const HoverIntentBinding = HoverIntentExampleDefinition.bindChild(
     init: {
       contextToArgs: () => Tuple.make({ openDelay: 200, closeDelay: 300 }),
     },
-    outMessage: { fold: foldHoverIntentOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
 
 const HoverIntentExampleComposition =
   HoverIntentExampleDefinition.makeComposition({

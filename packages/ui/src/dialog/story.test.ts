@@ -5,7 +5,6 @@ import * as Dom from 'foldkit/dom'
 import type { ChildAttribute } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
-import * as Update from 'foldkit/update'
 import { expect } from 'vitest'
 
 import { describe, it } from '@effect/vitest'
@@ -47,33 +46,32 @@ const ParentModel = Schema.Struct({
   dialog: DialogBlock.Model,
   dialogEvents: Schema.Array(DialogEvent),
 })
-type ParentModel = typeof ParentModel.Type
 
 const ParentMessage = defineMessageUnion({
   CompletedLoadParentData: {},
-})
-type ParentMessage = typeof ParentMessage.Type
-
-const foldDialogOutMessage = OutMessage.match<
-  Update.Step<ParentModel, ParentMessage>
->({
-  Opened: () => model => ({
-    model: modifyFields(model, {
-      dialogEvents: Array.append(DialogEvent.make('Opened')),
-    }),
-  }),
-  Closed: () => model => ({
-    model: modifyFields(model, {
-      dialogEvents: Array.append(DialogEvent.make('Closed')),
-    }),
-  }),
-  CompletedClose: () => model => ({ model }),
 })
 
 const DialogParentTestDefinition = Block.makeDefinition('DialogParentTest', {
   Model: ParentModel,
   Message: ParentMessage,
 })
+
+const foldDialogOutMessage = DialogParentTestDefinition.makeOutMessageFold(
+  DialogBlock,
+  {
+    Opened: () => model => ({
+      model: modifyFields(model, {
+        dialogEvents: Array.append(DialogEvent.make('Opened')),
+      }),
+    }),
+    Closed: () => model => ({
+      model: modifyFields(model, {
+        dialogEvents: Array.append(DialogEvent.make('Closed')),
+      }),
+    }),
+    CompletedClose: () => model => ({ model }),
+  },
+)
 
 const LoadParentData = DialogParentTestDefinition.command('LoadParentData', {
   messages: [ParentMessage.CompletedLoadParentData],
@@ -86,9 +84,8 @@ const loadParentData = DialogParentTestDefinition.step(model => ({
 
 const DialogBinding = DialogParentTestDefinition.bindChild(DialogBlock, {
   field: 'dialog',
-  outMessage: { fold: foldDialogOutMessage },
   init: { contextToArgs: () => [{ id: 'initial-dialog' }] },
-})
+}).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const DialogParentTestComposition = DialogParentTestDefinition.makeComposition({
   bindings: [DialogBinding],

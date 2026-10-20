@@ -31,6 +31,8 @@ import {
   GetStarted,
   Patterns,
   Performance,
+  PreviewMigration,
+  PreviewUpgrade,
   Privacy,
   ProjectOrganization,
   ReactComparison,
@@ -79,6 +81,8 @@ export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
             BestPracticesKeying: () => BestPractices.Keying.tableOfContents,
             BestPracticesImmutability: () =>
               BestPractices.Immutability.tableOfContents,
+            PreviewMigration: () => PreviewMigration.tableOfContents,
+            PreviewUpgrade: () => PreviewUpgrade.tableOfContents,
             ProjectOrganization: () => ProjectOrganization.tableOfContents,
             ToolingLinting: () => ToolingLinting.tableOfContents,
             ApiModule: ({ moduleSlug }) =>

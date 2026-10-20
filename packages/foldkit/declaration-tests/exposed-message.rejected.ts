@@ -267,8 +267,7 @@ const foldChildOutMessage = () => (model: ParentModel) => ({ model })
 const AlternativeChildBinding = ParentDefinition.bindChild(ChildBlock, {
   field: 'child',
   placement: 'alternative',
-  outMessage: { fold: foldChildOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldChildOutMessage })
 const OmittedComposition = ParentDefinition.makeComposition({
   bindings: [AlternativeChildBinding, EntryBinding],
 })

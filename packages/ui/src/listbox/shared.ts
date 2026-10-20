@@ -382,7 +382,10 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
     typeof Message,
     ParentOutMessageSchema
   >,
+  makeOutMessageFold: Block.MakeOutMessageFold<BaseModel, Message, OutMessage>,
   step: Block.DefineStep<BaseModel, Message, OutMessage>,
+  stepFields: Block.DefineStepFields<BaseModel>,
+  stepNoop: Block.DefineStepNoop<BaseModel>,
   selectionBehavior: 'CloseWithFocus' | 'KeepOpen',
   handleSelectedItem: (
     model: BaseModel,
@@ -400,25 +403,16 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
       ],
     }))
 
-  type AnimationOutMessageStep = ReturnType<
-    typeof detectListboxMovementOrAnimationEnd
-  >
-
-  const ignoreTransitionedOut = step(model => ({ model }))
-
-  const foldAnimationOutMessage = Animation.AnimationBlock.OutMessage.match<
-    AnimationOutMessageStep | typeof ignoreTransitionedOut
-  >({
+  const foldAnimationOutMessage = makeOutMessageFold(Animation.AnimationBlock, {
     StartedLeaveAnimating: ({ generation }) =>
       detectListboxMovementOrAnimationEnd(generation),
-    TransitionedOut: () => ignoreTransitionedOut,
+    TransitionedOut: stepNoop,
   })
 
   const AnimationBinding = bindChild(Animation.AnimationBlock, {
     field: 'animation',
     init: false,
-    outMessage: { fold: foldAnimationOutMessage },
-  })
+  }).withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
   const internalUpdate = (model: Model, message: RoutedMessage) => {
     const modalOpenCommands = Array.filter(
@@ -440,12 +434,10 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
 
     const openListbox = (baseModel: Model) => {
       if (baseModel.isAnimated) {
-        return Update.combine([
-          () => ({ model: baseModel, commands: openCommands }),
+        return Update.combineSteps([
+          step(() => ({ model: baseModel, commands: openCommands })),
           AnimationBinding.requestShow(),
-          stepModel => ({
-            model: modifyBaseFields(stepModel, { isOpen: () => true }),
-          }),
+          stepFields(() => ({ isOpen: () => true })),
         ])
       }
 
@@ -469,8 +461,8 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
       if (baseModel.isAnimated) {
         return step(() =>
           Function.compose(
-            Update.combine([
-              () => ({ model: closed, commands }),
+            Update.combineSteps([
+              step(() => ({ model: closed, commands })),
               AnimationBinding.requestHide(),
             ]),
             Update.withOutMessage(outMessage),
@@ -633,8 +625,11 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
           })
 
           if (model.isAnimated) {
-            return Update.combine([
-              () => ({ model: closed, commands: closeWithFocusCommands }),
+            return Update.combineSteps([
+              step(() => ({
+                model: closed,
+                commands: closeWithFocusCommands,
+              })),
               AnimationBinding.requestHide(),
             ])
           }

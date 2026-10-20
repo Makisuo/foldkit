@@ -4,11 +4,9 @@ import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 export const Model = Schema.Struct({ id: Schema.String, theme: Schema.String })
-export type Model = typeof Model.Type
 export const Message = defineMessageUnion({
   InformedOfThemeChange: { theme: Schema.String },
 })
-export type Message = typeof Message.Type
 const NoDirectStateKeyedEntryDefinition = Block.makeDefinition(
   'NoDirectStateKeyedEntry',
   { Model, Message },

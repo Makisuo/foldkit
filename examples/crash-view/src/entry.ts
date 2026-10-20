@@ -16,7 +16,7 @@ const program = Program.make({
       })
     },
   },
-  devTools: { Message: ApplicationBlock.Message },
+  devTools: { dispatch: true },
 })
 
 Runtime.run(program)

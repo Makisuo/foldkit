@@ -8,14 +8,12 @@ export const Model = Schema.Struct({
   todos: Schema.Array(Todo),
   filter: Filter,
 })
-type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   AddedTodo: {},
   ClearedDoneTodos: {},
   SelectedFilter: { filter: Filter },
 })
-type Message = typeof Message.Type
 
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,

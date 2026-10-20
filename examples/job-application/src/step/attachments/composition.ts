@@ -1,55 +1,42 @@
 import { Array, Option } from 'effect'
 import type { Block } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
 
 import { FileDropBlock } from '@foldkit/ui'
 
 import { AttachmentsDefinition } from './definition'
-
-const foldResumeDropOutMessage = AttachmentsDefinition.makeOutMessageFold(
-  FileDropBlock,
-  {
-    ReceivedFiles:
-      ({ files }) =>
-      model => ({
-        model: modifyFields(model, {
-          maybeResume: () =>
-            Option.orElse(Array.head(files), () => model.maybeResume),
-        }),
-      }),
-    RejectedNonFiles: () => AttachmentsDefinition.stepNoop(),
-  },
-)
 
 export const ResumeDropBinding = AttachmentsDefinition.bindChild(
   FileDropBlock,
   {
     field: 'resumeDrop',
     init: { contextToArgs: () => [{ id: 'attachments-resume' }] },
-    outMessage: { fold: foldResumeDropOutMessage },
   },
-)
-
-const foldAdditionalFilesDropOutMessage =
-  AttachmentsDefinition.makeOutMessageFold(FileDropBlock, {
-    ReceivedFiles:
-      ({ files }) =>
-      model => ({
-        model: modifyFields(model, {
-          additionalFiles: Array.appendAll(files),
-        }),
-      }),
-    RejectedNonFiles: () => AttachmentsDefinition.stepNoop(),
-  })
+).withOutMessagePolicy({
+  fold: AttachmentsDefinition.makeOutMessageFold(FileDropBlock, {
+    ReceivedFiles: ({ files }) =>
+      AttachmentsDefinition.stepFields(() => ({
+        maybeResume: maybeResume =>
+          Option.orElse(Array.head(files), () => maybeResume),
+      })),
+    RejectedNonFiles: AttachmentsDefinition.stepNoop,
+  }),
+})
 
 export const AdditionalFilesDropBinding = AttachmentsDefinition.bindChild(
   FileDropBlock,
   {
     field: 'additionalFilesDrop',
     init: { contextToArgs: () => [{ id: 'attachments-additional' }] },
-    outMessage: { fold: foldAdditionalFilesDropOutMessage },
   },
-)
+).withOutMessagePolicy({
+  fold: AttachmentsDefinition.makeOutMessageFold(FileDropBlock, {
+    ReceivedFiles: ({ files }) =>
+      AttachmentsDefinition.stepFields(() => ({
+        additionalFiles: Array.appendAll(files),
+      })),
+    RejectedNonFiles: AttachmentsDefinition.stepNoop,
+  }),
+})
 
 export const AttachmentsComposition = AttachmentsDefinition.makeComposition({
   bindings: [ResumeDropBinding, AdditionalFilesDropBinding],

@@ -197,7 +197,7 @@ Month cells expose `isSelected`, `isFocused`, `isCurrentMonth`, and `isDisabled`
 
 ### OutMessage {#out-message}
 
-Calendar returns an optional OutMessage in the `outMessage` field. Match on its tag in the Binding’s `outMessage.fold` policy.
+Calendar returns an optional OutMessage in the `outMessage` field. Match on its tag in the Binding’s selected `fold` policy.
 
 | Name               | Payload                           | Emitted when                                                                                                                                                                       |
 | ------------------ | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

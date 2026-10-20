@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
+import * as Update from '../update/index.js'
 import { makeDefinition } from './define.js'
 import {
   assertRegisteredBinding,
@@ -213,6 +214,65 @@ describe('connected initialization', () => {
       existing,
       { id: 'first', child: { count: 4 } },
     ])
+  })
+
+  it('threads a derived Model through registered keyed initialization Steps', () => {
+    const initializeFirst = Parent.step(model =>
+      ItemsBinding.init({
+        key: 'first',
+        args: [1],
+        toParentModel: child =>
+          modifyFields(model, {
+            items: Array.append({ id: 'first', child }),
+          }),
+      }),
+    )
+    const initializeSecond = Parent.step(model =>
+      ItemsBinding.init({
+        key: 'second',
+        args: [2],
+        toParentModel: child =>
+          modifyFields(model, {
+            items: Array.append({ id: 'second', child }),
+          }),
+      }),
+    )
+    const completed = ParentComposition.assembleBlock({
+      init: () => ({ model: ParentModel.make({ items: [] }) }),
+      update: ParentComposition.makeUpdate((model, message) =>
+        ParentMessage.match(message, {
+          RequestedCreateChild: () => {
+            const nextModel = modifyFields(model, {
+              items: Array.append({
+                id: 'existing',
+                child: ChildModel.make({ count: 8 }),
+              }),
+            })
+
+            return Update.combine(nextModel, [
+              initializeFirst,
+              initializeSecond,
+            ])
+          },
+          CompletedRecord: () => ({ model }),
+          RequestedCreateKeyedChild: () => ({ model }),
+          RequestedCreateIncompleteKeyedChild: () => ({ model }),
+        }),
+      ),
+      operations: {
+        createChildren: () => Tuple.make(ParentMessage.RequestedCreateChild()),
+      },
+    })
+    const created = completed.operations.createChildren(
+      ParentModel.make({ items: [] }),
+    )
+
+    expect(created.model.items).toEqual([
+      { id: 'existing', child: { count: 8 } },
+      { id: 'first', child: { count: 1 } },
+      { id: 'second', child: { count: 2 } },
+    ])
+    expect(created.commands).toHaveLength(2)
   })
 
   it.each([undefined, NaN, Infinity, {}, false])(
@@ -427,6 +487,121 @@ describe('direct connected initialization', () => {
       dynamicDirect.operations.createIncompleteDirectChild(directInit.model),
     ).toThrow('must return a complete parent Model')
   })
+})
+
+const SequencedParentModel = Schema.Struct({
+  route: Schema.Literals(['Home', 'Play']),
+  first: Schema.Option(ChildModel),
+  second: Schema.Option(ChildModel),
+  didSecondSeeFirst: Schema.Boolean,
+})
+const SequencedParentMessage = defineMessageUnion({
+  RequestedOpen: {},
+  CompletedRecord: {},
+})
+const SequencedParent = makeDefinition('SequencedInitializationParent', {
+  Model: SequencedParentModel,
+  Message: SequencedParentMessage,
+})
+const RecordSequencedInitialization = SequencedParent.command(
+  'RecordSequencedInitialization',
+  {
+    messages: [SequencedParentMessage.CompletedRecord],
+    handler: function* () {
+      return () => Effect.succeed(SequencedParentMessage.CompletedRecord())
+    },
+  },
+)
+const FirstSequencedBinding = SequencedParent.bindChild(child, {
+  placement: 'first',
+  field: 'first',
+})
+const SecondSequencedBinding = SequencedParent.bindChild(child, {
+  placement: 'second',
+  field: 'second',
+})
+const initializeFirstSequencedChild = SequencedParent.step(model =>
+  FirstSequencedBinding.init({
+    args: [1],
+    toParentModel: child =>
+      modifyFields(model, { first: () => Option.some(child) }),
+    commands: [RecordSequencedInitialization()],
+  }),
+)
+const initializeSecondSequencedChild = SequencedParent.step(model =>
+  SecondSequencedBinding.init({
+    args: [2],
+    toParentModel: child =>
+      modifyFields(model, {
+        second: () => Option.some(child),
+        didSecondSeeFirst: () => Option.isSome(model.first),
+      }),
+  }),
+)
+const SequencedParentComposition = SequencedParent.makeComposition({
+  bindings: [FirstSequencedBinding, SecondSequencedBinding],
+})
+const sequencedInitialModel = SequencedParentModel.make({
+  route: 'Home',
+  first: Option.none(),
+  second: Option.none(),
+  didSecondSeeFirst: false,
+})
+const sequencedParent = SequencedParentComposition.assembleBlock({
+  init: SequencedParentComposition.makeInit(() => ({
+    model: sequencedInitialModel,
+  })),
+  update: SequencedParentComposition.makeUpdate((model, message) =>
+    SequencedParentMessage.match(message, {
+      RequestedOpen: () => {
+        const nextModel = modifyFields(model, { route: () => 'Play' })
+
+        return Update.combine(nextModel, [
+          initializeFirstSequencedChild,
+          initializeSecondSequencedChild,
+        ])
+      },
+      CompletedRecord: () => ({ model }),
+    }),
+  ),
+  operations: {
+    open: () => Tuple.make(SequencedParentMessage.RequestedOpen()),
+  },
+  EffectsLayer: RecordSequencedInitialization.layer,
+})
+
+it('threads a derived Model through registered connected initialization Steps', async () => {
+  const opened = sequencedParent.operations.open(sequencedInitialModel)
+  const messages = await Effect.runPromise(
+    pipe(
+      opened.commands ?? [],
+      Array.map(command => command.effect),
+      Effect.all,
+      Effect.provide(sequencedParent.EffectsLayer),
+    ),
+  )
+
+  expect(opened.model).toEqual({
+    route: 'Play',
+    first: Option.some({ count: 1 }),
+    second: Option.some({ count: 2 }),
+    didSecondSeeFirst: true,
+  })
+  expect(messages).toEqual([
+    {
+      _tag: 'GotFirstMessage',
+      generation: 0,
+      message: ChildMessage.CompletedRead({ value: 1 }),
+      placement: 'first',
+    },
+    SequencedParentMessage.CompletedRecord(),
+    {
+      _tag: 'GotSecondMessage',
+      generation: 0,
+      message: ChildMessage.CompletedRead({ value: 2 }),
+      placement: 'second',
+    },
+  ])
 })
 
 const CompleteKeyedModel = Schema.Struct({

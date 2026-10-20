@@ -15,7 +15,6 @@ const Model = Schema.Struct({
   queryInput: Schema.String,
   searchResults: SearchResultsData.schema,
 })
-type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   UpdatedQuery: { query: Schema.String },
@@ -24,7 +23,6 @@ const Message = defineMessageUnion({
     result: Schema.Result(Schema.Array(SearchResult), Schema.String),
   },
 })
-type Message = typeof Message.Type
 
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,

@@ -237,7 +237,6 @@ export type SettingsAssertions = [
 export const StatusModel = Schema.Struct({ count: Schema.Number })
 export type StatusModel = typeof StatusModel.Type
 export const StatusMessage = defineMessageUnion({ Incremented: {} })
-export type StatusMessage = typeof StatusMessage.Type
 
 const StatusComposition = Block.makeDefinition('Status', {
   Model: StatusModel,
@@ -258,13 +257,11 @@ export const RoomModel = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
 })
-export type RoomModel = typeof RoomModel.Type
 export const RoomDispatchContext = Schema.Struct({ roomId: Schema.String })
 export type RoomDispatchContext = typeof RoomDispatchContext.Type
 export const RoomMessage = defineMessageUnion({
   RenamedRoom: { name: Schema.String },
 })
-export type RoomMessage = typeof RoomMessage.Type
 
 const RoomComposition = Block.makeDefinition('Room', {
   Model: RoomModel,
@@ -336,6 +333,14 @@ export const ParentDefinition = Block.makeDefinition('Parent', {
   OutMessage: ParentOutMessage,
 })
 
+const forwardSettingsOutMessage = ParentDefinition.makeOutMessageForward(
+  SettingsBlock,
+  {
+    SelectedTheme: ({ theme }) =>
+      ParentOutMessage.SelectedSettingsTheme({ theme }),
+  },
+)
+
 export const SettingsBinding = ParentDefinition.bindChild(SettingsBlock, {
   field: 'settings',
   delivery: {
@@ -351,13 +356,8 @@ export const SettingsBinding = ParentDefinition.bindChild(SettingsBlock, {
       return [childInitContext.theme]
     },
   },
-  outMessage: {
-    forward: outMessage =>
-      SettingsOutMessage.match(outMessage, {
-        SelectedTheme: ({ theme }) =>
-          ParentOutMessage.SelectedSettingsTheme({ theme }),
-      }),
-  },
+}).withOutMessagePolicy({
+  forward: forwardSettingsOutMessage,
 })
 
 export const StatusBinding = ParentDefinition.bindChild(StatusBlock, {

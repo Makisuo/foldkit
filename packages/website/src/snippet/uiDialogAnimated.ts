@@ -30,9 +30,9 @@ const AnimatedDialogExampleDefinition = Block.makeDefinition(
 const foldDialogOutMessage = AnimatedDialogExampleDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: () => AnimatedDialogExampleDefinition.stepNoop(),
-    Closed: () => AnimatedDialogExampleDefinition.stepNoop(),
-    CompletedClose: () => AnimatedDialogExampleDefinition.stepNoop(),
+    Opened: AnimatedDialogExampleDefinition.stepNoop,
+    Closed: AnimatedDialogExampleDefinition.stepNoop,
+    CompletedClose: AnimatedDialogExampleDefinition.stepNoop,
   },
 )
 
@@ -43,9 +43,8 @@ const DialogBinding = AnimatedDialogExampleDefinition.bindChild(
     init: {
       contextToArgs: () => Tuple.make({ id: 'confirm', isAnimated: true }),
     },
-    outMessage: { fold: foldDialogOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const AnimatedDialogExampleComposition =
   AnimatedDialogExampleDefinition.makeComposition({

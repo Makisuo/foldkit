@@ -25,8 +25,8 @@ const HoverMenuDefinition = Block.makeDefinition('HoverMenu', {
 const foldHoverMenuOutMessage = HoverMenuDefinition.makeOutMessageFold(
   HoverIntent.HoverIntentBlock,
   {
-    Opened: () => HoverMenuDefinition.stepNoop(),
-    Closed: () => HoverMenuDefinition.stepNoop(),
+    Opened: HoverMenuDefinition.stepNoop,
+    Closed: HoverMenuDefinition.stepNoop,
   },
 )
 
@@ -34,10 +34,8 @@ const HoverMenuBinding = HoverMenuDefinition.bindChild(
   HoverIntent.HoverIntentBlock,
   {
     field: 'hoverMenu',
-    init: true,
-    outMessage: { fold: foldHoverMenuOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldHoverMenuOutMessage })
 
 const HoverMenuComposition = HoverMenuDefinition.makeComposition({
   bindings: [HoverMenuBinding],

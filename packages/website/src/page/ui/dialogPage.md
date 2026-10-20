@@ -123,7 +123,7 @@ Payload delivered to the `toView` callback each render.
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Match on the OutMessage in the Binding’s `outMessage.fold` policy.
+Messages emitted to the parent through the optional `outMessage` field. Match on the OutMessage in the Binding’s selected `fold` policy.
 
 | Name             | Type | Default | Description                                                                                                                                                                                                                                                                                |
 | ---------------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

@@ -10,4 +10,3 @@ export const Message = defineMessageUnion({
   SucceededLoadExampleSources: { sources: ExampleSources },
   FailedLoadExampleSources: { error: Schema.String },
 })
-export type Message = typeof Message.Type

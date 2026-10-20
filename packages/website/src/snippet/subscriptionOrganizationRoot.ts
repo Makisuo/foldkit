@@ -20,5 +20,5 @@ import { ApplicationBlock } from './block'
 export const program = Program.make({
   block: ApplicationBlock,
   container: document.getElementById('root'),
-  devTools: { Message: ApplicationBlock.Message },
+  devTools: { dispatch: true },
 })

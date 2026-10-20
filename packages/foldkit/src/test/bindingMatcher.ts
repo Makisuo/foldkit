@@ -2,6 +2,7 @@ import { Equal, Predicate } from 'effect'
 
 import type { AnyBinding, BindingEvidence } from '../block/binding.js'
 import { blockOf } from '../block/binding.js'
+import { canonicalBindingOf } from '../block/composition.js'
 import {
   copyIdentity,
   identityOf,
@@ -72,7 +73,7 @@ export const __bindCommandMatcher = <
   const scoped = { ...matcher }
   copyIdentity(matcher, scoped)
   bindingPaths.set(scoped, [
-    { binding, key },
+    { binding: canonicalBindingOf(binding), key },
     ...(bindingPaths.get(matcher) ?? []),
   ])
   Object.defineProperty(scoped, 'matches', {

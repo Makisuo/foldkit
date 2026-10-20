@@ -897,7 +897,10 @@ export const makeRuntime = <
           }
         }
 
-        yield* installDevToolsStore(devToolsRenderBridge)
+        yield* Effect.provideContext(
+          installDevToolsStore(devToolsRenderBridge),
+          runtimeContext,
+        )
 
         const initRenderExit = yield* Effect.exit(
           render(initModel, Option.none()),

@@ -8,5 +8,9 @@
     "noEmitOnError": true,
     "rootDir": ".."
   },
-  "include": ["../src/vite-env.d.ts", "program.accepted.ts"]
+  "include": [
+    "../src/vite-env.d.ts",
+    "program.accepted.ts",
+    "program-inferred-portability.accepted.ts"
+  ]
 }

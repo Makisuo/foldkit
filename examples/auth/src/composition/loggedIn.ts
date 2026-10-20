@@ -25,5 +25,4 @@ export const LoggedInBinding = ApplicationDefinition.bindChild(LoggedInBlock, {
       }),
     ),
   write: (_model, nextLoggedIn) => nextLoggedIn,
-  outMessage: { fold: foldLoggedInOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldLoggedInOutMessage })

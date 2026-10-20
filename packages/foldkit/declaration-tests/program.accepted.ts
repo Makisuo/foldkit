@@ -1,9 +1,17 @@
-import { Context, Effect, Layer, Schema } from 'effect'
+import {
+  Context,
+  Effect,
+  Layer,
+  Option,
+  Schema,
+  SchemaTransformation,
+} from 'effect'
 import * as Block from 'foldkit/block'
 import type * as Command from 'foldkit/command'
 import * as Message from 'foldkit/message'
 import * as Navigation from 'foldkit/navigation'
 import * as Program from 'foldkit/program'
+import type * as Runtime from 'foldkit/runtime'
 import * as Struct from 'foldkit/struct'
 import * as Url from 'foldkit/url'
 
@@ -137,6 +145,21 @@ export const PurePageProgram = Program.make({
   block: PurePageBlock,
   container: null,
 })
+export const InspectionPageProgram = Program.make({
+  block: PurePageBlock,
+  container: null,
+  devTools: {},
+})
+export const DisabledPageProgram = Program.make({
+  block: PurePageBlock,
+  container: null,
+  devTools: false,
+})
+export const DispatchPageProgram = Program.make({
+  block: PurePageBlock,
+  container: null,
+  devTools: { dispatch: true },
+})
 
 const DeclarationAlternativePageDefinition = Block.makeDefinition(
   'DeclarationAlternativePage',
@@ -195,6 +218,184 @@ export const ElementProgram = Program.makeElement({
   Flags,
   flags: Effect.succeed(Flags.make({ status: 'ready' })),
 })
+
+export class DispatchDecoder extends Context.Service<
+  DispatchDecoder,
+  Readonly<{ prefix: string }>
+>()('DeclarationDispatchDecoder') {}
+
+const ServiceDecodedString = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.String,
+    SchemaTransformation.transformEffect({
+      decode: value =>
+        Effect.map(DispatchDecoder, decoder => `${decoder.prefix}${value}`),
+      encode: Effect.succeed,
+    }),
+  ),
+)
+const ServiceDecodedMessage = Message.defineMessageUnion({
+  SubmittedValue: { value: ServiceDecodedString },
+})
+const ServiceDecodedProgramDefinition = Block.makeDefinition(
+  'ServiceDecodedProgram',
+  {
+    Model,
+    Message: ServiceDecodedMessage,
+  },
+)
+const ServiceDecodedProgramComposition =
+  ServiceDecodedProgramDefinition.makeComposition()
+const serviceDecodedInit = () => ({
+  model: Model.make({ status: 'ready' }),
+})
+const serviceDecodedUpdate = ServiceDecodedProgramComposition.makeUpdate(
+  (_model, message) =>
+    ServiceDecodedMessage.match(message, {
+      SubmittedValue: ({ value }) => ({
+        model: Model.make({ status: value }),
+      }),
+    }),
+)
+const serviceDecodedElementView = ServiceDecodedProgramComposition.makeView(
+  (model, h) => h.div([], [model.status]),
+)
+const serviceDecodedPageView = ServiceDecodedProgramComposition.makeView(
+  model => ({
+    title: model.status,
+    body: null,
+  }),
+)
+const DispatchDecoderLayer = Layer.succeed(DispatchDecoder, {
+  prefix: 'decoded:',
+})
+export const ServiceDecodedBlock =
+  ServiceDecodedProgramComposition.assembleBlock({
+    init: serviceDecodedInit,
+    update: serviceDecodedUpdate,
+    view: serviceDecodedElementView,
+  })
+export const ServiceDecodedProvidedElementBlock =
+  ServiceDecodedProgramComposition.assembleBlock({
+    init: serviceDecodedInit,
+    update: serviceDecodedUpdate,
+    view: serviceDecodedElementView,
+    EffectsLayer: DispatchDecoderLayer,
+  })
+const ServiceDecodedProvidedPageBlock =
+  ServiceDecodedProgramComposition.assembleBlock({
+    init: serviceDecodedInit,
+    update: serviceDecodedUpdate,
+    view: serviceDecodedPageView,
+    EffectsLayer: DispatchDecoderLayer,
+  })
+
+const ManagedDecoderProgramNamespace = Block.makeNamespace(
+  'ManagedDecoderProgram',
+)
+const ManagedDecoder =
+  ManagedDecoderProgramNamespace.resource<string>()('DispatchDecoder')
+const ManagedDecodedString = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.String,
+    SchemaTransformation.transformEffect({
+      decode: value => Effect.as(Effect.result(ManagedDecoder.get), value),
+      encode: Effect.succeed,
+    }),
+  ),
+)
+const ManagedDecodedMessage = Message.defineMessageUnion({
+  SubmittedValue: { value: ManagedDecodedString },
+})
+const ManagedDecoderProgramDefinition =
+  ManagedDecoderProgramNamespace.makeDefinition({
+    Model,
+    Message: ManagedDecodedMessage,
+  })
+const managedDecoders = ManagedDecoderProgramDefinition.managedResources(
+  entry => ({
+    dispatchDecoder: entry('DispatchDecoder', Schema.Option(Schema.Null), {
+      resource: ManagedDecoder,
+      modelToMaybeRequirements: () => Option.none<null>(),
+      onAcquired: value => ManagedDecodedMessage.SubmittedValue({ value }),
+      onReleased: () => ManagedDecodedMessage.SubmittedValue({ value: '' }),
+      onAcquireError: () => ManagedDecodedMessage.SubmittedValue({ value: '' }),
+      handler: function* () {
+        return {
+          acquire: () => Effect.succeed('decoded'),
+          release: () => Effect.void,
+        }
+      },
+    }),
+  }),
+)
+const ManagedDecoderProgramComposition =
+  ManagedDecoderProgramDefinition.makeComposition()
+const ManagedDecodedBlock = ManagedDecoderProgramComposition.assembleBlock({
+  init: () => ({ model: Model.make({ status: 'ready' }) }),
+  update: ManagedDecoderProgramComposition.makeUpdate((model, message) =>
+    ManagedDecodedMessage.match(message, {
+      SubmittedValue: ({ value }) => ({
+        model: Struct.modifyFields(model, { status: () => value }),
+      }),
+    }),
+  ),
+  view: ManagedDecoderProgramComposition.makeView((model, h) =>
+    h.div([], [model.status]),
+  ),
+  managedResources: managedDecoders,
+  EffectsLayer: managedDecoders.dispatchDecoder.layer,
+})
+export const RunnableManagedServiceDecodedElement = Program.makeElement({
+  block: ManagedDecodedBlock,
+  container: null,
+  devTools: { dispatch: true },
+})
+export const startManagedServiceDecodedElement =
+  RunnableManagedServiceDecodedElement.start
+
+export const RunnableServiceDecodedElement = Program.makeElement({
+  block: ServiceDecodedProvidedElementBlock,
+  container: null,
+  devTools: { dispatch: true },
+})
+export const RunnableServiceDecodedPage = Program.make({
+  block: ServiceDecodedProvidedPageBlock,
+  container: null,
+  devTools: { dispatch: true },
+})
+export const InspectionServiceDecodedElement = Program.makeElement({
+  block: ServiceDecodedBlock,
+  container: null,
+  devTools: {},
+})
+export const PendingServiceDecodedElement = Program.makeElement({
+  block: ServiceDecodedBlock,
+  container: null,
+  devTools: { dispatch: true },
+})
+const maybeDispatchServiceConfig =
+  globalThis.Math.random() > 0.5
+    ? { block: ServiceDecodedBlock, container: null }
+    : {
+        block: ServiceDecodedBlock,
+        container: null,
+        devTools: { dispatch: true as const },
+      }
+export const PendingMaybeDispatchServiceElement = Program.makeElement(
+  maybeDispatchServiceConfig,
+)
+const configuredDevTools: Runtime.DevToolsConfig =
+  globalThis.Math.random() > 0.5
+    ? false
+    : { dispatch: globalThis.Math.random() > 0.5 }
+export const PendingConfiguredDispatchServiceElement = Program.makeElement({
+  block: ServiceDecodedBlock,
+  container: null,
+  devTools: configuredDevTools,
+})
+export const ProvidedServiceDecodedElement =
+  PendingServiceDecodedElement.provide(DispatchDecoderLayer)
 
 class ProgramClient extends Context.Service<
   ProgramClient,
@@ -345,6 +546,45 @@ type ProvidedRawCommandElementIsExact = Expect<
     Program.Element<undefined, never, never, RawCommandSource>
   >
 >
+type InspectionServiceDecodedElementIsExact = Expect<
+  Equal<typeof InspectionServiceDecodedElement, Program.Element>
+>
+type RunnableServiceDecodedElementIsExact = Expect<
+  Equal<
+    typeof RunnableServiceDecodedElement,
+    Program.Element<undefined, never, never, DispatchDecoder>
+  >
+>
+type RunnableServiceDecodedPageIsExact = Expect<
+  Equal<
+    typeof RunnableServiceDecodedPage,
+    Program.Program<undefined, void, never, never, DispatchDecoder>
+  >
+>
+type PendingServiceDecodedElementIsExact = Expect<
+  Equal<
+    typeof PendingServiceDecodedElement,
+    Program.Pending<undefined, void, DispatchDecoder, never, never, 'Element'>
+  >
+>
+type PendingMaybeDispatchServiceElementIsExact = Expect<
+  Equal<
+    typeof PendingMaybeDispatchServiceElement,
+    Program.Pending<undefined, void, DispatchDecoder, never, never, 'Element'>
+  >
+>
+type PendingConfiguredDispatchServiceElementIsExact = Expect<
+  Equal<
+    typeof PendingConfiguredDispatchServiceElement,
+    Program.Pending<undefined, void, DispatchDecoder, never, never, 'Element'>
+  >
+>
+type ProvidedServiceDecodedElementIsExact = Expect<
+  Equal<
+    typeof ProvidedServiceDecodedElement,
+    Program.Element<undefined, never, never, DispatchDecoder>
+  >
+>
 type ProgramAssertions = [
   ServiceLayerServicesAreExact,
   ServiceLayerErrorIsExact,
@@ -352,8 +592,22 @@ type ProgramAssertions = [
   ProvidedServiceElementIsExact,
   PendingRawCommandElementIsExact,
   ProvidedRawCommandElementIsExact,
+  InspectionServiceDecodedElementIsExact,
+  RunnableServiceDecodedElementIsExact,
+  RunnableServiceDecodedPageIsExact,
+  PendingServiceDecodedElementIsExact,
+  PendingMaybeDispatchServiceElementIsExact,
+  PendingConfiguredDispatchServiceElementIsExact,
+  ProvidedServiceDecodedElementIsExact,
 ]
 const programAssertions: ProgramAssertions = [
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
+  true,
   true,
   true,
   true,

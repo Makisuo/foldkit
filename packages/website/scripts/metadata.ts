@@ -45,7 +45,7 @@ const tooling = (title: string, description: string): PageMetadata =>
   docs(title, description, 'Tooling')
 
 type StaticRouteTag = Exclude<
-  ApplicationRoute['_tag'],
+  (typeof ApplicationRoute.Type)['_tag'],
   'ApiModule' | 'BlogPost' | 'ExampleDetail' | 'Playground'
 >
 
@@ -154,6 +154,16 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
     'Immutability',
     'Update Models immutably with modifyFields, preserving references for unchanged branches and keeping state transitions predictable.',
     'Best Practices',
+  ),
+  PreviewMigration: docs(
+    'Migrate to the Blocks and Layers Preview',
+    'Migrate a stable Foldkit application directly to handler Layers, composable Blocks, generated child delivery, and a Program host.',
+    'Migration',
+  ),
+  PreviewUpgrade: docs(
+    'Upgrade an Earlier Preview',
+    'Upgrade an existing Blocks and Layers preview application to the matching package snapshot, Program host, and current test helpers.',
+    'Migration',
   ),
   ProjectOrganization: docs(
     'Project Organization',
@@ -478,7 +488,7 @@ const METADATA_BY_TAG: Record<StaticRouteTag, PageMetadata> = {
 }
 
 export const routeToMetadata = (
-  route: ApplicationRoute,
+  route: typeof ApplicationRoute.Type,
   resolveApiModuleName: ApiModuleNameResolver,
 ): PageMetadata =>
   Match.value(route).pipe(

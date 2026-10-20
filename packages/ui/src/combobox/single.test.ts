@@ -69,7 +69,6 @@ type FruitParentModel = typeof FruitParentModel.Type
 const FruitParentMessage = defineMessageUnion({
   RequestedSelectFruitAndClose: { item: Fruit },
 })
-type FruitParentMessage = typeof FruitParentMessage.Type
 
 const FruitComboboxTestDefinition = Block.makeDefinition('FruitComboboxTest', {
   Model: FruitParentModel,
@@ -93,9 +92,8 @@ const FruitComboboxBinding = FruitComboboxTestDefinition.bindChild(
   {
     field: 'combobox',
     init: false,
-    outMessage: { fold: foldFruitComboboxOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldFruitComboboxOutMessage })
 
 const FruitComboboxTestComposition =
   FruitComboboxTestDefinition.makeComposition({

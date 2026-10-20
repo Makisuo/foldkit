@@ -4,7 +4,6 @@
 import { Array, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { Listbox } from '@foldkit/ui'
 
@@ -13,10 +12,9 @@ const Person = Schema.Literals([
   'Lindsay Funke',
   'Tobias Funke',
 ])
-type Person = typeof Person.Type
 
 // Declare a typed multi-select Listbox once at module scope:
-const PeopleListbox = Listbox.Multi.create<Person>()
+const PeopleListbox = Listbox.Multi.create<typeof Person.Type>()
 
 // Add a field to your Model for the multi-select Listbox Block, plus a field
 // for the selected values your app actually cares about. Using the
@@ -44,16 +42,13 @@ const PeoplePickerDefinition = Block.makeDefinition('PeoplePicker', {
 const foldListboxMultiOutMessage = PeoplePickerDefinition.makeOutMessageFold(
   PeopleListbox,
   {
-    Selected:
-      ({ value }) =>
-      model => ({
-        model: modifyFields(model, {
-          selectedPeople: selectedPeople =>
-            Array.contains(selectedPeople, value)
-              ? Array.filter(selectedPeople, person => person !== value)
-              : Array.append(selectedPeople, value),
-        }),
-      }),
+    Selected: ({ value }) =>
+      PeoplePickerDefinition.stepFields(() => ({
+        selectedPeople: selectedPeople =>
+          Array.contains(selectedPeople, value)
+            ? Array.filter(selectedPeople, person => person !== value)
+            : Array.append(selectedPeople, value),
+      })),
   },
 )
 
@@ -64,8 +59,7 @@ const foldListboxMultiOutMessage = PeoplePickerDefinition.makeOutMessageFold(
 const PeopleListboxBinding = PeoplePickerDefinition.bindChild(PeopleListbox, {
   field: 'listboxMulti',
   init: { contextToArgs: () => Tuple.make({ id: 'people' }) },
-  outMessage: { fold: foldListboxMultiOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldListboxMultiOutMessage })
 
 const PeoplePickerComposition = PeoplePickerDefinition.makeComposition({
   bindings: [PeopleListboxBinding],
@@ -82,7 +76,7 @@ const init = PeoplePickerComposition.makeInit(() => ({
 
 const update = PeoplePickerComposition.makeUpdate()
 
-const people: ReadonlyArray<Person> = [
+const people: ReadonlyArray<typeof Person.Type> = [
   'Michael Bluth',
   'Lindsay Funke',
   'Tobias Funke',

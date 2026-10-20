@@ -25,9 +25,9 @@ The application starts by requesting one user. Its update handles the Command's 
 
 ::Snippet{name="layersApplication" label="Application using the API handler"}
 
-The entry supplies the local handler recipe at completion, provides its remaining services, and starts the Runtime:
+The completed Block carries the local handler recipe. The entry provides its remaining services and starts the Runtime:
 
-::Snippet{name="layersEntry" label="Complete and run the application"}
+::Snippet{name="layersEntry" label="Provide Services and run the application"}
 
 When the Command belongs to a child Block, pass its local `EffectsLayer` to `FeatureComposition.assembleBlock` instead. Registering its Binding carries the checked handler graph upward. The root still supplies shared services once. The [Block guide](/core/block) shows that complete feature-to-root wiring.
 

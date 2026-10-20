@@ -4,7 +4,6 @@
 import { Array, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { DragAndDrop } from '@foldkit/ui'
 
@@ -16,18 +15,16 @@ const Model = Schema.Struct({
   dragAndDrop: DragAndDrop.DragAndDropBlock.Model,
   // ...your other fields
 })
-type Model = typeof Model.Type
 
 // This excerpt has no parent-owned facts. The Composition derives delivery.
 const Message = defineMessageUnion({})
-type Message = typeof Message.Type
 
 declare const reorder: (
-  items: Model['items'],
+  items: (typeof Model.Type)['items'],
   itemId: string,
   fromIndex: number,
   toIndex: number,
-) => Model['items']
+) => (typeof Model.Type)['items']
 
 const SortableListDefinition = Block.makeDefinition('SortableList', {
   Model,
@@ -42,18 +39,15 @@ const SortableListDefinition = Block.makeDefinition('SortableList', {
 const foldDragAndDropOutMessage = SortableListDefinition.makeOutMessageFold(
   DragAndDrop.DragAndDropBlock,
   {
-    Reordered:
-      ({ itemId, fromIndex, toIndex }) =>
-      model => ({
-        model: modifyFields(model, {
-          // reorder is your own function that moves the item
-          items: items => reorder(items, itemId, fromIndex, toIndex),
-        }),
-      }),
+    Reordered: ({ itemId, fromIndex, toIndex }) =>
+      SortableListDefinition.stepFields(() => ({
+        // reorder is your own function that moves the item
+        items: items => reorder(items, itemId, fromIndex, toIndex),
+      })),
     // The child has emitted `Cancelled`. In this arm the parent can update
     // its own state or dispatch its own Commands, for example revert an
     // optimistic UI change, log analytics, or trigger a downstream Command.
-    Cancelled: () => SortableListDefinition.stepNoop(),
+    Cancelled: SortableListDefinition.stepNoop,
   },
 )
 
@@ -64,9 +58,8 @@ const DragAndDropBinding = SortableListDefinition.bindChild(
   {
     field: 'dragAndDrop',
     init: { contextToArgs: () => Tuple.make({ id: 'sortable-list' }) },
-    outMessage: { fold: foldDragAndDropOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
 
 const SortableListComposition = SortableListDefinition.makeComposition({
   bindings: [DragAndDropBinding],

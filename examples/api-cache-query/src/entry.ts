@@ -5,6 +5,6 @@ import { ApplicationBlock } from './block'
 const program = Program.make({
   block: ApplicationBlock,
   container: document.getElementById('root'),
-  devTools: { Message: ApplicationBlock.Message },
+  devTools: { dispatch: true },
 })
 Runtime.run(program)

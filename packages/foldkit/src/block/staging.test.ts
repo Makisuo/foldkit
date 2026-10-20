@@ -65,7 +65,6 @@ const Child = observeComposition.assembleBlock({
 })
 
 const ParentModel = Schema.Struct({ child: ChildModel })
-type ParentModel = typeof ParentModel.Type
 const Parent = makeDefinition('StagedParent', {
   Model: ParentModel,
   Message: Schema.Never,

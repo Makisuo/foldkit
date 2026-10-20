@@ -18,8 +18,10 @@ import {
   type ValidateConstructionRequirements,
 } from '../block/scope.js'
 import { type Handler, type ToLayer, makeHandler } from './handler.js'
+import type { ManagedResourceService } from './public.js'
 
 export type { Handler, HandlerOf, ToLayer } from './handler.js'
+export type { ManagedResourceService } from './public.js'
 
 /** Typed error raised when a command accesses a managed resource that is not currently acquired. */
 export class ResourceNotAvailable extends Data.TaggedError(
@@ -37,13 +39,6 @@ type ManagedResourceTypeId = typeof ManagedResourceTypeId
 type ValidateHandlerConstruction<
   Yielded extends Effect.Effect<unknown, unknown, unknown>,
 > = ValidateConstructionRequirements<Effect.Services<Yielded>>
-
-declare const ManagedResourceBrand: unique symbol
-
-/** Branded identity type for a managed resource, used in the Effect R channel. */
-export interface ManagedResourceService<Key extends string> {
-  readonly [ManagedResourceBrand]: Key
-}
 
 /**
  * A model-driven resource with acquire/release lifecycle. Access the resource

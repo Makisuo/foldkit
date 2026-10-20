@@ -61,8 +61,8 @@ const flags = {
   maybeApiData: Option.none(),
   maybeExampleSources: Option.none(),
 }
-const initAt = (url: Url.Url): Model => init(flags, url).model
-const expectHomePresent = (model: Model): void => {
+const initAt = (url: Url.Url): typeof Model.Type => init(flags, url).model
+const expectHomePresent = (model: typeof Model.Type): void => {
   expect(Option.isSome(model.maybeHome)).toBe(true)
   expect(
     Option.isSome(
@@ -72,7 +72,7 @@ const expectHomePresent = (model: Model): void => {
     ),
   ).toBe(true)
 }
-const expectHomeAbsent = (model: Model): void => {
+const expectHomeAbsent = (model: typeof Model.Type): void => {
   expect(Option.isNone(model.maybeHome)).toBe(true)
   expect(
     Option.isNone(

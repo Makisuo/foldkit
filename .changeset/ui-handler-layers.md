@@ -43,12 +43,10 @@ const TabsBlock = Tabs.create<Tab>()
 const PanelDefinition = Block.makeDefinition('Panel', { Model, Message })
 const MenuBinding = PanelDefinition.bindChild(MenuBlock, {
   field: 'menu',
-  outMessage: { fold: foldMenuOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldMenuOutMessage })
 const TabsBinding = PanelDefinition.bindChild(TabsBlock, {
   field: 'tabs',
-  outMessage: { fold: foldTabsOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldTabsOutMessage })
 const PanelComposition = PanelDefinition.makeComposition({
   bindings: [MenuBinding, TabsBinding],
 })
@@ -82,8 +80,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
 })
 const ToastBinding = ApplicationDefinition.bindChild(ToastBlock, {
   field: 'toast',
-  outMessage: { fold: foldToastOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldToastOutMessage })
 ```
 
 The Binding contributes Toast's swipe Subscription and handler recipe automatically. Scene swipe events continue to use `Subscription.emit` with the registration carried by the completed Block.
@@ -108,9 +105,8 @@ const DialogsBinding = ApplicationDefinition.bindChild(DialogBlock, {
   read: dialog => dialog.model,
   writeAt: (model, dialogId, nextDialog) =>
     replaceDialog(model, dialogId, nextDialog),
-  outMessage: { fold: foldDialogOutMessage },
   keySchema: Schema.String,
-})
+}).withOutMessagePolicy({ fold: foldDialogOutMessage })
 ```
 
 ## Use completed component contracts and test matchers

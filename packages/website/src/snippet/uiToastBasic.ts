@@ -4,7 +4,6 @@
 import { Option, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { Toast as UiToast } from '@foldkit/ui'
 
@@ -48,13 +47,10 @@ const NotificationsDefinition = Block.makeDefinition('Notifications', {
 // the parent Model, which already has the next Toast Model written back. The
 // parent Definition infers the factory-refined payload from the whole Block:
 const foldToastOutMessage = NotificationsDefinition.makeOutMessageFold(Toast, {
-  DismissedToast:
-    ({ payload }) =>
-    model => ({
-      model: modifyFields(model, {
-        maybeLastDismissedBody: () => Option.some(payload.bodyText),
-      }),
-    }),
+  DismissedToast: ({ payload }) =>
+    NotificationsDefinition.stepFields(() => ({
+      maybeLastDismissedBody: () => Option.some(payload.bodyText),
+    })),
 })
 
 // The Binding delegates Toast Messages, writes the next Toast Model, maps its
@@ -64,8 +60,7 @@ const ToastBinding = NotificationsDefinition.bindChild(Toast, {
   init: {
     contextToArgs: () => Tuple.make({ id: 'app-toast', swipeToDismiss: {} }),
   },
-  outMessage: { fold: foldToastOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldToastOutMessage })
 
 const NotificationsComposition = NotificationsDefinition.makeComposition({
   bindings: [ToastBinding],

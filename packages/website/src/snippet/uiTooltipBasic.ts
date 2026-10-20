@@ -33,11 +33,11 @@ const foldTooltipOutMessage = TooltipExampleDefinition.makeOutMessageFold(
     // The child has emitted `Shown`. In this arm the parent can update its
     // own state or dispatch its own Commands, for example log analytics,
     // prefetch content, or trigger a downstream Command.
-    Shown: () => TooltipExampleDefinition.stepNoop(),
+    Shown: TooltipExampleDefinition.stepNoop,
     // The child has emitted `Hidden`. In this arm the parent can update its
     // own state or dispatch its own Commands, for example clear ephemeral
     // state, fire analytics, or trigger a downstream Command.
-    Hidden: () => TooltipExampleDefinition.stepNoop(),
+    Hidden: TooltipExampleDefinition.stepNoop,
   },
 )
 
@@ -49,9 +49,8 @@ const TooltipBinding = TooltipExampleDefinition.bindChild(
   {
     field: 'tooltip',
     init: { contextToArgs: () => Tuple.make({ id: 'save-button' }) },
-    outMessage: { fold: foldTooltipOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldTooltipOutMessage })
 
 const TooltipExampleComposition = TooltipExampleDefinition.makeComposition({
   bindings: [TooltipBinding],

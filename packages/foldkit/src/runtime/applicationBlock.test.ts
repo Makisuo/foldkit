@@ -701,15 +701,13 @@ describe('completed root Block hosting', () => {
       placement: 'Left',
       read: (model: typeof RootModel.Type) => Option.some(model.left),
       write: (model, nextLeft) => modifyFields(model, { left: () => nextLeft }),
-      outMessage: { fold: foldFeatureOutMessage('GotLeft') },
-    })
+    }).withOutMessagePolicy({ fold: foldFeatureOutMessage('GotLeft') })
     const RightBinding = RootDefinition.bindChild(featureBlock, {
       placement: 'Right',
       read: (model: typeof RootModel.Type) => Option.some(model.right),
       write: (model, nextRight) =>
         modifyFields(model, { right: () => nextRight }),
-      outMessage: { fold: foldFeatureOutMessage('GotRight') },
-    })
+    }).withOutMessagePolicy({ fold: foldFeatureOutMessage('GotRight') })
     const rootComposition = RootDefinition.makeComposition({
       bindings: [LeftBinding, RightBinding],
     })

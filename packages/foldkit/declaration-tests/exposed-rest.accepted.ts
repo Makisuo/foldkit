@@ -19,7 +19,6 @@ const ChildMessage = Message.defineMessageUnion({
   },
   RequestedReset: {},
 })
-type ChildMessage = typeof ChildMessage.Type
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.

@@ -14,7 +14,6 @@ const CounterInstance = Schema.Struct({
   id: Schema.String,
   counter: CounterBlock.Model,
 })
-type CounterInstance = typeof CounterInstance.Type
 
 export const Model = Schema.Struct({
   counters: Schema.Array(CounterInstance),
@@ -79,7 +78,7 @@ export const init = ApplicationComposition.makeInit(() => ({
 }))
 
 const counterInstanceView = (
-  counterInstance: CounterInstance,
+  counterInstance: typeof CounterInstance.Type,
   h: ApplicationViewBuilder,
 ): Html =>
   h.keyed('div')(

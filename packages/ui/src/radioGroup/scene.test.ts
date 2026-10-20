@@ -51,8 +51,7 @@ const foldRadioGroupOutMessage = RadioGroupSceneDefinition.makeOutMessageFold(
 const RadioGroupBinding = RadioGroupSceneDefinition.bindChild(TestRadioGroup, {
   field: 'radioGroup',
   init: false,
-  outMessage: { fold: foldRadioGroupOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldRadioGroupOutMessage })
 
 const RadioGroupSceneComposition = RadioGroupSceneDefinition.makeComposition({
   bindings: [RadioGroupBinding],

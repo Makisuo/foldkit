@@ -4,7 +4,6 @@ import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 export const Model = Schema.Struct({ count: Schema.Int })
-export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedIncrement: {},
@@ -18,7 +17,6 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
 })
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
-export type Message = typeof Message.Type
 
 export const WaitBeforeReset = ApplicationDefinition.command(
   'WaitBeforeReset',

@@ -17,6 +17,7 @@ import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
 import type { Url } from '../url/index.js'
 import * as ModelPreservationBridge from './modelPreservationBridge.js'
+import { resolveProgramDevToolsConfig } from './program.js'
 import * as Program from './programPublic.js'
 import { embed } from './start.js'
 
@@ -342,7 +343,7 @@ const typecheckRootCompletion = (): void => {
         return Message.ClickedReadRootValue()
       },
     },
-    devTools: { Message, mode: 'TimeTravel' },
+    devTools: { dispatch: true, mode: 'TimeTravel' },
   })
   const pendingRoutedApplication: Program.Program<
     undefined,
@@ -406,6 +407,32 @@ afterEach(() => {
 })
 
 describe('Program root Block authoring', () => {
+  it('derives external dispatch from the complete generated Message Schema', () => {
+    const resolved = resolveProgramDevToolsConfig(
+      { dispatch: true },
+      composition.Message,
+    )
+
+    if (resolved === undefined || resolved === false) {
+      throw new Error('Expected external dispatch to be enabled.')
+    }
+
+    if (resolved.dispatchSchema === undefined) {
+      throw new Error('Expected a derived dispatch Schema.')
+    }
+
+    const decode = Schema.decodeUnknownSync(resolved.dispatchSchema)
+    const message = {
+      _tag: 'GotApplicationAuthoringChildMessage',
+      placement: ChildBinding.placement,
+      generation: 1,
+      message: ChildMessage.UpdatedChildValue({ value: 'updated' }),
+    }
+
+    expect(decode(message)).toEqual(message)
+    expect(() => decode({ ...message, placement: 'unknown' })).toThrow()
+  })
+
   it('stages primitive authoring before composition', () => {
     expectTypeOf(ApplicationDefinition.Model).toEqualTypeOf(Model)
     expectTypeOf(ApplicationDefinition.Message).toEqualTypeOf(Message)

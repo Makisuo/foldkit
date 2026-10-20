@@ -10,7 +10,7 @@ const program = Program.make({
     onUrlChange: ApplicationBlock.Message.ChangedUrl,
   },
   container: document.getElementById('root'),
-  devTools: { Message: ApplicationBlock.Message },
+  devTools: { dispatch: true },
 })
 
 Runtime.hydrate(program)

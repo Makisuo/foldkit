@@ -6,7 +6,7 @@ import { ApplicationLayer } from './services'
 const program = Program.make({
   block: ApplicationBlock,
   container: document.getElementById('root'),
-  devTools: { Message: ApplicationBlock.Message, mode: 'TimeTravel' },
+  devTools: { dispatch: true, mode: 'TimeTravel' },
   routing: {
     onUrlRequest: ApplicationBlock.Message.ClickedLink,
     onUrlChange: ApplicationBlock.Message.ChangedUrl,

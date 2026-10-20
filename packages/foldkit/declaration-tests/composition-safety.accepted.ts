@@ -150,6 +150,7 @@ export const Entry = Schema.Struct({
 })
 
 export const ParentModel = Schema.Struct({
+  route: Schema.Literals(['Home', 'Play']),
   first: ChildModel,
   second: ChildModel,
   plain: ChildModel,
@@ -235,6 +236,7 @@ export const EntryBinding = CompositionSafetyParentDefinition.bindChild(
 )
 
 export const initialParentModel = ParentModel.make({
+  route: 'Home',
   first: ChildModel.make({ count: 0 }),
   second: ChildModel.make({ count: 0 }),
   plain: ChildModel.make({ count: 0 }),
@@ -331,10 +333,33 @@ export const initializePlainWithOwningParentCommand =
       commands: [CompleteParentInitialization()],
     }),
   )
+const initializeDerivedEntry = CompositionSafetyParentDefinition.step(model =>
+  EntryBinding.init({
+    key: 'derived-entry',
+    args: [2],
+    toParentModel: child =>
+      Struct.modifyFields(model, {
+        entries: Array.append(Entry.make({ id: 'derived-entry', child })),
+      }),
+  }),
+)
+export const initializeDerivedSteps = Update.combine([
+  initializeDerivedEntry,
+  initializePlainWithOwningParentCommand,
+])
 
 export const CompositionSafetyParentComposition =
   CompositionSafetyParentDefinition.makeComposition({
     bindings: [PlainBinding, ParentCommandsBinding, EntryBinding],
+  })
+export const initializeDerivedModel =
+  CompositionSafetyParentComposition.makeUpdate((model, _message) => {
+    const nextModel = Struct.modifyFields(model, { route: () => 'Play' })
+
+    return Update.combine(nextModel, [
+      initializeDerivedEntry,
+      initializePlainWithOwningParentCommand,
+    ])
   })
 export const StrictBlock = CompositionSafetyParentComposition.assembleBlock({
   init: CompositionSafetyParentComposition.makeInit(() => ({
@@ -430,11 +455,25 @@ type ParentCommandRecipeRegistrationIsExact = Expect<
     Block.RequirementOfBinding<typeof ParentCommandsBinding>
   >
 >
-
+type DerivedModelRequirementsAreExact = Expect<
+  Equal<
+    Update.RequirementsOf<typeof initializeDerivedModel>,
+    | Block.Qualify<'entries', Command.HandlerOf<typeof LoadParameterizedChild>>
+    | Command.HandlerOf<typeof CompleteParentInitialization>
+  >
+>
+type DerivedModelRegistrationIsExact = Expect<
+  Equal<
+    Update.RegistrationEvidenceOf<ReturnType<typeof initializeDerivedSteps>>,
+    | Block.RequirementOfBinding<typeof EntryBinding>
+    | Block.RequirementOfBinding<typeof ParentCommandsBinding>
+  >
+>
 export const initialize = CompositionSafetyParentDefinition.makeComposition({
   bindings: [StableProjectedBinding],
 }).makeInit(() => ({
   model: {
+    route: 'Home',
     second: ChildModel.make({ count: 0 }),
     plain: ChildModel.make({ count: 0 }),
     optionalContext: ChildModel.make({ count: 0 }),
@@ -453,4 +492,6 @@ export type CompositionSafetyAssertions = [
   PlainInitRegistrationIsExact,
   ParentCommandRecipeRequirementsAreExact,
   ParentCommandRecipeRegistrationIsExact,
+  DerivedModelRequirementsAreExact,
+  DerivedModelRegistrationIsExact,
 ]

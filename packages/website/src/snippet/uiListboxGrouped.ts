@@ -5,7 +5,6 @@ import { Option, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { Listbox } from '@foldkit/ui'
 
@@ -46,13 +45,10 @@ const CharacterPickerDefinition = Block.makeDefinition('CharacterPicker', {
 const foldListboxOutMessage = CharacterPickerDefinition.makeOutMessageFold(
   CharacterListbox,
   {
-    Selected:
-      ({ value }) =>
-      model => ({
-        model: modifyFields(model, {
-          maybeCharacter: () => Option.some(value),
-        }),
-      }),
+    Selected: ({ value }) =>
+      CharacterPickerDefinition.stepFields(() => ({
+        maybeCharacter: () => Option.some(value),
+      })),
   },
 )
 
@@ -65,9 +61,8 @@ const CharacterListboxBinding = CharacterPickerDefinition.bindChild(
   {
     field: 'listbox',
     init: { contextToArgs: () => Tuple.make({ id: 'character' }) },
-    outMessage: { fold: foldListboxOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldListboxOutMessage })
 
 const CharacterPickerComposition = CharacterPickerDefinition.makeComposition({
   bindings: [CharacterListboxBinding],

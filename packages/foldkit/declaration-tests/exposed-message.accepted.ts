@@ -153,25 +153,21 @@ export const ParentDefinition = Block.makeDefinition(
 )
 export const ChildBinding = ParentDefinition.bindChild(ChildBlock, {
   field: 'child',
-
-  outMessage: {
-    fold: ChildOutMessage.match<Update.Step<ParentModel, ParentMessage>>({
-      ChangedValue: () => model => ({ model }),
-    }),
-  },
+}).withOutMessagePolicy({
+  fold: ChildOutMessage.match<Update.Step<ParentModel, ParentMessage>>({
+    ChangedValue: () => model => ({ model }),
+  }),
 })
 export const EntryBinding = ParentDefinition.bindChild(ChildBlock, {
   placement: 'entries',
   field: 'entries',
   key: 'id',
   childField: 'child',
-  outMessage: {
-    fold: (_id, outMessage) =>
-      ChildOutMessage.match<Update.Step<ParentModel, ParentMessage>>(
-        outMessage,
-        { ChangedValue: () => model => ({ model }) },
-      ),
-  },
+}).withOutMessagePolicy({
+  fold: (_id, outMessage) =>
+    ChildOutMessage.match<Update.Step<ParentModel, ParentMessage>>(outMessage, {
+      ChangedValue: () => model => ({ model }),
+    }),
 })
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.

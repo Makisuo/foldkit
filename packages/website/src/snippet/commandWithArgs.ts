@@ -10,7 +10,6 @@ const Message = defineMessageUnion({
   ClickedResetAfterDelay: { delayMs: Schema.Number },
   CompletedWaitBeforeReset: {},
 })
-type Message = typeof Message.Type
 
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,

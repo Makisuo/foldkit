@@ -420,7 +420,7 @@ const TAB_BUTTON_INACTIVE =
 
 const sourceCodeView = (
   exampleSlug: string,
-  files: ReadonlyArray<ExampleSourceFile>,
+  files: ReadonlyArray<typeof ExampleSourceFile.Type>,
   tabsModel: typeof SourceFileTabsBlock.Model.Type,
   activeSourceFilePath: string,
   isNarrowViewport: boolean,
@@ -575,7 +575,7 @@ const sourcesFailureView = (error: string): Html =>
   )
 
 const availableExampleContentView = (
-  model: Model,
+  model: typeof Model.Type,
   meta: ExampleMeta,
   slug: string,
   isNarrowViewport: boolean,

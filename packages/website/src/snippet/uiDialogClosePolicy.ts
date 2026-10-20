@@ -12,19 +12,18 @@ import {
 const foldDialogOutMessage = EditorDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: () => EditorDefinition.stepNoop(),
+    Opened: EditorDefinition.stepNoop,
     Closed: () =>
       EditorDefinition.stepFields(() => ({
         route: () => '/projects',
       })),
-    CompletedClose: () => EditorDefinition.stepNoop(),
+    CompletedClose: EditorDefinition.stepNoop,
   },
 )
 
 export const DialogBinding = EditorDefinition.bindChild(Dialog.DialogBlock, {
   field: 'dialog',
-  outMessage: { fold: foldDialogOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 export const update = EditorComposition.makeUpdate((model, message) =>
   Message.match(message, {

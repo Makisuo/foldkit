@@ -54,6 +54,8 @@ const defaultUpdate = makeUpdate(
   ComboboxDefinition.bindChild,
   ComboboxDefinition.makeOutMessageFold,
   ComboboxDefinition.step,
+  ComboboxDefinition.stepFields,
+  ComboboxDefinition.stepNoop,
   'KeepOpen',
   {
     handleClose: model => ({
@@ -124,6 +126,8 @@ const makeBlockParts = <Item extends string, ItemEncoded>(
     ComboboxDefinition.bindChild,
     ComboboxDefinition.makeOutMessageFold,
     ComboboxDefinition.step,
+    ComboboxDefinition.stepFields,
+    ComboboxDefinition.stepNoop,
     'KeepOpen',
     {
       handleClose: model => ({

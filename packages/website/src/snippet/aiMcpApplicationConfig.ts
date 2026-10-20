@@ -5,7 +5,5 @@ import { ApplicationBlock } from './block'
 Program.make({
   block: ApplicationBlock,
   container: document.getElementById('root'),
-  devTools: {
-    Message: ApplicationBlock.Message,
-  },
+  devTools: { dispatch: true },
 })

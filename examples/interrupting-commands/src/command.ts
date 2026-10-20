@@ -6,7 +6,6 @@ import { Message } from './message'
 const MILLISECONDS_PER_MEGABYTE = 100
 
 export const UploadKey = Schema.Struct({ uploadId: Schema.Number })
-export type UploadKey = typeof UploadKey.Type
 
 export const UploadFile = ApplicationDefinition.command('UploadFile', {
   args: { ...UploadKey.fields, sizeMegabytes: Schema.Number },
@@ -26,7 +25,7 @@ export const UploadFile = ApplicationDefinition.command('UploadFile', {
   },
 })
 
-export const CancelUploadFile = ({ uploadId }: UploadKey) =>
+export const CancelUploadFile = ({ uploadId }: typeof UploadKey.Type) =>
   UploadFile.Interrupt({ uploadId }, outcome =>
     Message.CompletedCancelUploadFile({ uploadId, outcome }),
   )

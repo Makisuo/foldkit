@@ -1,4 +1,4 @@
-import { Layer, Schema } from 'effect'
+import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
@@ -35,9 +35,9 @@ const DisabledButtonTestDefinition = Block.makeDefinition(
 const foldDialogOutMessage = DisabledButtonTestDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: () => DisabledButtonTestDefinition.stepNoop(),
-    Closed: () => DisabledButtonTestDefinition.stepNoop(),
-    CompletedClose: () => DisabledButtonTestDefinition.stepNoop(),
+    Opened: DisabledButtonTestDefinition.stepNoop,
+    Closed: DisabledButtonTestDefinition.stepNoop,
+    CompletedClose: DisabledButtonTestDefinition.stepNoop,
   },
 )
 
@@ -45,10 +45,9 @@ const DialogBinding = DisabledButtonTestDefinition.bindChild(
   Dialog.DialogBlock,
   {
     field: 'dialog',
-    outMessage: { fold: foldDialogOutMessage },
     init: { contextToArgs: () => [{ id: 'test-dialog' }] },
   },
-)
+).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const DisabledButtonTestComposition =
   DisabledButtonTestDefinition.makeComposition({
@@ -142,5 +141,4 @@ export const block = DisabledButtonTestComposition.assembleBlock({
   init,
   update,
   view: viewWithDialog,
-  EffectsLayer: Layer.empty,
 })

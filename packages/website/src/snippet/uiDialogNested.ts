@@ -30,9 +30,9 @@ const ProjectDialogsDefinition = Block.makeDefinition('ProjectDialogs', {
 const foldConfirmDialogOutMessage = ProjectDialogsDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: () => ProjectDialogsDefinition.stepNoop(),
-    Closed: () => ProjectDialogsDefinition.stepNoop(),
-    CompletedClose: () => ProjectDialogsDefinition.stepNoop(),
+    Opened: ProjectDialogsDefinition.stepNoop,
+    Closed: ProjectDialogsDefinition.stepNoop,
+    CompletedClose: ProjectDialogsDefinition.stepNoop,
   },
 )
 
@@ -41,18 +41,16 @@ const SettingsDialogBinding = ProjectDialogsDefinition.bindChild(
   {
     field: 'settingsDialog',
     init: { contextToArgs: () => Tuple.make({ id: 'settings' }) },
-    outMessage: { fold: foldConfirmDialogOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldConfirmDialogOutMessage })
 
 const ConfirmDialogBinding = ProjectDialogsDefinition.bindChild(
   Dialog.DialogBlock,
   {
     field: 'confirmDialog',
     init: { contextToArgs: () => Tuple.make({ id: 'confirm-delete' }) },
-    outMessage: { fold: foldConfirmDialogOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldConfirmDialogOutMessage })
 
 const ProjectDialogsComposition = ProjectDialogsDefinition.makeComposition({
   bindings: [SettingsDialogBinding, ConfirmDialogBinding],

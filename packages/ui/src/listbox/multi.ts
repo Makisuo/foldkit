@@ -70,6 +70,8 @@ const makeBlockParts = <Item, Value extends string>() => {
     ListboxDefinition.bindChild,
     ListboxDefinition.makeOutMessageFold,
     ListboxDefinition.step,
+    ListboxDefinition.stepFields,
+    ListboxDefinition.stepNoop,
     'KeepOpen',
     (model, item) => ({
       model,

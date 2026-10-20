@@ -12,8 +12,8 @@ export const SettingsDefinition = Block.makeDefinition('Settings', {
 const foldThemeMenuOutMessage = SettingsDefinition.makeOutMessageFold(
   ThemeMenu.ThemeMenuBlock,
   {
-    Selected: () => SettingsDefinition.stepNoop(),
-    Closed: () => SettingsDefinition.stepNoop(),
+    Selected: SettingsDefinition.stepNoop,
+    Closed: SettingsDefinition.stepNoop,
   },
 )
 
@@ -21,9 +21,8 @@ const ThemeMenuBinding = SettingsDefinition.bindChild(
   ThemeMenu.ThemeMenuBlock,
   {
     field: 'themeMenu',
-    outMessage: { fold: foldThemeMenuOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldThemeMenuOutMessage })
 
 export const SettingsComposition = SettingsDefinition.makeComposition({
   bindings: [ThemeMenuBinding],

@@ -4,18 +4,16 @@
 import { Option, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { Listbox } from '@foldkit/ui'
 import { buttonId as ListboxButtonId } from '@foldkit/ui/listbox'
 
 const Plan = Schema.Literals(['Free', 'Pro', 'Enterprise'])
-type Plan = typeof Plan.Type
 
 // Declare a typed Listbox once at module scope. `view` and `update` are
 // bound to `Plan`: `items` is typed as `ReadonlyArray<Plan>` and the
 // OutMessage carries `value: Plan`.
-const PlanListbox = Listbox.create<Plan>()
+const PlanListbox = Listbox.create<typeof Plan.Type>()
 
 // Add a field to your Model for the Listbox Block, plus a field for
 // the selected value your app actually cares about. Using the `Plan`
@@ -25,11 +23,9 @@ const Model = Schema.Struct({
   listbox: PlanListbox.Model,
   // ...your other fields
 })
-type Model = typeof Model.Type
 
 // This excerpt has no parent-owned facts. The Composition derives delivery.
 const Message = defineMessageUnion({})
-type Message = typeof Message.Type
 
 const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
   Model,
@@ -44,11 +40,10 @@ const PlanPickerDefinition = Block.makeDefinition('PlanPicker', {
 const foldListboxOutMessage = PlanPickerDefinition.makeOutMessageFold(
   PlanListbox,
   {
-    Selected:
-      ({ value }) =>
-      model => ({
-        model: modifyFields(model, { maybePlan: () => Option.some(value) }),
-      }),
+    Selected: ({ value }) =>
+      PlanPickerDefinition.stepFields(() => ({
+        maybePlan: () => Option.some(value),
+      })),
   },
 )
 
@@ -59,8 +54,7 @@ const foldListboxOutMessage = PlanPickerDefinition.makeOutMessageFold(
 const PlanListboxBinding = PlanPickerDefinition.bindChild(PlanListbox, {
   field: 'listbox',
   init: { contextToArgs: () => Tuple.make({ id: 'plan' }) },
-  outMessage: { fold: foldListboxOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldListboxOutMessage })
 
 const PlanPickerComposition = PlanPickerDefinition.makeComposition({
   bindings: [PlanListboxBinding],
@@ -77,7 +71,7 @@ const init = PlanPickerComposition.makeInit(() => ({
 // The Composition routes generated Listbox delivery through the Binding.
 const update = PlanPickerComposition.makeUpdate()
 
-const plans: ReadonlyArray<Plan> = ['Free', 'Pro', 'Enterprise']
+const plans: ReadonlyArray<typeof Plan.Type> = ['Free', 'Pro', 'Enterprise']
 
 // Inside your view function, embed the Listbox via h.block using
 // its canonical view. Associate a visible label with the trigger via a native

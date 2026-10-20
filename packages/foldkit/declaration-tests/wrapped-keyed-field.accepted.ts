@@ -226,13 +226,29 @@ export const payloadParent = makePayloadParent(
 
 export const firstChoiceId = Schema.decodeSync(ChoiceId)('first')
 
+const foldChoiceOutMessage =
+  DeclarationWrappedKeyedFieldParentDefinition.makeOutMessageFold(
+    Choice.block,
+    {
+      SelectedValue:
+        ({ value }, { liftCommand }) =>
+        model => {
+          const exactValue: 'One' | 'Two' = value
+          void exactValue
+
+          return {
+            model,
+            commands: [liftCommand(Choice.ReadChoice())],
+          }
+        },
+    },
+  )
+
 export const choiceOutMessagePolicy = {
   fold: (
     id: typeof ChoiceId.Type,
     outMessage: typeof Choice.OutMessage.Type,
-    {
-      liftCommand,
-    }: Update.FoldContext<
+    context: Update.FoldContext<
       typeof Choice.Message.Type,
       typeof ParentMessage.Type,
       typeof ParentModel.Type
@@ -241,18 +257,7 @@ export const choiceOutMessagePolicy = {
     const exactId: typeof ChoiceId.Type = id
     void exactId
 
-    return Choice.OutMessage.match(outMessage, {
-      SelectedValue: ({ value }) =>
-        DeclarationWrappedKeyedFieldParentDefinition.step(model => {
-          const exactValue: 'One' | 'Two' = value
-          void exactValue
-
-          return {
-            model,
-            commands: [liftCommand(Choice.ReadChoice())],
-          }
-        }),
-    })
+    return foldChoiceOutMessage(outMessage, context)
   },
 }
 
@@ -279,8 +284,7 @@ export const ChoicesBinding =
         return true
       },
     },
-    outMessage: choiceOutMessagePolicy,
-  })
+  }).withOutMessagePolicy(choiceOutMessagePolicy)
 
 export type InitializationContext = Readonly<{
   id: typeof ChoiceId.Type
@@ -292,7 +296,6 @@ export const InitializedChoicesBinding =
     field: 'choices',
     key: 'id',
     childField: 'choice',
-    outMessage: choiceOutMessagePolicy,
     init: {
       instances: (context: InitializationContext) => {
         expectNotAnyOrUnknown(context)
@@ -321,7 +324,7 @@ export const InitializedChoicesBinding =
         return ChoiceEntry.make({ id: key, choice })
       },
     },
-  })
+  }).withOutMessagePolicy(choiceOutMessagePolicy)
 
 export const LiteralInitializedChoicesBinding =
   DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, {
@@ -329,7 +332,6 @@ export const LiteralInitializedChoicesBinding =
     key: 'id',
     childField: 'choice',
     placement: 'literalInitializedChoices',
-    outMessage: choiceOutMessagePolicy,
     init: {
       instances: () => [{ key: firstChoiceId, args: ['One'] }],
       toItem: ({ key, args }, choice) => {
@@ -345,7 +347,7 @@ export const LiteralInitializedChoicesBinding =
         return ChoiceEntry.make({ id: key, choice })
       },
     },
-  })
+  }).withOutMessagePolicy(choiceOutMessagePolicy)
 
 export const GeneralChoicesBinding =
   DeclarationWrappedKeyedFieldParentDefinition.bindChild(Choice.block, {
@@ -355,28 +357,6 @@ export const GeneralChoicesBinding =
     keySchema: ChoiceEntry.fields.id,
     read: item => item.choice,
     writeAt: model => model,
-    outMessage: {
-      fold: (key, outMessage, context) => {
-        expectNotAnyOrUnknown(key)
-        expectNotAnyOrUnknown(outMessage)
-        expectNotAnyOrUnknown(context)
-        type KeyIsExact = Expect<
-          MutuallyAssignable<typeof key, typeof ChoiceId.Type>
-        >
-        type OutMessageIsExact = Expect<
-          MutuallyAssignable<typeof outMessage, typeof Choice.OutMessage.Type>
-        >
-        const keyIsExact: KeyIsExact = true
-        const outMessageIsExact: OutMessageIsExact = true
-        void keyIsExact
-        void outMessageIsExact
-
-        return DeclarationWrappedKeyedFieldParentDefinition.step(model => ({
-          model,
-          commands: [context.liftCommand(Choice.ReadChoice())],
-        }))
-      },
-    },
     subscriptions: {
       when: (model, key) => {
         expectNotAnyOrUnknown(model)
@@ -395,6 +375,27 @@ export const GeneralChoicesBinding =
         return true
       },
     },
+  }).withOutMessagePolicy({
+    fold: (key, outMessage, context) => {
+      expectNotAnyOrUnknown(key)
+      expectNotAnyOrUnknown(outMessage)
+      expectNotAnyOrUnknown(context)
+      type KeyIsExact = Expect<
+        MutuallyAssignable<typeof key, typeof ChoiceId.Type>
+      >
+      type OutMessageIsExact = Expect<
+        MutuallyAssignable<typeof outMessage, typeof Choice.OutMessage.Type>
+      >
+      const keyIsExact: KeyIsExact = true
+      const outMessageIsExact: OutMessageIsExact = true
+      void keyIsExact
+      void outMessageIsExact
+
+      return DeclarationWrappedKeyedFieldParentDefinition.step(model => ({
+        model,
+        commands: [context.liftCommand(Choice.ReadChoice())],
+      }))
+    },
   })
 
 export const GeneralExtractedPolicyChoicesBinding =
@@ -405,8 +406,7 @@ export const GeneralExtractedPolicyChoicesBinding =
     keySchema: ChoiceEntry.fields.id,
     read: item => item.choice,
     writeAt: model => model,
-    outMessage: choiceOutMessagePolicy,
-  })
+  }).withOutMessagePolicy(choiceOutMessagePolicy)
 
 export const PlainChoicesBinding =
   DeclarationWrappedKeyedFieldParentDefinition.bindChild(PlainChoiceBlock, {
@@ -421,17 +421,16 @@ export const LiteralChoicesBinding =
     field: 'literalChoices',
     key: 'kind',
     childField: 'choice',
-    outMessage: {
-      fold: (kind, outMessage) => {
-        const exactKind: 'Primary' | 'Secondary' = kind
-        const exactOutMessage: typeof Choice.OutMessage.Type = outMessage
-        void exactKind
-        void exactOutMessage
+  }).withOutMessagePolicy({
+    fold: (kind, outMessage) => {
+      const exactKind: 'Primary' | 'Secondary' = kind
+      const exactOutMessage: typeof Choice.OutMessage.Type = outMessage
+      void exactKind
+      void exactOutMessage
 
-        return DeclarationWrappedKeyedFieldParentDefinition.step(model => ({
-          model,
-        }))
-      },
+      return DeclarationWrappedKeyedFieldParentDefinition.step(model => ({
+        model,
+      }))
     },
   })
 

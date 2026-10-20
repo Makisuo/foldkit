@@ -11,14 +11,12 @@ const UserAsyncData = AsyncData.Schema(User, ApiError)
 export const Model = Schema.Struct({
   user: UserAsyncData.schema,
 })
-type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   ClickedLoadUser: {},
   SucceededLoadUser: { user: User },
   FailedLoadUser: { error: ApiError },
 })
-type Message = typeof Message.Type
 
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,

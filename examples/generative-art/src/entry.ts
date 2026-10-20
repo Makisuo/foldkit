@@ -6,7 +6,7 @@ const program = Program.make({
   block: ApplicationBlock,
   container: document.getElementById('root'),
   devTools: {
-    Message: ApplicationBlock.Message,
+    dispatch: true,
     excludeFromHistory: [
       'TickedFrame',
       'MovedPointer',

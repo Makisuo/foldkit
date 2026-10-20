@@ -52,6 +52,8 @@ const defaultUpdate = makeUpdate(
   ComboboxDefinition.bindChild,
   ComboboxDefinition.makeOutMessageFold,
   ComboboxDefinition.step,
+  ComboboxDefinition.stepFields,
+  ComboboxDefinition.stepNoop,
   'CloseWithFocus',
   {
     handleClose: (model, restingInputValue, isClearable) => {
@@ -154,6 +156,8 @@ const makeBlockParts = <Item extends string, ItemEncoded>(
     ComboboxDefinition.bindChild,
     ComboboxDefinition.makeOutMessageFold,
     ComboboxDefinition.step,
+    ComboboxDefinition.stepFields,
+    ComboboxDefinition.stepNoop,
     'CloseWithFocus',
     {
       handleClose: (model, restingInputValue, isClearable) => {

@@ -47,6 +47,18 @@
   },
   "overrides": [
     {
+      "files": ["packages/foldkit/declaration-tests/**/*.ts"],
+      "rules": {
+        "foldkit/block-name-matches-variable": "off"
+      }
+    },
+    {
+      "files": ["packages/foldkit/declaration-tests/**/*.rejected.ts"],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
       "files": ["packages/foldkit/src/**/*.ts"],
       "rules": {
         "typescript/no-explicit-any": "off",

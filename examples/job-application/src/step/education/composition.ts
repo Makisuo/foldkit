@@ -1,17 +1,15 @@
 import { Array } from 'effect'
 import type { Block } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
 
 import { EducationDefinition } from './definition'
 import { EducationEntryBlock } from './entry'
 
 const foldEntryOutMessage = (entryId: string) =>
   EducationDefinition.makeOutMessageFold(EducationEntryBlock, {
-    Removed: () => model => ({
-      model: modifyFields(model, {
+    Removed: () =>
+      EducationDefinition.stepFields(() => ({
         entries: Array.filter(entry => entry.id !== entryId),
-      }),
-    }),
+      })),
   })
 
 export const EntriesBinding = EducationDefinition.bindChild(
@@ -25,11 +23,10 @@ export const EntriesBinding = EducationDefinition.bindChild(
       ],
       toItem: (_occurrence, entry) => entry,
     },
-    outMessage: {
-      fold: (entryId, outMessage) => foldEntryOutMessage(entryId)(outMessage),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: (entryId, outMessage) => foldEntryOutMessage(entryId)(outMessage),
+})
 
 export const EducationComposition = EducationDefinition.makeComposition({
   bindings: [EntriesBinding],

@@ -13,8 +13,6 @@ import {
 import { initialSidebarGroups } from '../sidebarStorage'
 import { ApplyTheme, resolveTheme } from '../theme'
 
-type BrowserEnvironment = typeof Message.CompletedLoadBrowserEnvironment.Type
-
 export const handleCompletedLoadBrowserEnvironment = ApplicationDefinition.step(
   (
     _,
@@ -25,13 +23,13 @@ export const handleCompletedLoadBrowserEnvironment = ApplicationDefinition.step(
       isPlaygroundSupported,
       currentYear,
       today,
-    }: BrowserEnvironment,
+    }: typeof Message.CompletedLoadBrowserEnvironment.Type,
   ) => {
-    const themePreference: ThemePreference = Option.getOrElse(
+    const themePreference: typeof ThemePreference.Type = Option.getOrElse(
       maybeThemePreference,
       () => 'System',
     )
-    const resolvedTheme: ResolvedTheme = resolveTheme(
+    const resolvedTheme: typeof ResolvedTheme.Type = resolveTheme(
       themePreference,
       systemTheme,
     )

@@ -4,7 +4,6 @@ import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
 const Theme = Schema.Literals(['Light', 'Dark', 'System'])
-type Theme = typeof Theme.Type
 
 const ThemePickerModel = Schema.Struct({ theme: Theme })
 const ThemePickerMessage = defineMessageUnion({
@@ -15,9 +14,11 @@ const ThemePickerComposition = Block.makeDefinition('ThemePicker', {
   Message: ThemePickerMessage,
 }).makeComposition()
 
-const themePickerInit = ThemePickerComposition.makeInit((theme: Theme) => ({
-  model: ThemePickerModel.make({ theme }),
-}))
+const themePickerInit = ThemePickerComposition.makeInit(
+  (theme: typeof Theme.Type) => ({
+    model: ThemePickerModel.make({ theme }),
+  }),
+)
 const themePickerUpdate = ThemePickerComposition.makeUpdate((model, message) =>
   ThemePickerMessage.match(message, {
     ChangedTheme: ({ theme }) => ({
@@ -43,7 +44,6 @@ const ProfileChildInitContext = Schema.Struct({
   username: Schema.String,
   savedTheme: Theme,
 })
-type ProfileChildInitContext = typeof ProfileChildInitContext.Type
 
 const ProfileDefinition = Block.makeDefinition('Profile', {
   Model: ProfileModel,
@@ -63,7 +63,7 @@ const ProfileComposition = ProfileDefinition.makeComposition({
 })
 
 export const init = ProfileComposition.makeInit(
-  (childInitContext: ProfileChildInitContext) => ({
+  (childInitContext: typeof ProfileChildInitContext.Type) => ({
     childInitContext,
     model: { username: childInitContext.username },
   }),

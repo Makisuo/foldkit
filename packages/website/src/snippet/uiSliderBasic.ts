@@ -4,7 +4,6 @@
 import { Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { Slider } from '@foldkit/ui'
 import { snapAndClamp as SliderSnapAndClamp } from '@foldkit/ui/slider'
@@ -37,9 +36,8 @@ const foldSliderOutMessage = VolumeSliderDefinition.makeOutMessageFold(
     // The child has emitted `ChangedValue`. Store the new value in the field
     // you own. This arm is also where the parent can validate, persist, or
     // trigger a downstream Command.
-    ChangedValue:
-      ({ value }) =>
-      model => ({ model: modifyFields(model, { ratingValue: () => value }) }),
+    ChangedValue: ({ value }) =>
+      VolumeSliderDefinition.stepFields(() => ({ ratingValue: () => value })),
   },
 )
 
@@ -51,8 +49,7 @@ const SliderBinding = VolumeSliderDefinition.bindChild(Slider.SliderBlock, {
   init: {
     contextToArgs: () => Tuple.make({ id: 'rating', min: 0, max: 10, step: 1 }),
   },
-  outMessage: { fold: foldSliderOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldSliderOutMessage })
 
 const VolumeSliderComposition = VolumeSliderDefinition.makeComposition({
   bindings: [SliderBinding],

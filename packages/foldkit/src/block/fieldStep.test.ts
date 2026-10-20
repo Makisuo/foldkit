@@ -132,8 +132,7 @@ it('preserves a child transition when an OutMessage policy has no parent transit
     })
   const ChildBinding = ParentDefinition.bindChild(ChildBlock, {
     field: 'child',
-    outMessage: { fold: foldChildOutMessage },
-  })
+  }).withOutMessagePolicy({ fold: foldChildOutMessage })
   const ParentComposition = ParentDefinition.makeComposition({
     bindings: [ChildBinding],
   })

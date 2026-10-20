@@ -10,7 +10,7 @@ import { Column } from '../domain'
 import { Model } from '../model'
 
 const findCardTitle = (
-  columns: ReadonlyArray<Column.Column>,
+  columns: ReadonlyArray<typeof Column.Column.Type>,
   cardId: string,
 ): string =>
   pipe(
@@ -24,7 +24,7 @@ const findCardTitle = (
   )
 
 const findColumnName = (
-  columns: ReadonlyArray<Column.Column>,
+  columns: ReadonlyArray<typeof Column.Column.Type>,
   columnId: string,
 ): string =>
   pipe(
@@ -37,7 +37,7 @@ const findColumnName = (
   )
 
 const announceKeyboardDrag = (
-  model: Model,
+  model: typeof Model.Type,
   nextDragAndDrop: typeof DragAndDropBlock.Model.Type,
 ): string =>
   Match.value(nextDragAndDrop.dragState).pipe(
@@ -72,7 +72,7 @@ const announceKeyboardDrag = (
   )
 
 const screenReaderTextForDrop = (
-  model: Model,
+  model: typeof Model.Type,
   outMessage: typeof DragAndDropBlock.OutMessage.Type,
 ): string =>
   DragAndDropBlock.OutMessage.match<string>(outMessage, {
@@ -134,6 +134,5 @@ export const DragAndDropBinding = ApplicationDefinition.bindChild(
       contextToArgs: () => [{ id: 'kanban' }],
       toParentFields: dragAndDrop => ({ dragAndDrop }),
     },
-    outMessage: { fold: foldDragAndDropOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })

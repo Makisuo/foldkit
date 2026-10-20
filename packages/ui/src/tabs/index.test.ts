@@ -39,8 +39,7 @@ const foldTabsOutMessage = TabsSceneDefinition.makeOutMessageFold(TestTabs, {
 const TabsBinding = TabsSceneDefinition.bindChild(TestTabs, {
   read: model => Option.some(model),
   write: (_model, nextTabs) => nextTabs,
-  outMessage: { fold: foldTabsOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldTabsOutMessage })
 
 const TabsSceneComposition = TabsSceneDefinition.makeComposition({
   bindings: [TabsBinding],

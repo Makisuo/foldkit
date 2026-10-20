@@ -24,6 +24,7 @@ import {
   assertInitializedParentModel,
   registerBinding,
   runtimeBindingOf,
+  runtimeBindingsOf,
 } from './composition.js'
 import { type DefaultViewTypeId, defaultViewOf } from './defaultView.js'
 import type { DeferredBindingPolicy } from './deferredPolicy.js'
@@ -257,7 +258,12 @@ export type InspectionOfBinding<BindingValue> =
     ? Inspection
     : never
 
-type ReservedBindingMember = 'placement' | 'init' | 'fold' | 'embedView'
+type ReservedBindingMember =
+  | 'placement'
+  | 'init'
+  | 'fold'
+  | 'embedView'
+  | 'withOutMessagePolicy'
 
 /** @internal Rejects exposed operation names that overwrite Binding members. */
 export type ValidateBindingOperationNames<Operations> = [
@@ -276,6 +282,7 @@ const reservedBindingMembers = new Set<string>([
   'init',
   'fold',
   'embedView',
+  'withOutMessagePolicy',
 ])
 
 type RuntimeBindingInitConfig = Readonly<{
@@ -1584,7 +1591,9 @@ const bindRuntime = <
   )
   const update = (model: any, ...args: ReadonlyArray<any>) =>
     scopeReturn(
-      withOperationGraph(block.bindings, () => block.update(model, ...args)),
+      withOperationGraph(runtimeBindingsOf(block), () =>
+        block.update(model, ...args),
+      ),
       placement,
       block.owner,
       frame,
@@ -1595,7 +1604,9 @@ const bindRuntime = <
     operation =>
       (model: any, ...args: ReadonlyArray<any>) =>
         scopeReturn(
-          withOperationGraph(block.bindings, () => operation(model, ...args)),
+          withOperationGraph(runtimeBindingsOf(block), () =>
+            operation(model, ...args),
+          ),
           placement,
           block.owner,
           frame,
@@ -1663,7 +1674,7 @@ const bindRuntime = <
         identity: {
           owner: block.owner,
           mounts: block[LocalMountsTypeId],
-          bindings: block.bindings,
+          bindings: runtimeBindingsOf(block),
         },
       },
       toParentMessage: config.toParentMessage,
@@ -1692,7 +1703,7 @@ const bindRuntime = <
   const initialize = (...args: ReadonlyArray<any>) => {
     assertRegisteredInitialization(binding, placement)
     const childInit = scopeReturn(
-      withOperationGraph(block.bindings, () => block.init(...args)),
+      withOperationGraph(runtimeBindingsOf(block), () => block.init(...args)),
       placement,
       block.owner,
       { ...frame, isInitialization: true },
@@ -1712,7 +1723,7 @@ const bindRuntime = <
       const args = [...initial.args]
       const commands = [...(initial.commands ?? [])]
 
-      return makeBindingInitRecipe(() => {
+      return makeBindingInitRecipe(binding, () => {
         const childInit = initialize(...args)
         const model = toParentModel(childInit.model)
         assertInitializedParentModel(binding, placement, model)

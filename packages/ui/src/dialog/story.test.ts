@@ -46,12 +46,10 @@ const ParentModel = Schema.Struct({
   dialog: DialogBlock.Model,
   dialogEvents: Schema.Array(DialogEvent),
 })
-type ParentModel = typeof ParentModel.Type
 
 const ParentMessage = defineMessageUnion({
   CompletedLoadParentData: {},
 })
-type ParentMessage = typeof ParentMessage.Type
 
 const DialogParentTestDefinition = Block.makeDefinition('DialogParentTest', {
   Model: ParentModel,
@@ -86,9 +84,8 @@ const loadParentData = DialogParentTestDefinition.step(model => ({
 
 const DialogBinding = DialogParentTestDefinition.bindChild(DialogBlock, {
   field: 'dialog',
-  outMessage: { fold: foldDialogOutMessage },
   init: { contextToArgs: () => [{ id: 'initial-dialog' }] },
-})
+}).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const DialogParentTestComposition = DialogParentTestDefinition.makeComposition({
   bindings: [DialogBinding],

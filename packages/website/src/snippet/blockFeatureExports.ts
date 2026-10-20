@@ -21,5 +21,4 @@ SettingsBlock.OutMessage
 ApplicationDefinition.bindChild(SettingsBlock, {
   field: 'settings',
   init: false,
-  outMessage: { fold: foldSettingsOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldSettingsOutMessage })

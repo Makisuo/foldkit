@@ -27,6 +27,5 @@ export const LoggedOutBinding = ApplicationDefinition.bindChild(
         }),
       ),
     write: (_model, nextLoggedOut) => nextLoggedOut,
-    outMessage: { fold: foldLoggedOutOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldLoggedOutOutMessage })

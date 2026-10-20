@@ -66,9 +66,8 @@ const ComboboxBinding = ComboboxMountRequirementsDefinition.bindChild(
   {
     read: model => Option.some(model),
     write: (_model, nextCombobox) => nextCombobox,
-    outMessage: { fold: foldComboboxOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldComboboxOutMessage })
 
 const embeddedCombobox = ComboboxBinding.embedView({
   slotId: 'combobox',
@@ -103,9 +102,8 @@ const ListboxBinding = ListboxMountRequirementsDefinition.bindChild(
   {
     read: model => Option.some(model),
     write: (_model, nextListbox) => nextListbox,
-    outMessage: { fold: foldListboxOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldListboxOutMessage })
 
 const embeddedListbox = ListboxBinding.embedView({
   slotId: 'listbox',
@@ -140,8 +138,7 @@ const foldMenuOutMessage = MenuMountRequirementsDefinition.makeOutMessageFold(
 const MenuBinding = MenuMountRequirementsDefinition.bindChild(TestMenu, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
-  outMessage: { fold: foldMenuOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldMenuOutMessage })
 
 const embeddedMenu = MenuBinding.embedView({
   slotId: 'menu',

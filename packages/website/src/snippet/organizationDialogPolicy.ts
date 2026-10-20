@@ -6,8 +6,8 @@ import { EditorDefinition } from '../definition'
 const foldDialogOutMessage = EditorDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: () => EditorDefinition.stepNoop(),
-    CompletedClose: () => EditorDefinition.stepNoop(),
+    Opened: EditorDefinition.stepNoop,
+    CompletedClose: EditorDefinition.stepNoop,
     Closed: () =>
       EditorDefinition.step(model => ({
         model,
@@ -18,5 +18,4 @@ const foldDialogOutMessage = EditorDefinition.makeOutMessageFold(
 
 export const DialogBinding = EditorDefinition.bindChild(Dialog.DialogBlock, {
   field: 'dialog',
-  outMessage: { fold: foldDialogOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldDialogOutMessage })

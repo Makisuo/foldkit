@@ -6,18 +6,16 @@ const BadSettingsBinding = ApplicationDefinition.bindChild(
   Settings.SettingsBlock,
   {
     field: 'settings',
-    outMessage: {
-      fold: foldSettingsOutMessage,
-      forward: () => undefined,
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: foldSettingsOutMessage,
+  forward: () => undefined,
+})
 
 // ✅ Good: omit `forward` when every child OutMessage stops here.
 const SettingsBinding = ApplicationDefinition.bindChild(
   Settings.SettingsBlock,
   {
     field: 'settings',
-    outMessage: { fold: foldSettingsOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldSettingsOutMessage })

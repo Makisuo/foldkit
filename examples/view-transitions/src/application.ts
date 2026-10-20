@@ -21,7 +21,6 @@ export const Model = Schema.Struct({
   route: ApplicationRoute,
   filterText: Schema.String,
 })
-export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   CompletedNavigateInternal: {},
@@ -30,8 +29,6 @@ export const Message = defineMessageUnion({
   ChangedUrl: { url: Url },
   UpdatedFilterText: { filterText: Schema.String },
 })
-
-export type Message = typeof Message.Type
 
 export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
@@ -101,11 +98,10 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
 // `true` is "animate, with no direction to declare": the root fade in
 // `styles.css` is not type-scoped, so an untyped transition still cross-fades,
 // it just does not slide.
-export const viewTransition: Runtime.ViewTransitionConfig<Model, Message> = ({
-  previousModel,
-  model,
-  message,
-}) => {
+export const viewTransition: Runtime.ViewTransitionConfig<
+  typeof Model.Type,
+  typeof Message.Type
+> = ({ previousModel, model, message }) => {
   if (message._tag !== 'ChangedUrl') {
     return false
   }
@@ -132,7 +128,9 @@ const artworkTransitionStyle = (artworkId: number) => ({
   viewTransitionClass: 'artwork',
 })
 
-const filteredArtworks = (filterText: string): ReadonlyArray<Artwork> => {
+const filteredArtworks = (
+  filterText: string,
+): ReadonlyArray<typeof Artwork.Type> => {
   const normalizedFilter = filterText.trim().toLowerCase()
 
   if (String.isEmpty(normalizedFilter)) {
@@ -146,7 +144,10 @@ const filteredArtworks = (filterText: string): ReadonlyArray<Artwork> => {
   }
 }
 
-const artworkCardView = (artwork: Artwork, h: ApplicationViewBuilder): Html =>
+const artworkCardView = (
+  artwork: typeof Artwork.Type,
+  h: ApplicationViewBuilder,
+): Html =>
   h.keyed('a')(
     `artwork-${artwork.id}`,
     [h.Href(artworkRouter({ artworkId: artwork.id })), h.Class('group block')],
@@ -166,7 +167,7 @@ const emptyGalleryView = (h: ApplicationViewBuilder): Html =>
   h.p([h.Class('text-gray-500')], ['No artworks match the filter.'])
 
 const artworkGridView = (
-  matchedArtworks: ReadonlyArray<Artwork>,
+  matchedArtworks: ReadonlyArray<typeof Artwork.Type>,
   h: ApplicationViewBuilder,
 ): Html =>
   h.div(
@@ -224,7 +225,10 @@ const missingArtworkView = (
 // square growing into a wider box visibly stretches mid-flight. Matching the
 // ratio makes the morph a pure scale and translate, which is the one case the
 // browser renders cleanly.
-const foundArtworkView = (artwork: Artwork, h: ApplicationViewBuilder): Html =>
+const foundArtworkView = (
+  artwork: typeof Artwork.Type,
+  h: ApplicationViewBuilder,
+): Html =>
   h.div(
     [],
     [
@@ -300,7 +304,7 @@ const notFoundView = (path: string, h: ApplicationViewBuilder): Html =>
     ],
   )
 
-const routeTitle = (route: ApplicationRoute): string =>
+const routeTitle = (route: typeof ApplicationRoute.Type): string =>
   ApplicationRoute.match(route, {
     Gallery: () => 'View Transitions',
     Artwork: ({ artworkId }) =>

@@ -4,7 +4,7 @@
 
 Animation coordinates CSS enter and leave phases with a state machine and data attributes. Bind `AnimationBlock` in the parent. Its Binding projects the child-owned `requestShow`, `requestHide`, and `requestToggle` operations into connected parent Steps. Each operation constructs its matching `RequestedShow`, `RequestedHide`, or `RequestedToggle` Message. Animation update records each lifecycle phase in its Model and returns any Commands through the fold. The transitions stay visible in DevTools and can be tested through update without waiting for a browser animation.
 
-Animation uses the [OutMessage](/core/block#surfacing-facts) pattern. The Binding’s `outMessage.fold` policy handles `StartedLeaveAnimating` by providing a Command that detects settlement, then handles `TransitionedOut` when post-animation cleanup can begin. Dialog, Menu, Popover, Listbox, and Combobox use the same Block internally when `isAnimated` is true.
+Animation uses the [OutMessage](/core/block#surfacing-facts) pattern. The Binding’s selected `fold` policy handles `StartedLeaveAnimating` by providing a Command that detects settlement, then handles `TransitionedOut` when post-animation cleanup can begin. Dialog, Menu, Popover, Listbox, and Combobox use the same Block internally when `isAnimated` is true.
 
 ## Lifecycle Coordination {#why}
 
@@ -146,7 +146,7 @@ Pass the child Model as `model` and these fields as `viewInputs` to the Animatio
 
 ### OutMessage
 
-Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s `outMessage.fold` policy.
+Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s selected `fold` policy.
 
 | Name                    | Type         | Default | Description                                                                                                                                                                                                                                                                                                                                  |
 | ----------------------- | ------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

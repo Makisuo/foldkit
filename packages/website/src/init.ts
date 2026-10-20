@@ -11,7 +11,7 @@ import { type ResolvedTheme, type ThemePreference } from './message'
 import { urlToApplicationRoute } from './route'
 import { initialSidebarGroups } from './sidebarStorage'
 
-const browserStartupCommands = (deployment: Deployment) => [
+const browserStartupCommands = (deployment: typeof Deployment.Type) => [
   Command.LoadBrowserEnvironment(),
   ...Array.filter(
     [Command.InjectAnalytics(), Command.InjectSpeedInsights()],
@@ -28,10 +28,10 @@ const initialScrollCommands = (url: Url) => [
 ]
 
 export const init = ApplicationComposition.makeInit(
-  (flags: Flags, url: Url) => {
+  (flags: typeof Flags.Type, url: Url) => {
     const route = urlToApplicationRoute(url)
-    const maybeThemePreference = Option.none<ThemePreference>()
-    const systemTheme: ResolvedTheme = 'Light'
+    const maybeThemePreference = Option.none<typeof ThemePreference.Type>()
+    const systemTheme: typeof ResolvedTheme.Type = 'Light'
 
     return {
       childInitContext: {

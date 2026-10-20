@@ -43,9 +43,8 @@ export const DietListboxBinding = ApplicationDefinition.bindChild(
   {
     field: 'dietListbox',
     init: { contextToArgs: () => [{ id: 'diet-filter' }] },
-    outMessage: { fold: foldDietListboxOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldDietListboxOutMessage })
 
 const foldPeriodListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
   PeriodListboxBlock,
@@ -71,9 +70,8 @@ export const PeriodListboxBinding = ApplicationDefinition.bindChild(
   {
     field: 'periodListbox',
     init: { contextToArgs: () => [{ id: 'period-filter' }] },
-    outMessage: { fold: foldPeriodListboxOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldPeriodListboxOutMessage })
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [DietListboxBinding, PeriodListboxBinding],

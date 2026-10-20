@@ -368,15 +368,14 @@ const foldAnimationOutMessage = MenuDefinition.makeOutMessageFold(
   {
     StartedLeaveAnimating: ({ generation }) =>
       detectMenuMovementOrAnimationEnd(generation),
-    TransitionedOut: () => MenuDefinition.stepNoop(),
+    TransitionedOut: MenuDefinition.stepNoop,
   },
 )
 
 const AnimationBinding = MenuDefinition.bindChild(Animation.AnimationBlock, {
   field: 'animation',
   init: false,
-  outMessage: { fold: foldAnimationOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
 const internalUpdate =
   (animationBinding: typeof AnimationBinding) =>
@@ -404,11 +403,12 @@ const internalUpdate =
     const openMenu = (baseModel: Model) => {
       if (model.isAnimated) {
         return Update.combine([
-          () => ({ model: baseModel, commands: openCommands }),
+          MenuDefinition.step(() => ({
+            model: baseModel,
+            commands: openCommands,
+          })),
           animationBinding.requestShow(),
-          stepModel => ({
-            model: modifyFields(stepModel, { isOpen: () => true }),
-          }),
+          MenuDefinition.stepFields(() => ({ isOpen: () => true })),
         ])
       }
 
@@ -434,7 +434,7 @@ const internalUpdate =
         return MenuDefinition.step(() =>
           Function.compose(
             Update.combine([
-              () => ({ model: closed, commands }),
+              MenuDefinition.step(() => ({ model: closed, commands })),
               animationBinding.requestHide(),
             ]),
             Update.withOutMessage(closeOutMessage),
@@ -598,7 +598,10 @@ const internalUpdate =
             return MenuDefinition.step(() =>
               Function.compose(
                 Update.combine([
-                  () => ({ model: closed, commands: closeWithFocusCommands }),
+                  MenuDefinition.step(() => ({
+                    model: closed,
+                    commands: closeWithFocusCommands,
+                  })),
                   animationBinding.requestHide(),
                 ]),
                 Update.withOutMessage(OutMessage.Closed()),
@@ -1346,7 +1349,7 @@ const makeBlockParts = <Item extends string>() => {
     {
       StartedLeaveAnimating: ({ generation }) =>
         detectMenuMovementOrAnimationEnd(generation),
-      TransitionedOut: () => MenuDefinition.stepNoop(),
+      TransitionedOut: MenuDefinition.stepNoop,
     },
   )
   const ItemAnimationBinding = MenuDefinition.bindChild(
@@ -1354,9 +1357,8 @@ const makeBlockParts = <Item extends string>() => {
     {
       field: 'animation',
       init: false,
-      outMessage: { fold: foldItemAnimationOutMessage },
     },
-  )
+  ).withOutMessagePolicy({ fold: foldItemAnimationOutMessage })
   const itemUpdate = internalUpdate(ItemAnimationBinding)
   type GenericReturn = RefineOutMessage<
     ReturnType<typeof itemUpdate>,

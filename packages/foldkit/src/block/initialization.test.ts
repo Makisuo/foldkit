@@ -35,7 +35,6 @@ const ChildMessage = defineMessageUnion({
   CompletedInitialization: { count: Schema.Number },
   CompletedIncrement: {},
 })
-type ChildMessage = typeof ChildMessage.Type
 
 const Child = makeDefinition('InitializationChild', {
   Model: ChildModel,

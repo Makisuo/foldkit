@@ -1,6 +1,6 @@
 import { ApplicationDefinition } from '../definition'
 import { RoomBlock } from '../page'
-import { ApplicationRoute } from '../route'
+import * as ApplicationRoute from '../route'
 
 export const RoomBinding = ApplicationDefinition.bindChild(RoomBlock, {
   field: 'maybeRoomInstance',
@@ -8,23 +8,11 @@ export const RoomBinding = ApplicationDefinition.bindChild(RoomBlock, {
   childField: 'model',
   delivery: {
     when: (model, roomId) =>
-      ApplicationRoute.matchOrElse(
-        model.route,
-        {
-          Room: route => route.roomId === roomId,
-        },
-        () => false,
-      ),
+      ApplicationRoute.isRoomRouteFor(model.route, roomId),
     toUpdateContext: (_model, roomId) => [{ roomId }],
   },
   subscriptions: {
     when: (model, roomId) =>
-      ApplicationRoute.matchOrElse(
-        model.route,
-        {
-          Room: route => route.roomId === roomId,
-        },
-        () => false,
-      ),
+      ApplicationRoute.isRoomRouteFor(model.route, roomId),
   },
 })

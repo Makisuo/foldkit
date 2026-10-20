@@ -7,9 +7,8 @@ import { VirtualList } from '@foldkit/ui'
 import { ScrollTarget as VirtualListScrollTarget } from '@foldkit/ui/virtualList'
 
 const ChatMessage = Schema.Struct({ id: Schema.String, body: Schema.String })
-type ChatMessage = typeof ChatMessage.Type
 
-const MessageList = VirtualList.create<ChatMessage>()
+const MessageList = VirtualList.create<typeof ChatMessage.Type>()
 
 const Model = Schema.Struct({
   messages: Schema.Array(ChatMessage),
@@ -32,12 +31,11 @@ const MessageListExampleDefinition = Block.makeDefinition(
 
 const foldMessageListOutMessage =
   MessageListExampleDefinition.makeOutMessageFold(MessageList, {
-    ObservedContainerScroll: () => MessageListExampleDefinition.stepNoop(),
+    ObservedContainerScroll: MessageListExampleDefinition.stepNoop,
   })
 
 const MessageListBinding = MessageListExampleDefinition.bindChild(MessageList, {
   field: 'messageList',
-  outMessage: { fold: foldMessageListOutMessage },
   init: {
     contextToArgs: () =>
       Tuple.make({
@@ -47,7 +45,7 @@ const MessageListBinding = MessageListExampleDefinition.bindChild(MessageList, {
         followEnd: { thresholdPx: 8 },
       }),
   },
-})
+}).withOutMessagePolicy({ fold: foldMessageListOutMessage })
 
 const MessageListExampleComposition =
   MessageListExampleDefinition.makeComposition({

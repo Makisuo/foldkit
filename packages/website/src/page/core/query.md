@@ -68,7 +68,7 @@ The `field` form tells `bindChild` which exact field contains the Query Model or
 
 #### Bound Operations
 
-- The parent Composition delegates `GotPostsMessage` to the Binding and writes the returned Query Model back to `model.posts`.
+- The parent Composition routes each generated Query delivery through the registered Binding and writes the returned Query Model back to `model.posts`.
 - `PostsBinding.requestLoadIfMissing()`, `PostsBinding.requestRevalidation()`, and `PostsBinding.requestRevalidationOrLoad()` return connected parent Steps that apply their loading rule to the current `AsyncData`. Their connected results expose no `.model` or `.commands` before the Composition consumes them. After checked execution, a requested load produces the readable next parent Model and the Query's `Fetch` Command; otherwise the readable result contains only the unchanged Model.
 - `PostsBinding.requestReset()` returns a connected parent Step. After checked execution, the Query value is `Idle` and retains its request identity. Its type still carries Query update's complete Fetch handler requirements even though reset itself returns no Fetch Command.
 

@@ -8,7 +8,7 @@ An accessible date picker that wraps `Calendar` in a `Popover`. Consumers provid
 
 `DatePickerBlock` is a completed Block. Declare its startup arguments on the Binding, register that Binding in the parent Composition, and render it through `Binding.embedView`. The Composition update routes the generated child envelope through the Binding automatically.
 
-The parent owns the selected date. Store it in the parent Model, pass it to the view as `maybeSelectedDate`, and handle `SelectedDate` and `ClearedDate` in the Binding's `outMessage.fold` policy. DatePicker can also emit `ChangedViewMonth` when navigation changes the visible month.
+The parent owns the selected date. Store it in the parent Model, pass it to the view as `maybeSelectedDate`, and handle `SelectedDate` and `ClearedDate` in the Binding's selected `fold` policy. DatePicker can also emit `ChangedViewMonth` when navigation changes the visible month.
 
 ### Programmatic Control
 
@@ -129,11 +129,11 @@ The discriminated union passed to `toCalendarView`. Pattern-match on `_tag` (`'D
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s `outMessage.fold` policy.
+Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s selected `fold` policy.
 
 | Name               | Type                              | Default | Description                                                                                                                                                                                                 |
 | ------------------ | --------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SelectedDate`     | `{ date: CalendarDate }`          | —       | Emitted when the user commits a date (click / Enter / Space). Handle it in the Binding's `outMessage.fold` policy to lift the date into domain state.                                                       |
+| `SelectedDate`     | `{ date: CalendarDate }`          | —       | Emitted when the user commits a date (click / Enter / Space). Handle it in the Binding's selected `fold` policy to lift the date into domain state.                                                         |
 | `ClearedDate`      | `{}`                              | —       | Emitted when the user clears the selected date (via `Cleared` or the Binding’s `requestClear()`). The popover stays open. Fold it into the parent-owned selected-date field by setting it to Option.none(). |
 | `ChangedViewMonth` | `{ year: number; month: number }` | —       | Emitted when navigation changes the visible month inside the calendar grid.                                                                                                                                 |
 

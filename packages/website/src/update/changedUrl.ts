@@ -19,7 +19,7 @@ import { findActiveSectionKeyForRoute } from '../docsNav'
 import { type Model } from '../model'
 import { ApplicationRoute, urlToApplicationRoute } from '../route'
 
-type ApplicationTransition = Transition.Transition<ApplicationRoute>
+type ApplicationTransition = Transition.Transition<typeof ApplicationRoute.Type>
 
 export const handleChangedUrl = ApplicationDefinition.step(
   (model, url: Url) => {
@@ -45,7 +45,10 @@ export const handleChangedUrl = ApplicationDefinition.step(
   },
 )
 
-const nextSidebarGroups = (model: Model, nextRoute: ApplicationRoute) =>
+const nextSidebarGroups = (
+  model: typeof Model.Type,
+  nextRoute: typeof ApplicationRoute.Type,
+) =>
   Option.match(findActiveSectionKeyForRoute(nextRoute), {
     onNone: () => model.sidebarGroups,
     onSome: activeSectionKey =>

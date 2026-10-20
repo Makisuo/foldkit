@@ -6,7 +6,6 @@ import { modifyFields } from 'foldkit/struct'
 import * as KeyedEntry from './keyedEntry'
 
 const Model = Schema.Struct({ entries: Schema.Array(KeyedEntry.Model) })
-type Model = typeof Model.Type
 const Message = defineMessageUnion({
   GotEntryMessage: { id: Schema.String, message: KeyedEntry.Message },
   ClickedUpdateEntryManually: {},

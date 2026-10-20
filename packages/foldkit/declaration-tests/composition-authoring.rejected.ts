@@ -93,30 +93,32 @@ SettingsComposition.assembleBlock({
   EffectsLayer: Layer.empty,
 })
 
-// @ts-expect-error A direct child with required dispatch context needs a delivery context mapper.
 ParentDefinition.bindChild(SettingsBlock, {
+  // @ts-expect-error A direct child with required dispatch context needs a delivery context mapper.
   field: 'settings',
+  // @ts-expect-error The invalid Binding configuration has no placement domain.
   placement: 'settingsWithoutContext',
-  outMessage: { forward: forwardSettingsOutMessage },
-})
+}).withOutMessagePolicy({ forward: forwardSettingsOutMessage })
 
-// @ts-expect-error Generated delivery requires the child's exact CurrentUser context tuple.
 ParentDefinition.bindChild(SettingsBlock, {
+  // @ts-expect-error Generated delivery requires the child's exact CurrentUser context tuple.
   field: 'settings',
+  // @ts-expect-error The invalid Binding configuration has no placement domain.
   placement: 'settingsWithoutCompleteContext',
+  // @ts-expect-error The empty tuple omits the child's required CurrentUser context.
   delivery: { toUpdateContext: () => [] },
-  outMessage: { forward: forwardSettingsOutMessage },
-})
+}).withOutMessagePolicy({ forward: forwardSettingsOutMessage })
 
-// @ts-expect-error Generated delivery does not reinsert the child Message or extra arguments.
 ParentDefinition.bindChild(SettingsBlock, {
+  // @ts-expect-error Generated delivery does not reinsert the child Message or extra arguments.
   field: 'settings',
+  // @ts-expect-error The invalid Binding configuration has no placement domain.
   placement: 'settingsWithExtraContext',
+  // @ts-expect-error Generated delivery accepts only the child's required CurrentUser context.
   delivery: {
     toUpdateContext: model => [model.currentUser, model.currentUser],
   },
-  outMessage: { forward: forwardSettingsOutMessage },
-})
+}).withOutMessagePolicy({ forward: forwardSettingsOutMessage })
 
 // @ts-expect-error A generated general keyed Binding requires an exact key Schema.
 ParentDefinition.bindChild(RoomBlock, {

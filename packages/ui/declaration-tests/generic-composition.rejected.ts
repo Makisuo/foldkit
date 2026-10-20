@@ -1,4 +1,5 @@
 import * as Animation from '@foldkit/ui/animation'
+import * as DragAndDrop from '@foldkit/ui/dragAndDrop'
 import * as Popover from '@foldkit/ui/popover'
 import * as Slider from '@foldkit/ui/slider'
 import * as Toast from '@foldkit/ui/toast'
@@ -7,6 +8,8 @@ import * as Tooltip from '@foldkit/ui/tooltip'
 import {
   ApplicationDefinition,
   DialogBinding,
+  DragAndDropBinding,
+  KeyedDragAndDropBinding,
   KeyedToastBinding,
   MenuFoldFixtureDefinition,
   MenuPicker,
@@ -107,6 +110,37 @@ ToastBlock.test.drainEntry({
 Toast.test.drainEntry({
   binding: OtherToastBinding,
   entryId: 'toast-entry-0',
+})
+// @ts-expect-error A keyed DragAndDrop fixture must select its occurrence.
+DragAndDrop.test.settleFocus({
+  binding: KeyedDragAndDropBinding,
+  itemId: 'card-1',
+})
+DragAndDrop.test.resolveKeyboardMove({
+  binding: KeyedDragAndDropBinding,
+  // @ts-expect-error The occurrence key retains the literal parent Schema type.
+  key: 'Secondary',
+  itemId: 'card-1',
+  targetContainerId: 'done',
+  targetIndex: 0,
+})
+DragAndDrop.test.settleFocus({
+  binding: DragAndDropBinding,
+  // @ts-expect-error An unkeyed fixture cannot receive an occurrence key.
+  key: 'Primary',
+  itemId: 'card-1',
+})
+DragAndDrop.test.resolveKeyboardMove({
+  // @ts-expect-error The helper requires a Binding of DragAndDropBlock.
+  binding: ToastBinding,
+  itemId: 'card-1',
+  targetContainerId: 'done',
+  targetIndex: 0,
+})
+DragAndDrop.test.settleFocus({
+  // @ts-expect-error A root Block helper call cannot receive an occurrence key.
+  key: 'Primary',
+  itemId: 'card-1',
 })
 Slider.SliderBlock.operations.informRangeChanged(
   Slider.SliderBlock.init({ id: 'invalid-range', min: 0, max: 100, step: 1 })

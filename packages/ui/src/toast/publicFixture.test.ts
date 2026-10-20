@@ -26,7 +26,6 @@ type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
   RequestedShowAll: {},
 })
-type ParentMessage = typeof ParentMessage.Type
 
 const ToastFixtureParentDefinition = Block.makeDefinition(
   'ToastFixtureParent',
@@ -50,22 +49,19 @@ const LeftToastBinding = ToastFixtureParentDefinition.bindChild(FirstToast, {
   placement: 'LeftToast',
   read: model => Option.some(model.left),
   write: (model, left) => ({ ...model, left }),
-  outMessage: { fold: foldFirstToastOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldFirstToastOutMessage })
 
 const RightToastBinding = ToastFixtureParentDefinition.bindChild(FirstToast, {
   placement: 'RightToast',
   read: model => Option.some(model.right),
   write: (model, right) => ({ ...model, right }),
-  outMessage: { fold: foldFirstToastOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldFirstToastOutMessage })
 
 const OtherToastBinding = ToastFixtureParentDefinition.bindChild(SecondToast, {
   placement: 'OtherToast',
   read: model => Option.some(model.other),
   write: (model, other) => ({ ...model, other }),
-  outMessage: { fold: foldSecondToastOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldSecondToastOutMessage })
 
 const ToastFixtureParentComposition =
   ToastFixtureParentDefinition.makeComposition({
@@ -108,7 +104,6 @@ const KeyedParentModel = Schema.Struct({
 })
 type KeyedParentModel = typeof KeyedParentModel.Type
 const KeyedParentMessage = defineMessageUnion({ RequestedShow: {} })
-type KeyedParentMessage = typeof KeyedParentMessage.Type
 const KeyedToastFixtureParentDefinition = Block.makeDefinition(
   'KeyedToastFixtureParent',
   {
@@ -134,11 +129,10 @@ const KeyedToastBinding = KeyedToastFixtureParentDefinition.bindChild(
           slot.key === key ? KeyedToastSlot.make({ key, toast }) : slot,
         ),
       }),
-    outMessage: {
-      fold: (_key, outMessage) => foldKeyedToastOutMessage(outMessage),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: (_key, outMessage) => foldKeyedToastOutMessage(outMessage),
+})
 const KeyedToastFixtureParentComposition =
   KeyedToastFixtureParentDefinition.makeComposition({
     bindings: [KeyedToastBinding],

@@ -1580,7 +1580,6 @@ describe('Query handler requirements', () => {
     expect(reset.model.data).toEqual(AsyncData.Idle())
 
     const ParentModel = Schema.Struct({ notes: served.Model })
-    type ParentModel = typeof ParentModel.Type
     const ParentDefinition = Block.makeDefinition('ServedNotesParent', {
       Model: ParentModel,
       Message: Schema.Never,

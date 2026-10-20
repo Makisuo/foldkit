@@ -212,13 +212,11 @@ export type ChildInitAssertions = [
 ]
 
 export const DirectModel = Schema.Struct({ value: Schema.Number })
-export type DirectModel = typeof DirectModel.Type
 
 export const DirectMessage = defineMessageUnion({
   RequestedReadDirectValue: {},
   CompletedReadDirectValue: { value: Schema.Number },
 })
-export type DirectMessage = typeof DirectMessage.Type
 
 const DeclarationTestsDirectDefinition = Block.makeDefinition(
   'DeclarationTestsDirect',
@@ -611,9 +609,7 @@ type CompletedChoiceIsExact = Expect<
 >
 
 const ChoiceParentModel = Schema.Struct({ choice: RefinedChoice.Model })
-type ChoiceParentModel = typeof ChoiceParentModel.Type
 const ChoiceParentMessage = Schema.Never
-type ChoiceParentMessage = typeof ChoiceParentMessage.Type
 const DeclarationTestsChoiceParentDefinition = Block.makeDefinition(
   'DeclarationTestsChoiceParent',
   {
@@ -628,9 +624,8 @@ export const RefinedChoiceBinding = ChoiceParent.bindChild(RefinedChoice, {
   placement: 'refined-choice',
   read: model => Option.some(model.choice),
   write: (_model, nextChoice) => ChoiceParentModel.make({ choice: nextChoice }),
-  outMessage: {
-    fold: outMessage => ChoiceParent.step(model => ({ model, outMessage })),
-  },
+}).withOutMessagePolicy({
+  fold: outMessage => ChoiceParent.step(model => ({ model, outMessage })),
 })
 
 const RefinedChoiceParentComposition = ChoiceParent.makeComposition({

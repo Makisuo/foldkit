@@ -7,7 +7,7 @@ const program = Program.make({
   block: ApplicationBlock,
   Flags,
   container: document.getElementById('root'),
-  devTools: { Message: ApplicationBlock.Message },
+  devTools: { dispatch: true },
 })
 
 Runtime.hydrate(program)

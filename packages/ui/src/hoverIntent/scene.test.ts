@@ -25,9 +25,8 @@ const HoverIntentBinding = HoverIntentSceneDefinition.bindChild(
   {
     read: model => Option.some(model),
     write: (_model, nextHoverIntent) => nextHoverIntent,
-    outMessage: { fold: foldHoverIntentOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
 
 const HoverIntentSceneComposition = HoverIntentSceneDefinition.makeComposition({
   bindings: [HoverIntentBinding],

@@ -208,7 +208,7 @@ Put the local Message constructor directly under `operations` when its payload i
 
 ::Snippet{name="antiPatternBlockBoundaryGood" label="✅ A public helper preserves the child's update boundary"}
 
-The Binding writes the returned child Model into the parent, maps its Commands, and applies the required `outMessage.fold` or `outMessage.forward` policy. The [Block guide](/core/block) explains child Messages and OutMessages. [Informing Blocks](/patterns/informing-blocks) covers parent-owned facts that a child needs to hear about.
+The Binding writes the returned child Model into the parent, maps its Commands, and applies the required `fold` or `forward` selected through `withOutMessagePolicy`. The [Block guide](/core/block) explains child Messages and OutMessages. [Informing Blocks](/patterns/informing-blocks) covers parent-owned facts that a child needs to hear about.
 
 ## Initialize Children Through Their Connections
 

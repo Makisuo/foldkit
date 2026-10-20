@@ -26,9 +26,8 @@ const DragAndDropBinding = DragAndDropSceneDefinition.bindChild(
   {
     read: model => Option.some(model),
     write: (_model, nextDragAndDrop) => nextDragAndDrop,
-    outMessage: { fold: foldDragAndDropOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
 
 const DragAndDropSceneComposition = DragAndDropSceneDefinition.makeComposition({
   bindings: [DragAndDropBinding],

@@ -49,14 +49,12 @@ export const EngineState = defineTaggedUnion({
   Ready: { engineId: Schema.String },
   Failed: { reason: Schema.String },
 })
-type EngineState = typeof EngineState.Type
 
 export const Model = Schema.Struct({
   engine: EngineState,
   computeCount: Schema.Number,
   maybeSquareResult: Schema.Option(Schema.Number),
 })
-export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedStartEngine: {},
@@ -68,8 +66,6 @@ export const Message = defineMessageUnion({
   SucceededCompute: { result: Schema.Number },
   FailedCompute: {},
 })
-
-export type Message = typeof Message.Type
 
 export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
@@ -189,7 +185,7 @@ const buttonClassName =
 
 const primaryButton = (
   label: string,
-  message: Message,
+  message: typeof Message.Type,
   colorClassName: string,
   isDisabled: boolean,
   h: ApplicationViewBuilder,
@@ -211,7 +207,7 @@ const primaryButton = (
   )
 
 const engineStatusView = (
-  engine: EngineState,
+  engine: typeof EngineState.Type,
   h: ApplicationViewBuilder,
 ): Html => {
   const status = EngineState.match(engine, {
@@ -237,7 +233,7 @@ const engineStatusView = (
 }
 
 const engineControlsView = (
-  engine: EngineState,
+  engine: typeof EngineState.Type,
   h: ApplicationViewBuilder,
 ): Html => {
   const controls = Match.value(engine).pipe(
@@ -280,7 +276,8 @@ const squareResultView = (
   return h.div([h.Class('text-gray-800')], [text])
 }
 
-const isEngineReady = (engine: EngineState): boolean => engine._tag === 'Ready'
+const isEngineReady = (engine: typeof EngineState.Type): boolean =>
+  engine._tag === 'Ready'
 
 export const view = ApplicationComposition.makeView((model, h) => {
   const isComputeDisabled = !isEngineReady(model.engine)

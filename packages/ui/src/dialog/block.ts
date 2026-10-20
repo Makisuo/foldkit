@@ -65,7 +65,6 @@ export const OutMessage = defineMessageUnion({
 export type Opened = typeof OutMessage.Opened.Type
 export type Closed = typeof OutMessage.Closed.Type
 export type CompletedClose = typeof OutMessage.CompletedClose.Type
-export type OutMessage = typeof OutMessage.Type
 
 const DialogDefinition = Block.makeDefinition('Dialog', {
   Model,
@@ -287,18 +286,16 @@ const foldAnimationOutMessage = DialogDefinition.makeOutMessageFold(
 const AnimationBinding = DialogDefinition.bindChild(Animation.AnimationBlock, {
   field: 'animation',
   init: false,
-  outMessage: { fold: foldAnimationOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
 const resumeAnimationAfterAcquisition = AnimationBinding.requestResume()
 const resetAnimationImmediately = AnimationBinding.requestImmediateReset()
 const closeDialogModel = DialogDefinition.stepFields(() => ({
   isOpen: () => false,
 }))
-const resetToClosed = Update.combine([
-  closeDialogModel,
-  resetAnimationImmediately,
-])
+const resetToClosed = DialogDefinition.step(() =>
+  Update.combine([closeDialogModel, resetAnimationImmediately]),
+)
 
 const DialogComposition = DialogDefinition.makeComposition({
   mounts,
@@ -329,11 +326,12 @@ export const update = DialogComposition.makeUpdate((model, message) =>
       )
       const dialogOpen = model.isAnimated
         ? Update.combine(model, [
-            stepModel => ({ model: stepModel, commands }),
+            DialogDefinition.step(stepModel => ({
+              model: stepModel,
+              commands,
+            })),
             AnimationBinding.requestShow(),
-            stepModel => ({
-              model: modifyFields(stepModel, { isOpen: () => true }),
-            }),
+            DialogDefinition.stepFields(() => ({ isOpen: () => true })),
           ])
         : { model: modifyFields(model, { isOpen: () => true }), commands }
 
@@ -350,9 +348,7 @@ export const update = DialogComposition.makeUpdate((model, message) =>
       const wasOpen = model.isOpen
       if (model.isAnimated) {
         const dialogClose = Update.combine(model, [
-          stepModel => ({
-            model: modifyFields(stepModel, { isOpen: () => false }),
-          }),
+          closeDialogModel,
           AnimationBinding.requestHide(),
         ])
 
@@ -378,10 +374,10 @@ export const update = DialogComposition.makeUpdate((model, message) =>
       if (isOpenOrAnimating(model)) {
         return Update.combine(model, [
           resetToClosed,
-          stepModel => ({
+          DialogDefinition.step(stepModel => ({
             model: stepModel,
             commands: [ReleaseDialogResources({ id: stepModel.id })],
-          }),
+          })),
         ])
       } else {
         return { model }

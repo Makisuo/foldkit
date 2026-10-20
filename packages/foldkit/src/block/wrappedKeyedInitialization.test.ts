@@ -69,7 +69,6 @@ const Entry = Schema.Struct({
   child: ChildModel,
   label: Schema.String,
 })
-type Entry = typeof Entry.Type
 
 const ParentModel = Schema.Struct({
   entries: Schema.Array(Entry),

@@ -167,20 +167,19 @@ export const foldConditionalChoice =
   })
 export const ChildBinding = DeclarationFoldParentDefinition.bindChild(
   ChildBlock,
-  { field: 'child', outMessage: { fold: foldChoice } },
-)
+  { field: 'child' },
+).withOutMessagePolicy({ fold: foldChoice })
 export const SiblingBinding = DeclarationFoldParentDefinition.bindChild(
   ChildBlock,
   {
     field: 'sibling',
-    outMessage: {
-      fold: DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
-        Chose: () => DeclarationFoldParentDefinition.stepNoop(),
-        Closed: () => DeclarationFoldParentDefinition.stepNoop(),
-      }),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
+    Chose: () => DeclarationFoldParentDefinition.stepNoop(),
+    Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+  }),
+})
 export const foldWithInit = DeclarationFoldParentDefinition.makeOutMessageFold(
   ChildBlock,
   {
@@ -219,8 +218,7 @@ export const foldToSibling = DeclarationFoldParentDefinition.makeOutMessageFold(
 export const CoordinatedChildBinding =
   DeclarationFoldParentDefinition.bindChild(ChildBlock, {
     field: 'child',
-    outMessage: { fold: foldToSibling },
-  })
+  }).withOutMessagePolicy({ fold: foldToSibling })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture compares two graphs authored by one Definition.
 export const DeclarationCoordinatedComposition =
   DeclarationFoldParentDefinition.makeComposition({
@@ -272,12 +270,11 @@ export const RootRecord = DeclarationFoldRootDefinition.command('Record', {
 })
 export const RootBinding = DeclarationFoldRootDefinition.bindChild(ChildBlock, {
   field: 'child',
-  outMessage: {
-    fold: DeclarationFoldRootDefinition.makeOutMessageFold(ChildBlock, {
-      Chose: () => model => ({ model, commands: [RootRecord()] }),
-      Closed: () => DeclarationFoldRootDefinition.stepNoop(),
-    }),
-  },
+}).withOutMessagePolicy({
+  fold: DeclarationFoldRootDefinition.makeOutMessageFold(ChildBlock, {
+    Chose: () => model => ({ model, commands: [RootRecord()] }),
+    Closed: () => DeclarationFoldRootDefinition.stepNoop(),
+  }),
 })
 export const DeclarationFoldRootComposition =
   DeclarationFoldRootDefinition.makeComposition({ bindings: [RootBinding] })

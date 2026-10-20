@@ -1,4 +1,4 @@
-import { Layer, Option, Schema } from 'effect'
+import { Option, Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
@@ -7,11 +7,10 @@ const RoomModel = Schema.Struct({ title: Schema.String })
 const RoomMessage = defineMessageUnion({
   RequestedRename: { title: Schema.String },
 })
-const RoomDefinition = Block.makeDefinition('Room', {
+const RoomComposition = Block.makeDefinition('Room', {
   Model: RoomModel,
   Message: RoomMessage,
-})
-const RoomComposition = RoomDefinition.makeComposition()
+}).makeComposition()
 const RoomBlock = RoomComposition.assembleBlock({
   init: RoomComposition.makeInit((title: string) => ({ model: { title } })),
   update: RoomComposition.makeUpdate((model, message) =>
@@ -22,7 +21,6 @@ const RoomBlock = RoomComposition.assembleBlock({
     }),
   ),
   operations: { requestRename: RoomMessage.RequestedRename },
-  EffectsLayer: Layer.empty,
 })
 
 const RoomInstance = Schema.Struct({

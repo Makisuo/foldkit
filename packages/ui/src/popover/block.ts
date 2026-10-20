@@ -78,7 +78,6 @@ export const OutMessage = defineMessageUnion({
   Opened: {},
   Closed: {},
 })
-export type OutMessage = typeof OutMessage.Type
 
 export type Opened = typeof OutMessage.Opened.Type
 export type Closed = typeof OutMessage.Closed.Type
@@ -319,15 +318,14 @@ const foldAnimationOutMessage = PopoverDefinition.makeOutMessageFold(
   {
     StartedLeaveAnimating: ({ generation }) =>
       detectPopoverMovementOrAnimationEnd(generation),
-    TransitionedOut: () => PopoverDefinition.stepNoop(),
+    TransitionedOut: PopoverDefinition.stepNoop,
   },
 )
 
 const AnimationBinding = PopoverDefinition.bindChild(Animation.AnimationBlock, {
   field: 'animation',
   init: false,
-  outMessage: { fold: foldAnimationOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
 const PopoverComposition = PopoverDefinition.makeComposition({
   mounts,
@@ -361,11 +359,12 @@ const internalUpdate = (model: Model, message: AuthoredMessage) => {
       return PopoverDefinition.step(() =>
         Function.compose(
           Update.combine([
-            () => ({ model: baseModel, commands: openCommands }),
+            PopoverDefinition.step(() => ({
+              model: baseModel,
+              commands: openCommands,
+            })),
             AnimationBinding.requestShow(),
-            stepModel => ({
-              model: modifyFields(stepModel, { isOpen: () => true }),
-            }),
+            PopoverDefinition.stepFields(() => ({ isOpen: () => true })),
           ]),
           Update.withOutMessage(OutMessage.Opened()),
         ),
@@ -393,7 +392,7 @@ const internalUpdate = (model: Model, message: AuthoredMessage) => {
       return PopoverDefinition.step(() =>
         Function.compose(
           Update.combine([
-            () => ({ model: closed, commands }),
+            PopoverDefinition.step(() => ({ model: closed, commands })),
             AnimationBinding.requestHide(),
           ]),
           Update.withOutMessage(OutMessage.Closed()),
@@ -438,7 +437,10 @@ const internalUpdate = (model: Model, message: AuthoredMessage) => {
             return PopoverDefinition.step(() =>
               Function.compose(
                 Update.combine([
-                  () => ({ model: closed, commands: closeWithFocusCommands }),
+                  PopoverDefinition.step(() => ({
+                    model: closed,
+                    commands: closeWithFocusCommands,
+                  })),
                   AnimationBinding.requestHide(),
                 ]),
                 Update.withOutMessage(OutMessage.Closed()),

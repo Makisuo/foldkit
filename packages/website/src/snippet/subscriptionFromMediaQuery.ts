@@ -5,12 +5,10 @@ import { defineMessageUnion } from 'foldkit/message'
 const Message = defineMessageUnion({
   ChangedReducedMotion: { isReducedMotion: Schema.Boolean },
 })
-type Message = typeof Message.Type
 
 const Model = Schema.Struct({
   isReducedMotion: Schema.Boolean,
 })
-type Model = typeof Model.Type
 
 const MotionPreferencesDefinition = Block.makeDefinition('MotionPreferences', {
   Model,

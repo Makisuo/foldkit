@@ -3,7 +3,6 @@
 import { SettingsDefinition } from './definition'
 
 export const Theme = Schema.Literals(['Light', 'Dark'])
-export type Theme = typeof Theme.Type
 
 export const Message = defineMessageUnion({
   RequestedRestore: { theme: Theme },

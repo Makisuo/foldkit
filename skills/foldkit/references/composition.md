@@ -166,8 +166,7 @@ delivery policy.
 ```ts
 export const SettingsBinding = ProfileDefinition.bindChild(SettingsBlock, {
   field: 'settings',
-  outMessage: { fold: foldSettingsOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldSettingsOutMessage })
 
 export const ProfileComposition = ProfileDefinition.makeComposition({
   bindings: [SettingsBinding],
@@ -188,15 +187,17 @@ update owns the transition. Render through
 
 ## OutMessages and sibling policy
 
-Keep each local OutMessage fold as a standalone value built with
-`ParentDefinition.makeOutMessageFold(WholeChildBlock, handlers)`. Name every
-variant directly in the handler record, including the only variant in a union.
-Missing and extra handlers fail type checking. Passing the whole completed
-child preserves the exact factory-refined OutMessage payload and child Message
-contract. The parent Definition supplies the parent Model, Message, and
-OutMessage contracts. The returned Steps retain inferred Command requirements
-and sibling Binding evidence for Composition to check, so do not repeat Step
-or payload type arguments.
+Inline an ordinary unkeyed fold as
+`bindChild(WholeChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(WholeChildBlock, handlers) })`.
+Pass the completed child explicitly to `makeOutMessageFold` whether the fold is
+inline, extracted, adapted for keyed policy, or staged for reciprocal
+composition. Keep substantial transition helpers beside their fold. Name every variant directly
+in the handler record, including the only variant in a union. Missing and extra
+handlers fail type checking, and factory-refined payloads stay precise. The
+parent Definition supplies the parent Model, Message, and OutMessage contracts.
+The returned Steps retain inferred Command requirements and sibling Binding
+evidence for Composition to check, so do not repeat Step or payload type
+arguments.
 
 A handler takes the inferred `FoldContext` as its second parameter only when it
 uses `liftCommand` or `modelBeforeUpdate`. The resulting fold stays unary when
@@ -205,18 +206,31 @@ keyed fold uses the collection key or other call-site context. Let
 Command-producing and parent-OutMessage-producing handlers keep the channels
 inferred by the owning Definition.
 
-When a handler returns an operation from the same Binding being defined, or a
-reciprocal pair makes TypeScript report a recursive initializer, keep that
-local fold on the child union's exhaustive `OutMessage.match`. Author returned
-Steps with the parent Definition. Binding registration still checks the
-completed policy. Reciprocal policies that infer normally continue to use
-`makeOutMessageFold`.
+Use `ParentDefinition.makeOutMessageForward(handlers)` inline under
+`withOutMessagePolicy({ forward })` when at least one variant continues through
+the current Block's OutMessage. Pass the completed child explicitly when
+extracting or adapting the forward. The helper is available only when the
+parent Definition declares OutMessages. Every handler returns a declared parent
+OutMessage or `undefined`, and every variant remains named even when it stops.
+Local handling still runs for a forwarded variant, and a derived parent
+OutMessage takes precedence for that dispatch.
 
-`outMessage.fold` applies parent policy locally. Add `outMessage.forward` only
-when at least one variant continues through the current Block's OutMessage.
-Match every variant with the child union's direct matcher and return `undefined` for named variants that stop. Local
-handling still runs for a forwarded variant, and a derived parent OutMessage
-takes precedence for that dispatch.
+Select the callable `fold` and `forward` through
+`bindChild(...).withOutMessagePolicy({ fold?, forward? })`. The returned value is
+the full Binding to register and use. Keep an ordinary one-way policy fluent.
+When a fold calls an operation on the same Binding, or two policies call each
+other's Binding operations, declare the original `FooBinding` values first.
+Author the Definition helpers against those values, then select and register
+`FooBindingWithOutMessagePolicy`. Do not use a raw child matcher, annotations,
+casts, or generic argument lists to work around inference.
+
+Policy selection is passive and immutable. It retains the original child
+Binding identity, projected operations, keyed occurrence identity, and
+lifecycle scopes. It does not build Layers, run handlers, or start effects.
+Composition rejects a child with OutMessages whose selected Binding has no
+policy, an incomplete handler record, and an operation that reaches an
+unregistered sibling. Runtime validation supplements these checks for plain
+JavaScript callers.
 
 Policy may return parent Steps and call a registered sibling Binding operation.
 Connected Binding Steps require their exact registered graph when applied to a

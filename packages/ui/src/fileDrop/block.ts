@@ -1,4 +1,4 @@
-import { Array, Layer, Schema } from 'effect'
+import { Array, Schema } from 'effect'
 import { type Update } from 'foldkit'
 import * as Block from 'foldkit/block'
 import * as File from 'foldkit/file'
@@ -165,5 +165,4 @@ export const FileDropBlock = FileDropComposition.assembleBlock({
   init,
   update,
   view,
-  EffectsLayer: Layer.empty,
 })

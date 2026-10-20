@@ -2,13 +2,11 @@ import { Array, Schema, Tuple } from 'effect'
 import { Block } from 'foldkit'
 import { childAttributes } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { Combobox } from '@foldkit/ui'
 import { inputId as MultiComboboxInputId } from '@foldkit/ui/combobox'
 
 const City = Schema.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
-type City = typeof City.Type
 
 const CitiesCombobox = Combobox.Multi.create(City)
 
@@ -28,25 +26,21 @@ const CitiesPickerDefinition = Block.makeDefinition('CitiesPicker', {
 const foldComboboxMultiOutMessage = CitiesPickerDefinition.makeOutMessageFold(
   CitiesCombobox,
   {
-    Selected:
-      ({ value }) =>
-      model => ({
-        model: modifyFields(model, {
-          selectedCities: selectedCities =>
-            Array.contains(selectedCities, value)
-              ? Array.filter(selectedCities, city => city !== value)
-              : Array.append(selectedCities, value),
-        }),
-      }),
-    ClearedSelection: () => CitiesPickerDefinition.stepNoop(),
+    Selected: ({ value }) =>
+      CitiesPickerDefinition.stepFields(() => ({
+        selectedCities: selectedCities =>
+          Array.contains(selectedCities, value)
+            ? Array.filter(selectedCities, city => city !== value)
+            : Array.append(selectedCities, value),
+      })),
+    ClearedSelection: CitiesPickerDefinition.stepNoop,
   },
 )
 
 const ComboboxBinding = CitiesPickerDefinition.bindChild(CitiesCombobox, {
   field: 'comboboxMulti',
   init: { contextToArgs: () => Tuple.make({ id: 'cities-multi' }) },
-  outMessage: { fold: foldComboboxMultiOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldComboboxMultiOutMessage })
 
 // Including the Binding collects its lifecycle and handler graph.
 
@@ -62,7 +56,7 @@ const init = CitiesPickerComposition.makeInit(() => ({
 
 const update = CitiesPickerComposition.makeUpdate()
 
-const cities: ReadonlyArray<City> = [
+const cities: ReadonlyArray<typeof City.Type> = [
   'Johannesburg',
   'Kyiv',
   'Oxford',

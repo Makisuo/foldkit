@@ -1,6 +1,5 @@
 import { Tuple } from 'effect'
 import type { Block } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
 
 import { AsyncCounterDemoBlock } from './asyncCounterDemo'
 import { HomeDefinition } from './definition'
@@ -9,35 +8,27 @@ import { OutMessage } from './message'
 import { NotePlayerDemoBlock } from './notePlayerDemo'
 import { PlaygroundMenuBlock } from './playgroundMenu'
 
-const foldDemoTabsOutMessage = HomeDefinition.makeOutMessageFold(
-  DemoTab.DemoTabsBlock,
-  {
-    Selected:
-      ({ value }) =>
-      model => ({
-        model: modifyFields(model, { activeDemoTab: () => value }),
-      }),
-  },
-)
-
 export const DemoTabsBinding = HomeDefinition.bindChild(DemoTab.DemoTabsBlock, {
   field: 'demoTabs',
-  outMessage: { fold: foldDemoTabsOutMessage },
   init: { contextToArgs: () => Tuple.make({ id: 'demo-tabs' }) },
+}).withOutMessagePolicy({
+  fold: HomeDefinition.makeOutMessageFold(DemoTab.DemoTabsBlock, {
+    Selected: ({ value }) =>
+      HomeDefinition.stepFields(() => ({ activeDemoTab: () => value })),
+  }),
 })
 
 const foldPlaygroundMenuOutMessage = HomeDefinition.makeOutMessageFold(
   PlaygroundMenuBlock,
   {
-    Selected:
-      ({ value }) =>
-      model => ({
+    Selected: ({ value }) =>
+      HomeDefinition.step(model => ({
         model,
         outMessage: OutMessage.SelectedPlaygroundExample({
           exampleSlug: value,
         }),
-      }),
-    Closed: () => HomeDefinition.stepNoop(),
+      })),
+    Closed: HomeDefinition.stepNoop,
   },
 )
 
@@ -45,13 +36,12 @@ export const PlaygroundMenuBinding = HomeDefinition.bindChild(
   PlaygroundMenuBlock,
   {
     field: 'playgroundMenu',
-    outMessage: { fold: foldPlaygroundMenuOutMessage },
     init: {
       contextToArgs: () =>
         Tuple.make({ id: 'playground-menu', isAnimated: true }),
     },
   },
-)
+).withOutMessagePolicy({ fold: foldPlaygroundMenuOutMessage })
 
 export const AsyncCounterDemoBinding = HomeDefinition.bindChild(
   AsyncCounterDemoBlock,

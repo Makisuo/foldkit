@@ -93,17 +93,13 @@ const FruitSelectionDefinition = Block.makeDefinition('FruitSelection', {
 
 const PickerBinding = FruitSelectionDefinition.bindChild(FruitPicker, {
   field: 'picker',
-  outMessage: {
-    fold: FruitSelectionDefinition.makeOutMessageFold(FruitPicker, {
-      Selected:
-        ({ value }) =>
-        model => ({
-          model: modifyFields(model, {
-            selectionHistory: Array.append(value),
-          }),
-        }),
-    }),
-  },
+}).withOutMessagePolicy({
+  fold: FruitSelectionDefinition.makeOutMessageFold(FruitPicker, {
+    Selected: ({ value }) =>
+      FruitSelectionDefinition.stepFields(() => ({
+        selectionHistory: Array.append(value),
+      })),
+  }),
 })
 
 export const selectApple = PickerBinding.requestSelectValue('Apple')

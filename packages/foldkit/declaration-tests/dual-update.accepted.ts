@@ -376,7 +376,6 @@ const GraphFullMessage = defineMessageUnion({
   ChangedCount: { amount: Schema.Number },
   CompletedSave: {},
 })
-type GraphFullMessage = typeof GraphFullMessage.Type
 const GraphFullOutMessage = defineMessageUnion({
   ReportedCount: { count: Schema.Number },
 })
@@ -490,7 +489,6 @@ type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
   ChangedLabel: { label: Schema.Literals(['Primary', 'Secondary']) },
 })
-type ParentMessage = typeof ParentMessage.Type
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 const ParentDefinition = Block.makeDefinition('DualUpdatePrototypeParent', {
   Model: ParentModel,

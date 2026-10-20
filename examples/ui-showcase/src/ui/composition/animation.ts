@@ -11,12 +11,11 @@ const foldAnimationDemoOutMessage = UiDefinition.makeOutMessageFold(
         model,
         commands: [liftCommand(defaultLeaveCommand(model.animationDemo))],
       })),
-    TransitionedOut: () => UiDefinition.stepNoop(),
+    TransitionedOut: UiDefinition.stepNoop,
   },
 )
 
 export const AnimationDemoBinding = UiDefinition.bindChild(AnimationBlock, {
   field: 'animationDemo',
   init: { contextToArgs: () => [{ id: 'animation-demo' }] },
-  outMessage: { fold: foldAnimationDemoOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldAnimationDemoOutMessage })

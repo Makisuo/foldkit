@@ -2,7 +2,7 @@
 
 ## Overview
 
-Organize a Foldkit application around ownership. A feature owns its state machine and local effects. Its parent owns the policy that connects it to siblings and the application. The browser entry owns completion, Service provision, and Runtime startup.
+Organize a Foldkit application around ownership. A feature owns its state machine and local effects. Its parent owns the policy that connects it to siblings and the application. The browser entry owns host configuration, Service provision, and Runtime startup.
 
 Keep three boundaries visible as the application grows:
 
@@ -13,7 +13,7 @@ Keep three boundaries visible as the application grows:
 | Completion  | `block.ts` or compact `application.ts`                       | Packages implementation as a completed Block                                               |
 | Host        | `entry.ts`                                                   | Chooses page or element ownership, supplies Services, and starts Runtime                   |
 
-`bindChild` configures one parent-child relationship. Including that Binding in `makeComposition({ bindings })` registers it. Both calls and `assembleBlock` are passive. `Program.make` or `Program.makeElement` adds host behavior without starting anything. A browser Runtime builds Layers, calls init, and starts effects after the entry starts it.
+`bindChild` configures one parent-child relationship. A child with OutMessages then selects its parent-owned policy through `withOutMessagePolicy`. Including that full Binding in `makeComposition({ bindings })` registers it. These calls and `assembleBlock` are passive: they do not build Layers, run handlers, or start lifecycle work. `Program.make` or `Program.makeElement` adds host behavior without starting anything. A browser Runtime builds Layers, calls init, and starts effects after the entry starts it.
 
 ## Starting Simple
 
@@ -36,6 +36,10 @@ Split a module when separate responsibilities make it easier to navigate. The fo
 ::Snippet{name="fileLayout" label="Application and feature file structure"}
 
 Use standard structural names within each feature: `Model`, `Message`, `OutMessage`, `Flags`, `init`, `update`, `view`, `subscriptions`, `managedResources`, `mounts`, and `EffectsLayer`. The completed Block supplies context in parent code, such as `HomeBlock.Model` and `HomeBlock.Message`. Declare only local facts in a feature's `Message`; Composition adds child delivery to its complete Message Schema. Domain Schemas and individual effects retain descriptive names such as `Person`, `FetchPeople`, and `FocusSearchInput`.
+
+Use direct Schema type queries for routine application annotations. Inside the feature that owns a Schema, write `typeof Model.Type`, `typeof Message.Type`, or `typeof OutMessage.Type`; this keeps the query on the local contract and avoids importing the completed Block back into its implementation. A parent or other consumer queries the completed child instead, such as `typeof SearchBlock.Model.Type`, `typeof SearchBlock.Message.Type`, or `typeof SearchBlock.OutMessage.Type`. Let Definition and Composition callbacks infer owned parameters.
+
+Do not add colocated aliases such as `type Model = typeof Model.Type` merely to shorten those queries. Purposeful aliases remain appropriate for public library contracts and for generic, mapped, or conditional types such as `Block.ViewBuilderFor<typeof FeatureComposition>`. Existing external application aliases remain valid TypeScript; this is an application organization preference rather than a framework API restriction.
 
 ### Early Contracts and Local Effects
 
@@ -71,7 +75,7 @@ Registration grants the view permission to use the Mount. Completion supplies it
 
 ### Substantial Binding Policy
 
-A Binding also contains the parent's integration policy for its child. Extract a supporting file when that policy includes substantial OutMessage handling, custom Model writes, or Command lifting. For example, an Editor's Dialog policy may save the draft when the Dialog closes:
+A Binding also contains the parent's integration policy for its child. Inline a short unkeyed policy with `bindChild(ChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(ChildBlock, handlers) })`. A fold always names its completed child, including when it is inline. Use contextual `makeOutMessageForward(handlers)` when the parent declares OutMessages and forwards at least one variant; pass the completed child explicitly when extracting the forward. Extract a supporting file when the policy includes substantial OutMessage handling, custom Model writes, or Command lifting. For example, an Editor's Dialog policy may save the draft when the Dialog closes:
 
 ::Snippet{name="organizationDialogPolicy" label="Extracted Dialog integration policy"}
 
@@ -85,7 +89,7 @@ The directory barrel exports the intended assembly surface explicitly:
 
 Do not create arbitrary groups such as pages or controls, a second `bindings` list, or a global list of Bindings. The root follows the same directory layout: `composition/composition.ts` owns graph assembly and `composition/index.ts` exports its intended surface. The assembly imports extracted policies directly from their sibling modules, and the barrel re-exports actual values such as `HomeBinding`, `RoomBinding`, and `ApplicationComposition`. External consumers import from `composition.ts` or that explicit barrel, never from a policy or assembly implementation path. Use a factory only when constructing the Binding requires caller-owned configuration. Do not add a namespace or factory merely to group one policy file.
 
-A substantial one-way policy may live in its own file. Keep reciprocal policies in the same parent assembly module so each side can refer to the other Binding. Put the reciprocal call behind a policy callback that runs when Foldkit applies the fold; the callback may close over a sibling Binding declared later in the module. This keeps the coordination in one parent-owned graph without introducing circular imports.
+A substantial one-way policy may live in its own file and usually keeps the fluent Binding declaration. Keep self-referential and reciprocal policies in the same parent assembly module. Declare the ordinary Bindings first, author the folds against those operation-bearing values, then select `FooBindingWithOutMessagePolicy` values and register those selected values. This keeps the coordination in one parent-owned graph without circular imports or recursive initializer annotations.
 
 ### Views, Behavior, and Import Direction
 
@@ -101,7 +105,7 @@ Keep substantial URL-change handling in `update/changedUrl.ts`. Prepare the next
 
 ## Root Application Assembly
 
-In a split root, `composition.ts` owns the complete child and Mount graph and `ApplicationComposition`. Put straightforward root Bindings and their OutMessage folds directly beside its `ApplicationDefinition.makeComposition` call. Extract substantial policies to files such as `composition/home.ts`; then `composition/composition.ts` owns assembly, `composition/index.ts` is an explicit barrel, and the assembly module imports those policies directly from sibling modules. Composition depends on `definition.ts`, completed children, and local policy declarations. It never imports root init, update, or view.
+In a split root, `composition.ts` owns the complete child and Mount graph and `ApplicationComposition`. Put straightforward root Bindings and their OutMessage folds directly beside its `ApplicationDefinition.makeComposition` call. Register the policy-selected Binding when a child declares OutMessages. Extract substantial policies to files such as `composition/home.ts`; then `composition/composition.ts` owns assembly, `composition/index.ts` is an explicit barrel, and the assembly module imports those policies directly from sibling modules. Composition depends on `definition.ts`, completed children, and local policy declarations. It never imports root init, update, or view.
 
 ::Snippet{name="applicationRegistrations" label="Root child graph"}
 

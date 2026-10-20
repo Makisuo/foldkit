@@ -2,17 +2,20 @@ import { ApplicationDefinition } from './definition'
 import * as Home from './home'
 import * as Room from './room'
 
+export const HomeBinding = ApplicationDefinition.bindChild(Home.HomeBlock, {
+  field: 'home',
+})
+
+export const RoomBinding = ApplicationDefinition.bindChild(Room.RoomBlock, {
+  field: 'room',
+})
+
 const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(
   Home.HomeBlock,
   {
     SelectedRoom: ({ roomId }) => RoomBinding.requestOpen(roomId),
   },
 )
-
-export const HomeBinding = ApplicationDefinition.bindChild(Home.HomeBlock, {
-  field: 'home',
-  outMessage: { fold: foldHomeOutMessage },
-})
 
 const foldRoomOutMessage = ApplicationDefinition.makeOutMessageFold(
   Room.RoomBlock,
@@ -21,11 +24,18 @@ const foldRoomOutMessage = ApplicationDefinition.makeOutMessageFold(
   },
 )
 
-export const RoomBinding = ApplicationDefinition.bindChild(Room.RoomBlock, {
-  field: 'room',
-  outMessage: { fold: foldRoomOutMessage },
-})
+export const HomeBindingWithOutMessagePolicy = HomeBinding.withOutMessagePolicy(
+  {
+    fold: foldHomeOutMessage,
+  },
+)
+
+export const RoomBindingWithOutMessagePolicy = RoomBinding.withOutMessagePolicy(
+  {
+    fold: foldRoomOutMessage,
+  },
+)
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
-  bindings: [HomeBinding, RoomBinding],
+  bindings: [HomeBindingWithOutMessagePolicy, RoomBindingWithOutMessagePolicy],
 })

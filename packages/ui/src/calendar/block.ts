@@ -102,7 +102,6 @@ export const OutMessage = defineMessageUnion({
   },
   SelectedDate: { date: CalendarDomain.CalendarDate },
 })
-export type OutMessage = typeof OutMessage.Type
 
 export type ChangedViewMonth = typeof OutMessage.ChangedViewMonth.Type
 export type SelectedDate = typeof OutMessage.SelectedDate.Type

@@ -13,9 +13,8 @@ const Activity = Schema.Struct({
   label: Schema.String,
   timeAgo: Schema.String,
 })
-type Activity = typeof Activity.Type
 
-const ActivityList = VirtualList.create<Activity>()
+const ActivityList = VirtualList.create<typeof Activity.Type>()
 
 // Add a field to your Model for the VirtualList Block. The list items
 // stay in your domain Model (your own `activities`, `messages`, `rows`,
@@ -41,19 +40,18 @@ const ActivityListExampleDefinition = Block.makeDefinition(
 
 const foldActivityListOutMessage =
   ActivityListExampleDefinition.makeOutMessageFold(ActivityList, {
-    ObservedContainerScroll: () => ActivityListExampleDefinition.stepNoop(),
+    ObservedContainerScroll: ActivityListExampleDefinition.stepNoop,
   })
 
 const ActivityListBinding = ActivityListExampleDefinition.bindChild(
   ActivityList,
   {
     field: 'activityList',
-    outMessage: { fold: foldActivityListOutMessage },
     init: {
       contextToArgs: () => Tuple.make({ id: 'activity-list', rowHeightPx: 56 }),
     },
   },
-)
+).withOutMessagePolicy({ fold: foldActivityListOutMessage })
 
 const ActivityListExampleComposition =
   ActivityListExampleDefinition.makeComposition({

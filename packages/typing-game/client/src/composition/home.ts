@@ -42,7 +42,7 @@ const initRoomInstance = (roomId: string) =>
     }),
   )
 
-const enterJoinedRoom = (roomId: string, player: Shared.Player) =>
+const enterJoinedRoom = (roomId: string, player: typeof Shared.Player.Type) =>
   Update.combine([
     initRoomInstance(roomId),
     RoomBinding.informJoined(roomId, { player }, { roomId }),
@@ -57,5 +57,4 @@ const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(HomeBlock, {
 export const HomeBinding = ApplicationDefinition.bindChild(HomeBlock, {
   field: 'home',
   presentWhen: model => ApplicationRoute.guards.Home(model.route),
-  outMessage: { fold: foldHomeOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldHomeOutMessage })

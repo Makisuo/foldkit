@@ -1,7 +1,12 @@
-import { Array, Predicate, Schema } from 'effect'
+import { Predicate } from 'effect'
 
 import type * as Update from '../update/index.js'
 import type { AnyBlock, ValidateDefinitionStepOutput } from './definition.js'
+import {
+  assertChildOutMessageHandlers,
+  registerOutMessageHandler,
+} from './outMessageHandlers.js'
+import type { OutMessageHelperEvidence } from './outMessageHelperEvidence.js'
 
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 
@@ -264,7 +269,7 @@ export interface OutMessageFold<
   ChildOutMessage,
   Step,
   Context extends ReadonlyArray<unknown>,
-> {
+> extends OutMessageHelperEvidence<ChildOutMessage, 'fold'> {
   (outMessage: ChildOutMessage, ...context: Context): Step
 }
 
@@ -274,9 +279,8 @@ export interface OutMessageFold<
  * parent Step; its Commands and connected Binding requirements remain inferred.
  *
  * Pass the completed child Block so refined OutMessage payloads and the child
- * Message type used by Command lifters remain available. A handler may take
- * FoldContext as its second argument. The resulting fold requires that context
- * only when a handler declares it.
+ * Message type used by FoldContext remain available. The resulting fold
+ * requires FoldContext only when a handler declares it.
  */
 export interface MakeOutMessageFold<Model, Message, OutMessage> {
   /**
@@ -295,95 +299,37 @@ export interface MakeOutMessageFold<Model, Message, OutMessage> {
   >
 }
 
-const assertOutMessageFoldConfig: (
-  child: unknown,
-  cases: unknown,
-) => asserts cases is Readonly<Record<string, AnyFunction>> = (
-  child,
-  cases,
-) => {
-  if (
-    !Predicate.isObject(child) ||
-    !Schema.isSchema(Reflect.get(child, 'Model')) ||
-    !Schema.isSchema(Reflect.get(child, 'Message')) ||
-    !Predicate.isFunction(Reflect.get(child, 'init')) ||
-    !Predicate.isFunction(Reflect.get(child, 'update')) ||
-    !Array.isArray(Reflect.get(child, 'bindings')) ||
-    !Array.isArray(Reflect.get(child, 'hostHandlers'))
-  ) {
-    throw new Error(
-      '[foldkit] Definition.makeOutMessageFold requires a completed child Block.',
-    )
-  }
-
-  const outMessage = Reflect.get(child, 'OutMessage')
-  if (!Schema.isSchema(outMessage)) {
-    throw new Error(
-      '[foldkit] Definition.makeOutMessageFold requires a child Block with an OutMessage Schema.',
-    )
-  }
-
-  const variants = Reflect.get(outMessage, 'cases')
-  if (!Predicate.isObject(variants) || globalThis.Array.isArray(variants)) {
-    throw new Error(
-      '[foldkit] Definition.makeOutMessageFold requires a tagged child OutMessage union.',
-    )
-  }
-  if (!Predicate.isObject(cases) || globalThis.Array.isArray(cases)) {
-    throw new Error(
-      '[foldkit] Definition.makeOutMessageFold requires a record of variant handlers.',
-    )
-  }
-
-  const expectedTags = Object.keys(variants)
-  const actualTags = Object.keys(cases)
-  const missingTags = Array.filter(
-    expectedTags,
-    tag => !Object.hasOwn(cases, tag),
-  )
-  if (Array.isArrayNonEmpty(missingTags)) {
-    throw new Error(
-      `[foldkit] Definition.makeOutMessageFold is missing handlers for: ${missingTags.join(', ')}.`,
-    )
-  }
-
-  const unexpectedTags = Array.filter(
-    actualTags,
-    tag => !Object.hasOwn(variants, tag),
-  )
-  if (Array.isArrayNonEmpty(unexpectedTags)) {
-    throw new Error(
-      `[foldkit] Definition.makeOutMessageFold received unexpected handlers for: ${unexpectedTags.join(', ')}.`,
-    )
-  }
-
-  for (const tag of expectedTags) {
-    if (!Predicate.isFunction(Reflect.get(cases, tag))) {
-      throw new Error(
-        `[foldkit] Definition.makeOutMessageFold handler "${tag}" must be a function.`,
-      )
-    }
-  }
-}
-
 /** @internal Creates a Definition-owned OutMessage fold authoring helper. */
 export function makeOutMessageFold(): MakeOutMessageFold<any, any, any>
 export function makeOutMessageFold(): AnyFunction {
   return (child: unknown, cases: unknown) => {
-    assertOutMessageFoldConfig(child, cases)
+    if (cases === undefined) {
+      throw new Error(
+        '[foldkit] Definition.makeOutMessageFold requires a completed child Block followed by a record of variant handlers.',
+      )
+    }
 
-    return (outMessage: Readonly<{ _tag: string }>, context?: unknown) => {
-      const handler = Reflect.get(cases, outMessage._tag)
+    assertChildOutMessageHandlers(child, cases, 'makeOutMessageFold')
+
+    const handler = (
+      outMessage: Readonly<{ _tag: string }>,
+      context?: unknown,
+    ) => {
+      const handle = Reflect.get(cases, outMessage._tag)
       if (
         !Object.hasOwn(cases, outMessage._tag) ||
-        !Predicate.isFunction(handler)
+        !Predicate.isFunction(handle)
       ) {
         throw new Error(
           `[foldkit] Definition.makeOutMessageFold has no handler for child OutMessage "${outMessage._tag}".`,
         )
       }
 
-      return handler(outMessage, context)
+      return handle(outMessage, context)
     }
+
+    registerOutMessageHandler(handler, cases, 'makeOutMessageFold')
+
+    return handler
   }
 }

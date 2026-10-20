@@ -5,6 +5,7 @@ import type { AnyBlock } from '../block/definition.js'
 import type { ValidateConcreteComposition } from '../block/requirements.js'
 import { requiresViewInputs } from '../block/viewScope.js'
 import type { Document } from '../html/index.js'
+import type { DevToolsConfig } from './devToolsConfig.js'
 
 type AnyFunction = (...args: ReadonlyArray<any>) => any
 
@@ -192,11 +193,23 @@ const commonHostFields = [
   'crash',
 ]
 
+const devToolsHostFields = new Set([
+  'show',
+  'position',
+  'mode',
+  'banner',
+  'excludeFromHistory',
+  'maxEntries',
+  'keyframeInterval',
+  'dispatch',
+])
+
 /** @internal Validates an erased Program boundary before Block lowering. */
 export function assertProgramConfig(
   config: unknown,
   kind: RootViewKind,
 ): asserts config is Readonly<{ block: AnyBlock }> &
+  Readonly<{ devTools?: DevToolsConfig }> &
   globalThis.Record<string, unknown> {
   if (!Predicate.isObject(config)) {
     throw new Error('[foldkit] Program configuration must be an object.')
@@ -206,6 +219,34 @@ export function assertProgramConfig(
     if (field in config) {
       throw new Error(
         `[foldkit] Program configuration cannot supply Block implementation field "${field}". Complete it with Composition.assembleBlock first and pass the result as block.`,
+      )
+    }
+  }
+
+  const devTools = Reflect.get(config, 'devTools')
+  if (
+    devTools !== undefined &&
+    devTools !== false &&
+    !Predicate.isObject(devTools)
+  ) {
+    throw new Error(
+      '[foldkit] Program configuration field "devTools" must be false or an object.',
+    )
+  }
+
+  if (Predicate.isObject(devTools)) {
+    for (const field of globalThis.Object.keys(devTools)) {
+      if (!devToolsHostFields.has(field)) {
+        throw new Error(
+          `[foldkit] Program DevTools configuration does not support "${field}".`,
+        )
+      }
+    }
+
+    const dispatch = Reflect.get(devTools, 'dispatch')
+    if (dispatch !== undefined && !Predicate.isBoolean(dispatch)) {
+      throw new Error(
+        '[foldkit] Program DevTools configuration field "dispatch" must be a boolean.',
       )
     }
   }

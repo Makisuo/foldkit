@@ -12,4 +12,3 @@ export const Model = Schema.Struct({
   asyncCounterDemo: AsyncCounterDemoBlock.Model,
   notePlayerDemo: NotePlayerDemoBlock.Model,
 })
-export type Model = typeof Model.Type

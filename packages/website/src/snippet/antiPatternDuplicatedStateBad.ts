@@ -11,12 +11,10 @@ const Model = Schema.Struct({
   query: Schema.String,
   visibleItems: Schema.Array(Item),
 })
-type Model = typeof Model.Type
 
 const Message = defineMessageUnion({
   UpdatedQuery: { query: Schema.String },
 })
-type Message = typeof Message.Type
 const ApplicationComposition = Block.makeDefinition('Application', {
   Model,
   Message,

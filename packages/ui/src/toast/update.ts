@@ -293,12 +293,11 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       field: 'entries',
       key: 'id',
       childField: 'animation',
-      outMessage: {
-        fold: (entryId, outMessage, context) =>
-          makeEntryAnimationOutMessageFold(entryId)(outMessage, context),
-      },
     },
-  )
+  ).withOutMessagePolicy({
+    fold: (entryId, outMessage, context) =>
+      makeEntryAnimationOutMessageFold(entryId)(outMessage, context),
+  })
 
   const ToastComposition = ToastDefinition.makeComposition({
     bindings: [EntryAnimationBinding],
@@ -573,7 +572,7 @@ export const makeRuntime = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
                 return { model: nextModel }
               } else {
                 return Update.combine(model, [
-                  () => ({ model: nextModel }),
+                  ToastDefinition.step(() => ({ model: nextModel })),
                   foldEntryAnimationHide(entry),
                 ])
               }

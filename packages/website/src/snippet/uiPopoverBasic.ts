@@ -34,11 +34,11 @@ const foldPopoverOutMessage = PopoverExampleDefinition.makeOutMessageFold(
     // The child has emitted `Opened`. In this arm the parent can update its
     // own state or dispatch its own Commands, for example lazy-load panel
     // content, log analytics, or trigger a downstream Command.
-    Opened: () => PopoverExampleDefinition.stepNoop(),
+    Opened: PopoverExampleDefinition.stepNoop,
     // The child has emitted `Closed`. In this arm the parent can update its
     // own state or dispatch its own Commands, for example persist a draft,
     // clear ephemeral state, or trigger a downstream Command.
-    Closed: () => PopoverExampleDefinition.stepNoop(),
+    Closed: PopoverExampleDefinition.stepNoop,
   },
 )
 
@@ -50,9 +50,8 @@ const PopoverBinding = PopoverExampleDefinition.bindChild(
   {
     field: 'popover',
     init: { contextToArgs: () => Tuple.make({ id: 'info' }) },
-    outMessage: { fold: foldPopoverOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
 const PopoverExampleComposition = PopoverExampleDefinition.makeComposition({
   bindings: [PopoverBinding],

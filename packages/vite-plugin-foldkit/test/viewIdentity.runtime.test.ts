@@ -15,8 +15,6 @@ const Message = defineMessageUnion({
   ClickedToggle: {},
 })
 
-type Message = typeof Message.Type
-
 const ApplicationComposition = Block.makeDefinition('Application', {
   Model,
   Message,

@@ -537,12 +537,11 @@ const PolicyChildBinding = PolicyParentBaseDefinition.bindChild(
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       ParentModel.make({ ...model, child: nextChild }),
-    outMessage: {
-      fold: (_outMessage: PolicyOutMessage) =>
-        PolicyParentBaseDefinition.step(() => SecondaryChildBinding.reset()),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: (_outMessage: PolicyOutMessage) =>
+    PolicyParentBaseDefinition.step(() => SecondaryChildBinding.reset()),
+})
 
 const RegisteredPolicyParent = PolicyParentBaseDefinition.makeComposition({
   bindings: [PolicyChildBinding, SecondaryChildBinding],
@@ -567,14 +566,13 @@ const OmittedPolicyChildBinding = OmittedPolicyParentBaseDefinition.bindChild(
     read: (model: ParentModel) => Option.some(model.child),
     write: (model, nextChild) =>
       ParentModel.make({ ...model, child: nextChild }),
-    outMessage: {
-      fold: (_outMessage: PolicyOutMessage) =>
-        OmittedPolicyParentBaseDefinition.step(() =>
-          OmittedSecondaryChildBinding.reset(),
-        ),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: (_outMessage: PolicyOutMessage) =>
+    OmittedPolicyParentBaseDefinition.step(() =>
+      OmittedSecondaryChildBinding.reset(),
+    ),
+})
 const AlternateSecondaryChildBinding =
   OmittedPolicyParentBaseDefinition.bindChild(ChildBlock, {
     field: 'child',
@@ -637,12 +635,11 @@ const PolicyChildrenBinding = KeyedPolicyParentBaseDefinition.bindChild(
           childModel.count === key ? nextChild : childModel,
         ),
       }),
-    outMessage: {
-      fold: (_key: number, _outMessage: PolicyOutMessage) =>
-        SecondaryChildrenBinding.reset(0),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: (_key: number, _outMessage: PolicyOutMessage) =>
+    SecondaryChildrenBinding.reset(0),
+})
 
 const RegisteredKeyedPolicyParent =
   KeyedPolicyParentBaseDefinition.makeComposition({
@@ -683,10 +680,9 @@ const OmittedPolicyChildrenBinding =
           childModel.count === key ? nextChild : childModel,
         ),
       }),
-    outMessage: {
-      fold: (_key: number, _outMessage: PolicyOutMessage) =>
-        OmittedSecondaryChildrenBinding.reset(0),
-    },
+  }).withOutMessagePolicy({
+    fold: (_key: number, _outMessage: PolicyOutMessage) =>
+      OmittedSecondaryChildrenBinding.reset(0),
   })
 const AlternateSecondaryChildrenBinding =
   OmittedKeyedPolicyParentBaseDefinition.bindChild(ChildBlock, {

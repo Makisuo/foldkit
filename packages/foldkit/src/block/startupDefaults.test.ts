@@ -16,7 +16,6 @@ class StartupClient extends Context.Service<
 >()('StartupDefaults/StartupClient') {}
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
-type ChildModel = typeof ChildModel.Type
 
 const ChildMessage = defineMessageUnion({
   CompletedInitialization: { count: Schema.Number },

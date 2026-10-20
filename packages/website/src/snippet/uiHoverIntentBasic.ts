@@ -29,8 +29,8 @@ const foldHoverIntentOutMessage =
   HoverIntentExampleDefinition.makeOutMessageFold(
     HoverIntent.HoverIntentBlock,
     {
-      Opened: () => HoverIntentExampleDefinition.stepNoop(),
-      Closed: () => HoverIntentExampleDefinition.stepNoop(),
+      Opened: HoverIntentExampleDefinition.stepNoop,
+      Closed: HoverIntentExampleDefinition.stepNoop,
     },
   )
 
@@ -41,9 +41,8 @@ const HoverIntentBinding = HoverIntentExampleDefinition.bindChild(
     init: {
       contextToArgs: () => Tuple.make({ openDelay: 200, closeDelay: 300 }),
     },
-    outMessage: { fold: foldHoverIntentOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldHoverIntentOutMessage })
 
 const HoverIntentExampleComposition =
   HoverIntentExampleDefinition.makeComposition({

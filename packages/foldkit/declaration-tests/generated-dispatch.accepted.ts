@@ -225,7 +225,7 @@ export const element = Program.makeElement({
     view,
   }),
   container: null,
-  devTools: { Message: ApplicationComposition.Message },
+  devTools: { dispatch: true },
 })
 export const CountStoreLayer = Layer.succeed(CountStore, {
   prepare: Effect.void,

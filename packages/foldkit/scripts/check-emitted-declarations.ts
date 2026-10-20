@@ -22,6 +22,7 @@ import {
   isIdentifier,
   isObjectLiteralExpression,
   isPropertyAssignment,
+  isPropertyAccessExpression,
   isVariableStatement,
 } from '../node_modules/typescript/dist/ast/index.js'
 
@@ -142,14 +143,16 @@ const assertBindingConfigurationDocs = async (): Promise<void> => {
         binding: 'StatusBinding',
         fields: ['field', 'init'],
         nested: [],
+        policyFields: [],
       },
       {
         binding: 'SettingsBinding',
-        fields: ['field', 'delivery', 'init', 'outMessage'],
+        fields: ['field', 'delivery', 'init'],
         nested: [
           { property: 'delivery', fields: ['toUpdateContext'] },
           { property: 'init', fields: ['contextToArgs'] },
         ],
+        policyFields: ['forward'],
       },
       {
         binding: 'ProjectedStatusBinding',
@@ -157,6 +160,7 @@ const assertBindingConfigurationDocs = async (): Promise<void> => {
         nested: [
           { property: 'init', fields: ['contextToArgs', 'toParentFields'] },
         ],
+        policyFields: [],
       },
       {
         binding: 'RoomBinding',
@@ -174,6 +178,7 @@ const assertBindingConfigurationDocs = async (): Promise<void> => {
           { property: 'delivery', fields: ['when', 'toUpdateContext'] },
           { property: 'subscriptions', fields: ['when'] },
         ],
+        policyFields: [],
       },
     ]
 
@@ -194,8 +199,15 @@ const assertBindingConfigurationDocs = async (): Promise<void> => {
         return fail(`Expected ${check.binding} to call bindChild.`)
       }
 
+      const bindingCall =
+        isPropertyAccessExpression(declaration.initializer.expression) &&
+        declaration.initializer.expression.name.text ===
+          'withOutMessagePolicy' &&
+        isCallExpression(declaration.initializer.expression.expression)
+          ? declaration.initializer.expression.expression
+          : declaration.initializer
       const configuration = Option.getOrElse(
-        Array.get(declaration.initializer.arguments, 1),
+        Array.get(bindingCall.arguments, 1),
         () => fail(`Missing ${check.binding} configuration.`),
       )
       if (!isObjectLiteralExpression(configuration)) {
@@ -257,6 +269,32 @@ const assertBindingConfigurationDocs = async (): Promise<void> => {
           if (String.isEmpty(documentation.trim())) {
             return fail(
               `Missing inferred configuration documentation for ${check.binding}.${nested.property}.${field}.`,
+            )
+          }
+        }
+      }
+
+      if (Array.isArrayNonEmpty(check.policyFields)) {
+        const policy = Option.getOrElse(
+          Array.get(declaration.initializer.arguments, 0),
+          () => fail(`Missing ${check.binding} OutMessage policy.`),
+        )
+        if (!isObjectLiteralExpression(policy)) {
+          return fail(`Expected an object policy for ${check.binding}.`)
+        }
+        const policyType = await project.checker.getContextualType(policy)
+        for (const field of check.policyFields) {
+          const symbol =
+            policyType === undefined
+              ? undefined
+              : await project.checker.getPropertyOfType(policyType, field)
+          const documentation =
+            symbol === undefined
+              ? ''
+              : await symbol.getDocumentationComment(project.checker)
+          if (String.isEmpty(documentation.trim())) {
+            return fail(
+              `Missing inferred policy documentation for ${check.binding}.${field}.`,
             )
           }
         }
@@ -409,6 +447,18 @@ const checks: ReadonlyArray<
   }>
 > = [
   {
+    name: 'outmessage-policy-selection',
+    accepted: ['outmessage-policy-selection.accepted.ts'],
+    rejected: ['outmessage-policy-selection.rejected.ts'],
+    consumers: ['outmessage-policy-selection.consume.ts'],
+  },
+  {
+    name: 'outmessage-forward',
+    accepted: ['outmessage-forward.accepted.ts'],
+    rejected: ['outmessage-forward.rejected.ts'],
+    consumers: ['outmessage-forward.consume.ts'],
+  },
+  {
     name: 'outmessage-fold',
     accepted: ['outmessage-fold.accepted.ts'],
     rejected: ['outmessage-fold.rejected.ts'],
@@ -422,9 +472,15 @@ const checks: ReadonlyArray<
   },
   {
     name: 'program',
-    accepted: ['program.accepted.ts'],
+    accepted: [
+      'program.accepted.ts',
+      'program-inferred-portability.accepted.ts',
+    ],
     rejected: ['program.rejected.ts'],
-    consumers: ['program.consume.ts'],
+    consumers: [
+      'program.consume.ts',
+      'program-inferred-portability.consume.ts',
+    ],
   },
   {
     name: 'optional-wrapped-keyed',

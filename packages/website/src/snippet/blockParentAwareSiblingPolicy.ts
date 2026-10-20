@@ -16,8 +16,7 @@ const foldSearchOutMessage = ApplicationDefinition.makeOutMessageFold(
 
 export const SearchBinding = ApplicationDefinition.bindChild(SearchBlock, {
   field: 'search',
-  outMessage: { fold: foldSearchOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldSearchOutMessage })
 
 export const DetailsBinding = ApplicationDefinition.bindChild(DetailsBlock, {
   field: 'maybeDetails',

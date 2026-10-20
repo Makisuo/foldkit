@@ -1,4 +1,4 @@
-import { Array, Effect, Fiber, Layer, Schema } from 'effect'
+import { Array, Effect, Fiber, Schema } from 'effect'
 import { Block, Program } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -39,9 +39,8 @@ const foldDialogOutMessage = ApplicationDefinition.makeOutMessageFold(
 
 const DialogBinding = ApplicationDefinition.bindChild(Dialog.DialogBlock, {
   field: 'dialog',
-  outMessage: { fold: foldDialogOutMessage },
   init: { contextToArgs: () => [{ id: dialogId }] },
-})
+}).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [DialogBinding],
@@ -98,7 +97,6 @@ const makeDialogProgram = (container: HTMLElement) =>
       init,
       update,
       view,
-      EffectsLayer: Layer.empty,
     }),
     container,
   })

@@ -141,8 +141,8 @@ Attribute groups provided to the `toView` callback.
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Parents handle the OutMessage in the Binding’s `outMessage.fold` policy.
+Messages emitted to the parent through the optional `outMessage` field. Parents handle the OutMessage in the Binding’s selected `fold` policy.
 
-| Name           | Type                | Default | Description                                                                                                                                                                                                                         |
-| -------------- | ------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ChangedValue` | `{ value: number }` | —       | Emitted whenever the Slider value changes via drag, click-to-jump, or keyboard navigation. Handle it in the Binding's `outMessage.fold` policy to react, for example: persist the value, validate, or trigger a downstream Command. |
+| Name           | Type                | Default | Description                                                                                                                                                                                                                       |
+| -------------- | ------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ChangedValue` | `{ value: number }` | —       | Emitted whenever the Slider value changes via drag, click-to-jump, or keyboard navigation. Handle it in the Binding's selected `fold` policy to react, for example: persist the value, validate, or trigger a downstream Command. |

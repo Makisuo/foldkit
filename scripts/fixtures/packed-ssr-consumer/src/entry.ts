@@ -1,12 +1,12 @@
 import { Program, Runtime } from 'foldkit'
 
-import { ApplicationBlock, Flags, Message } from './application'
+import { ApplicationBlock, Flags } from './application'
 
 const program = Program.make({
   block: ApplicationBlock,
   Flags,
   container: document.getElementById('root'),
-  devTools: { Message },
+  devTools: { dispatch: true },
 })
 
 Runtime.hydrate(program)

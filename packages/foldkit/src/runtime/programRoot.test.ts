@@ -1,4 +1,11 @@
-import { Context, Effect, Layer, Option, Schema } from 'effect'
+import {
+  Context,
+  Effect,
+  Layer,
+  Option,
+  Schema,
+  SchemaTransformation,
+} from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as Block from '../block/public.js'
@@ -7,7 +14,9 @@ import { UrlRequest } from '../navigation/urlRequest.js'
 import { modifyFields } from '../struct/index.js'
 import * as Url from '../url/index.js'
 import { normalizeRoutingConfig } from './browserListeners.js'
+import { __setDevToolsOverlay } from './devToolsConfig.js'
 import * as ModelPreservationBridge from './modelPreservationBridge.js'
+import { resolveProgramDevToolsConfig } from './program.js'
 import * as Program from './programPublic.js'
 import { assertElementHtml, assertProgramConfig } from './programRoot.js'
 import { embed } from './start.js'
@@ -24,11 +33,30 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  __setDevToolsOverlay(undefined)
   vi.restoreAllMocks()
   document.body.innerHTML = ''
 })
 
 describe('completed root Block hosting', () => {
+  it('derives external dispatch only for an explicit DevTools opt-in', () => {
+    const Message = defineMessageUnion({ ClickedIncrement: {} })
+
+    expect(resolveProgramDevToolsConfig(undefined, Message)).toBeUndefined()
+    expect(resolveProgramDevToolsConfig(false, Message)).toBe(false)
+    expect(resolveProgramDevToolsConfig({}, Message)).toEqual({})
+    expect(resolveProgramDevToolsConfig({ dispatch: false }, Message)).toEqual({
+      dispatch: false,
+    })
+    expect(
+      resolveProgramDevToolsConfig({ dispatch: true, show: 'Always' }, Message),
+    ).toEqual({
+      dispatch: true,
+      dispatchSchema: Message,
+      show: 'Always',
+    })
+  })
+
   it('hosts a message-free page without Flags or ordinary Service providers', () => {
     const ProgramPageComposition = Block.makeDefinition('ProgramPage', {
       Model: Schema.Struct({ count: Schema.Number }),
@@ -48,6 +76,99 @@ describe('completed root Block hosting', () => {
     })
 
     expect(program.start).toBeTypeOf('function')
+  })
+
+  it('installs DevTools with decoder Services from root and ordinary providers', async () => {
+    class DispatchDecoder extends Context.Service<
+      DispatchDecoder,
+      Readonly<{ prefix: string }>
+    >()('ProgramRoot/DispatchDecoder') {}
+
+    const ServiceDecodedString = Schema.String.pipe(
+      Schema.decodeTo(
+        Schema.String,
+        SchemaTransformation.transformEffect({
+          decode: value =>
+            Effect.map(DispatchDecoder, decoder => `${decoder.prefix}${value}`),
+          encode: Effect.succeed,
+        }),
+      ),
+    )
+    const Message = defineMessageUnion({
+      SubmittedValue: { value: ServiceDecodedString },
+    })
+    const Definition = Block.makeDefinition('ServiceDecodedRoot', {
+      Model: Schema.Struct({ value: Schema.String }),
+      Message,
+    })
+    const Composition = Definition.makeComposition()
+    const init = Composition.makeInit(() => ({ model: { value: 'ready' } }))
+    const update = Composition.makeUpdate((model, message) =>
+      Message.match(message, {
+        SubmittedValue: ({ value }) => ({
+          model: modifyFields(model, { value: () => value }),
+        }),
+      }),
+    )
+    const view = Composition.makeView((model, h) => h.div([], [model.value]))
+    const decoderValues: Array<string> = []
+
+    __setDevToolsOverlay(() =>
+      Effect.flatMap(Effect.context<never>(), context =>
+        Effect.sync(() => {
+          decoderValues.push(Context.getUnsafe(context, DispatchDecoder).prefix)
+        }),
+      ),
+    )
+
+    const RootProvidedBlock = Composition.assembleBlock({
+      init,
+      update,
+      view,
+      EffectsLayer: Layer.succeed(DispatchDecoder, { prefix: 'root' }),
+    })
+    const rootContainer = document.createElement('div')
+    rootContainer.id = 'root-provided-dispatch'
+    document.body.append(rootContainer)
+    const rootHandle = embed(
+      Program.makeElement({
+        block: RootProvidedBlock,
+        container: rootContainer,
+        devTools: { show: 'Always', dispatch: true },
+      }),
+    )
+
+    try {
+      await vi.waitFor(() => expect(decoderValues).toEqual(['root']))
+    } finally {
+      rootHandle.dispose()
+      rootContainer.remove()
+    }
+
+    const ExternallyProvidedBlock = Composition.assembleBlock({
+      init,
+      update,
+      view,
+    })
+    const externalContainer = document.createElement('div')
+    externalContainer.id = 'externally-provided-dispatch'
+    document.body.append(externalContainer)
+    const externalHandle = embed(
+      Program.makeElement({
+        block: ExternallyProvidedBlock,
+        container: externalContainer,
+        devTools: { show: 'Always', dispatch: true },
+      }).provide(Layer.succeed(DispatchDecoder, { prefix: 'external' })),
+    )
+
+    try {
+      await vi.waitFor(() =>
+        expect(decoderValues).toEqual(['root', 'external']),
+      )
+    } finally {
+      externalHandle.dispose()
+      externalContainer.remove()
+    }
   })
 
   it('constructs nothing until Runtime starts and retains one handler lifetime', async () => {
@@ -226,6 +347,26 @@ describe('completed root Block hosting', () => {
     expect(() =>
       assertProgramConfig({ block: {}, container: null }, 'Element'),
     ).toThrow('must be a completed Block')
+    expect(() =>
+      assertProgramConfig(
+        {
+          block: ErasedRootBlock,
+          container: null,
+          devTools: { Message: Schema.Never },
+        },
+        'Element',
+      ),
+    ).toThrow('DevTools configuration does not support "Message"')
+    expect(() =>
+      assertProgramConfig(
+        {
+          block: ErasedRootBlock,
+          container: null,
+          devTools: { dispatch: 'yes' },
+        },
+        'Element',
+      ),
+    ).toThrow('field "dispatch" must be a boolean')
     expect(() =>
       assertProgramConfig(
         { block: ErasedRootBlock, container: null, unsupported: true },

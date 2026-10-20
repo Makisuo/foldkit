@@ -144,24 +144,20 @@ const foldChildOutMessage = OutMessage.match<
 })
 const PrimaryBinding = Parent.bindChild(block, {
   field: 'primary',
-  outMessage: { fold: foldChildOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldChildOutMessage })
 const primaryInspection = inspectBinding(PrimaryBinding)
 const SecondaryBinding = Parent.bindChild(block, {
   field: 'secondary',
-  outMessage: { fold: foldChildOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldChildOutMessage })
 const OverriddenBinding = Parent.bindChild(block, {
   field: 'secondary',
   placement: 'alternate',
-  outMessage: { fold: foldChildOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldChildOutMessage })
 const AccessorBinding = Parent.bindChild(block, {
   read: model => Option.some(model.primary),
   write: (model, nextPrimary) =>
     modifyFields(model, { primary: () => nextPrimary }),
-  outMessage: { fold: foldChildOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldChildOutMessage })
 const entryKey = (entry: typeof Entry.Type): string => entry.id
 const KeyedBinding = Parent.bindChild(block, {
   placement: 'entries',
@@ -177,10 +173,9 @@ const KeyedBinding = Parent.bindChild(block, {
           : entry,
       ),
     }),
-  outMessage: {
-    fold: (_key: string, outMessage: typeof OutMessage.Type) =>
-      foldChildOutMessage(outMessage),
-  },
+}).withOutMessagePolicy({
+  fold: (_key: string, outMessage: typeof OutMessage.Type) =>
+    foldChildOutMessage(outMessage),
 })
 const ParentComposition = Parent.makeComposition({
   bindings: [PrimaryBinding, KeyedBinding],
@@ -203,7 +198,12 @@ const initial = ParentModel.make({
 
 it('keeps exact placement literals and child operation arguments', () => {
   expectTypeOf<Extract<keyof typeof PrimaryBinding, string>>().toEqualTypeOf<
-    'placement' | 'init' | 'fold' | 'embedView' | 'read'
+    | 'placement'
+    | 'init'
+    | 'fold'
+    | 'embedView'
+    | 'read'
+    | 'withOutMessagePolicy'
   >()
   expectTypeOf(PrimaryBinding.placement).toEqualTypeOf<'primary'>()
   expectTypeOf(SecondaryBinding.placement).toEqualTypeOf<'secondary'>()

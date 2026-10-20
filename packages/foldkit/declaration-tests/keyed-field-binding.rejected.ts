@@ -88,9 +88,9 @@ const unexpectedOutMessageConfig = {
   key: idKey,
   outMessage: { fold: () => undefined },
 }
-// @ts-expect-error A child without OutMessages cannot configure an OutMessage policy.
 DeclarationKeyedFieldParentDefinition.bindChild(
   ChildBlock,
+  // @ts-expect-error A child without OutMessages cannot configure an OutMessage policy.
   unexpectedOutMessageConfig,
 )
 

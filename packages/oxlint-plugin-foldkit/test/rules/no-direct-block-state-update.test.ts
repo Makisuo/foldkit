@@ -822,7 +822,7 @@ describe('completed Block bindings', () => {
     ],
   })
 
-  const directSettingsBinding = Testing.varDecl('const', 'settings', {
+  const directSettingsBindingCall = {
     type: 'CallExpression',
     callee: {
       type: 'MemberExpression',
@@ -836,7 +836,37 @@ describe('completed Block bindings', () => {
         property('field', { type: 'Literal', value: 'settings' }),
       ]),
     ],
+  }
+  const directSettingsBinding = Testing.varDecl(
+    'const',
+    'settings',
+    directSettingsBindingCall,
+  )
+
+  const fluentSettingsBinding = Testing.varDecl('const', 'settings', {
+    type: 'CallExpression',
+    callee: {
+      type: 'MemberExpression',
+      object: directSettingsBindingCall,
+      property: Testing.id('withOutMessagePolicy'),
+      computed: false,
+    },
+    arguments: [
+      objectExpression([
+        property('fold', Testing.id('foldSettingsOutMessage')),
+      ]),
+    ],
   })
+
+  const selectedSettingsBinding = Testing.varDecl(
+    'const',
+    'settingsWithOutMessagePolicy',
+    Testing.callOfMember('settings', 'withOutMessagePolicy', [
+      objectExpression([
+        property('fold', Testing.id('foldSettingsOutMessage')),
+      ]),
+    ]),
+  )
 
   const directEntriesBinding = (keyPropertyName = 'key') =>
     Testing.varDecl('const', 'entries', {
@@ -1342,6 +1372,58 @@ describe('completed Block bindings', () => {
     ])
 
     expect(result).toHaveLength(1)
+  })
+
+  it('tracks a fluent Binding policy chain in Composition.makeUpdate', () => {
+    const result = runRule([
+      fluentSettingsBinding,
+      applicationComposition(
+        'ApplicationComposition',
+        Testing.id('Application'),
+        [Testing.id('settings')],
+      ),
+      compositionUpdate('ApplicationComposition'),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('tracks an extracted policy selection as the original Binding', () => {
+    const result = runRule([
+      directSettingsBinding,
+      selectedSettingsBinding,
+      applicationComposition(
+        'ApplicationComposition',
+        Testing.id('Application'),
+        [Testing.id('settingsWithOutMessagePolicy')],
+      ),
+      compositionUpdate('ApplicationComposition'),
+    ])
+
+    expect(result).toHaveLength(1)
+  })
+
+  it('does not treat an unrelated fluent policy method as a Binding', () => {
+    const unrelated = Testing.varDecl(
+      'const',
+      'settingsWithOutMessagePolicy',
+      Testing.callOfMember('unrelated', 'withOutMessagePolicy', [
+        objectExpression([
+          property('fold', Testing.id('foldSettingsOutMessage')),
+        ]),
+      ]),
+    )
+    const result = runRule([
+      unrelated,
+      applicationComposition(
+        'ApplicationComposition',
+        Testing.id('Application'),
+        [Testing.id('settingsWithOutMessagePolicy')],
+      ),
+      compositionUpdate('ApplicationComposition'),
+    ])
+
+    expect(result).toHaveLength(0)
   })
 
   it('tracks a registered Binding through a namespace Definition receiver', () => {

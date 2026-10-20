@@ -5,7 +5,6 @@ import { modifyFields } from '../struct/index.js'
 import { makeDefinition } from './define.js'
 
 const ChildModel = Schema.Struct({ value: Schema.String })
-type ChildModel = typeof ChildModel.Type
 
 const ChildComposition = makeDefinition('ChildPlacementChild', {
   Model: ChildModel,
@@ -23,7 +22,6 @@ const ParentModel = Schema.Struct({
   maybeChild: Schema.Option(ChildModel),
   entries: Schema.Array(Entry),
 })
-type ParentModel = typeof ParentModel.Type
 
 const Parent = makeDefinition('ChildPlacementParent', {
   Model: ParentModel,

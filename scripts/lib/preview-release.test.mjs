@@ -113,6 +113,31 @@ test('reports exact scaffold and install commands from verified versions', () =>
   assert.match(summary, /@foldkit\/ui@2\.3\.4-canary\.0123456789ab/)
 })
 
+test('pins both migration paths and prompts to the verified deployment and package set', () => {
+  const summary = previewReadySummary(manifest, 'https://example.vercel.app')
+
+  for (const path of [
+    '/preview-migration',
+    '/preview-upgrade',
+    '/preview-migration.md',
+    '/preview-upgrade.md',
+    '/preview-release.json',
+  ]) {
+    assert.ok(summary.includes(`https://example.vercel.app${path}`), path)
+  }
+  assert.ok(summary.includes(`Target source commit: ${COMMIT}`))
+  assert.ok(summary.includes('Agent prompt: migrate a stable application'))
+  assert.ok(summary.includes('Agent prompt: upgrade an earlier preview'))
+  assert.ok(summary.includes('Record the installed versions'))
+  assert.ok(summary.includes('preserving dependency/devDependency placement'))
+  assert.ok(summary.includes('Do not install unused packages'))
+  for (const [name, version] of Object.entries(manifest.packages)) {
+    assert.ok(summary.includes(`${name}@${version}`), name)
+  }
+  assert.ok(!summary.includes('@latest'))
+  assert.ok(!summary.includes('https://foldkit.dev/preview-'))
+})
+
 test('marks embedded examples with the exact website build', context => {
   const directory = mkdtempSync(resolve(tmpdir(), 'foldkit-example-build-'))
   context.after(() => rmSync(directory, { recursive: true, force: true }))

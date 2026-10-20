@@ -1,5 +1,4 @@
 import type { Block } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
 
 import { ApplicationDefinition } from './definition'
 import { StepMenuBlock, StepTabsBlock } from './navigationComponents'
@@ -67,39 +66,25 @@ export const AttachmentsBinding = ApplicationDefinition.bindChild(
   },
 )
 
-const foldStepMenuOutMessage = ApplicationDefinition.makeOutMessageFold(
-  StepMenuBlock,
-  {
-    Selected:
-      ({ value }) =>
-      model => ({
-        model: modifyFields(model, { currentStep: () => value }),
-      }),
-    Closed: () => ApplicationDefinition.stepNoop(),
-  },
-)
-
 export const StepMenuBinding = ApplicationDefinition.bindChild(StepMenuBlock, {
   field: 'stepMenu',
-  outMessage: { fold: foldStepMenuOutMessage },
   init: { contextToArgs: () => [{ id: 'step-menu' }] },
+}).withOutMessagePolicy({
+  fold: ApplicationDefinition.makeOutMessageFold(StepMenuBlock, {
+    Selected: ({ value }) =>
+      ApplicationDefinition.stepFields(() => ({ currentStep: () => value })),
+    Closed: ApplicationDefinition.stepNoop,
+  }),
 })
-
-const foldStepTabsOutMessage = ApplicationDefinition.makeOutMessageFold(
-  StepTabsBlock,
-  {
-    Selected:
-      ({ value }) =>
-      model => ({
-        model: modifyFields(model, { currentStep: () => value }),
-      }),
-  },
-)
 
 export const StepTabsBinding = ApplicationDefinition.bindChild(StepTabsBlock, {
   field: 'stepTabs',
-  outMessage: { fold: foldStepTabsOutMessage },
   init: { contextToArgs: () => [{ id: 'step-tabs' }] },
+}).withOutMessagePolicy({
+  fold: ApplicationDefinition.makeOutMessageFold(StepTabsBlock, {
+    Selected: ({ value }) =>
+      ApplicationDefinition.stepFields(() => ({ currentStep: () => value })),
+  }),
 })
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({

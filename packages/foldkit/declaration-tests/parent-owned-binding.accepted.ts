@@ -137,39 +137,36 @@ export const DirectChildBinding =
   DeclarationParentOwnedParentDefinition.bindChild(ChildBlock, {
     field: 'child',
     init: false,
-    outMessage: { fold: foldChildOutMessage },
-  })
+  }).withOutMessagePolicy({ fold: foldChildOutMessage })
 export const directChildInspection = Block.inspectBinding(DirectChildBinding)
 export const ForwardingChildBinding =
   DeclarationParentOwnedParentDefinition.bindChild(ChildBlock, {
     field: 'child',
     placement: 'forwardingChild',
-    outMessage: {
-      forward: outMessage =>
-        ChildOutMessage.match<typeof ParentOutMessage.Type>(outMessage, {
-          SelectedValue: ({ value }) =>
-            ParentOutMessage.ForwardedSelectedValue({ value }),
-        }),
-    },
+  }).withOutMessagePolicy({
+    forward: outMessage =>
+      ChildOutMessage.match<typeof ParentOutMessage.Type>(outMessage, {
+        SelectedValue: ({ value }) =>
+          ParentOutMessage.ForwardedSelectedValue({ value }),
+      }),
   })
 
 export const OptionalChildBinding =
   DeclarationParentOwnedParentDefinition.bindChild(ChildBlock, {
     placement: 'optionalChild',
     field: 'maybeChild',
-    outMessage: {
-      fold: (outMessage, context) => {
-        const exactOutMessage: typeof ChildOutMessage.Type = outMessage
-        const exactContext: Update.FoldContext<
-          typeof ChildMessage.Type,
-          typeof ParentMessage.Type,
-          typeof ParentModel.Type
-        > = context
-        void exactOutMessage
-        void exactContext
+  }).withOutMessagePolicy({
+    fold: (outMessage, context) => {
+      const exactOutMessage: typeof ChildOutMessage.Type = outMessage
+      const exactContext: Update.FoldContext<
+        typeof ChildMessage.Type,
+        typeof ParentMessage.Type,
+        typeof ParentModel.Type
+      > = context
+      void exactOutMessage
+      void exactContext
 
-        return foldChildOutMessage(outMessage)
-      },
+      return foldChildOutMessage(outMessage)
     },
   })
 
@@ -184,8 +181,7 @@ export const TaggedChildBinding =
       Struct.modifyFields(model, {
         slot: () => ChildSlot.make({ child: nextChild }),
       }),
-    outMessage: { fold: foldChildOutMessage },
-  })
+  }).withOutMessagePolicy({ fold: foldChildOutMessage })
 
 export const KeyedChildBinding =
   DeclarationParentOwnedParentDefinition.bindChild(ChildBlock, {
@@ -195,21 +191,20 @@ export const KeyedChildBinding =
     keySchema: Entry.fields.id,
     read: entry => entry.child,
     writeAt: model => model,
-    outMessage: {
-      fold: (id, outMessage, context) => {
-        const exactId: number = id
-        const exactOutMessage: typeof ChildOutMessage.Type = outMessage
-        const exactContext: Update.FoldContext<
-          typeof ChildMessage.Type,
-          typeof ParentMessage.Type,
-          typeof ParentModel.Type
-        > = context
-        void exactId
-        void exactOutMessage
-        void exactContext
+  }).withOutMessagePolicy({
+    fold: (id, outMessage, context) => {
+      const exactId: number = id
+      const exactOutMessage: typeof ChildOutMessage.Type = outMessage
+      const exactContext: Update.FoldContext<
+        typeof ChildMessage.Type,
+        typeof ParentMessage.Type,
+        typeof ParentModel.Type
+      > = context
+      void exactId
+      void exactOutMessage
+      void exactContext
 
-        return foldChildOutMessage(outMessage)
-      },
+      return foldChildOutMessage(outMessage)
     },
   })
 
@@ -319,13 +314,12 @@ export const ApplicationChildBinding = ApplicationDefinition.bindChild(
   ChildBlock,
   {
     field: 'child',
-    outMessage: {
-      fold: ChildOutMessage.match<
-        Update.Step<typeof ParentModel.Type, typeof ApplicationMessage.Type>
-      >({ SelectedValue: () => model => ({ model }) }),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: ChildOutMessage.match<
+    Update.Step<typeof ParentModel.Type, typeof ApplicationMessage.Type>
+  >({ SelectedValue: () => model => ({ model }) }),
+})
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [ApplicationChildBinding],
 })
@@ -396,9 +390,8 @@ export const makeGenericKeyedBinding = <const Value extends string>(
               : entry,
           ),
         }),
-      outMessage: { fold: foldOutMessage },
     },
-  )
+  ).withOutMessagePolicy({ fold: foldOutMessage })
 
   return { ChildBinding, Model, Message: ParentMessage }
 }

@@ -114,13 +114,10 @@ const ChildBinding = Parent.bindChild(Block, {
   delivery: {
     toUpdateContext: () => [{ prefix: 'routed' }],
   },
-  outMessage: {
-    fold: OutMessage.match<Update.Step<ParentModel, typeof ParentMessage.Type>>(
-      {
-        ChangedValue: () => model => ({ model }),
-      },
-    ),
-  },
+}).withOutMessagePolicy({
+  fold: OutMessage.match<Update.Step<ParentModel, typeof ParentMessage.Type>>({
+    ChangedValue: () => model => ({ model }),
+  }),
 })
 const EntryBinding = Parent.bindChild(Block, {
   placement: 'entries',
@@ -137,15 +134,14 @@ const EntryBinding = Parent.bindChild(Block, {
   delivery: {
     toUpdateContext: () => [{ prefix: 'routed' }],
   },
-  outMessage: {
-    fold: (_id, outMessage) =>
-      OutMessage.match<Update.Step<ParentModel, typeof ParentMessage.Type>>(
-        outMessage,
-        {
-          ChangedValue: () => model => ({ model }),
-        },
-      ),
-  },
+}).withOutMessagePolicy({
+  fold: (_id, outMessage) =>
+    OutMessage.match<Update.Step<ParentModel, typeof ParentMessage.Type>>(
+      outMessage,
+      {
+        ChangedValue: () => model => ({ model }),
+      },
+    ),
 })
 const ParentComposition = Parent.makeComposition({
   bindings: [ChildBinding, EntryBinding],

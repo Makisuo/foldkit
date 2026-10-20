@@ -27,8 +27,8 @@ const AccountMenuDefinition = Block.makeDefinition('AccountMenu', {
 const foldPopoverOutMessage = AccountMenuDefinition.makeOutMessageFold(
   Popover.PopoverBlock,
   {
-    Opened: () => AccountMenuDefinition.stepNoop(),
-    Closed: () => AccountMenuDefinition.stepNoop(),
+    Opened: AccountMenuDefinition.stepNoop,
+    Closed: AccountMenuDefinition.stepNoop,
   },
 )
 
@@ -40,9 +40,8 @@ const AccountPopoverBinding = AccountMenuDefinition.bindChild(
       contextToArgs: () =>
         Tuple.make({ id: 'account-popover', contentFocus: true }),
     },
-    outMessage: { fold: foldPopoverOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
 const AccountDetailsPopoverBinding = AccountMenuDefinition.bindChild(
   Popover.PopoverBlock,
@@ -51,9 +50,8 @@ const AccountDetailsPopoverBinding = AccountMenuDefinition.bindChild(
     init: {
       contextToArgs: () => Tuple.make({ id: 'account-details-popover' }),
     },
-    outMessage: { fold: foldPopoverOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
 const AccountMenuComposition = AccountMenuDefinition.makeComposition({
   bindings: [AccountPopoverBinding, AccountDetailsPopoverBinding],

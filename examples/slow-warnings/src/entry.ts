@@ -10,7 +10,7 @@ const program = Program.make({
     show: 'Always',
     onSlow: handleSlow,
   },
-  devTools: { Message: ApplicationBlock.Message },
+  devTools: { dispatch: true },
 })
 
 Runtime.run(program)

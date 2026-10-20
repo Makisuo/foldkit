@@ -12,7 +12,7 @@ const program = Program.make({
     onUrlRequest: ApplicationBlock.Message.ClickedLink,
     onUrlChange: ApplicationBlock.Message.ChangedUrl,
   },
-  devTools: { Message: ApplicationBlock.Message },
+  devTools: { dispatch: true },
 })
 
 Runtime.run(program.provide(ApplicationLayer), { flags })

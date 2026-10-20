@@ -49,7 +49,7 @@ const fullData = ApiData.make({
 })
 const signatureId = scopedId('function', 'Command', 'define')
 
-const failedLoad = (model: Model) =>
+const failedLoad = (model: typeof Model.Type) =>
   update(model, Message.FailedLoadApiData({ error: 'Offline' }))
 
 describe('API Reference startup', () => {

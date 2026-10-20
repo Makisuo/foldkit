@@ -7,7 +7,6 @@ import { Model } from './model'
 type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
-type ApplicationMessage = typeof ApplicationComposition.Message.Type
 
 export const statusView = (model: Model, h: ApplicationViewBuilder) =>
   h.output([], [model.status])
@@ -15,7 +14,7 @@ export const statusView = (model: Model, h: ApplicationViewBuilder) =>
 export const reportCrash = ({
   error,
   message,
-}: Runtime.CrashContext<Model, ApplicationMessage>) => {
+}: Runtime.CrashContext<Model, typeof ApplicationComposition.Message.Type>) => {
   reportError(error, {
     message: Option.getOrUndefined(message),
   })

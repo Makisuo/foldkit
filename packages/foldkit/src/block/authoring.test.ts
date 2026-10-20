@@ -250,13 +250,11 @@ type GenericAuthoringViewInputs<Item, Value> = Readonly<{
 const makeGenericAuthoring = <const Id extends string, Item, Value>(id: Id) => {
   const GenericNamespace = makeNamespace(id)
   const GenericModel = Schema.Struct({ value: Schema.String })
-  type GenericModel = typeof GenericModel.Type
   const GenericMessage = defineMessageUnion({
     RequestedText: { value: Schema.String },
     RequestedCount: { value: Schema.Number },
     CompletedGeneric: {},
   })
-  type GenericMessage = typeof GenericMessage.Type
 
   const RequestText = GenericNamespace.command('RequestText', {
     args: { value: Schema.String },
@@ -431,7 +429,6 @@ const ChoiceEffectsLayer = Layer.empty
 
 const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
   const Model = Schema.Struct({ value: Value })
-  type Model = typeof Model.Type
   const SelectedChoice = Schema.TaggedStruct('SelectedChoice', { value: Value })
   const RequestedFinish = Schema.TaggedStruct('RequestedFinish', {
     value: Value,
@@ -441,7 +438,6 @@ const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
     SelectedChoice,
     CompletedObserveChoice,
   ])
-  type Message = typeof Message.Type
   const OutMessage = Schema.TaggedStruct('SelectedChoice', { value: Value })
 
   const BaseDefinition = ChoiceNamespace.makeDefinition({
@@ -497,7 +493,6 @@ const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
 const StringChoice = makeChoice(Schema.Literals(['One', 'Two']))
 
 const LeafModel = Schema.Struct({ value: Schema.String })
-type LeafModel = typeof LeafModel.Type
 
 const LeafMessage = defineMessageUnion({
   UpdatedLeaf: { value: Schema.String },
@@ -540,13 +535,11 @@ const bindLeaf = <
 const GraphChildNamespace = makeNamespace('AuthoringGraphChild')
 
 const GraphChildModel = Schema.Struct({ count: Schema.Number })
-type GraphChildModel = typeof GraphChildModel.Type
 
 const GraphChildMessage = defineMessageUnion({
   RequestedChildWork: {},
   CompletedChildWork: {},
 })
-type GraphChildMessage = typeof GraphChildMessage.Type
 
 const RunChildWork = GraphChildNamespace.command('RunChildWork', {
   messages: [GraphChildMessage.CompletedChildWork],
@@ -583,7 +576,6 @@ const GraphParentMessage = defineMessageUnion({
   RequestedParentWork: {},
   CompletedParentWork: {},
 })
-type GraphParentMessage = typeof GraphParentMessage.Type
 
 const RunParentWork = GraphParentNamespace.command('RunParentWork', {
   messages: [GraphParentMessage.CompletedParentWork],
@@ -680,14 +672,13 @@ const ChoiceWithPolicyCommandBinding = PolicyParentBaseDefinition.bindChild(
       ...model,
       choice,
     }),
-    outMessage: {
-      fold: () => (model: PolicyParentModel) => ({
-        model,
-        commands: [CreateRoom()],
-      }),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: () => (model: PolicyParentModel) => ({
+    model,
+    commands: [CreateRoom()],
+  }),
+})
 
 const policyParentComposition = PolicyParentBaseDefinition.makeComposition({
   bindings: [ChoiceWithPolicyCommandBinding],
@@ -745,7 +736,6 @@ const ForeignPolicyConflictChildNamespace = makeNamespace(
   'AuthoringPolicyConflictChild',
 )
 const PolicyConflictChildModel = Schema.Struct({ value: Schema.String })
-type PolicyConflictChildModel = typeof PolicyConflictChildModel.Type
 const PolicyConflictChildMessage = defineMessageUnion({ CompletedRun: {} })
 type PolicyConflictChildMessage = typeof PolicyConflictChildMessage.Type
 const PolicyConflictChildOutMessage = defineMessageUnion({ RequestedRun: {} })
@@ -803,24 +793,23 @@ const PolicyConflictChildBinding = PolicyConflictParentBaseDefinition.bindChild(
     placement: 'policy-conflict-child',
     read: (model: PolicyConflictParentModel) => Option.some(model.child),
     write: (model, child) => ({ ...model, child }),
-    outMessage: {
-      fold:
-        (
-          _outMessage: PolicyConflictChildOutMessage,
-          {
-            liftCommand,
-          }: Update.FoldContext<
-            PolicyConflictChildMessage,
-            typeof PolicyConflictParentMessage.Type
-          >,
-        ) =>
-        (model: PolicyConflictParentModel) => ({
-          model,
-          commands: [liftCommand(ConflictingRunPolicyChild({ value: 1 }))],
-        }),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold:
+    (
+      _outMessage: PolicyConflictChildOutMessage,
+      {
+        liftCommand,
+      }: Update.FoldContext<
+        PolicyConflictChildMessage,
+        typeof PolicyConflictParentMessage.Type
+      >,
+    ) =>
+    (model: PolicyConflictParentModel) => ({
+      model,
+      commands: [liftCommand(ConflictingRunPolicyChild({ value: 1 }))],
+    }),
+})
 const policyConflictParentComposition =
   PolicyConflictParentBaseDefinition.makeComposition({
     bindings: [PolicyConflictChildBinding],
@@ -1228,13 +1217,12 @@ if (false) {
           parentModel: PolicyParentModel,
           choice: typeof StringChoice.Model.Type,
         ) => ({ ...parentModel, choice }),
-        outMessage: {
-          fold: () => (parentModel: PolicyParentModel) => ({
-            model: parentModel,
-          }),
-        },
       },
-    )
+    ).withOutMessagePolicy({
+      fold: () => (parentModel: PolicyParentModel) => ({
+        model: parentModel,
+      }),
+    })
     const omittedConfig = OmittedChoiceBinding.embedView({
       slotId: 'omitted-compact-evidence',
       model: model.choice,
@@ -1412,14 +1400,13 @@ if (false) {
       read: (_model: GraphParentModel) =>
         Option.some(StringChoice.Model.make({ value: 'One' })),
       write: (model: GraphParentModel) => model,
-      outMessage: {
-        fold: () => (model: GraphParentModel) => ({
-          model,
-          commands: [CreateRoom()],
-        }),
-      },
     },
-  )
+  ).withOutMessagePolicy({
+    fold: () => (model: GraphParentModel) => ({
+      model,
+      commands: [CreateRoom()],
+    }),
+  })
   // @ts-expect-error A child policy Command must produce this Composition's complete Message.
   ForeignCommandParentBaseDefinition.makeComposition({
     bindings: [ForeignCommandBinding],
@@ -1439,11 +1426,10 @@ if (false) {
       read: (_model: GraphParentModel) =>
         Option.some(StringChoice.Model.make({ value: 'One' })),
       write: (model: GraphParentModel) => model,
-      outMessage: {
-        forward: () => HomeOutMessage.CreatedRoom({ roomId: 'foreign' }),
-      },
     },
-  )
+  ).withOutMessagePolicy({
+    forward: () => HomeOutMessage.CreatedRoom({ roomId: 'foreign' }),
+  })
   // @ts-expect-error A child forward policy must produce the parent's OutMessage.
   ForeignForwardParentBaseDefinition.makeComposition({
     bindings: [ForeignForwardBinding],
@@ -1453,15 +1439,14 @@ if (false) {
       Model: GraphParentModel,
       Message: GraphParentMessage,
     })
-  // @ts-expect-error This invalid Binding configuration has no matching overload.
   MissingForwardParentBaseDefinition.bindChild(StringChoice, {
     placement: 'missing-forward',
     read: (_model: GraphParentModel) =>
       Option.some(StringChoice.Model.make({ value: 'One' })),
     write: (model: GraphParentModel) => model,
-    outMessage: {
-      forward: () => ParentOutMessage.AcceptedChildResult(),
-    },
+  }).withOutMessagePolicy({
+    // @ts-expect-error A parent Definition without OutMessages cannot forward a child OutMessage.
+    forward: () => ParentOutMessage.AcceptedChildResult(),
   })
 
   const ForeignDerivedParentBaseDefinition =
@@ -1477,14 +1462,13 @@ if (false) {
       read: (_model: GraphParentModel) =>
         Option.some(StringChoice.Model.make({ value: 'One' })),
       write: (model: GraphParentModel) => model,
-      outMessage: {
-        fold: () => (model: GraphParentModel) => ({
-          model,
-          outMessage: HomeOutMessage.CreatedRoom({ roomId: 'foreign' }),
-        }),
-      },
     },
-  )
+  ).withOutMessagePolicy({
+    fold: () => (model: GraphParentModel) => ({
+      model,
+      outMessage: HomeOutMessage.CreatedRoom({ roomId: 'foreign' }),
+    }),
+  })
   // @ts-expect-error A child fold policy must produce the parent's OutMessage.
   ForeignDerivedParentBaseDefinition.makeComposition({
     bindings: [ForeignDerivedBinding],

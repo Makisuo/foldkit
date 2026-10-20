@@ -156,7 +156,6 @@ type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
   Advanced: {},
 })
-type ParentMessage = typeof ParentMessage.Type
 const Parent = makeDefinition('DualUpdateRuntimeParent', {
   Model: ParentModel,
   Message: ParentMessage,

@@ -45,6 +45,10 @@ import {
   assertValidBindingOperationNames,
 } from './binding.js'
 import {
+  bindingRequiresOutMessagePolicy,
+  selectedBindingOutMessagePolicyOf,
+} from './bindingOutMessagePolicy.js'
+import {
   type DispatchSchemaFor,
   generatedEnvelopeSchemas,
   makeDispatchSchema,
@@ -52,6 +56,7 @@ import {
 import {
   assertBindingParentContracts,
   descendantOwnersOf,
+  registerRuntimeBindings,
 } from './composition.js'
 import { type DefaultViewTypeId, registerDefaultView } from './defaultView.js'
 import {
@@ -80,6 +85,7 @@ import {
   type AnyBindingInitRecipe,
   type BindingInitRecipeReturn,
   isBindingInitRecipe,
+  isRegisteredBindingInitRecipe,
   runBindingInitRecipe,
 } from './initRecipe.js'
 import type {
@@ -95,6 +101,14 @@ import {
   type MakeOutMessageFold,
   makeOutMessageFold,
 } from './outMessageFold.js'
+import {
+  type MakeOutMessageForward,
+  makeOutMessageForward,
+} from './outMessageForward.js'
+import {
+  type RuntimeOutMessagePolicy,
+  registerOperationGraphOutMessagePolicies,
+} from './outMessagePolicyRuntime.js'
 import type { Owner } from './owner.js'
 import { makeOwnedName } from './ownerName.js'
 import type { ValidateBindingPolicies } from './policyEvidence.js'
@@ -3387,7 +3401,12 @@ export type Definition<
       }>
     : unknown) &
   (OutMessageSchema extends Schema.Codec<any, any, any, any>
-    ? Readonly<{ OutMessage: OutMessageSchema }>
+    ? Readonly<{
+        OutMessage: OutMessageSchema
+        /** Builds an exhaustive child OutMessage mapper into this Definition's
+         * declared parent OutMessage contract. */
+        makeOutMessageForward: MakeOutMessageForward<OutMessageSchema['Type']>
+      }>
     : NoOutMessage)
 
 /** A passive Definition with its child and Mount graph registered. A Composition
@@ -3741,9 +3760,15 @@ const makeDefineStep = <Model, Message, OutMessage>(): DefineStep<
     return (model: unknown, ...context: ReadonlyArray<unknown>) => {
       const output = step(model, ...context)
       const deferred = Predicate.isFunction(output) ? output(model) : output
-      return isBindingInitRecipe(deferred)
-        ? makeResultRecipe(() => runBindingInitRecipe(deferred))
-        : deferred
+      if (!isBindingInitRecipe(deferred)) {
+        return deferred
+      }
+
+      if (isRegisteredBindingInitRecipe(deferred)) {
+        return runBindingInitRecipe(deferred)
+      }
+
+      return makeResultRecipe(() => runBindingInitRecipe(deferred))
     }
   }
 
@@ -3944,7 +3969,11 @@ export const makeDefinition = (
   }>,
 ): any => {
   const localMounts = Object.freeze(globalThis.Array.from(config.mounts ?? []))
-  const bindings = Object.freeze(globalThis.Array.from(config.bindings ?? []))
+  const publicBindings = Object.freeze(
+    globalThis.Array.from(config.bindings ?? []),
+  )
+  const normalized = normalizeCompositionGraph({ bindings: publicBindings })
+  const bindings = Object.freeze(normalized.bindings)
 
   const parentContract = {
     ownerToken: owner.token,
@@ -3955,6 +3984,7 @@ export const makeDefinition = (
   }
 
   assertBindingParentContracts(parentContract, owner.id, bindings)
+  registerOperationGraphOutMessagePolicies(bindings, normalized.policies)
 
   const childChannels = aggregateChildren(bindings)
   const mounts = mergeMounts(localMounts, childChannels.mounts)
@@ -3973,6 +4003,7 @@ export const makeDefinition = (
   )
   const defineStep = authoring?.step ?? makeDefineStep()
   const defineOutMessageFold = makeOutMessageFold()
+  const defineOutMessageForward = makeOutMessageForward()
   const stepFields = authoring?.stepFields ?? makeStepFields()
   const stepNoop = authoring?.stepNoop ?? makeStepNoop
   const defineSubscriptions =
@@ -4150,7 +4181,7 @@ export const makeDefinition = (
       makeView: defineView,
       mounts,
       [LocalMountsTypeId]: localMounts,
-      bindings,
+      bindings: publicBindings,
       init: implementation.init,
       update: completedUpdate,
       operations,
@@ -4163,6 +4194,7 @@ export const makeDefinition = (
       provideHandlers,
     }
 
+    registerRuntimeBindings(block, bindings)
     registerDefaultView(block, implementation.view)
     localChannels.set(block, {
       subscriptions: Subscription.aggregate(implementation.subscriptions ?? {}),
@@ -4182,10 +4214,13 @@ export const makeDefinition = (
       : { ChildInitContext: config.ChildInitContext }),
     ...(config.OutMessage === undefined
       ? {}
-      : { OutMessage: config.OutMessage }),
+      : {
+          OutMessage: config.OutMessage,
+          makeOutMessageForward: defineOutMessageForward,
+        }),
     mounts,
     [LocalMountsTypeId]: localMounts,
-    bindings,
+    bindings: publicBindings,
     makeView: defineView,
     makeInit: init,
     makeUpdate: update,
@@ -4236,6 +4271,34 @@ const assertCompositionGraph: (
   }
 }
 
+const normalizeCompositionGraph = (graph: RuntimeCompositionGraph) => {
+  const bindings: Array<AnyBinding> = []
+  const policies: Array<readonly [object, RuntimeOutMessagePolicy]> = []
+
+  for (const entry of graph.bindings ?? []) {
+    if (!Predicate.isObject(entry)) {
+      throw new Error(
+        '[foldkit] Composition bindings must be child Binding values.',
+      )
+    }
+    const selection = selectedBindingOutMessagePolicyOf(entry)
+    if (selection === undefined) {
+      if (bindingRequiresOutMessagePolicy(entry)) {
+        throw new Error(
+          `[foldkit] Child Binding "${entry.placement}" requires withOutMessagePolicy before Composition registration.`,
+        )
+      }
+      bindings.push(entry)
+    } else {
+      /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
+      bindings.push(selection.binding as AnyBinding)
+      policies.push([selection.binding, selection.outMessage])
+    }
+  }
+
+  return { bindings, policies }
+}
+
 /** @internal Creates a typed definition before its composition graph. */
 export const makeBaseDefinition = (
   owner: Owner<any>,
@@ -4278,7 +4341,12 @@ export const makeBaseDefinition = (
     ...(base.ChildInitContext === undefined
       ? {}
       : { ChildInitContext: base.ChildInitContext }),
-    ...(base.OutMessage === undefined ? {} : { OutMessage: base.OutMessage }),
+    ...(base.OutMessage === undefined
+      ? {}
+      : {
+          OutMessage: base.OutMessage,
+          makeOutMessageForward: base.makeOutMessageForward,
+        }),
     mounts: base.mounts,
     [LocalMountsTypeId]: base[LocalMountsTypeId],
     bindings: base.bindings,

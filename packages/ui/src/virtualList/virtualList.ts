@@ -194,8 +194,6 @@ export const OutMessage = defineMessageUnion({
   ObservedContainerScroll: ContainerScrollObservation.fields,
 })
 
-export type OutMessage = typeof OutMessage.Type
-
 const VirtualListDefinition = Block.makeDefinition('VirtualList', {
   Model,
   Message,
@@ -597,8 +595,9 @@ const currentScrollRequest = (model: Model): typeof ScrollRequest.Type =>
     Pending: ({ request }) => request,
   })
 
-const reconcileLayout = (model: Model) =>
-  buildScrollRequest(currentScrollRequest(model))(model)
+const reconcileLayout = VirtualListDefinition.step(model =>
+  buildScrollRequest(currentScrollRequest(model)),
+)
 
 const anchorFromSnapshot = (
   model: Model,
@@ -731,11 +730,9 @@ const applyRowMeasurements = (
       Record.set(heights, measurement.key, measurement.height),
   )
   return Update.combine(model, [
-    stepModel => ({
-      model: modifyFields(stepModel, {
-        measuredRowHeights: () => measuredRowHeights,
-      }),
-    }),
+    VirtualListDefinition.stepFields(() => ({
+      measuredRowHeights: () => measuredRowHeights,
+    })),
     reconcileLayout,
   ])
 }
@@ -822,11 +819,9 @@ const requestScroll = (
   maybeAlignment: Option.Option<ScrollAlignment>,
 ) =>
   Update.combine(model, [
-    stepModel => ({
-      model: modifyFields(stepModel, {
-        initialScroll: () => InitialScroll.Applied(),
-      }),
-    }),
+    VirtualListDefinition.stepFields(() => ({
+      initialScroll: () => InitialScroll.Applied(),
+    })),
     buildScrollRequest(
       ScrollRequest.Target({
         target,
@@ -838,14 +833,12 @@ const requestScroll = (
 const applyItemsChange = (model: Model, itemKeys: ReadonlyArray<string>) => {
   const currentKeys = HashSet.fromIterable(itemKeys)
   return Update.combine(model, [
-    stepModel => ({
-      model: modifyFields(stepModel, {
-        measuredRowHeights: Record.filter((_, key) =>
-          HashSet.has(currentKeys, key),
-        ),
-        layoutVersion: Number.increment,
-      }),
-    }),
+    VirtualListDefinition.stepFields(() => ({
+      measuredRowHeights: Record.filter((_, key) =>
+        HashSet.has(currentKeys, key),
+      ),
+      layoutVersion: Number.increment,
+    })),
     reconcileLayout,
   ])
 }

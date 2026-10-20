@@ -45,14 +45,12 @@ const Ball = Schema.Struct({
   radius: Schema.Number,
   color: Schema.String,
 })
-type Ball = typeof Ball.Type
 
 export const Model = Schema.Struct({
   balls: Schema.Array(Ball),
   nextId: Schema.Number,
   isRunning: Schema.Boolean,
 })
-export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   TickedFrame: { deltaTime: Schema.Number },
@@ -68,8 +66,6 @@ export const Message = defineMessageUnion({
   ClickedClear: {},
   ClickedTogglePlay: {},
 })
-
-export type Message = typeof Message.Type
 
 export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
@@ -119,7 +115,7 @@ export const GenerateBall = ApplicationDefinition.command('GenerateBall', {
 
 const advanceBall =
   (deltaSeconds: number) =>
-  (ball: Ball): Ball => {
+  (ball: typeof Ball.Type): typeof Ball.Type => {
     const nextX = ball.x + ball.vx * deltaSeconds
     const nextY = ball.y + ball.vy * deltaSeconds
     const minX = ball.radius
@@ -204,7 +200,7 @@ const backgroundShape = Canvas.Rect({
   fill: '#0a0a0f',
 })
 
-const ballShape = (ball: Ball): Canvas.Shape =>
+const ballShape = (ball: typeof Ball.Type): Canvas.Shape =>
   Canvas.Circle({
     x: ball.x,
     y: ball.y,
@@ -212,12 +208,15 @@ const ballShape = (ball: Ball): Canvas.Shape =>
     fill: ball.color,
   })
 
-const sceneShapes = (model: Model): ReadonlyArray<Canvas.Shape> => [
+const sceneShapes = (model: typeof Model.Type): ReadonlyArray<Canvas.Shape> => [
   backgroundShape,
   ...Array.map(model.balls, ballShape),
 ]
 
-const controlsView = (model: Model, h: ApplicationViewBuilder): Html =>
+const controlsView = (
+  model: typeof Model.Type,
+  h: ApplicationViewBuilder,
+): Html =>
   h.div(
     [h.Class('flex gap-3 mt-4')],
     [

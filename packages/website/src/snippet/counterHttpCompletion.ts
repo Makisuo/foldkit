@@ -6,7 +6,7 @@ import {
 } from './counterHttpCommand'
 
 export const init = ApplicationComposition.makeInit(
-  (): Readonly<{ model: Model }> => ({
+  (): Readonly<{ model: typeof Model.Type }> => ({
     model: { count: 0 },
   }),
 )

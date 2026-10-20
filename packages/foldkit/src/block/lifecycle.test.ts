@@ -52,7 +52,6 @@ const buildGraph = (
   const ChildNamespace = makeNamespace('LifecycleChild')
 
   const ChildModel = Schema.Struct({ id: Schema.String })
-  type ChildModel = typeof ChildModel.Type
 
   const ChildMessage = defineMessageUnion({
     AcquiredSession: {},
@@ -60,7 +59,6 @@ const buildGraph = (
     FailedAcquireSession: {},
     ReleasedSession: {},
   })
-  type ChildMessage = typeof ChildMessage.Type
 
   const Session = ChildNamespace.resource<string>()('Session')
 
@@ -191,7 +189,6 @@ const buildGraph = (
   const ParentMessage = defineMessageUnion({
     RemovedChild: {},
   })
-  type ParentMessage = typeof ParentMessage.Type
 
   const ParentBaseDefinition = Block.makeDefinition('Application', {
     Model: ParentModel,

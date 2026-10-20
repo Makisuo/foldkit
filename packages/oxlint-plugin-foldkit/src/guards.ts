@@ -936,27 +936,50 @@ const bindingConfigHasStaticStringProperty = (
   )
 }
 
+const directBindingCall = (
+  node: ESTree.CallExpression,
+): ESTree.CallExpression => {
+  if (
+    isMemberExpression(node.callee) &&
+    Option.contains(staticMemberName(node.callee), 'withOutMessagePolicy') &&
+    isCallExpression(node.callee.object)
+  ) {
+    return directBindingCall(node.callee.object)
+  }
+
+  return node
+}
+
+/** Returns the owned `bindChild` call beneath a direct fluent policy chain. */
+export const blockBindingSourceCall = (
+  node: ESTree.CallExpression,
+): ESTree.CallExpression => directBindingCall(node)
+
 /** Returns a parent-owned Binding configuration, or a standalone fold configuration. */
 export const blockBindingConfiguration = (
   node: ESTree.CallExpression,
-): ESTree.CallExpression['arguments'][number] | undefined =>
-  Option.getOrUndefined(
+): ESTree.CallExpression['arguments'][number] | undefined => {
+  const bindingCall = directBindingCall(node)
+
+  return Option.getOrUndefined(
     Array.get(
-      node.arguments,
-      Option.exists(staticMemberPath(node.callee), path =>
+      bindingCall.arguments,
+      Option.exists(staticMemberPath(bindingCall.callee), path =>
         Option.contains(Array.last(path.members), 'bindChild'),
       )
         ? 1
         : 0,
     ),
   )
+}
 
 /** Recognizes static and keyed parent-owned child Bindings from their configuration. */
 export const blockBindingMethod = (
   node: ESTree.CallExpression,
   references?: WeakMap<ESTree.Node, Reference>,
 ): Option.Option<'Static' | 'Keyed'> => {
-  if (!isOwnedDefinitionCall(node, 'bindChild', references)) {
+  const bindingCall = directBindingCall(node)
+  if (!isOwnedDefinitionCall(bindingCall, 'bindChild', references)) {
     return Option.none()
   }
 
@@ -979,6 +1002,50 @@ export const blockBindingMethod = (
   }
 
   return Option.none()
+}
+
+/** Recognizes a Binding's fluent OutMessage policy selection. */
+export const isBindingPolicyCall = (
+  node: ESTree.CallExpression,
+  references?: WeakMap<ESTree.Node, Reference>,
+  visited: ReadonlySet<Variable> = new Set(),
+): boolean => {
+  if (
+    !isMemberExpression(node.callee) ||
+    !Option.contains(staticMemberName(node.callee), 'withOutMessagePolicy')
+  ) {
+    return false
+  }
+
+  const source = node.callee.object
+  if (isCallExpression(source)) {
+    return Option.isSome(blockBindingMethod(source, references))
+  }
+  if (references === undefined || !isIdentifierReference(source)) {
+    return false
+  }
+
+  return Option.exists(resolvedVariable(references, source), variable => {
+    if (visited.has(variable)) {
+      return false
+    }
+
+    const nextVisited = new Set([...visited, variable])
+    return variable.defs.some(definition => {
+      if (
+        definition.type !== 'Variable' ||
+        !isVariableDeclarator(definition.node) ||
+        !isCallExpression(definition.node.init)
+      ) {
+        return false
+      }
+
+      return (
+        Option.isSome(blockBindingMethod(definition.node.init, references)) ||
+        isBindingPolicyCall(definition.node.init, references, nextVisited)
+      )
+    })
+  })
 }
 
 /** Recognizes an authoring method on a Block or imported feature owner. */

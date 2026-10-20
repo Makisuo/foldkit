@@ -63,8 +63,7 @@ const BoundCounterBinding = Parent.bindChild(block, {
   read: model => Option.some(model.counter),
   write: (model: Model, nextCounter: typeof CounterModel.Type) =>
     modifyFields(model, { counter: () => nextCounter }),
-  outMessage: { fold: foldCounterOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldCounterOutMessage })
 const keyedPolicy = {
   fold: (
     id: number,
@@ -111,8 +110,7 @@ const keyedBaseConfig = {
 }
 const EntriesBinding = Parent.bindChild(block, {
   ...keyedBaseConfig,
-  outMessage: keyedPolicy,
-})
+}).withOutMessagePolicy(keyedPolicy)
 const initialModel = Model.make({
   counter: { count: 3 },
   entries: [{ id: 1, counter: { count: 5 } }],
@@ -172,7 +170,6 @@ const sequencedCounterBlock = SequencedCounterComposition.assembleBlock({
   hostHandlers: [RecordCount],
 })
 const SequencedParentModel = Schema.Struct({ child: SequencedCounterModel })
-type SequencedParentModel = typeof SequencedParentModel.Type
 const SequencedParentMessage = defineMessageUnion({
   RequestedSequence: {},
 })
@@ -271,43 +268,45 @@ if (false) {
   // @ts-expect-error A keyed exposed operation requires its key.
   EntriesBinding.reset()
 
-  // @ts-expect-error A keyed child with OutMessages requires an explicit policy.
-  Parent.bindChild(block, keyedBaseConfig)
+  const MissingPolicyBinding = Parent.bindChild(block, keyedBaseConfig)
+  // @ts-expect-error A keyed child with OutMessages requires an explicit policy before Composition.
+  Parent.makeComposition({ bindings: [MissingPolicyBinding] })
 
-  // @ts-expect-error This invalid Binding configuration has no matching overload.
   Parent.bindChild(block, {
     ...keyedBaseConfig,
-    outMessage: {
-      fold:
-        (
-          _id: string,
-          _outMessage: typeof CounterOutMessage.Type,
-          _context: Update.FoldContext<
-            typeof CounterMessage.Type,
-            typeof CounterMessage.Type,
-            Model
-          >,
-        ) =>
-        (model: Model) => ({ model }),
-    },
+  }).withOutMessagePolicy({
+    // @ts-expect-error A keyed fold must accept the Binding's number key and parent Message context.
+    fold:
+      (
+        _id: string,
+        _outMessage: typeof CounterOutMessage.Type,
+        _context: Update.FoldContext<
+          typeof CounterMessage.Type,
+          typeof CounterMessage.Type,
+          Model
+        >,
+      ) =>
+      (model: Model) => ({ model }),
   })
 
-  // @ts-expect-error This invalid Binding configuration has no matching overload.
   Parent.bindChild(block, {
     ...keyedBaseConfig,
-    outMessage: { forward: () => undefined },
+  }).withOutMessagePolicy({
+    // @ts-expect-error A forward policy must return the parent's OutMessage.
+    forward: () => undefined,
   })
 
-  // @ts-expect-error This invalid Binding configuration has no matching overload.
   Parent.bindChild(block, {
     ...keyedBaseConfig,
-    outMessage: { forward: (): unknown => undefined },
+  }).withOutMessagePolicy({
+    // @ts-expect-error A forward policy cannot erase its output to unknown.
+    forward: (): unknown => undefined,
   })
 
-  // @ts-expect-error This invalid Binding configuration has no matching overload.
   Parent.bindChild(block, {
     ...keyedBaseConfig,
     // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
+    // @ts-expect-error OutMessage remains invalid inside bindChild configuration, including when erased to any.
     outMessage: { forward: (): any => undefined },
   })
 }

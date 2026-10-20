@@ -7,5 +7,3 @@ export const Model = taggedStruct('LoggedOut', {
   route: LoggedOutRoute,
   loginModel: LoginBlock.Model,
 })
-
-export type Model = typeof Model.Type

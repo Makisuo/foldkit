@@ -21,7 +21,7 @@ import {
   normalizeRoutingInputConfig,
 } from './browserListeners.js'
 import type { CrashConfig, ElementCrashConfig } from './crashUI.js'
-import type { DevToolsConfig } from './devToolsConfig.js'
+import type { DevToolsConfig, RuntimeDevToolsConfig } from './devToolsConfig.js'
 import type { ValidHandlerContracts } from './handlerContracts.js'
 import {
   type ValidateProgramBlock,
@@ -224,9 +224,68 @@ type FlagsRequirements<FlagsEffect> =
     ? Requirements
     : never
 
+type DevToolsDispatchValue<Value> = Value extends object
+  ? 'dispatch' extends keyof Value
+    ? Value[Extract<'dispatch', keyof Value>]
+    : never
+  : never
+
+type ProgramDispatchRequirements<
+  BlockValue extends AnyBlock,
+  Config,
+> = Config extends unknown
+  ? 'devTools' extends keyof Config
+    ? true extends DevToolsDispatchValue<
+        Config[Extract<'devTools', keyof Config>]
+      >
+      ? BlockValue['Message']['DecodingServices']
+      : never
+    : never
+  : never
+
+type ResidualProgramDispatchRequirements<
+  BlockValue extends AnyBlock,
+  Config,
+> = BlockValue extends unknown
+  ? Exclude<
+      ProgramDispatchRequirements<BlockValue, Config>,
+      | Layer.Success<BlockValue['EffectsLayer']>
+      | RuntimeServicesOfBlock<BlockValue>
+    >
+  : never
+
+type ProgramRequirements<BlockValue extends AnyBlock, Config> =
+  | RequirementsOfBlock<BlockValue>
+  | ResidualProgramDispatchRequirements<BlockValue, Config>
+
 type ExactHostConfig<Config, AllowedKeys extends PropertyKey> = Readonly<{
   [Key in Exclude<keyof Config, AllowedKeys>]: never
 }>
+
+type ConfiguredDevToolsValue<Config> = Config extends unknown
+  ? 'devTools' extends keyof Config
+    ? Config[Extract<'devTools', keyof Config>]
+    : never
+  : never
+
+type InvalidDevToolsKeys<Value> = Value extends object
+  ? Exclude<keyof Value, keyof Exclude<DevToolsConfig, false>>
+  : never
+
+type ExactDevToolsConfig<Config> = [
+  InvalidDevToolsKeys<ConfiguredDevToolsValue<Config>>,
+] extends [never]
+  ? unknown
+  : Readonly<{
+      devTools?:
+        | false
+        | (Exclude<DevToolsConfig, false> &
+            Readonly<{
+              [
+                Key in InvalidDevToolsKeys<ConfiguredDevToolsValue<Config>>
+              ]?: never
+            }>)
+    }>
 
 type PageHostConfigKeys =
   | 'block'
@@ -240,16 +299,36 @@ type ElementHostConfigKeys =
   | 'flags'
   | keyof ElementHostOptions<AnyBlock, Ports | undefined>
 
-type ExactPageHostConfig<Config> = ExactHostConfig<Config, PageHostConfigKeys>
+type ExactPageHostConfig<Config> = ExactHostConfig<Config, PageHostConfigKeys> &
+  ExactDevToolsConfig<Config>
 type ExactElementHostConfig<Config> = ExactHostConfig<
   Config,
   ElementHostConfigKeys
->
+> &
+  ExactDevToolsConfig<Config>
 
 type ResidualRequirements<Current, Provided, Needed, RuntimeServices> = Exclude<
   Exclude<Current, Provided> | Needed,
   RuntimeServices
 >
+
+/** @internal Derives the bridge-only dispatch Schema from the completed root Block. */
+export const resolveProgramDevToolsConfig = <
+  const DispatchSchema extends Schema.Codec<any, any, any, any>,
+>(
+  devTools: DevToolsConfig | undefined,
+  dispatchSchema: DispatchSchema,
+): RuntimeDevToolsConfig<DispatchSchema['DecodingServices']> | undefined => {
+  if (
+    devTools === undefined ||
+    devTools === false ||
+    devTools.dispatch !== true
+  ) {
+    return devTools
+  }
+
+  return { ...devTools, dispatchSchema }
+}
 
 /** A Program that is ready to be started by the Foldkit Runtime. */
 export interface Runnable<
@@ -368,7 +447,7 @@ export function make<
 ): Program<
   RootPorts<PortsValue>,
   RootFlags<FlagsSchema>,
-  RequirementsOfBlock<BlockValue>,
+  ProgramRequirements<BlockValue, Config>,
   RuntimeServicesOfBlock<BlockValue>,
   Layer.Success<BlockValue['EffectsLayer']>
 >
@@ -391,7 +470,7 @@ export function make<
 ): Program<
   RootPorts<PortsValue>,
   RootFlags<FlagsSchema>,
-  RequirementsOfBlock<BlockValue>,
+  ProgramRequirements<BlockValue, Config>,
   RuntimeServicesOfBlock<BlockValue>,
   Layer.Success<BlockValue['EffectsLayer']>
 >
@@ -414,7 +493,7 @@ export function make<
 ): Program<
   RootPorts<PortsValue>,
   RootFlags<FlagsSchema>,
-  RequirementsOfBlock<BlockValue>,
+  ProgramRequirements<BlockValue, Config>,
   RuntimeServicesOfBlock<BlockValue>,
   Layer.Success<BlockValue['EffectsLayer']>
 >
@@ -437,7 +516,7 @@ export function make<
 ): Program<
   RootPorts<PortsValue>,
   RootFlags<FlagsSchema>,
-  RequirementsOfBlock<BlockValue>,
+  ProgramRequirements<BlockValue, Config>,
   RuntimeServicesOfBlock<BlockValue>,
   Layer.Success<BlockValue['EffectsLayer']>
 >
@@ -460,13 +539,13 @@ export function make<
 ): Program<
   RootPorts<PortsValue>,
   RootFlags<FlagsSchema>,
-  RequirementsOfBlock<BlockValue>,
+  ProgramRequirements<BlockValue, Config>,
   RuntimeServicesOfBlock<BlockValue>,
   Layer.Success<BlockValue['EffectsLayer']>
 >
 export function make(config: unknown): unknown {
   assertProgramConfig(config, 'Document')
-  const { block, routing, ...hostOptions } = config
+  const { block, routing, devTools, ...hostOptions } = config
   const lowered = lowerBlock(block)
   const view = (model: unknown, h: unknown) => {
     const output = lowered.view(model, h)
@@ -477,6 +556,7 @@ export function make(config: unknown): unknown {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     {
       ...hostOptions,
+      devTools: resolveProgramDevToolsConfig(devTools, block.Message),
       ...(routing === undefined
         ? {}
         : {
@@ -507,7 +587,7 @@ export function makeElement<
     NoInfer<ExactElementHostConfig<Config>>,
 ): Element<
   RootPorts<PortsValue>,
-  RequirementsOfBlock<BlockValue>,
+  ProgramRequirements<BlockValue, Config>,
   RuntimeServicesOfBlock<BlockValue>,
   Layer.Success<BlockValue['EffectsLayer']>
 >
@@ -526,13 +606,13 @@ export function makeElement<
     NoInfer<ExactElementHostConfig<Config>>,
 ): Element<
   RootPorts<PortsValue>,
-  RequirementsOfBlock<BlockValue> | FlagsRequirements<FlagsEffect>,
+  ProgramRequirements<BlockValue, Config> | FlagsRequirements<FlagsEffect>,
   RuntimeServicesOfBlock<BlockValue>,
   Layer.Success<BlockValue['EffectsLayer']>
 >
 export function makeElement(config: unknown): unknown {
   assertProgramConfig(config, 'Element')
-  const { block, ...hostOptions } = config
+  const { block, devTools, ...hostOptions } = config
   const lowered = lowerBlock(block)
   const view = (model: unknown, h: unknown) => {
     const output = lowered.view(model, h)
@@ -543,6 +623,7 @@ export function makeElement(config: unknown): unknown {
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     {
       ...hostOptions,
+      devTools: resolveProgramDevToolsConfig(devTools, block.Message),
       ...lowered,
       view,
     } as never,

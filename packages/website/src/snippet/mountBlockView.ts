@@ -3,7 +3,6 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 const Model = Schema.Struct({ label: Schema.String })
-type Model = typeof Model.Type
 const Message = defineMessageUnion({
   CompletedMeasurePanel: { height: Schema.Number },
 })
@@ -28,7 +27,7 @@ const PanelComposition = PanelDefinition.makeComposition({
 type PanelViewBuilder = Block.ViewBuilderFor<typeof PanelComposition>
 
 const panelView = <Builder extends PanelViewBuilder>(
-  model: Model,
+  model: typeof Model.Type,
   h: Builder,
 ) => h.div([h.OnMount(MeasurePanel())], [model.label])
 

@@ -10,7 +10,7 @@ const program = Program.make({
     onUrlChange: ApplicationBlock.Message.ChangedUrl,
   },
   viewTransition,
-  devTools: { Message: ApplicationBlock.Message },
+  devTools: { dispatch: true },
 })
 
 Runtime.run(program)

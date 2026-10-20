@@ -6,16 +6,15 @@ import { DialogBlock } from '@foldkit/ui'
 import { clearSearchQuery } from './clear'
 import { SearchDefinition } from './definition'
 
-const foldDialogOutMessage = SearchDefinition.makeOutMessageFold(DialogBlock, {
-  Opened: () => SearchDefinition.stepNoop(),
-  Closed: () => SearchDefinition.stepNoop(),
-  CompletedClose: () => clearSearchQuery,
-})
-
 export const DialogBinding = SearchDefinition.bindChild(DialogBlock, {
   field: 'dialog',
-  outMessage: { fold: foldDialogOutMessage },
   init: { contextToArgs: () => Tuple.make({ id: 'search-dialog' }) },
+}).withOutMessagePolicy({
+  fold: SearchDefinition.makeOutMessageFold(DialogBlock, {
+    Opened: SearchDefinition.stepNoop,
+    Closed: SearchDefinition.stepNoop,
+    CompletedClose: () => clearSearchQuery,
+  }),
 })
 
 export const SearchComposition = SearchDefinition.makeComposition({

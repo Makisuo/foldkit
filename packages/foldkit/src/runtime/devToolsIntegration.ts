@@ -29,7 +29,7 @@ import {
   liveViewStateChanges,
 } from '../mount/index.js'
 import {
-  type DevToolsConfig,
+  type RuntimeDevToolsConfig,
   resolveDevToolsConfig,
   resolveDevToolsKeyframeInterval,
   resolveDevToolsMaxEntries,
@@ -114,7 +114,7 @@ export const makeDevToolsIntegration = <Model, Message>({
   maybeFreezeModel,
   prepareDispatch,
 }: Readonly<{
-  devTools: DevToolsConfig | undefined
+  devTools: RuntimeDevToolsConfig<any> | undefined
   update: (model: Model, message: Message) => Readonly<{ model: Model }>
   maybeFreezeModel: (model: Model) => Model
   prepareDispatch: PrepareDispatch
@@ -272,13 +272,12 @@ export const makeDevToolsIntegration = <Model, Message>({
             if (import.meta.hot) {
               const maybeMessageSchema =
                 devTools !== undefined && devTools !== false
-                  ? Option.fromNullishOr(devTools.Message)
-                  : Option.none<Schema.Codec<any, any, unknown, unknown>>()
+                  ? Option.fromNullishOr(devTools.dispatchSchema)
+                  : Option.none<Schema.Codec<any, any, any, unknown>>()
               yield* startWebSocketBridge(
                 store,
                 import.meta.hot,
-                /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
-                maybeMessageSchema as Option.Option<Schema.Codec<any, any>>,
+                maybeMessageSchema,
                 prepareExternalDispatch,
               )
             }

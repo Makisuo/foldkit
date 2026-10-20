@@ -5,7 +5,6 @@ import { Effect, Match, Option, Schema, Tuple } from 'effect'
 import { Block, Calendar } from 'foldkit'
 import type { ChildAttribute, Html } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { DatePicker } from '@foldkit/ui'
 import type {
@@ -25,14 +24,12 @@ const Model = Schema.Struct({
   maybeSelectedDate: Schema.Option(Calendar.CalendarDate),
   // ...your other fields
 })
-type Model = typeof Model.Type
 
 // Fetch `today` once at the app boundary via flags so init stays pure:
 const Flags = Schema.Struct({
   today: Calendar.CalendarDate,
   // ...your other flags
 })
-type Flags = typeof Flags.Type
 
 const flags = Effect.gen(function* () {
   const today = yield* Calendar.today.local
@@ -42,11 +39,11 @@ const flags = Effect.gen(function* () {
 // This excerpt has no parent-owned facts. DatePicker handles its Calendar and
 // Popover children internally, and the parent Composition derives delivery.
 const Message = defineMessageUnion({})
-type Message = typeof Message.Type
 
 const DatePickerExampleDefinition = Block.makeDefinition('DatePickerExample', {
   Model,
   Message,
+  ChildInitContext: Flags,
 })
 
 // At module scope, fold the OutMessage into your own Model. `SelectedDate`
@@ -64,21 +61,19 @@ const foldDatePickerOutMessage = DatePickerExampleDefinition.makeOutMessageFold(
     // the committed date into its own field, which is then passed back to
     // the picker as `maybeSelectedDate`, so the parent stays the single
     // source of truth for the selection.
-    SelectedDate:
-      ({ date }) =>
-      model => ({
-        model: modifyFields(model, {
-          maybeSelectedDate: () => Option.some(date),
-        }),
-      }),
+    SelectedDate: ({ date }) =>
+      DatePickerExampleDefinition.stepFields(() => ({
+        maybeSelectedDate: () => Option.some(date),
+      })),
     // The user cleared the selection. Reset the parent's field.
-    ClearedDate: () => model => ({
-      model: modifyFields(model, { maybeSelectedDate: () => Option.none() }),
-    }),
+    ClearedDate: () =>
+      DatePickerExampleDefinition.stepFields(() => ({
+        maybeSelectedDate: () => Option.none(),
+      })),
     // The child has emitted `ChangedViewMonth`. In this arm the parent can
     // update its own state or dispatch its own Commands, for example
     // prefetch month data, fire analytics, or trigger a downstream Command.
-    ChangedViewMonth: () => DatePickerExampleDefinition.stepNoop(),
+    ChangedViewMonth: DatePickerExampleDefinition.stepNoop,
   },
 )
 
@@ -91,7 +86,7 @@ const DatePickerBinding = DatePickerExampleDefinition.bindChild(
   {
     field: 'datePickerDemo',
     init: {
-      contextToArgs: (flags: Flags) =>
+      contextToArgs: flags =>
         Tuple.make({
           id: 'date-picker-demo',
           today: flags.today,
@@ -99,9 +94,8 @@ const DatePickerBinding = DatePickerExampleDefinition.bindChild(
           maxDate: Calendar.addMonths(flags.today, 3),
         }),
     },
-    outMessage: { fold: foldDatePickerOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldDatePickerOutMessage })
 
 const DatePickerExampleComposition =
   DatePickerExampleDefinition.makeComposition({
@@ -113,13 +107,15 @@ type DatePickerExampleViewBuilder = Block.ViewBuilderFor<
 
 // Pass the flags-resolved date through the child init context. The Composition
 // supplies it to DatePickerBinding and initializes the bound Model.
-const init = DatePickerExampleComposition.makeInit((flags: Flags) => ({
-  childInitContext: flags,
-  model: {
-    maybeSelectedDate: Option.none(),
-    // ...your other fields
-  },
-}))
+const init = DatePickerExampleComposition.makeInit(
+  (flags: typeof Flags.Type) => ({
+    childInitContext: flags,
+    model: {
+      maybeSelectedDate: Option.none(),
+      // ...your other fields
+    },
+  }),
+)
 
 const update = DatePickerExampleComposition.makeUpdate()
 

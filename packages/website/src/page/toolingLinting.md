@@ -264,7 +264,7 @@ The rule reports without changing the source. Whether the identifier or runtime 
 
 #### Omit Empty Mappers
 
-Flags an inline `outMessage.forward` mapper that always returns `undefined`, including a keyed factory whose returned mapper does so. That mapper forwards nothing to the parent, so omit the property.
+Flags an inline `forward` selected through `withOutMessagePolicy` when it always returns `undefined`, including a keyed factory whose returned mapper does so. It also flags an inline `makeOutMessageForward` handler record when every named variant returns `undefined`. Those policies forward nothing to the parent, so omit forwarding.
 
 #### Partial Forwarding
 

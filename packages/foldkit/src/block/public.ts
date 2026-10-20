@@ -29,7 +29,13 @@ export type {
 } from './binding.js'
 export { inspectBinding } from './binding.js'
 export type { BindingInitRecipe } from './initRecipe.js'
-export type { BindChild } from './bindChild.js'
+export type {
+  BindChild,
+  BindingWithoutOutMessagePolicy,
+  SelectedChildBinding,
+  UnselectedOutMessagePolicy,
+  WithOutMessagePolicy,
+} from './bindChild.js'
 export type {
   BindingDeliveryEvidence,
   DefineCompositionUpdate,
@@ -102,6 +108,10 @@ export type {
   OutMessageFold,
   OutMessageFoldStep,
 } from './outMessageFold.js'
+export type {
+  MakeOutMessageForward,
+  OutMessageForward,
+} from './outMessageForward.js'
 export type { ValidateConcreteComposition } from './requirements.js'
 export type { InstanceKey } from './instanceContext.js'
 export type {

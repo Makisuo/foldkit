@@ -160,7 +160,7 @@ export const MountMap = ApplicationDefinition.mountStream('MountMap', {
       )
   },
 })
-const boundsFromMap = (map: MapInstance): Bounds => {
+const boundsFromMap = (map: MapInstance): typeof Bounds.Type => {
   const bounds = map.getBounds()
   return {
     west: bounds.getWest(),

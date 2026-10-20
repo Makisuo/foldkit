@@ -132,8 +132,8 @@ If you render the Toast Model without `Toast.view`, you own the entry markup, ac
 
 ### OutMessage {#out-message}
 
-Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s `outMessage.fold` policy.
+Messages emitted to the parent through the optional `outMessage` field. Handle the OutMessage in the Binding’s selected `fold` policy.
 
-| Name             | Type                   | Default | Description                                                                                                                                                                                                                                                                                          |
-| ---------------- | ---------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DismissedToast` | `{ payload: Payload }` | —       | Emitted when an entry finishes its leave animation and is removed from the Model. It carries the payload from your `Payload` Schema. Handle it in the Binding's `outMessage.fold` policy to update domain state or return an analytics Command. It reports removal, not the initial dismiss request. |
+| Name             | Type                   | Default | Description                                                                                                                                                                                                                                                                                        |
+| ---------------- | ---------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DismissedToast` | `{ payload: Payload }` | —       | Emitted when an entry finishes its leave animation and is removed from the Model. It carries the payload from your `Payload` Schema. Handle it in the Binding's selected `fold` policy to update domain state or return an analytics Command. It reports removal, not the initial dismiss request. |

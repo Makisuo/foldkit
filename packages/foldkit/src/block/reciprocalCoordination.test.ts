@@ -131,7 +131,6 @@ const Message = defineMessageUnion({
   RequestedJoin: { roomId: Schema.String, username: Schema.String },
   RequestedResetJoinForm: { username: Schema.String },
 })
-type Message = typeof Message.Type
 const Application = Block.makeDefinition('ReciprocalApplication', {
   Model,
   Message,
@@ -177,9 +176,8 @@ const HomeBinding = Application.bindChild(HomeBlock, {
   field: 'home',
   presentWhen: model => model.route._tag === 'Home',
   init: false,
-  outMessage: {
-    fold: foldHomeOutMessage,
-  },
+}).withOutMessagePolicy({
+  fold: foldHomeOutMessage,
 })
 
 const RoomBinding = Application.bindChild(RoomBlock, {
@@ -200,9 +198,8 @@ const RoomBinding = Application.bindChild(RoomBlock, {
       model.route._tag === 'Room' && model.route.roomId === roomId,
     toUpdateContext: (_model, roomId) => [{ roomId }],
   },
-  outMessage: {
-    fold: (_roomId, outMessage) => foldRoomOutMessage(outMessage),
-  },
+}).withOutMessagePolicy({
+  fold: (_roomId, outMessage) => foldRoomOutMessage(outMessage),
 })
 
 const ApplicationComposition = Application.makeComposition({
@@ -286,12 +283,12 @@ describe('reciprocal sibling coordination', () => {
     {
       name: 'missing',
       policy: undefined,
-      error: 'requires an outMessage policy with a fold or forward function',
+      error: 'requires withOutMessagePolicy before Composition registration',
     },
     {
       name: 'empty',
       policy: {},
-      error: 'An OutMessage policy requires a fold or forward function',
+      error: 'OutMessage policy requires fold or forward',
     },
     {
       name: 'non-callable',
@@ -302,31 +299,42 @@ describe('reciprocal sibling coordination', () => {
       name: 'forwarding without a parent contract',
       policy: { forward: () => undefined },
       error:
-        'outMessage.forward requires an OutMessage Schema on the parent Definition',
+        'forwarding requires an OutMessage Schema on its parent Definition',
     },
   ])(
     'rejects $name OutMessage policy from erased configuration',
     ({ policy, error }) => {
-      const config = {
-        field: 'home',
-        ...(policy === undefined ? {} : { outMessage: policy }),
-      }
+      const binding = Reflect.apply(Application.bindChild, undefined, [
+        HomeBlock,
+        { field: 'home' },
+      ])
 
-      expect(() =>
-        Reflect.apply(Application.bindChild, undefined, [HomeBlock, config]),
-      ).toThrow(error)
+      expect(() => {
+        const selectedBinding =
+          policy === undefined
+            ? binding
+            : Reflect.apply(binding.withOutMessagePolicy, binding, [policy])
+        Reflect.apply(Application.makeComposition, undefined, [
+          { bindings: [selectedBinding] },
+        ])
+      }).toThrow(error)
     },
   )
 
   it('validates a policy without calling it during Binding construction', () => {
     const fold = vi.fn(() => Application.step(model => ({ model })))
 
-    Reflect.apply(Application.bindChild, undefined, [
+    const binding = Reflect.apply(Application.bindChild, undefined, [
       HomeBlock,
-      {
-        field: 'home',
-        outMessage: { fold },
-      },
+      { field: 'home' },
+    ])
+    const selectedBinding = Reflect.apply(
+      binding.withOutMessagePolicy,
+      binding,
+      [{ fold }],
+    )
+    Reflect.apply(Application.makeComposition, undefined, [
+      { bindings: [selectedBinding] },
     ])
 
     expect(fold).not.toHaveBeenCalled()

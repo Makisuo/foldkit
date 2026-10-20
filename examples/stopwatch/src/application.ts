@@ -23,7 +23,6 @@ export const Model = Schema.Struct({
   isRunning: Schema.Boolean,
   startTime: Schema.Number,
 })
-export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   ClickedStart: {},
@@ -33,8 +32,6 @@ export const Message = defineMessageUnion({
   Ticked: {},
   CompletedDetermineTickTime: { elapsedMs: Schema.Number },
 })
-
-export type Message = typeof Message.Type
 
 export const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,

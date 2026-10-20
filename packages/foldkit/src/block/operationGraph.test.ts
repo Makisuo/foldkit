@@ -445,9 +445,8 @@ const PolicyChildBinding = PolicyParentBaseDefinition.bindChild(PolicyChild, {
   read: (model: ParentModel) => Option.some(model.primary),
   write: (model, nextChild) =>
     modifyFields(model, { primary: () => nextChild }),
-  outMessage: {
-    fold: (_outMessage: PolicyOutMessage) => SiblingChildBinding.reset(),
-  },
+}).withOutMessagePolicy({
+  fold: (_outMessage: PolicyOutMessage) => SiblingChildBinding.reset(),
 })
 
 const policyParentComposition = PolicyParentBaseDefinition.makeComposition({

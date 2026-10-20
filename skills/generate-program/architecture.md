@@ -69,7 +69,7 @@ Event handlers in the view dispatch Messages. They don't perform actions directl
 
 ### 3. Expected Command Failures Become Messages
 
-Define Command identities with the named feature’s `command`, whose config declares `args` (optional), every result Message in `messages`, optional interruption behavior, and `handler`. The handler is a generator constructor; Foldkit applies `Effect.gen` internally. Service lookups in that generator run once while the application Layer is built. The returned invocation function runs afresh for every Command with its current args. Definitions omit `execute`. Compose `Fetch.layer` directly in the owning module's `EffectsLayer`. A constructor with no service lookup still uses `function* ()` and returns the invocation function directly. Convert expected failures to Messages with `Effect.catch(() => Effect.succeed(Message.FailedX(...)))` so update can handle them as facts. Defects may still terminate the Effect and follow the runtime's crash path. Omit `handler` only for a contract whose implementation belongs to an external host; that definition has no `.layer` and the host passes its implementation constructor Effect to `toLayer`.
+Define Command identities with the named feature’s `command`, whose config declares `args` (optional), every result Message in `messages`, optional interruption behavior, and `handler`. The handler is a generator constructor; Foldkit applies `Effect.gen` internally. Service lookups in that generator run once while the application Layer is built. The returned invocation function runs afresh for every Command with its current args. Definitions omit `execute`. Compose `Fetch.layer` directly in the owning module's `EffectsLayer`. A constructor with no service lookup still uses `function* ()` and returns the invocation function directly. Do not add a fake `yield`; the recommended Foldkit Oxlint preset disables `require-yield` for this canonical constructor shape. Convert expected failures to Messages with `Effect.catch(() => Effect.succeed(Message.FailedX(...)))` so update can handle them as facts. Defects may still terminate the Effect and follow the runtime's crash path. Omit `handler` only for a contract whose implementation belongs to an external host; that definition has no `.layer` and the host passes its implementation constructor Effect to `toLayer`.
 
 Always assign definitions to PascalCase constants. Never define a Command inline in a pipe chain. Definitions live in the feature whose update produces them, alongside update or in a feature-local `command.ts`. Create a standalone `<CommandName>Layer` binding only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. Let TypeScript infer Command return types. The `messages` array constrains the handler's return type at the type level.
 
@@ -187,7 +187,7 @@ Binding folds and Binding-projected operations return connected Steps whose Mode
 
 Return a keyed startup wrapper as a plain record, preserving the initialized child object in its child field. Do not reconstruct that child through the wrapper's Schema constructor. Composition constructs the full parent Model through its Schema after collecting these records.
 
-Inside `FeatureComposition.makeUpdate`, let the outer helper infer the Command requirement channel through `Message.match(message, handlers)`. An explicit `Message.match<Update.Return<Model, Message>>` fixes that channel to `never` and discards the handler requirements the application must provide. When helpers or other matchers need a reusable return alias and any branch returns Commands, include the relevant requirements. Derive them with `Update.RequirementsOf<typeof update>` when the update contract is available, rather than from `EffectsLayer`, which may also contain lifecycle handlers that update never returns.
+Inside `FeatureComposition.makeUpdate`, let the outer helper infer the Command requirement channel through `Message.match(message, handlers)`. An explicit `Message.match<Update.Return<Model, Message>>` fixes that channel to `never` and discards the handler requirements the application must provide. The same rule applies to `Definition.step` and `Definition.makeOutMessageFold`: their owner supplies the contextual return contract and should infer every channel. A standalone matcher that is known to be pure may use `Update.Return<Model, Message>` or `Update.Step<Model, Message>` as its return generic. That contextual type also prevents nested literal tags from widening before a later assignment. When helpers or other matchers need a reusable return alias and any branch returns Commands, include the relevant requirements. Derive them with `Update.RequirementsOf<typeof update>` when the update contract is available, rather than from `EffectsLayer`, which may also contain lifecycle handlers that update never returns.
 
 Use `Update.Return<Model, Message>` for an update that cannot emit an OutMessage. It prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. A result with no `outMessage` can still be used where `Update.ReturnWithOutMessage<Model, Message, OutMessage>` is expected. The missing field means that update emitted no OutMessage. A hand-written plain-return type must preserve the `outMessage?: never` field.
 
@@ -203,9 +203,11 @@ Each completed operation returns the completed update function's full return con
 
 Use `Update.combine` when a later Step should receive the Model produced by an earlier Step. It takes two or more Steps. Do not wrap one Step in `Update.combine`; call that operation directly. Name an inline Step parameter `stepModel` when combining several; it receives the Model from the preceding Step. Child composition goes through a registered Binding: connected creation returns a `binding.init({ key?, args, toParentModel, commands? })` recipe, Composition routes generated child envelopes through the Binding fold, and parent-driven operations use `binding.name(...)`. Use `delivery.when`, `delivery.toUpdateContext`, and custom keyed `keySchema` for parent delivery policy. A child whose Message Schema is `Schema.Never` needs no delivery policy.
 
-When the OutMessage is already known while constructing a new result, include it directly: `{ model, commands, outMessage }`. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper: `pipe(dialogClose, Update.withOutMessage(outMessage))`. When constructing the plain return in the same expression, pass it first: `Update.withOutMessage({ model, commands }, outMessage)`. Add `outMessage.forward` only when at least one child OutMessage should continue to the current Block's parent. For partial forwarding, match every child variant and return `undefined` for the variants that stop here. Omit `outMessage.forward` when every variant stops here. `outMessage.fold` still handles each variant locally, including variants that continue upward. Never add `outMessage.forward: () => undefined` only to change the fold's return type.
+When the OutMessage is already known while constructing a new result, include it directly: `{ model, commands, outMessage }`. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper: `pipe(dialogClose, Update.withOutMessage(outMessage))`. When constructing the plain return in the same expression, pass it first: `Update.withOutMessage({ model, commands }, outMessage)`.
 
-A child Binding handles local OutMessages through `outMessage.fold`. Add `outMessage.forward` only for variants that continue upward. A derived parent OutMessage takes precedence over direct forwarding for that dispatch.
+A child with OutMessages requires explicit policy selection. Inline an ordinary unkeyed policy as `ParentDefinition.bindChild(ChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(ChildBlock, handlers), forward: ParentDefinition.makeOutMessageForward(handlers) })`. Every fold passes the whole completed child explicitly, whether inline, extracted, adapted for keyed policy, or staged for reciprocal composition. Forwarding remains contextual when inline; pass the whole completed child to `makeOutMessageForward` for an extracted callable policy, keyed adapter, or staged reciprocal policy. Include `forward` only when the parent declares OutMessages and at least one child variant continues upward; return `undefined` for named variants that stop. Register the full policy-selected Binding. A derived parent OutMessage takes precedence over forwarding for that dispatch. Missing policy, missing or extra handlers, undeclared forwarded OutMessages, and unregistered sibling operations fail type checking.
+
+Keep an ordinary one-way policy as one fluent declaration. For a self-referential or reciprocal policy, declare `FooBinding` first, author folds against the original operation-bearing Bindings, select `FooBindingWithOutMessagePolicy`, and register the selected value. Policy selection keeps the same child identity and does not start Layers, handlers, or lifecycle work.
 
 The module also carries two combinators for handlers that fan out after a mutation succeeds:
 
@@ -245,19 +247,18 @@ const unsafeInit = ApplicationComposition.makeInit(() => ({
 const Flags = Schema.Struct({
   createdAt: Schema.Number,
 })
-type Flags = typeof Flags.Type
 
 const flags = Effect.gen(function* () {
   const now = yield* Clock.currentTimeMillis
   return Flags.make({ createdAt: now })
 })
 
-const init = ApplicationComposition.makeInit((flags: Flags) => ({
+const init = ApplicationComposition.makeInit((flags: typeof Flags.Type) => ({
   model: Model.make({ createdAt: flags.createdAt }),
 }))
 ```
 
-For a fresh browser boot, Flags are produced by an `Effect<Flags>`. The runtime executes it once before init and passes the result in. This keeps init pure while still allowing side effects to populate the initial Model. Common uses:
+For a fresh browser boot, Flags are produced by an `Effect<typeof Flags.Type>`. The runtime executes it once before init and passes the result in. This keeps init pure while still allowing side effects to populate the initial Model. Common uses:
 
 - Reading from localStorage/sessionStorage (restoring saved state)
 - Getting the current time
@@ -446,6 +447,37 @@ Canonical live examples:
 - **Animation-frame-driven game tick**: `repos/foldkit/examples/canvas-art/src/application.ts`
 - **Conditional WebSocket connection** (active only when a session exists): `repos/foldkit/examples/websocket-chat/src/managedResource.ts`
 - **Production multi-stream pattern**: `repos/foldkit/packages/typing-game/client/src/page/room/subscription.ts`
+
+## ManagedResources
+
+A ManagedResource ties one acquired handle to Model state. Declare its accessor once through the owning Definition, register that same binding in the lifecycle entry, and import it in Commands that read the active value:
+
+```ts
+export const CameraStream =
+  CameraDefinition.resource<MediaStream>()('CameraStream')
+
+export const managedResources = CameraDefinition.managedResources(entry => ({
+  camera: entry('ManageCamera', CameraRequirements, {
+    resource: CameraStream,
+    modelToMaybeRequirements: model => model.maybeCamera,
+    onAcquired: () => Message.AcquiredCamera(),
+    onReleased: () => Message.ReleasedCamera(),
+    onAcquireError: error =>
+      Message.FailedAcquireCamera({ reason: String(error) }),
+    handler: function* () {
+      return { acquire: acquireCamera, release: releaseCamera }
+    },
+  }),
+}))
+```
+
+`CameraDefinition.resource` qualifies the local name with the Block ID. Give independently managed handles distinct local names because assembly treats one qualified resource key as one lifecycle identity. Use `ManagedResource.tag` only for a standalone registry with no Block Definition. Keep the accessor at module scope so entry registration and `.get` calls share one exported binding.
+
+## One Foldkit module instance
+
+Each client or server module graph must load one `foldkit` module instance. The Runtime's private definition checks and the HTML builder's render state live in that module instance. A linked package resolving another copy can therefore fail at runtime even when its TypeScript types look compatible.
+
+A reusable package that imports Foldkit declares `foldkit` as a peer dependency and as a development dependency for its own build. The application declares the linked package in its own `package.json` and builds with `@foldkit/vite-plugin`. Do not alias `foldkit` to different paths inside one graph. If the Vite plugin cannot reach a linked package through the application's dependency graph, add that package to `resolve.noExternal` so its Foldkit imports are bundled with the application's copy. Use `pnpm why foldkit` from the application workspace to find an unexpected nested installation before changing application code or resource identities.
 
 ## View Identity and Keys
 

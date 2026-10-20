@@ -7,16 +7,14 @@ export const DialogBinding = ApplicationDefinition.bindChild(
   Dialog.DialogBlock,
   {
     field: 'dialog',
-    outMessage: { fold: foldDialogOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 export const ApplicationMenu = Menu.create<string>()
 
 export const MenuBinding = ApplicationDefinition.bindChild(ApplicationMenu, {
   field: 'menu',
-  outMessage: { fold: foldMenuOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldMenuOutMessage })
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [DialogBinding, MenuBinding],
@@ -77,7 +75,7 @@ import { ApplicationBlock } from './block'
 const program = Program.make({
   block: ApplicationBlock,
   container: document.getElementById('root'),
-  devTools: { Message: ApplicationBlock.Message },
+  devTools: { dispatch: true },
 })
 
 Runtime.run(program)

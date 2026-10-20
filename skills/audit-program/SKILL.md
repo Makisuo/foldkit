@@ -204,12 +204,16 @@ Use `Agent` with `subagent_type: general-purpose`. Suggested fan-out:
   and the whole completed child Block. Require direct named variant handlers,
   no repeated Step or payload types, and an inferred second handler argument
   only where `FoldContext` is used. Retain a purposeful keyed factory or adapter
-  when policy needs call-site context. Allow a child union matcher when a
-  same-Binding or reciprocal-operation return causes a TypeScript
-  recursive-initializer cycle, provided returned Steps use the parent Definition
-  and registration still validates the completed policy. Whole-feature recipe replacement happens before
-  binding, while ordinary execution tests replace Service providers beneath
-  real handlers.
+  when policy needs call-site context. Build forwarding policy with the parent
+  Definition's `makeOutMessageForward`, require every variant to return a
+  declared parent OutMessage or `undefined`, and require at least one variant to
+  forward. Verify that the full Binding selected through `withOutMessagePolicy`
+  is registered. For self-referential or reciprocal policy, require original
+  `FooBinding` values first and selected `FooBindingWithOutMessagePolicy` values
+  afterward; raw child matchers, annotations, casts, and generic argument lists
+  are not inference workarounds. Whole-feature recipe replacement happens
+  before binding, while ordinary execution tests replace Service providers
+  beneath real handlers.
 
 - **Subagent C (Naming and decomposition)**. `maybe*` reserved for `Option<T>`, `is*` for booleans, no opaque abbreviations or unexplained single-letter names, conventional domain shorthand allowed, `Updated*` not `Changed*`, `Completed*` mirrors Command name verb-first, named helpers use specific verbs not generic ones, handlers over ~15 lines extracted, view branches over ~30 lines extracted, no function exceeds ~40 lines. Comments are sparse and mark architecture handoffs or a genuinely surprising constraint; they do not narrate ordinary control flow.
 - **Subagent D (Foldkit UI and accessibility)**. Hand-rolled `input` / `textarea` / `button` / `dialog` flagged unless NOTE-justified, label/input pairing via `For(id)` + `Id(id)`, dynamic errors announce via `Role('alert')` or `AriaLive('polite')`, icon-only buttons have `AriaLabel`, external links carry `Rel('noopener noreferrer')`, exactly one `h1` per route, semantic landmarks (`main`, `nav`, `header`, `footer`) over `div` soup, focus visibility preserved (no `outline-none` without `focus-visible:` replacement).

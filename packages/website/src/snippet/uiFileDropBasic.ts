@@ -4,7 +4,6 @@
 import { Array, Schema, Tuple } from 'effect'
 import { Block, File } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { FileDrop } from '@foldkit/ui'
 import type { FileDropAttributes as FileDropFileDropAttributes } from '@foldkit/ui/fileDrop'
@@ -15,11 +14,9 @@ const Model = Schema.Struct({
   uploadedFiles: Schema.Array(File.File),
   // ...your other fields
 })
-type Model = typeof Model.Type
 
 // This excerpt has no parent-owned facts. The Composition derives delivery.
 const Message = defineMessageUnion({})
-type Message = typeof Message.Type
 
 const FileDropExampleDefinition = Block.makeDefinition('FileDropExample', {
   Model,
@@ -34,16 +31,13 @@ const FileDropExampleDefinition = Block.makeDefinition('FileDropExample', {
 const foldFileDropOutMessage = FileDropExampleDefinition.makeOutMessageFold(
   FileDrop.FileDropBlock,
   {
-    ReceivedFiles:
-      ({ files }) =>
-      model => ({
-        model: modifyFields(model, {
-          uploadedFiles: Array.appendAll(files),
-        }),
-      }),
+    ReceivedFiles: ({ files }) =>
+      FileDropExampleDefinition.stepFields(() => ({
+        uploadedFiles: Array.appendAll(files),
+      })),
     // Fires when something is dropped but no files came through (e.g.
     // a drag of text or a URL). Ignore, or show a hint to the user.
-    RejectedNonFiles: () => FileDropExampleDefinition.stepNoop(),
+    RejectedNonFiles: FileDropExampleDefinition.stepNoop,
   },
 )
 
@@ -55,9 +49,8 @@ const FileDropBinding = FileDropExampleDefinition.bindChild(
   {
     field: 'uploader',
     init: { contextToArgs: () => Tuple.make({ id: 'uploader' }) },
-    outMessage: { fold: foldFileDropOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldFileDropOutMessage })
 
 const FileDropExampleComposition = FileDropExampleDefinition.makeComposition({
   bindings: [FileDropBinding],

@@ -1,49 +1,24 @@
 import { Option } from 'effect'
 import type { Block } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
 
 import { DatePickerBlock } from '@foldkit/ui'
 
 import { PersonalInfoDefinition, PronounsListboxBlock } from './definition'
-
-const foldPronounsOutMessage = PersonalInfoDefinition.makeOutMessageFold(
-  PronounsListboxBlock,
-  {
-    Selected:
-      ({ value }) =>
-      model => ({
-        model: modifyFields(model, {
-          maybeSelectedPronoun: () => Option.some(value),
-        }),
-      }),
-  },
-)
 
 export const PronounsListboxBinding = PersonalInfoDefinition.bindChild(
   PronounsListboxBlock,
   {
     field: 'pronouns',
     init: { contextToArgs: () => [{ id: 'pronouns' }] },
-    outMessage: { fold: foldPronounsOutMessage },
   },
-)
-
-const foldAvailableDateOutMessage = PersonalInfoDefinition.makeOutMessageFold(
-  DatePickerBlock,
-  {
-    SelectedDate:
-      ({ date }) =>
-      model => ({
-        model: modifyFields(model, {
-          maybeAvailableDate: () => Option.some(date),
-        }),
-      }),
-    ClearedDate: () => model => ({
-      model: modifyFields(model, { maybeAvailableDate: () => Option.none() }),
-    }),
-    ChangedViewMonth: () => PersonalInfoDefinition.stepNoop(),
-  },
-)
+).withOutMessagePolicy({
+  fold: PersonalInfoDefinition.makeOutMessageFold(PronounsListboxBlock, {
+    Selected: ({ value }) =>
+      PersonalInfoDefinition.stepFields(() => ({
+        maybeSelectedPronoun: () => Option.some(value),
+      })),
+  }),
+})
 
 export const AvailableDatePickerBinding = PersonalInfoDefinition.bindChild(
   DatePickerBlock,
@@ -52,9 +27,20 @@ export const AvailableDatePickerBinding = PersonalInfoDefinition.bindChild(
     init: {
       contextToArgs: today => [{ id: 'available-date', today, minDate: today }],
     },
-    outMessage: { fold: foldAvailableDateOutMessage },
   },
-)
+).withOutMessagePolicy({
+  fold: PersonalInfoDefinition.makeOutMessageFold(DatePickerBlock, {
+    SelectedDate: ({ date }) =>
+      PersonalInfoDefinition.stepFields(() => ({
+        maybeAvailableDate: () => Option.some(date),
+      })),
+    ClearedDate: () =>
+      PersonalInfoDefinition.stepFields(() => ({
+        maybeAvailableDate: () => Option.none(),
+      })),
+    ChangedViewMonth: PersonalInfoDefinition.stepNoop,
+  }),
+})
 
 export const PersonalInfoComposition = PersonalInfoDefinition.makeComposition({
   bindings: [PronounsListboxBinding, AvailableDatePickerBinding],

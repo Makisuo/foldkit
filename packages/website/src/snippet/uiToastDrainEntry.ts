@@ -17,7 +17,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
 const foldToastOutMessage = ApplicationDefinition.makeOutMessageFold(
   ToastBlock,
   {
-    DismissedToast: () => ApplicationDefinition.stepNoop(),
+    DismissedToast: ApplicationDefinition.stepNoop,
   },
 )
 const ToastBinding = ApplicationDefinition.bindChild(ToastBlock, {
@@ -25,8 +25,7 @@ const ToastBinding = ApplicationDefinition.bindChild(ToastBlock, {
   init: {
     contextToArgs: () => Tuple.make({ id: 'notifications' }),
   },
-  outMessage: { fold: foldToastOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldToastOutMessage })
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [ToastBinding],
 })

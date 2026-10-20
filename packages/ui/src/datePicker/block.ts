@@ -1,4 +1,4 @@
-import { Layer, Option, Predicate, Schema, Tuple } from 'effect'
+import { Option, Predicate, Schema, Tuple } from 'effect'
 import * as Block from 'foldkit/block'
 import * as Calendar from 'foldkit/calendar'
 import type { CalendarDate } from 'foldkit/calendar'
@@ -50,7 +50,6 @@ export const Message = defineMessageUnion({
     disabledDaysOfWeek: Schema.Array(Calendar.DayOfWeek),
   },
 })
-export type Message = typeof Message.Type
 
 // OUT MESSAGE
 
@@ -63,7 +62,6 @@ export const OutMessage = defineMessageUnion({
   SelectedDate: { date: Calendar.CalendarDate },
   ClearedDate: {},
 })
-export type OutMessage = typeof OutMessage.Type
 
 export type ChangedViewMonth = typeof OutMessage.ChangedViewMonth.Type
 export type SelectedDate = typeof OutMessage.SelectedDate.Type
@@ -117,40 +115,53 @@ const makeInitialModel = (config: InitConfig): Model => ({
 
 // UPDATE
 
-const foldPopoverOutMessage = Popover.PopoverBlock.OutMessage.match({
-  Opened: () => CalendarBinding.requestDropToDays(),
-  Closed: () => CalendarBinding.requestDropToDays(),
-})
-
 const PopoverBinding = DatePickerDefinition.bindChild(Popover.PopoverBlock, {
   field: 'popover',
   init: false,
-  outMessage: { fold: foldPopoverOutMessage },
 })
-
-const foldCalendarOutMessage = UiCalendar.CalendarBlock.OutMessage.match({
-  ChangedViewMonth: () => DatePickerDefinition.stepNoop(),
-  SelectedDate: () => PopoverBinding.requestClose(),
-})
-
-const toDatePickerOutMessage =
-  UiCalendar.CalendarBlock.OutMessage.match<OutMessage>({
-    ChangedViewMonth: ({ year, month }) =>
-      OutMessage.ChangedViewMonth({ year, month }),
-    SelectedDate: ({ date }) => OutMessage.SelectedDate({ date }),
-  })
 
 const CalendarBinding = DatePickerDefinition.bindChild(
   UiCalendar.CalendarBlock,
   {
     field: 'calendar',
     init: false,
-    outMessage: {
-      forward: toDatePickerOutMessage,
-      fold: foldCalendarOutMessage,
-    },
   },
 )
+
+const foldPopoverOutMessage = DatePickerDefinition.makeOutMessageFold(
+  Popover.PopoverBlock,
+  {
+    Opened: () => CalendarBinding.requestDropToDays(),
+    Closed: () => CalendarBinding.requestDropToDays(),
+  },
+)
+
+const foldCalendarOutMessage = DatePickerDefinition.makeOutMessageFold(
+  UiCalendar.CalendarBlock,
+  {
+    ChangedViewMonth: DatePickerDefinition.stepNoop,
+    SelectedDate: () => PopoverBinding.requestClose(),
+  },
+)
+
+const forwardCalendarOutMessage = DatePickerDefinition.makeOutMessageForward(
+  UiCalendar.CalendarBlock,
+  {
+    ChangedViewMonth: ({ year, month }) =>
+      OutMessage.ChangedViewMonth({ year, month }),
+    SelectedDate: ({ date }) => OutMessage.SelectedDate({ date }),
+  },
+)
+
+const PopoverBindingWithOutMessagePolicy = PopoverBinding.withOutMessagePolicy({
+  fold: foldPopoverOutMessage,
+})
+
+const CalendarBindingWithOutMessagePolicy =
+  CalendarBinding.withOutMessagePolicy({
+    fold: foldCalendarOutMessage,
+    forward: forwardCalendarOutMessage,
+  })
 
 const DatePickerComposition: Block.Composition<
   typeof DatePickerDefinition.owner,
@@ -158,9 +169,15 @@ const DatePickerComposition: Block.Composition<
   typeof Message,
   typeof OutMessage,
   readonly [],
-  readonly [typeof PopoverBinding, typeof CalendarBinding]
+  readonly [
+    typeof PopoverBindingWithOutMessagePolicy,
+    typeof CalendarBindingWithOutMessagePolicy,
+  ]
 > = DatePickerDefinition.makeComposition({
-  bindings: [PopoverBinding, CalendarBinding],
+  bindings: [
+    PopoverBindingWithOutMessagePolicy,
+    CalendarBindingWithOutMessagePolicy,
+  ],
 })
 
 /** Creates an initial DatePicker Model and Commands from a config. The selected date is
@@ -454,7 +471,6 @@ const implementation = {
         Message.InformedOfDisabledDaysOfWeekChange({ disabledDaysOfWeek }),
       ),
   },
-  EffectsLayer: Layer.empty,
 }
 
 /** Complete DatePicker Block definition. */

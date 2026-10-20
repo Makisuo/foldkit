@@ -46,8 +46,7 @@ const foldMenuOutMessage = MenuStoryDefinition.makeOutMessageFold(TestMenu, {
 const MenuBinding = MenuStoryDefinition.bindChild(TestMenu, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
-  outMessage: { fold: foldMenuOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldMenuOutMessage })
 
 const MenuStoryComposition = MenuStoryDefinition.makeComposition({
   bindings: [MenuBinding],
@@ -64,12 +63,11 @@ const RefinedMenuStoryDefinition = Block.makeDefinition('RefinedMenuStory', {
 const RefinedMenuBinding = RefinedMenuStoryDefinition.bindChild(RefinedMenu, {
   read: model => Option.some(model),
   write: (_model, nextMenu) => nextMenu,
-  outMessage: {
-    fold: RefinedMenuStoryDefinition.makeOutMessageFold(RefinedMenu, {
-      Selected: () => model => ({ model }),
-      Closed: () => model => ({ model }),
-    }),
-  },
+}).withOutMessagePolicy({
+  fold: RefinedMenuStoryDefinition.makeOutMessageFold(RefinedMenu, {
+    Selected: () => model => ({ model }),
+    Closed: () => model => ({ model }),
+  }),
 })
 
 const RefinedMenuStoryComposition = RefinedMenuStoryDefinition.makeComposition({

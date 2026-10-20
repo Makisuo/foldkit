@@ -29,9 +29,7 @@ import { ApplicationBlock } from './application'
 const program = Program.make({
   block: ApplicationBlock,
   container: document.getElementById('root'),
-  devTools: {
-    Message: ApplicationBlock.Message,
-  },
+  devTools: { dispatch: true },
 })
 
 Runtime.run(program)
@@ -39,7 +37,7 @@ Runtime.run(program)
 
 The application root is an ordinary Block created with `Block.makeDefinition('Application', { Model, Message })`. Export `ApplicationBlock` after authoring it through `ApplicationComposition` and assembling it with `assembleBlock`. Pass that Block to `Program.make` in the entry point.
 
-The `devTools` configuration is optional unless you need settings such as `Message`, `position`, or `excludeFromHistory`. Recording and the WebSocket bridge that the [DevTools MCP server](https://foldkit.dev/ai/mcp) connects to live in Foldkit's core Runtime.
+The `devTools` configuration is optional. Development inspection is enabled by default, while external Message dispatch is disabled. Set `dispatch: true` when the [DevTools MCP server](https://foldkit.dev/ai/mcp) should discover and dispatch the completed root Block's Messages. Foldkit derives that Schema from `ApplicationBlock`, including the generated envelopes for registered child Blocks.
 
 To include the overlay in production, move `@foldkit/devtools` to regular `dependencies` and set `show: 'Always'`. The dependency section is the build-time opt-in, and `show` controls whether the Runtime mounts it:
 

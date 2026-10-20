@@ -63,14 +63,14 @@ export const startHost = (): void => {
   const hostCountDisplay = getElement('host-count')
   const widgetSlot = getElement('widget-slot')
 
-  const flags: Flags = { initialCount: INITIAL_COUNT }
+  const flags: typeof Flags.Type = { initialCount: INITIAL_COUNT }
   const element = Program.makeElement({
     block: ApplicationBlock,
     Flags,
     flags: Effect.succeed(flags),
     ports,
     container: widgetSlot,
-    devTools: { Message: ApplicationBlock.Message },
+    devTools: { dispatch: true },
   })
 
   type WidgetHandle = Runtime.EmbedHandle<typeof element.ports>

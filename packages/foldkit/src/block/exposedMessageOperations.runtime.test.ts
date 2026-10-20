@@ -135,8 +135,7 @@ const foldChildOutMessage = ChildOutMessage.match<
 })
 const ChildBinding = Parent.bindChild(ChildBlock, {
   field: 'maybeChild',
-  outMessage: { fold: foldChildOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldChildOutMessage })
 const EntryBinding = Parent.bindChild(ChildBlock, {
   placement: 'entries',
   readAll: model => model.entries,
@@ -149,9 +148,8 @@ const EntryBinding = Parent.bindChild(ChildBlock, {
       ),
     }),
   keySchema: Schema.String,
-  outMessage: {
-    fold: (_id, outMessage) => foldChildOutMessage(outMessage),
-  },
+}).withOutMessagePolicy({
+  fold: (_id, outMessage) => foldChildOutMessage(outMessage),
 })
 const ParentComposition = Parent.makeComposition({
   bindings: [ChildBinding, EntryBinding],

@@ -6,7 +6,7 @@ import { ApplicationLayer } from './services'
 const program = Program.make({
   block: ApplicationBlock,
   container: document.getElementById('root'),
-  devTools: { Message: ApplicationBlock.Message },
+  devTools: { dispatch: true },
 })
 
 Runtime.run(program.provide(ApplicationLayer))

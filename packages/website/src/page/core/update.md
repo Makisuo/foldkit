@@ -52,7 +52,7 @@ The context rule is exact: `update(message)(model, ...context)`. `Update.combine
 
 ::Snippet{name="updateCurriedContext" label="Adapting a contextual update for combine"}
 
-`Update.defineStep` does the same inference for a standalone Step producer. Annotate its Model parameter and let the helper infer the returned Command requirements and OutMessage. Build a parent-owned child OutMessage fold with `ParentDefinition.makeOutMessageFold(ChildBlock, handlers)` so the completed child and parent Definition supply the handler payloads, Model, result channels, and optional `FoldContext`. Callers can compose the returned Steps through `Update.combine` without naming a service union by hand.
+`Update.defineStep` does the same inference for a standalone Step producer. Annotate its Model parameter and let the helper infer the returned Command requirements and OutMessage. Author an OutMessage fold with `ParentDefinition.makeOutMessageFold(ChildBlock, handlers)` whether the fold is inline in a Binding policy or extracted to a named value. The completed child and parent Definition supply the child payloads, parent Model, result channels, and `FoldContext`. Callers can compose the returned Steps through `Update.combine` without naming a service union by hand.
 
 `Update.RequirementsOf<typeof update>` extracts the inferred handler service union from an update. Use it when a parent or exported type needs to name those requirements. Application assembly reads the requirements from the update return type directly.
 
@@ -140,7 +140,7 @@ The Step order applies to Model changes. Commands run independently; a later chi
 
 ### Handling OutMessages from Startup Steps
 
-A restoration Step may emit a child OutMessage after the complete parent Model exists. Configure `outMessage.fold` on the Binding to handle that fact locally. The fold can update the parent Model and return Commands, and those Commands join the startup result.
+A restoration Step may emit a child OutMessage after the complete parent Model exists. Select a `fold` through the Binding's `withOutMessagePolicy` method to handle that fact locally. The fold can update the parent Model and return Commands, and those Commands join the startup result.
 
 Parent init cannot emit an OutMessage. A Binding used from init therefore handles the initial fact locally instead of forwarding it to another parent:
 
@@ -154,7 +154,7 @@ A local fold can report a more complete result than the child's original OutMess
 
 #### Replacement Rule
 
-When `outMessage.fold` returns `CompletedRange`, Foldkit uses it and skips `outMessage.forward` for that dispatch. When the fold returns no OutMessage, `outMessage.forward` supplies `SelectedEndDate`. A child that emits nothing triggers neither handler.
+When the selected `fold` returns `CompletedRange`, Foldkit uses it and skips the selected `forward` for that dispatch. When the fold returns no OutMessage, `forward` supplies `SelectedEndDate`. A child that emits nothing triggers neither handler.
 
 ## Preventing Lost OutMessages
 

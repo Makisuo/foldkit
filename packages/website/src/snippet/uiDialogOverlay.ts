@@ -4,15 +4,13 @@ import { Option, Schema, Tuple } from 'effect'
 // update, and view definitions.
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
 
 import { Combobox, Dialog } from '@foldkit/ui'
 import type { RenderInfo as DialogRenderInfo } from '@foldkit/ui/dialog'
 
 const City = Schema.Literals(['Johannesburg', 'Kyiv', 'Oxford', 'Wellington'])
-type City = typeof City.Type
 const CityCombobox = Combobox.create(City)
-const cities: ReadonlyArray<City> = [
+const cities: ReadonlyArray<typeof City.Type> = [
   'Johannesburg',
   'Kyiv',
   'Oxford',
@@ -41,35 +39,32 @@ const FilterDialogDefinition = Block.makeDefinition('FilterDialog', {
 const foldDialogOutMessage = FilterDialogDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: () => FilterDialogDefinition.stepNoop(),
-    Closed: () => FilterDialogDefinition.stepNoop(),
-    CompletedClose: () => FilterDialogDefinition.stepNoop(),
+    Opened: FilterDialogDefinition.stepNoop,
+    Closed: FilterDialogDefinition.stepNoop,
+    CompletedClose: FilterDialogDefinition.stepNoop,
   },
 )
 
 const foldComboboxOutMessage = FilterDialogDefinition.makeOutMessageFold(
   CityCombobox,
   {
-    Selected:
-      ({ value }) =>
-      model => ({
-        model: modifyFields(model, { maybeCity: () => Option.some(value) }),
-      }),
-    ClearedSelection: () => FilterDialogDefinition.stepNoop(),
+    Selected: ({ value }) =>
+      FilterDialogDefinition.stepFields(() => ({
+        maybeCity: () => Option.some(value),
+      })),
+    ClearedSelection: FilterDialogDefinition.stepNoop,
   },
 )
 
 const DialogBinding = FilterDialogDefinition.bindChild(Dialog.DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => Tuple.make({ id: 'edit-filters' }) },
-  outMessage: { fold: foldDialogOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
 const ComboboxBinding = FilterDialogDefinition.bindChild(CityCombobox, {
   field: 'combobox',
   init: { contextToArgs: () => Tuple.make({ id: 'city' }) },
-  outMessage: { fold: foldComboboxOutMessage },
-})
+}).withOutMessagePolicy({ fold: foldComboboxOutMessage })
 
 const FilterDialogComposition = FilterDialogDefinition.makeComposition({
   bindings: [DialogBinding, ComboboxBinding],

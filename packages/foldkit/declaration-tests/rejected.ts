@@ -28,6 +28,29 @@ import {
   parentView,
 } from './accepted.js'
 
+export type RemovedLegacyRuntimeContracts = [
+  // @ts-expect-error Program.make receives a completed root Block instead of loose application configuration.
+  Runtime.ApplicationConfig<never, never>,
+  // @ts-expect-error Flags are configured on Program.make rather than a loose application config type.
+  Runtime.ApplicationConfigWithFlags<never, never, never>,
+  // @ts-expect-error Routing belongs to Program.make host configuration.
+  Runtime.RoutingApplicationConfig<never, never>,
+  // @ts-expect-error Routing and Flags belong to Program.make host configuration.
+  Runtime.RoutingApplicationConfigWithFlags<never, never, never>,
+  // @ts-expect-error Program.makeElement receives a completed root Block.
+  Runtime.ElementConfig<never, never>,
+  // @ts-expect-error Element Flags belong to Program.makeElement host configuration.
+  Runtime.ElementConfigWithFlags<never, never, never>,
+  // @ts-expect-error Init is authored through the root Block Composition.
+  Runtime.ApplicationInit<never, never>,
+  // @ts-expect-error Routing init is authored through the root Block Composition.
+  Runtime.RoutingApplicationInit<never, never>,
+  // @ts-expect-error Element init is authored through the root Block Composition.
+  Runtime.ElementInit<never, never>,
+  // @ts-expect-error Public Program types replace the native runtime implementation result.
+  Runtime.MakeRuntimeReturn,
+]
+
 const LocalMessage = defineMessageUnion({ RequestedRefresh: {} })
 
 const InvalidApplication = (() => {

@@ -55,7 +55,7 @@ const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
     // release a resource. No Commands here because animateSize keeps the
     // element mounted (collapsed to zero height) so there's nothing to
     // tear down.
-    TransitionedOut: () => AnimationExampleDefinition.stepNoop(),
+    TransitionedOut: AnimationExampleDefinition.stepNoop,
   },
 )
 
@@ -67,9 +67,8 @@ const AnimationBinding = AnimationExampleDefinition.bindChild(
   {
     field: 'animation',
     init: { contextToArgs: () => Tuple.make({ id: 'content' }) },
-    outMessage: { fold: foldAnimationOutMessage },
   },
-)
+).withOutMessagePolicy({ fold: foldAnimationOutMessage })
 
 const AnimationExampleComposition = AnimationExampleDefinition.makeComposition({
   bindings: [AnimationBinding],

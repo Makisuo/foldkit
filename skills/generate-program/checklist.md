@@ -219,6 +219,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 - [ ] Every route variant has a corresponding view branch
 - [ ] Every `Succeeded*` has a paired `Failed*`
 - [ ] Every discriminated union variant is handled in both update and view
+- [ ] Routine application annotations query Schema types directly: `typeof Model.Type` inside the owning feature and `typeof ChildBlock.Model.Type` across a child boundary, with the analogous Message and OutMessage forms. Owned callbacks infer their parameters. Colocated Schema-derived aliases remain only for deliberate public library contracts or useful generic, mapped, and conditional types.
 
 ## Application wiring
 
@@ -236,6 +237,7 @@ Alongside the greps, eyeball each file's imports. Every symbol you imported shou
 - [ ] Returned Effects and Streams keep their Service requirements open unless the handler deliberately selects a different instance or scope. Do not yield a Service solely to re-provide that same instance to the operation. The handler Layer captures its Context; contextual lookups prefer invocation Services.
 - [ ] Mutable handler/service state is execution bookkeeping, such as worker availability or protocol request IDs. The Model and update own pending work shown to the user, selections, and submission rules. A `Ref` created in the constructor must not become the source of truth for workflow decisions or state read by view.
 - [ ] A page-owning Program starts through `Runtime.run(program.provide(ApplicationLayer))`. With Flags, it declares `Flags` in `Program.make` and calls `Runtime.run(program.provide(ApplicationLayer), { flags })`. An Element with Flags declares both `Flags` and `flags` in `Program.makeElement` and supplies Services through `program.provide(ApplicationLayer)`.
+- [ ] External DevTools Message discovery and dispatch use `devTools: { dispatch: true }`. No root Message Schema is passed by hand: Program derives the complete contract, including generated child envelopes, from `ApplicationBlock`. Omitting `devTools` keeps development inspection enabled with dispatch disabled; `devTools: false` disables DevTools entirely.
 
 ## Purity
 
@@ -342,9 +344,10 @@ Foldkit ships these; reaching past them is a finding, not a style choice.
       but it only constructs and discards passive configuration and executes no
       child work.
 - [ ] An OutMessage that is already known is included directly in a new result. `Update.withOutMessage` is used for an existing plain return or a value with the type `OutMessage | undefined`: an existing return is piped into the helper, while a new result literal is passed first. No local equivalent helper or conditional spread duplicates it
-- [ ] Child folds include `outMessage.forward` only when at least one child OutMessage should continue to the current Block's parent. Partial forwarding matches every child variant and returns `undefined` for variants that stop here. The property is omitted when every variant stops here, and no `outMessage.forward: () => undefined` mapping appears
-- [ ] Each parent-owned `fold<Child>OutMessage` uses `FeatureDefinition.makeOutMessageFold(WholeChildBlock, handlers)`, with every variant named even for a singleton union. It repeats no Step, payload, parent Model, or `FoldContext` annotations. A handler takes the inferred context only when it uses `liftCommand` or `modelBeforeUpdate`; otherwise the fold stays unary. A purposeful keyed factory or adapter remains when policy uses call-site context. A local fold uses the child union matcher only when a same-Binding or reciprocal-operation return causes a TypeScript recursive-initializer cycle; its returned Steps use the parent Definition and registration still validates the policy. An `outMessage.forward` mapper uses the child union's direct exhaustive matcher
-- [ ] An actual unary Model-only field Step uses `FeatureDefinition.stepFields(callback)`, and a named child OutMessage branch that intentionally preserves the parent Model uses `FeatureDefinition.stepNoop()`. Parameterized, Command-producing, OutMessage-producing, connected Binding, initialization, delegated, conditional, and composed results stay on `FeatureDefinition.step`. Ordinary update branches do not construct and immediately invoke a Step solely to use these helpers
+- [ ] Every child with OutMessages selects an explicit policy through `bindChild(...).withOutMessagePolicy({ fold?, forward? })`, and Composition registers that full Binding. No old `outMessage` field remains in `bindChild` config
+- [ ] Every `FeatureDefinition.makeOutMessageFold(WholeChildBlock, handlers)` call passes the whole completed child explicitly, including inline, extracted, keyed, and staged reciprocal policies. Every variant is named even for a singleton union, with no repeated Step, payload, parent Model, or `FoldContext` annotations. A handler takes inferred context only when it uses `liftCommand` or `modelBeforeUpdate`
+- [ ] An ordinary unkeyed forwarding policy inlines `FeatureDefinition.makeOutMessageForward(handlers)` under `withOutMessagePolicy({ forward })`; an extracted forward, keyed adapter, or staged reciprocal policy passes `WholeChildBlock` explicitly. It returns only declared parent OutMessages or `undefined`, names every child variant, and forwards at least one, with no raw matcher, annotation, cast, or generic-list workaround
+- [ ] An actual unary Model-only field Step uses `FeatureDefinition.stepFields(callback)`, and a named child OutMessage branch that intentionally preserves the parent Model passes `FeatureDefinition.stepNoop` point-free as its handler. Other Step-valued no-ops call `FeatureDefinition.stepNoop()`. Parameterized, Command-producing, OutMessage-producing, connected Binding, initialization, delegated, conditional, and composed results stay on `FeatureDefinition.step`. Ordinary update branches do not construct and immediately invoke a Step solely to use these helpers
 - [ ] Two-or-more-step post-mutation handlers use `Update.combine(model, [...])` and `Update.refresh({ read, revalidate, write, load })` rather than hand-threaded `modifyFields` chains and conditional Command arrays. One Step is not wrapped in `Update.combine`, and an inline Step parameter is named `stepModel`
 - [ ] Child Bindings capture generated delivery and origin for child Commands; direct `Command.mapMessages` is reserved for lower-level operations outside composed Blocks
 - [ ] HTTP uses `HttpClient` / `HttpClientRequest` from `effect/http`. Handlers leave the client in their requirements, and the application root supplies `Http.layer` from `foldkit`. Not `@effect/platform` (`@effect/platform-browser` is separate and is for `BrowserKeyValueStore` / `BrowserCrypto`)
@@ -556,7 +559,7 @@ Items without a tier marker apply universally (even to a 50-line counter). When 
       policies remain together in the parent assembly and defer sibling Binding
       calls through callbacks.
 - [ ] Imports ordered: npm packages first (alphabetized), then `foldkit/*`, then relative imports. No mixed groups.
-- [ ] Message unions are exported as values and types when used across modules. Variants stay on the owning namespace: `Message.ClickedSave()`, never a separate `ClickedSave` export. Internal-only Message unions stay unexported.
+- [ ] Message unions are exported as Schema values when used across application modules. Explicit local annotations use `typeof Message.Type`; consumers of a completed child use `typeof ChildBlock.Message.Type`. A routine decoded Message alias is not exported. Variants stay on the owning namespace: `Message.ClickedSave()`, never a separate `ClickedSave` export. Internal-only Message unions stay unexported.
 
 ## Block and Command extraction [T5+]
 

@@ -1,5 +1,4 @@
 import { Effect } from 'effect'
-import { modifyFields } from 'foldkit/struct'
 
 import { SaveTheme } from './blockDefinition'
 import { ApplicationDefinition } from './blockProfileContract'
@@ -13,18 +12,11 @@ const SettingsDemo = Settings.SettingsBlock.replaceEffectsLayer(
   ),
 )
 
-const foldSettingsOutMessage = ApplicationDefinition.makeOutMessageFold(
-  SettingsDemo,
-  {
-    ChangedTheme:
-      ({ theme }) =>
-      model => ({
-        model: modifyFields(model, { previewTheme: () => theme }),
-      }),
-  },
-)
-
 export const SettingsBinding = ApplicationDefinition.bindChild(SettingsDemo, {
   field: 'settings',
-  outMessage: { fold: foldSettingsOutMessage },
+}).withOutMessagePolicy({
+  fold: ApplicationDefinition.makeOutMessageFold(SettingsDemo, {
+    ChangedTheme: ({ theme }) =>
+      ApplicationDefinition.stepFields(() => ({ previewTheme: () => theme })),
+  }),
 })

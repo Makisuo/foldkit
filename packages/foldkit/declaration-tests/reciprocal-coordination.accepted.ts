@@ -215,31 +215,30 @@ const foldRoomOutMessage = ApplicationDefinition.makeOutMessageFold(RoomBlock, {
 export const HomeBinding = ApplicationDefinition.bindChild(HomeBlock, {
   field: 'home',
   presentWhen: model => model.route._tag === 'Home',
-  outMessage: {
-    fold: ApplicationDefinition.makeOutMessageFold(HomeBlock, {
-      JoinedRoom: ({ roomId, username }) => {
-        return Update.combine([
-          ApplicationDefinition.step(model =>
-            RoomBinding.init({
-              key: roomId,
-              args: [Option.none()],
-              toParentModel: room =>
-                Struct.modifyFields(model, {
-                  maybeRoomInstance: () =>
-                    Option.some(RoomInstance.make({ roomId, model: room })),
-                }),
-            }),
-          ),
-          RoomBinding.informJoined(roomId, username, { roomId }),
-          ApplicationDefinition.step(model => ({
-            model: Struct.modifyFields(model, {
-              route: () => ApplicationRoute.Room({ roomId }),
-            }),
-          })),
-        ])
-      },
-    }),
-  },
+}).withOutMessagePolicy({
+  fold: ApplicationDefinition.makeOutMessageFold(HomeBlock, {
+    JoinedRoom: ({ roomId, username }) => {
+      return Update.combine([
+        ApplicationDefinition.step(model =>
+          RoomBinding.init({
+            key: roomId,
+            args: [Option.none()],
+            toParentModel: room =>
+              Struct.modifyFields(model, {
+                maybeRoomInstance: () =>
+                  Option.some(RoomInstance.make({ roomId, model: room })),
+              }),
+          }),
+        ),
+        RoomBinding.informJoined(roomId, username, { roomId }),
+        ApplicationDefinition.step(model => ({
+          model: Struct.modifyFields(model, {
+            route: () => ApplicationRoute.Room({ roomId }),
+          }),
+        })),
+      ])
+    },
+  }),
 })
 
 export const RoomBinding = ApplicationDefinition.bindChild(RoomBlock, {
@@ -260,9 +259,8 @@ export const RoomBinding = ApplicationDefinition.bindChild(RoomBlock, {
       model.route._tag === 'Room' && model.route.roomId === roomId,
     toUpdateContext: (_model, roomId) => [{ roomId }],
   },
-  outMessage: {
-    fold: (_roomId, outMessage) => foldRoomOutMessage(outMessage),
-  },
+}).withOutMessagePolicy({
+  fold: (_roomId, outMessage) => foldRoomOutMessage(outMessage),
 })
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
@@ -429,25 +427,23 @@ export const LeftHomeBinding = DirectReciprocalApplicationDefinition.bindChild(
   HomeBlock,
   {
     field: 'leftHome',
-    outMessage: {
-      fold: HomeOutMessage.match({
-        JoinedRoom: () => RightHomeBinding.resetJoinForm('from-left'),
-      }),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: HomeOutMessage.match({
+    JoinedRoom: () => RightHomeBinding.resetJoinForm('from-left'),
+  }),
+})
 
 export const RightHomeBinding = DirectReciprocalApplicationDefinition.bindChild(
   HomeBlock,
   {
     field: 'rightHome',
-    outMessage: {
-      fold: HomeOutMessage.match({
-        JoinedRoom: () => LeftHomeBinding.resetJoinForm('from-right'),
-      }),
-    },
   },
-)
+).withOutMessagePolicy({
+  fold: HomeOutMessage.match({
+    JoinedRoom: () => LeftHomeBinding.resetJoinForm('from-right'),
+  }),
+})
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture keeps the direct sibling graph distinct from the keyed sibling graph.
 export const DirectReciprocalComposition =
@@ -502,8 +498,7 @@ export const LeftKeyedHomeBinding =
     placement: 'leftHomes',
     key: 'id',
     childField: 'home',
-    outMessage: { fold: foldLeftKeyedHomeOutMessage },
-  })
+  }).withOutMessagePolicy({ fold: foldLeftKeyedHomeOutMessage })
 
 export const RightKeyedHomeBinding =
   KeyedReciprocalApplicationDefinition.bindChild(HomeBlock, {
@@ -511,8 +506,7 @@ export const RightKeyedHomeBinding =
     placement: 'rightHomes',
     key: 'id',
     childField: 'home',
-    outMessage: { fold: foldRightKeyedHomeOutMessage },
-  })
+  }).withOutMessagePolicy({ fold: foldRightKeyedHomeOutMessage })
 
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture keeps the keyed sibling graph distinct from the direct sibling graph.
 export const KeyedReciprocalComposition =
@@ -654,23 +648,21 @@ export const NestedPolicy = (() => {
 
   const HomeBinding = ParentDefinition.bindChild(HomeBlock, {
     field: 'home',
-    outMessage: {
-      fold: HomeOutMessage.match({
-        RequestedRoomWork: () => RoomBinding.runRoomWork(),
-      }),
-    },
+  }).withOutMessagePolicy({
+    fold: HomeOutMessage.match({
+      RequestedRoomWork: () => RoomBinding.runRoomWork(),
+    }),
   })
   const RoomBinding = ParentDefinition.bindChild(RoomBlock, {
     field: 'room',
-    outMessage: {
-      fold: RoomOutMessage.match({
-        ChangedRoom: () =>
-          ParentDefinition.step(model => ({
-            model,
-            outMessage: ParentOutMessage.RoomChanged(),
-          })),
-      }),
-    },
+  }).withOutMessagePolicy({
+    fold: RoomOutMessage.match({
+      ChangedRoom: () =>
+        ParentDefinition.step(model => ({
+          model,
+          outMessage: ParentOutMessage.RoomChanged(),
+        })),
+    }),
   })
 
   const ParentComposition = ParentDefinition.makeComposition({

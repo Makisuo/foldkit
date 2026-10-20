@@ -5,7 +5,13 @@ import * as Navigation from 'foldkit/navigation'
 import * as Program from 'foldkit/program'
 import * as Url from 'foldkit/url'
 
-import { Flags, Model, PurePageBlock } from './program.accepted.js'
+import {
+  Flags,
+  Model,
+  PurePageBlock,
+  ServiceDecodedBlock,
+  ServiceDecodedProvidedElementBlock,
+} from './program.accepted.js'
 
 const RootMessage = Message.defineMessageUnion({
   RequestedNavigation: { request: Navigation.UrlRequest },
@@ -181,6 +187,74 @@ const configWithUnsupportedField = {
 
 // @ts-expect-error Named Program configs cannot contain unsupported host fields.
 Program.make(configWithUnsupportedField)
+
+// @ts-expect-error Program derives the dispatch Schema from block.Message.
+Program.make({
+  block: PurePageBlock,
+  container: null,
+  devTools: { Message: RootMessage },
+})
+
+const configWithMessageDevTools = {
+  block: PurePageBlock,
+  container: null,
+  devTools: { show: 'Always' as const, Message: RootMessage },
+}
+
+// @ts-expect-error Named Program configs cannot retain unsupported DevTools fields.
+Program.make(configWithMessageDevTools)
+
+const devToolsWithPossibleMessage =
+  globalThis.Math.random() > 0.5
+    ? { show: 'Always' as const }
+    : { show: 'Always' as const, Message: RootMessage }
+const configWithPossibleMessageDevTools = {
+  block: PurePageBlock,
+  container: null,
+  devTools: devToolsWithPossibleMessage,
+}
+
+// @ts-expect-error Every possible DevTools object must omit unsupported fields.
+Program.make(configWithPossibleMessageDevTools)
+
+const configWithPossiblePrivateDispatchSchema =
+  globalThis.Math.random() > 0.5
+    ? { block: PurePageBlock, container: null }
+    : {
+        block: PurePageBlock,
+        container: null,
+        devTools: {
+          show: 'Always' as const,
+          dispatchSchema: RootMessage,
+        },
+      }
+
+// @ts-expect-error Private runtime dispatch fields cannot enter a Program config union.
+Program.make(configWithPossiblePrivateDispatchSchema)
+
+type DynamicServiceDecodedBlock =
+  | typeof ServiceDecodedBlock
+  | typeof ServiceDecodedProvidedElementBlock
+type DynamicServiceDecodedConfig = Readonly<{
+  block: DynamicServiceDecodedBlock
+  container: null
+  devTools: Readonly<{ dispatch: true }>
+}>
+const dynamicServiceDecodedBlock: DynamicServiceDecodedBlock =
+  globalThis.Math.random() > 0.5
+    ? ServiceDecodedBlock
+    : ServiceDecodedProvidedElementBlock
+const explicitDynamicServiceDecodedProgram = Program.makeElement<
+  DynamicServiceDecodedConfig,
+  DynamicServiceDecodedBlock
+>({
+  block: dynamicServiceDecodedBlock,
+  container: null,
+  devTools: { dispatch: true },
+})
+
+// @ts-expect-error A dynamic Block union retains dispatch Services missing from any member's EffectsLayer.
+explicitDynamicServiceDecodedProgram.start()
 
 declare const UnresolvedHostBlock: Omit<
   typeof PurePageBlock,

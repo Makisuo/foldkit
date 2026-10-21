@@ -93,12 +93,16 @@ const ObserveRooms = HomeNamespace.makeMountStream('ObserveRooms', {
 
 const SelectedRoom = HomeNamespace.makeResource<string>()('SelectedRoom')
 
+const roomMessageSchemas: [typeof HomeMessage.CompletedCreateRoom] = [
+  HomeMessage.CompletedCreateRoom,
+]
+
 const homeSubscriptions = HomeDefinition.makeSubscriptions(entry => ({
   rooms: entry(
     'Rooms',
     { joinedCount: Schema.Number },
     {
-      messages: [HomeMessage.CompletedCreateRoom],
+      messages: roomMessageSchemas,
       modelToDependencies: model => ({ joinedCount: model.joinedCount }),
       handler: function* () {
         return ({ joinedCount }) =>
@@ -1723,6 +1727,35 @@ describe('Block authoring', () => {
       Layer.Success<typeof homeManagedResources.selectedRoom.layer>
     >().toEqualTypeOf<
       ManagedResource.Handler<'AuthoringHome/SelectedRoom', null, string>
+    >()
+  })
+
+  it('preserves explicitly readonly owned Subscription Message schemas', () => {
+    const messageSchemas: readonly [typeof HomeMessage.CompletedCreateRoom] = [
+      HomeMessage.CompletedCreateRoom,
+    ]
+    const subscriptions = HomeDefinition.makeSubscriptions(entry => ({
+      rooms: entry(
+        'ReadonlyRooms',
+        { joinedCount: Schema.Number },
+        {
+          messages: messageSchemas,
+          modelToDependencies: model => ({ joinedCount: model.joinedCount }),
+          handler: function* () {
+            return ({ joinedCount }) =>
+              Stream.succeed(
+                HomeMessage.CompletedCreateRoom({
+                  roomId: globalThis.String(joinedCount),
+                }),
+              )
+          },
+        },
+      ),
+    }))
+
+    expect(subscriptions.rooms.messages).toBe(messageSchemas)
+    expectTypeOf(subscriptions.rooms.messages).toEqualTypeOf<
+      readonly [typeof HomeMessage.CompletedCreateRoom]
     >()
   })
 

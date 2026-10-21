@@ -5,6 +5,8 @@ import { DialogBlock } from '@foldkit/ui'
 
 import { Deployment } from './deployment'
 import { ResolvedTheme } from './message'
+// codex: these should all come through a page/index barrel export not
+// individual * as exports. should be like import { Foo, .. } from './page'
 import * as ApiReference from './page/apiReference'
 import * as ComingFromReact from './page/comingFromReact'
 import * as BlockPage from './page/core/blockPage'

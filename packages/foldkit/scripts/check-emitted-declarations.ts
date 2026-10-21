@@ -74,11 +74,11 @@ const assertBindingCompletions = async (): Promise<void> => {
   const api = new API({ cwd: packageRoot })
 
   try {
-    const snapshot = await api.updateSnapshot({
+    const snapshot = await api.createSnapshot({
       openProjects: [acceptedConfig],
       openFiles: [acceptedFixture],
     })
-    const project = snapshot.getProject(acceptedConfig)
+    const project = snapshot.getConfiguredProject(acceptedConfig)
 
     if (project === undefined) {
       return fail(`Could not open the declaration project ${acceptedConfig}.`)
@@ -93,7 +93,7 @@ const assertBindingCompletions = async (): Promise<void> => {
       )
     }
 
-    const completion = await project.checker.getCompletionsAtPosition(
+    const completion = await project.languageService.getCompletionsAtPosition(
       acceptedFixture,
       markerPosition + 'ChildBinding.'.length,
     )
@@ -117,11 +117,11 @@ const assertBindingConfigurationDocs = async (): Promise<void> => {
   const api = new API({ cwd: packageRoot })
 
   try {
-    const snapshot = await api.updateSnapshot({
+    const snapshot = await api.createSnapshot({
       openProjects: [config],
       openFiles: [fixture, initializerFixture],
     })
-    const project = snapshot.getProject(config)
+    const project = snapshot.getConfiguredProject(config)
     if (project === undefined) {
       return fail(`Could not open the Binding documentation project ${config}.`)
     }

@@ -10,14 +10,19 @@ export const SettingsBlock = SettingsComposition.assembleBlock({
 })
 
 // page/settings/index.ts
+export { Model } from './model'
 export { SettingsBlock } from './block'
 
-// Parent
+// Parent model.ts
+import { Schema } from 'effect'
+
+import * as Settings from './page/settings'
+
+export const Model = Schema.Struct({ settings: Settings.Model })
+
+// Parent composition.ts
 import { SettingsBlock } from './page/settings'
 
-SettingsBlock.Model
-SettingsBlock.Message
-SettingsBlock.OutMessage
 ApplicationDefinition.makeBinding(SettingsBlock, {
   field: 'settings',
   init: false,

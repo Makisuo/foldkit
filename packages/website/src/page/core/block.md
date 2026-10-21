@@ -77,7 +77,7 @@ Export the completed value as `SettingsBlock`. Parents import that value and bin
 
 Export the completed `SettingsBlock` as the feature boundary. Keep small features together; split them when separate files make the responsibilities easier to navigate. [Project Organization](/patterns/project-organization) shows compact and split layouts, Composition assembly, and import direction.
 
-Keep the feature barrel limited to `SettingsBlock`. A parent reads its contracts through `SettingsBlock.Model`, `SettingsBlock.Message`, and `SettingsBlock.OutMessage`, and passes that completed Block to its Definition's Binding and OutMessage fold helpers. Put shared domain Schemas and selectors in a separate `domain/` barrel. Internal implementation files import their own contracts and Composition directly, avoiding a cycle through the completed Block:
+Export `SettingsBlock` from the feature barrel. Also re-export its canonical `Model` Schema when the parent needs it to declare its own Model. The parent can use `Settings.Model` for Schema construction and `Settings.SettingsBlock` for Binding and OutMessage fold helpers. This keeps the parent Schema independent of inference of the completed source implementation. The completed Block still supplies the complete Message, OutMessage, operation, and view contracts. Put shared domain Schemas and selectors in a separate `domain/` barrel. Internal implementation files import their own contracts and Composition directly, avoiding a cycle through the completed Block:
 
 ::Snippet{name="blockFeatureExports" label="Exporting a completed feature"}
 

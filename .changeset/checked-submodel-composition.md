@@ -114,13 +114,20 @@ import { view } from './view'
 export const HomeBlock = HomeComposition.assembleBlock({ init, update, view })
 
 // index.ts
+export { Model } from './model'
 export { HomeBlock } from './block'
+
+// Parent model.ts
+import { Schema } from 'effect'
+import * as Home from './page/home'
+
+export const Model = Schema.Struct({ home: Home.Model })
 
 // page/index.ts
 export { HomeBlock } from './home'
 ```
 
-The feature barrel exports only `HomeBlock`. The parent barrel re-exports that named value, and parents bind `HomeBlock`. Its Model, complete Message Schema, OutMessage matcher, and embedding contract travel with it. Shared domain Schemas and utilities have a separate `domain/` barrel.
+The feature barrel exports `HomeBlock` and may re-export the canonical `Model` Schema for parent Schema construction. A parent can use `Home.Model` to declare state without requiring inference of Home's completed source implementation. It still binds `Home.HomeBlock`, whose complete Message Schema, OutMessage matcher, operations, and embedding contract travel with it. Re-export the existing Schema passed to the Definition, and keep the local Message private because it omits generated child envelopes. Shared domain Schemas and utilities have a separate `domain/` barrel.
 
 `bindings` and `mounts` are independently optional. Use `makeComposition()`, `makeComposition({ bindings })`, `makeComposition({ mounts })`, or `makeComposition({ bindings, mounts })`. Omitted registrations grant no capabilities. Name the returned Composition, author init, update, and the primary view through it, and complete that same value. Definitions do not author init, update, or view directly. A completed Block retains its distinct `makeView` helper for alternate embeds against its already fixed graph. Keep Steps and operations required by child policy on the Definition.
 

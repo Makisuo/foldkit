@@ -645,6 +645,12 @@ const checks: ReadonlyArray<
     consumers: ['binding-policy.consume.ts'],
   },
   {
+    name: 'schema-boundary',
+    accepted: ['schema-boundary.accepted.ts'],
+    consumers: ['schema-boundary.consumer.ts'],
+    rejected: ['schema-boundary.rejected.ts'],
+  },
+  {
     name: 'composition-safety',
     accepted: ['composition-safety.accepted.ts'],
     rejected: ['composition-safety.rejected.ts'],

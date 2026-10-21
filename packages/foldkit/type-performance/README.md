@@ -213,3 +213,17 @@ result.
 Only the wide fixture's Types ceiling changes, to the exact observed 216,662.
 All instantiation ceilings and the deep and Command Types ceilings stay in
 place. No fixture was narrowed and no rejection test was removed.
+
+## Source Model Schema boundaries
+
+The Website's parent Model composes canonical child Schemas exported from
+feature barrels. It uses `Ui.Model` when declaring state and the completed
+`UiBlock` for Bindings. This prevents a Schema query from demanding the inferred
+child implementation, including unrelated views and child policies. It does not
+change assembly validation or runtime behavior.
+
+The external `schema-boundary` declaration fixture checks exact Schema and
+Codec channels, Service requirements, operation arguments, and registration
+checks through the public barrel, then emits and relocates the consumer. The actual-file editor benchmark above
+measures the source dependency. A full-program count does not establish that an
+editor demand boundary is cheap: the compiler must still validate the producer.

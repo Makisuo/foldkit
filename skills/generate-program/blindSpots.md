@@ -151,6 +151,8 @@ Name the feature's primary implementation `view`, rather than repeating its feat
 
 Flag routine application aliases even when another application module references the decoded type. The owning feature writes `typeof Model.Type`, `typeof Message.Type`, or `typeof OutMessage.Type` directly. A consumer of a completed child writes `typeof ChildBlock.Model.Type`, `typeof ChildBlock.Message.Type`, or `typeof ChildBlock.OutMessage.Type`, which keeps ownership visible and avoids importing child implementation contracts.
 
+Allow a feature barrel to re-export its canonical `Model` for parent Schema construction. `import * as Child from './child'` and `Schema.Struct({ child: Child.Model })` keep this access on the public barrel. This exception applies to the Schema value; ordinary decoded-type annotations still query `typeof ChildBlock.Model.Type`. Flag a reconstructed Schema, new Definition, or second generic factory call used to obtain that export. Flag an early local `Message` export because it omits generated child envelopes.
+
 Do not flag an alias that deliberately publishes a library contract or names a useful generic, mapped, or conditional type. `FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` is purposeful. Owned callbacks should infer their parameters rather than adding either an alias or a repeated direct query.
 
 ## Effect and Foldkit idiom

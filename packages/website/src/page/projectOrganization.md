@@ -57,7 +57,7 @@ For a split feature, `composition.ts` owns its child Bindings, complete child an
 
 An update can import `CounterBinding` to invoke its operations. Generated child envelopes route through the Binding automatically. The view imports `DashboardComposition`. Including `CounterBinding` under `bindings` also includes the completed child's handler graph and lifecycle declarations.
 
-`block.ts` imports the Composition, init, update, view, and local `EffectsLayer`, then calls `DashboardComposition.assembleBlock`. Its explicit `index.ts` exports only the completed `DashboardBlock`. Shared domain Schemas and selectors have a separate `domain/` barrel. Internal implementation files do not import their own completed barrel.
+`block.ts` imports the Composition, init, update, view, and local `EffectsLayer`, then calls `DashboardComposition.assembleBlock`. Its explicit `index.ts` exports the completed `DashboardBlock` and may re-export the canonical `Model` Schema for parent Schema construction. Shared domain Schemas and selectors have a separate `domain/` barrel. Internal implementation files do not import their own completed barrel.
 
 ### A Feature with Mounts Only
 
@@ -187,20 +187,30 @@ Import the module as a namespace and call operations such as `Cart.addItem` and 
 
 ## Index Re-exports {#index-reexports}
 
-Use `index.ts` only as a barrel. A feature barrel explicitly re-exports its completed value, such as `ProductsBlock`, from `block.ts`. The parent barrel re-exports that same named value. Parents get Model, Message, OutMessage, operation, and view contracts from the completed Block. Keep local authoring values, lifecycle registries, and implementation helpers private. Shared domain concepts belong in a separate `domain/` barrel. Focused tests can import their owning implementation modules without adding test access to the feature's public surface.
+Use `index.ts` only as a barrel. A feature barrel explicitly re-exports its completed value, such as `ProductsBlock`, from `block.ts`. When a parent needs the child's Schema to declare its own Model, also re-export the existing `Model` Schema from its owning module. The parent barrel can re-export feature namespaces to keep those structural names distinct.
+
+Bindings, operations, views, and complete Message contracts still come from the completed Block. Keep local authoring values, lifecycle registries, and implementation helpers private. Shared domain concepts belong in a separate `domain/` barrel. Focused tests can import their owning implementation modules without adding test access to the feature's public surface.
 
 ::Snippet{name="indexReexports" label="Index re-exports"}
 
-Consumers import completed Blocks as named values and domain modules as namespaces.
+Consumers use a feature namespace such as `Products.Model` when composing source Model Schemas. They pass `Products.ProductsBlock` to Binding helpers, or import `ProductsBlock` directly in composition files. Domain modules use namespace imports too.
 
 ::Snippet{name="indexUsage" label="Completed features and domain namespaces"}
 
 `ProductsBlock` exposes the feature contracts without revealing its internal file layout. Parent composition starts from `ApplicationDefinition.makeBinding(ProductsBlock, ...)`.
 
+### Keep Model Schema dependencies small
+
+Reading `ProductsBlock.Model` from an inferred source Block can make TypeScript resolve the feature's init, update, views, and child graph before it can check the parent Model. Re-exporting the exact `Model` value already passed to the Definition lets the parent declare its Schema without that inference dependency. The Website uses this boundary for its source features to keep editor requests responsive.
+
+Do not reconstruct the Schema, annotate away its Codec channels, or create another generic Block instance to obtain a Model. Assembly still checks the completed implementation and its requirements. This is a type dependency boundary; an ESM barrel still loads its re-exported modules normally.
+
+Only the Model Schema has this early export. The local `Message` contains local facts; the completed Block's `Message` includes generated child envelopes. Keep using that complete contract at dispatch boundaries. A published UI component or generic factory may already provide its Schema through an explicit declaration, so consuming its completed Model does not require another source contract export.
+
 ### Keep Barrel Dependencies Pointing Inward
 
 A parent barrel may re-export its immediate children's named completed Blocks, and application code may import those values from the barrel. The exported child modules must not import the application root in return. A local `message.ts` should not import child Blocks to declare `Got*` variants. Composition derives those wrappers from its registered Bindings. This keeps the local Message module independent of child completion and avoids a common cycle through `page/index.ts`.
 
-Within a feature, import implementation pieces from their owning modules rather than from the feature's own completed barrel. Define parent Model fields using the completed child's Model Schema. Child implementation files must not import their parent or its completed barrel. Keep shared domain Schemas in leaf modules that do not import either Composition.
+Within a feature, import implementation pieces from their owning modules rather than from the feature's own completed barrel. For child features built in the same source project, define parent Model fields using the canonical Schema export, such as `Products.Model`. Child implementation files must not import their parent or its completed barrel. Keep shared domain Schemas in leaf modules that do not import either Composition.
 
 Keep shared leaf modules independent of the root. Pass parent-owned rendering capabilities through function arguments or Block `viewInputs`, and make stateful shared behavior its own Block. The parent then provides the capability at the view boundary while each Page remains importable through the one-level barrel.

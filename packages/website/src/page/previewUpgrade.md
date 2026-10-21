@@ -107,6 +107,14 @@ The module-level `Toast.test` fixture is gone. Call `test.drainEntry` on the exa
 
 The helper handles a freshly shown, non-sticky entry whose first enter and auto-dismiss lifecycle is pending. Use individual Command resolvers after another test step has advanced that lifecycle.
 
+## Keep Source Model Schemas Independent of Completion
+
+A source feature can re-export its canonical `Model` Schema alongside its completed Block. A parent then declares state with a namespace query such as `Settings.Model` and binds `Settings.SettingsBlock`. This avoids making TypeScript infer the child's whole completed implementation just to obtain its Schema, which can make editor requests slow in a large source graph.
+
+This is an organization improvement; existing `ChildBlock.Model` access remains supported. Re-export the exact Schema already supplied to the Definition. Keep the local Message private because the completed Message Schema includes generated child envelopes. Do not instantiate a generic factory twice to obtain separate contracts. See [Model Schema dependencies](/patterns/project-organization#keep-model-schema-dependencies-small).
+
+::Snippet{name="blockFeatureExports" label="Public Model Schema and completed Block"}
+
 ## Confirm the Remaining Compiler Findings
 
 Search first, then change only the code the project contains:

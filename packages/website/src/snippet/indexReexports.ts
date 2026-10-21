@@ -1,4 +1,5 @@
 // page/products/index.ts
+export { Model } from './model'
 export { ProductsBlock } from './block'
 
 // page/index.ts

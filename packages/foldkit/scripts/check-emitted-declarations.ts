@@ -453,6 +453,16 @@ const checks: ReadonlyArray<
     consumers: ['generic-handler-contracts.consume.ts'],
   },
   {
+    name: 'generic-outmessage-policy',
+    accepted: ['generic-outmessage-policy/accepted.ts'],
+    rejected: ['generic-outmessage-policy/rejected.ts'],
+    consumers: [
+      'generic-outmessage-policy/accepted.ts',
+      'generic-outmessage-policy/consumer.ts',
+      'generic-outmessage-policy/assertions.ts',
+    ],
+  },
+  {
     name: 'outmessage-policy-selection',
     accepted: ['outmessage-policy-selection.accepted.ts'],
     rejected: ['outmessage-policy-selection.rejected.ts'],

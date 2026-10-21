@@ -227,3 +227,23 @@ Codec channels, Service requirements, operation arguments, and registration
 checks through the public barrel, then emits and relocates the consumer. The actual-file editor benchmark above
 measures the source dependency. A full-program count does not establish that an
 editor demand boundary is cheap: the compiler must still validate the producer.
+
+## Assembly checks
+
+Block assembly keeps its existing consumer call shape. Its first overload infers
+the exact implementation object before checking that object against the shared
+validators. Additional overloads preserve contextual typing for specialized and
+generic implementations. Six of them defer Composition checks until inference
+resolves their type parameters. Those checks must still run when an explicit
+implementation type contains optional view or Layer fields.
+
+Handler checks index contracts by identity and compare contracts within each
+group. They may skip a group proven identical to the current entry. They must
+not skip validation merely because TypeScript cannot prove that generic
+contracts form a union: a handler for `string` cannot implement every narrower
+generic item contract. The generic handler declaration fixtures cover accepted
+implementations, rejected mismatches, exact payloads, and relocated consumption.
+
+These encodings change type-checking work. They do not construct Layers or
+change Runtime behavior. Keep the numerical budgets unchanged when evaluating
+editor improvements, and measure real post-edit requests as well as counts.

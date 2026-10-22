@@ -38,15 +38,14 @@ export const managedResources = CallDefinition.makeManagedResources(entry => ({
   }),
 }))
 
-const assembleCallBlock = () =>
+const assemble = () =>
   CallComposition.assembleBlock({
     init,
     update,
     managedResources,
     EffectsLayer: managedResources.signalingSocket.layer,
   })
-
 export const CallBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleCallBlock
-> = assembleCallBlock()
+  typeof assemble
+> = assemble()

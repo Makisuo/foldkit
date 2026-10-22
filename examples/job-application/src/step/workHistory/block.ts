@@ -8,7 +8,7 @@ import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const assembleWorkHistoryBlock = () =>
+const assemble = () =>
   WorkHistoryComposition.assembleBlock({
     init,
     update,
@@ -16,8 +16,7 @@ const assembleWorkHistoryBlock = () =>
     operations: { requestRevealErrors: Message.RequestedRevealErrors },
     EffectsLayer,
   })
-
 export const WorkHistoryBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleWorkHistoryBlock
-> = assembleWorkHistoryBlock()
+  typeof assemble
+> = assemble()

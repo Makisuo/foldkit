@@ -53,7 +53,7 @@ The final API separates four responsibilities:
 
 `Block.makeDefinition`, `makeComposition`, `assembleBlock`, `Program.make`, and `Program.makeElement` all return passive values. `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` builds the selected Layers and starts the application.
 
-For ordinary source Blocks, use an explicit zero-argument assembly producer and the matching four-shape export header. Keep the feature barrel focused on its completed Block, and compose parent state with `ChildBlock.Model`. The recommended `foldkit/no-completed-block-model-in-schema` rule guards inferred assembly dependencies while accepting the recognized checked boundary. See [Model Schema dependencies](/patterns/project-organization#keep-model-schema-dependencies-small).
+For ordinary source Blocks, name the single private zero-argument assembly producer `assemble` and put the matching four-shape export header immediately after it with no blank line. Use a descriptive producer name only when one file genuinely contains multiple assembly producers. Keep the feature barrel focused on its completed Block, and compose parent state with `ChildBlock.Model`. The recommended `foldkit/no-completed-block-model-in-schema` rule guards inferred assembly dependencies while accepting the recognized checked boundary. See [Model Schema dependencies](/patterns/project-organization#keep-model-schema-dependencies-small).
 
 The completed Block is the boundary that parents consume. It carries its Model Schema, complete Message Codec, optional OutMessage matcher, operations, view contract, lifecycle declarations, handler graph, and child graph together.
 

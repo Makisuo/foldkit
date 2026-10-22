@@ -7,7 +7,7 @@ import { EffectsLayer, subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const assembleApplicationBlock = () =>
+const assemble = () =>
   ApplicationComposition.assembleBlock({
     init,
     update,
@@ -15,8 +15,7 @@ const assembleApplicationBlock = () =>
     subscriptions,
     EffectsLayer,
   })
-
 export const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleApplicationBlock
-> = assembleApplicationBlock()
+  typeof assemble
+> = assemble()

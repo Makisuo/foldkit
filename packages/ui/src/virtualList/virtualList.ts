@@ -1548,7 +1548,6 @@ const assembleVirtualListBlock = () =>
     operations,
     EffectsLayer,
   })
-
 /** Complete VirtualList Block definition using an unknown item type. */
 export const block: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,

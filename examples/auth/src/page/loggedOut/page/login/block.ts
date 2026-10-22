@@ -5,15 +5,14 @@ import type { Model } from './definition'
 import { EffectsLayer, init, update } from './login'
 import { view } from './view'
 
-const assembleLoginBlock = () =>
+const assemble = () =>
   LoginComposition.assembleBlock({
     init,
     update,
     view,
     EffectsLayer,
   })
-
 export const LoginBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleLoginBlock
-> = assembleLoginBlock()
+  typeof assemble
+> = assemble()

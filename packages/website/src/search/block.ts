@@ -8,7 +8,7 @@ import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const assembleSearchBlock = () =>
+const assemble = () =>
   SearchComposition.assembleBlock({
     init,
     update,
@@ -19,8 +19,7 @@ const assembleSearchBlock = () =>
     },
     EffectsLayer,
   })
-
 export const SearchBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleSearchBlock
-> = assembleSearchBlock()
+  typeof assemble
+> = assemble()

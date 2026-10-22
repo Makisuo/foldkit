@@ -18,7 +18,7 @@ export {
   view,
 } from './example'
 
-const assembleExampleDetailBlock = () =>
+const assemble = () =>
   ExampleDetailComposition.assembleBlock({
     init,
     update,
@@ -28,8 +28,7 @@ const assembleExampleDetailBlock = () =>
     },
     EffectsLayer,
   })
-
 export const ExampleDetailBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleExampleDetailBlock
-> = assembleExampleDetailBlock()
+  typeof assemble
+> = assemble()

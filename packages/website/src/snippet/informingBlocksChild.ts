@@ -36,15 +36,14 @@ export const update = PeopleComposition.makeUpdate((model, message) =>
   }),
 )
 
-const assemblePeopleBlock = () =>
+const assemble = () =>
   PeopleComposition.assembleBlock({
     init,
     update,
     operations: { informRouteChanged },
     EffectsLayer: FetchPeople.layer,
   })
-
 export const PeopleBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assemblePeopleBlock
-> = assemblePeopleBlock()
+  typeof assemble
+> = assemble()

@@ -360,7 +360,7 @@ export const view = HoverIntentComposition.makeView.withInputs<ViewInputs>(
   },
 )
 
-const assembleHoverIntentBlock = () =>
+const assemble = () =>
   HoverIntentComposition.assembleBlock({
     init,
     update,
@@ -370,9 +370,8 @@ const assembleHoverIntentBlock = () =>
     },
     EffectsLayer,
   })
-
 /** Complete HoverIntent Block definition for connecting to a parent. */
 export const HoverIntentBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleHoverIntentBlock
-> = assembleHoverIntentBlock()
+  typeof assemble
+> = assemble()

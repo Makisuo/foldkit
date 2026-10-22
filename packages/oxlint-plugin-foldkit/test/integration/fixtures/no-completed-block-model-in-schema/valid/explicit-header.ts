@@ -23,6 +23,8 @@ const assembleOut = () => Composition.assembleBlock({})
 const Out: OutHeader<typeof Model, typeof assembleOut> = assembleOut()
 const assemblePlain = () => Composition.assembleBlock({})
 const Plain: PlainHeader<typeof Model, typeof assemblePlain> = assemblePlain()
+const checkedBoundaryProducer = () => Composition.assembleBlock({})
+const NamedBoundary: PlainHeader<typeof Model, typeof checkedBoundaryProducer> = checkedBoundaryProducer()
 const alias = Qualified
 export const Parent = Schema.Struct({
   qualified: Schema.Option(Schema.Array(alias.Model)),
@@ -33,6 +35,7 @@ export const Parent = Schema.Struct({
   viewOut: ViewOut.Model,
   out: Out.Model,
   plain: Plain.Model,
+  namedBoundary: NamedBoundary.Model,
   imported: PublicHeader.Model,
   namespace: HeaderFeature.PublicHeader.Model,
 })

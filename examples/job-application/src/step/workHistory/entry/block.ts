@@ -7,15 +7,14 @@ import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const assembleWorkHistoryEntryBlock = () =>
+const assemble = () =>
   WorkHistoryEntryComposition.assembleBlock({
     init,
     update,
     view,
     operations: { requestRevealErrors: Message.RequestedRevealErrors },
   })
-
 export const WorkHistoryEntryBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleWorkHistoryEntryBlock
-> = assembleWorkHistoryEntryBlock()
+  typeof assemble
+> = assemble()

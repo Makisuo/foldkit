@@ -312,7 +312,7 @@ export const view = ApplicationComposition.makeView((model, h) => {
   }
 })
 
-const assembleApplicationBlock = () =>
+const assemble = () =>
   ApplicationComposition.assembleBlock({
     init,
     update,
@@ -320,8 +320,7 @@ const assembleApplicationBlock = () =>
     managedResources,
     EffectsLayer,
   })
-
 export const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleApplicationBlock
-> = assembleApplicationBlock()
+  typeof assemble
+> = assemble()

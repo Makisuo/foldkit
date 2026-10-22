@@ -41,7 +41,7 @@ const managedResources = Camera.makeManagedResources(entry => ({
   ),
 }))
 
-const assembleCameraBlock = () =>
+const assemble = () =>
   CameraComposition.assembleBlock({
     init,
     update,
@@ -52,8 +52,7 @@ const assembleCameraBlock = () =>
       managedResources.camera.layer,
     ),
   })
-
 export const CameraBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleCameraBlock
-> = assembleCameraBlock()
+  typeof assemble
+> = assemble()

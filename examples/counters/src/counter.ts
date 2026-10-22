@@ -68,14 +68,13 @@ const view = CounterComposition.makeView((model, h) =>
 const buttonStyle =
   'h-9 w-9 rounded bg-gray-900 text-white text-lg leading-none hover:bg-gray-700 transition cursor-pointer'
 
-const assembleCounterBlock = () =>
+const assemble = () =>
   CounterComposition.assembleBlock({
     init,
     update,
     view,
   })
-
 export const CounterBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleCounterBlock
-> = assembleCounterBlock()
+  typeof assemble
+> = assemble()

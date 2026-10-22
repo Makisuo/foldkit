@@ -6,14 +6,13 @@ import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const assembleLoggedOutBlock = () =>
+const assemble = () =>
   LoggedOutComposition.assembleBlock({
     init,
     update,
     view,
   })
-
 export const LoggedOutBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleLoggedOutBlock
-> = assembleLoggedOutBlock()
+  typeof assemble
+> = assemble()

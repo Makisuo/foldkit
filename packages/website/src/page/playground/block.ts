@@ -11,7 +11,7 @@ import {
   view,
 } from './playground'
 
-const assemblePlaygroundBlock = () =>
+const assemble = () =>
   PlaygroundComposition.assembleBlock({
     init,
     update,
@@ -20,8 +20,7 @@ const assemblePlaygroundBlock = () =>
     EffectsLayer,
     operations: { informSupport: Message.InformedOfSupport },
   })
-
 export const PlaygroundBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemblePlaygroundBlock
-> = assemblePlaygroundBlock()
+  typeof assemble
+> = assemble()

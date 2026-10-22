@@ -7,7 +7,7 @@ import type { Model } from './model'
 import { EffectsLayer, update } from './update'
 import { view } from './view'
 
-const assembleApiReferenceBlock = () =>
+const assemble = () =>
   ApiReferenceComposition.assembleBlock({
     init,
     update,
@@ -17,8 +17,7 @@ const assembleApiReferenceBlock = () =>
     },
     EffectsLayer,
   })
-
 export const ApiReferenceBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleApiReferenceBlock
-> = assembleApiReferenceBlock()
+  typeof assemble
+> = assemble()

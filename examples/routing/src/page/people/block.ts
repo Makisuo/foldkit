@@ -10,7 +10,7 @@ import { view } from './view'
 
 const EffectsLayer = Layer.mergeAll(PushSearchUrl.layer, FetchPeople.layer)
 
-const assemblePeopleBlock = () =>
+const assemble = () =>
   PeopleComposition.assembleBlock({
     init,
     update,
@@ -18,8 +18,7 @@ const assemblePeopleBlock = () =>
     EffectsLayer,
     operations: { informRouteChanged: Message.InformedOfRouteChange },
   })
-
 export const PeopleBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemblePeopleBlock
-> = assemblePeopleBlock()
+  typeof assemble
+> = assemble()

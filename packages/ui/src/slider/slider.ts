@@ -848,7 +848,6 @@ const assembleSliderBlock = () =>
     subscriptions,
     EffectsLayer,
   })
-
 /** Completed Slider Block. */
 export const SliderBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,

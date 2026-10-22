@@ -8,7 +8,7 @@ import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const assemblePersonalInfoBlock = () =>
+const assemble = () =>
   PersonalInfoComposition.assembleBlock({
     init,
     update,
@@ -16,8 +16,7 @@ const assemblePersonalInfoBlock = () =>
     operations: { requestRevealErrors: Message.RequestedRevealErrors },
     EffectsLayer,
   })
-
 export const PersonalInfoBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemblePersonalInfoBlock
-> = assemblePersonalInfoBlock()
+  typeof assemble
+> = assemble()

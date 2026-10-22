@@ -46,15 +46,14 @@ export const update = SettingsComposition.makeUpdate((model, message) =>
   }),
 )
 
-const assembleSettingsBlock = () =>
+const assemble = () =>
   SettingsComposition.assembleBlock({
     init,
     update,
     operations: { requestRestore },
     EffectsLayer,
   })
-
 export const block: Block.FromAssemblyWithOutMessage<
   typeof Model,
-  typeof assembleSettingsBlock
-> = assembleSettingsBlock()
+  typeof assemble
+> = assemble()

@@ -18,15 +18,14 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   body: h.p([], [model.count.toString()]),
 }))
 
-const assembleApplicationBlock = () =>
+const assemble = () =>
   ApplicationComposition.assembleBlock({
     init,
     update,
     view,
     EffectsLayer: FetchCountLayer,
   })
-
 export const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleApplicationBlock
-> = assembleApplicationBlock()
+  typeof assemble
+> = assemble()

@@ -139,7 +139,7 @@ export const view = AnimationComposition.makeView.withInputs<ViewInputs>(
   },
 )
 
-const assembleAnimationBlock = () =>
+const assemble = () =>
   AnimationComposition.assembleBlock({
     init,
     update: (
@@ -164,12 +164,11 @@ const assembleAnimationBlock = () =>
     },
     EffectsLayer,
   })
-
 /** Complete Animation Block definition for connecting to a parent. */
 export const AnimationBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleAnimationBlock
-> = assembleAnimationBlock()
+  typeof assemble
+> = assemble()
 
 /** Programmatically starts the enter lifecycle through Animation update. */
 export const show = AnimationBlock.operations.requestShow

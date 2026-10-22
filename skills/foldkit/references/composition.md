@@ -62,25 +62,27 @@ export const view = SettingsComposition.makeView((model, h) =>
   h.p([], [model.theme]),
 )
 
-const assembleSettingsBlock = () =>
+const assemble = () =>
   SettingsComposition.assembleBlock({
     init,
     update,
     view,
   })
-
 export const SettingsBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleSettingsBlock
-> = assembleSettingsBlock()
+  typeof assemble
+> = assemble()
 ```
 
 Ordinary source exports use an explicit zero-argument assembly producer and
 header. Choose `Block.FromAssemblyWithView`,
 `Block.FromAssemblyWithViewAndOutMessage`, `Block.FromAssemblyWithOutMessage`,
 or `Block.FromAssemblyWithoutViewOrOutMessage` from the actual assembled view
-and Definition OutMessage. Pass `typeof Model` and `typeof assembleChildBlock`;
-initialize the annotated completed export by calling that producer once. Parent
+and Definition OutMessage. Name the single private zero-argument producer
+`assemble`, pass `typeof Model` and `typeof assemble`, and put the annotated
+completed export immediately after it with no blank line. Use a descriptive
+producer name only when one file genuinely contains multiple assembly
+producers. Initialize the completed export by calling that producer once. Parent
 Schemas use `ChildBlock.Model`, and the feature barrel exports the completed
 Block while Model remains internal. The explicit four shapes avoid a unified
 conditional boundary that would force parent Schema access back through the

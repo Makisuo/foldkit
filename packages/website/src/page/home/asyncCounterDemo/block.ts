@@ -9,15 +9,14 @@ import {
 } from './asyncCounterDemo'
 import type { Model } from './definition'
 
-const assembleAsyncCounterDemoBlock = () =>
+const assemble = () =>
   AsyncCounterDemoComposition.assembleBlock({
     init,
     update,
     view,
     EffectsLayer,
   })
-
 export const AsyncCounterDemoBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleAsyncCounterDemoBlock
-> = assembleAsyncCounterDemoBlock()
+  typeof assemble
+> = assemble()

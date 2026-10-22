@@ -4,7 +4,7 @@ import type { Block } from 'foldkit'
 import type { Model } from './model'
 
 const requestReset = Message.RequestedReset
-const assembleSettingsBlock = () =>
+const assemble = () =>
   SettingsComposition.assembleBlock({
     init,
     update,
@@ -12,11 +12,10 @@ const assembleSettingsBlock = () =>
     operations: { requestReset },
     EffectsLayer: SaveTheme.layer,
   })
-
 export const SettingsBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleSettingsBlock
-> = assembleSettingsBlock()
+  typeof assemble
+> = assemble()
 
 // page/settings/index.ts
 export { SettingsBlock } from './block'

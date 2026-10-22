@@ -8,7 +8,7 @@ import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const assembleSkillsBlock = () =>
+const assemble = () =>
   SkillsComposition.assembleBlock({
     init,
     update,
@@ -16,8 +16,7 @@ const assembleSkillsBlock = () =>
     operations: { requestRevealErrors: Message.RequestedRevealErrors },
     EffectsLayer,
   })
-
 export const SkillsBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleSkillsBlock
-> = assembleSkillsBlock()
+  typeof assemble
+> = assemble()

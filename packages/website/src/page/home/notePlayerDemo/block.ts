@@ -10,7 +10,7 @@ import {
   view,
 } from './notePlayerDemo'
 
-const assembleNotePlayerDemoBlock = () =>
+const assemble = () =>
   NotePlayerDemoComposition.assembleBlock({
     init,
     update,
@@ -18,8 +18,7 @@ const assembleNotePlayerDemoBlock = () =>
     managedResources,
     EffectsLayer,
   })
-
 export const NotePlayerDemoBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleNotePlayerDemoBlock
-> = assembleNotePlayerDemoBlock()
+  typeof assemble
+> = assemble()

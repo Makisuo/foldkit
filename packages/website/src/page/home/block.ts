@@ -8,14 +8,13 @@ import { view } from './view'
 
 export { view } from './view'
 
-const assembleHomeBlock = () =>
+const assemble = () =>
   HomeComposition.assembleBlock({
     init,
     update,
     view,
   })
-
 export const HomeBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleHomeBlock
-> = assembleHomeBlock()
+  typeof assemble
+> = assemble()

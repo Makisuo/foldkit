@@ -7,15 +7,14 @@ import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const assembleSkillsEntryBlock = () =>
+const assemble = () =>
   SkillsEntryComposition.assembleBlock({
     init,
     update,
     view,
     operations: { requestRevealErrors: Message.RequestedRevealErrors },
   })
-
 export const SkillsEntryBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleSkillsEntryBlock
-> = assembleSkillsEntryBlock()
+  typeof assemble
+> = assemble()

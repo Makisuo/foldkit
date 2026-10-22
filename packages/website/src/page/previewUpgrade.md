@@ -173,7 +173,7 @@ See the [official editor setup](https://github.com/oxc-project/tsrs/blob/467182f
 
 ## Keep Source Model Schemas Independent of Completion
 
-Give an ordinary completed Block an explicit producer/header boundary. Move its existing `assembleBlock` call into a zero-argument `assembleSettingsBlock` function, then export `SettingsBlock` with the matching `Block.FromAssemblyWith*` annotation and initialize it by calling that producer once. Keep its payload, local effects and graph unchanged.
+Give an ordinary completed Block an explicit producer/header boundary. Move its existing `assembleBlock` call into one private zero-argument function named `assemble`, then place the `SettingsBlock` export immediately after it with no blank line. Apply the matching `Block.FromAssemblyWith*` annotation and initialize the export by calling that producer once. Use a descriptive producer name only when one file genuinely contains multiple assembly producers. Keep the payload, local effects and graph unchanged.
 
 ::Snippet{name="blockFeatureExports" label="An explicit completed Block boundary"}
 
@@ -186,7 +186,7 @@ Choose the helper from the Definition's declared OutMessage and the assembled vi
 | No             | Yes                 | `Block.FromAssemblyWithOutMessage`          |
 | No             | No                  | `Block.FromAssemblyWithoutViewOrOutMessage` |
 
-Each helper takes `typeof Model` and `typeof assembleSettingsBlock`. The four names keep the view and OutMessage shapes explicit; there is no unified `FromAssembly` helper. The longer annotation gives TypeScript a direct Model member without making a parent infer the whole source implementation merely to read its Schema. The producer still infers the assembled implementation, and the helper checks its exact completed contract and Model Schema. Do not replace this with a cast, a broad Block annotation, or `satisfies`.
+Each helper takes `typeof Model` and `typeof assemble`. The four names keep the view and OutMessage shapes explicit; there is no unified `FromAssembly` helper. The longer annotation gives TypeScript a direct Model member without making a parent infer the whole source implementation merely to read its Schema. The producer still infers the assembled implementation, and the helper checks its exact completed contract and Model Schema. Do not replace this with a cast, a broad Block annotation, or `satisfies`.
 
 The feature barrel exports its completed Block. Keep the Model Schema internal to the feature and compose parent state with `SettingsBlock.Model`. An application that adopted a separate canonical Model reexport for compiler performance can remove that reexport after adding the checked header and updating its parent imports. Preserve independently public domain Schemas and generic component contracts.
 

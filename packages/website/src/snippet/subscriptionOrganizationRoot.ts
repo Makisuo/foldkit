@@ -8,18 +8,17 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const assembleApplicationBlock = () =>
+const assemble = () =>
   ApplicationComposition.assembleBlock({
     init,
     update,
     view,
     subscriptions,
   })
-
 export const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleApplicationBlock
-> = assembleApplicationBlock()
+  typeof assemble
+> = assemble()
 
 // entry.ts
 import { Program } from 'foldkit'

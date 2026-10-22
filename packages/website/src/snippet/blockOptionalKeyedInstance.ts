@@ -11,7 +11,7 @@ const RoomComposition = Block.makeDefinition('Room', {
   Model: RoomModel,
   Message: RoomMessage,
 }).makeComposition()
-const assembleRoomBlock = () =>
+const assemble = () =>
   RoomComposition.assembleBlock({
     init: RoomComposition.makeInit((title: string) => ({ model: { title } })),
     update: RoomComposition.makeUpdate((model, message) =>
@@ -23,11 +23,10 @@ const assembleRoomBlock = () =>
     ),
     operations: { requestRename: RoomMessage.RequestedRename },
   })
-
 const RoomBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof RoomModel,
-  typeof assembleRoomBlock
-> = assembleRoomBlock()
+  typeof assemble
+> = assemble()
 
 const RoomInstance = Schema.Struct({
   roomId: Schema.String,

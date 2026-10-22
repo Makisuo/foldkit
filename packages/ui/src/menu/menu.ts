@@ -1328,7 +1328,6 @@ const assembleMenuBlock = () =>
     operations,
     EffectsLayer,
   })
-
 /** Complete default Menu Block definition. */
 export const block: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,

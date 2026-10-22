@@ -9,15 +9,14 @@ import { view } from './view'
 
 export const EffectsLayer = MeasurePanel.layer
 
-const assemblePanelBlock = () =>
+const assemble = () =>
   PanelComposition.assembleBlock({
     init,
     update,
     view,
     EffectsLayer,
   })
-
 export const PanelBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemblePanelBlock
-> = assemblePanelBlock()
+  typeof assemble
+> = assemble()

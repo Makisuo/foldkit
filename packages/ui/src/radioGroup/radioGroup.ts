@@ -465,7 +465,6 @@ const assembleRadioGroupBlock = () =>
     view: internalView,
     EffectsLayer,
   })
-
 /** Complete RadioGroup Block definition. */
 export const block: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,

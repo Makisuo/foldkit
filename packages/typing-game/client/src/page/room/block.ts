@@ -9,7 +9,7 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const assembleRoomBlock = () =>
+const assemble = () =>
   RoomComposition.assembleBlock({
     init,
     update,
@@ -18,8 +18,7 @@ const assembleRoomBlock = () =>
     subscriptions,
     EffectsLayer,
   })
-
 export const RoomBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleRoomBlock
-> = assembleRoomBlock()
+  typeof assemble
+> = assemble()

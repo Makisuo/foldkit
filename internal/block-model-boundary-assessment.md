@@ -35,13 +35,11 @@ import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const assembleSettingsBlock = () =>
-  SettingsComposition.assembleBlock({ init, update, view })
-
+const assemble = () => SettingsComposition.assembleBlock({ init, update, view })
 export const SettingsBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleSettingsBlock
-> = assembleSettingsBlock()
+  typeof assemble
+> = assemble()
 
 // settings/index.ts
 export { SettingsBlock } from './block'
@@ -131,6 +129,22 @@ Three alternating pairs cover four workflows, with 24 fresh-process sessions. So
 The small diagnostic improvement does not justify the extra lookup machinery and repeatable regression in route completion. Retain the current distributive scan. Independent source review found no demonstrated semantic defect in the isolated index. The measurements and maintenance cost determine this decision; they establish no TypeScript limitation. The wider rewrite of channel validation remains unadopted because its edge cases need separate proof.
 
 Concrete lookup parity, emitted/relocated policy consumers and unchanged compiler budgets pass. A proof for unresolved generic placement through policy resolution remains inconclusive. It establishes neither a guarantee nor a counterexample. No index code is integrated, and no further encoding search is needed for this closeout.
+
+## Later bounded community experiments
+
+The isolated named `ReplaceEffectsLayer` callable interface from PR #1764 is integrated locally. Against exact `7f4ccb76c0d5b55267b2e3d6c3be1c26e2c78da9`, three alternating pairs per workflow reduced root error appearance from 3,177.61ms to 2,925.48ms (-7.9%), error clearing from 3,156.59ms to 2,865.76ms (-9.2%) and cold diagnostics from 3,356.10ms to 3,078.10ms (-8.3%). Completion and route results show no reliable gain. The candidate names the existing inline callable type and leaves runtime code unchanged; it does not adopt `assembleAs`, generated contracts or Html variance. Source candidate evidence is in `/private/tmp/foldkit-named-layer-assessment-evidence/`, and measurement results are in `/private/tmp/foldkit-named-layer-measurement-results/status.json`.
+
+Unannotated exported callables extracted from `replaceEffectsLayer` fail declaration emission in both controls. The original reports private handler-contract names; the named-interface candidate reports the private `ReplaceEffectsLayer` name. This experiment therefore does not make inferred extracted callables portable. A purposeful `typeof OriginalBlock.replaceEffectsLayer` annotation passes all six canonical/candidate source, emission and relocated-consumer checks. The commands, results and logs are under `/private/tmp/foldkit-model-export-comparison/integration-verification/named-callable-*`, with fixtures in `/private/tmp/foldkit-named-layer-assessment-evidence/extracted-callable-annotated-proof/`.
+
+The finite handler-key grouping extracted from PR #1763 is rejected. Three alternating pairs found the target root diagnostics essentially flat, so the result does not justify another internal grouping path. Candidate and focused evidence are in `/private/tmp/foldkit-handler-group-assessment/assessment/`, `/private/tmp/foldkit-handler-group-measurement-results/status.json` and `/private/tmp/foldkit-handler-group-focused-emitted-evidence/status.json`.
+
+The PR #1765 constructor workload is retained as a diagnostic benchmark. Across three cold pairs in fixed local-first order, its median was 353ms for local Message constructors and 2,687ms for completed-Block constructors. All full clean responses and 3GiB/27s guards pass. Fixed ordering leaves an order/cache limitation, and the benchmark characterizes remaining cost without fixing it or establishing a general cause. Evidence is in `/private/tmp/foldkit-message-constructor-evidence/status.json` and `/private/tmp/foldkit-message-constructor-evidence/round-{1,2,3}/report.json`; the reviewed harness is `/private/tmp/foldkit-message-constructor-assessment/assessment/profile.candidate.ts`.
+
+Active ordinary guidance now names a single private zero-argument producer `assemble` and places its checked completed-Block export immediately after it. Descriptive producer names remain appropriate where a file has multiple producers, and historical or explicit bad/before examples remain unchanged. The naming cleanup changes no assembly payloads or checked headers beyond the producer identifier. Static audit and byte-level payload evidence are in `/private/tmp/foldkit-model-export-comparison/integration-verification/assembly-naming-cleanup-static-audit.json` and `/private/tmp/foldkit-model-export-comparison/integration-verification/assembly-naming-cleanup-payload-proof.json`.
+
+The integrated patch passes core source and declaration builds, UI source/build and public declaration checks, all 34 example typechecks, Typing Game and Website typechecks, both materialized SSR/SSG scaffold checks, 22 standalone teaching entry points, and the script typecheck. Eight region-oriented teaching files are not standalone programs; their existing diagnostic-code sequence matches the frozen pre-naming control. The four focused source/emitted/relocated groups and unchanged compiler budgets pass, including the permanent extracted-callable handler and Service checks. Application lint reports no diagnostics across 1,195 files; the focused real-Oxlint regression accepts a producer named `checkedBoundaryProducer`, confirming name-independent recognition. The core's 276 emitted JavaScript files remain byte-identical to the isolated candidate and its verified baseline. Final integration records are under `/private/tmp/foldkit-model-export-comparison/integration-verification/` and `/private/tmp/foldkit-followup-focused-emitted-evidence/`.
+
+These are bounded local outcomes. They do not promote a new Ready snapshot or change the separate release, security, package, deployment and consumer-upgrade gates.
 
 ## Verification links
 

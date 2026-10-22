@@ -8,7 +8,7 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const assembleHomeBlock = () =>
+const assemble = () =>
   HomeComposition.assembleBlock({
     init,
     update,
@@ -16,8 +16,7 @@ const assembleHomeBlock = () =>
     subscriptions,
     EffectsLayer,
   })
-
 export const HomeBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleHomeBlock
-> = assembleHomeBlock()
+  typeof assemble
+> = assemble()

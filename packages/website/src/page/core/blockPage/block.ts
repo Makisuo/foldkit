@@ -6,14 +6,13 @@ import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const assembleBlockPageBlock = () =>
+const assemble = () =>
   BlockPageComposition.assembleBlock({
     init,
     update,
     view,
   })
-
 export const BlockPageBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleBlockPageBlock
-> = assembleBlockPageBlock()
+  typeof assemble
+> = assemble()

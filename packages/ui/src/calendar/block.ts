@@ -1381,7 +1381,7 @@ export const view = CalendarComposition.makeView.withInputs<ViewInputs>(
     ),
 )
 
-const assembleCalendarBlock = () =>
+const assemble = () =>
   CalendarComposition.assembleBlock({
     init,
     update,
@@ -1412,12 +1412,11 @@ const assembleCalendarBlock = () =>
     },
     EffectsLayer,
   })
-
 /** Complete Calendar Block definition for connecting to a parent. */
 export const CalendarBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleCalendarBlock
-> = assembleCalendarBlock()
+  typeof assemble
+> = assemble()
 
 /** Moves the Calendar view and cursor to a date without changing the
  * parent-owned selection. */

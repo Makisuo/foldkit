@@ -30,7 +30,7 @@ Resolve `$ARGUMENTS`:
 
 If the argument is ambiguous (could be a path OR a focus), ask which. Don't guess.
 
-Ordinary source Block export review: verify a zero-argument assembly producer and the actual four-shape `Block.FromAssemblyWith*` declaration header before a parent Schema consumes `ChildBlock.Model`. The initializer calls that same producer once. Feature barrels keep Model and authoring contracts internal; independently public domain Schemas and published generic UI contracts remain intentional. Treat casts, `satisfies` alone and helper-shaped names as insufficient evidence.
+Ordinary source Block export review: verify one private zero-argument assembly producer named `assemble` and the actual four-shape `Block.FromAssemblyWith*` declaration header immediately after it with no blank line before a parent Schema consumes `ChildBlock.Model`. A descriptive producer name is valid only when one file genuinely contains multiple assembly producers. The initializer calls that same producer once. Feature barrels keep Model and authoring contracts internal; independently public domain Schemas and published generic UI contracts remain intentional. Treat casts, `satisfies` alone and helper-shaped names as insufficient evidence.
 
 ## Phase 1: Scope the audit
 

@@ -9,15 +9,14 @@ import { view } from './view'
 
 export const EffectsLayer = MeasureSnippetHeight.layer
 
-const assembleSnippetDisclosureBlock = () =>
+const assemble = () =>
   SnippetDisclosureComposition.assembleBlock({
     init,
     update,
     view,
     EffectsLayer,
   })
-
 export const SnippetDisclosureBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleSnippetDisclosureBlock
-> = assembleSnippetDisclosureBlock()
+  typeof assemble
+> = assemble()

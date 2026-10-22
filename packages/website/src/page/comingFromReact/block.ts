@@ -6,14 +6,13 @@ import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const assembleComingFromReactBlock = () =>
+const assemble = () =>
   ComingFromReactComposition.assembleBlock({
     init,
     update,
     view,
   })
-
 export const ComingFromReactBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleComingFromReactBlock
-> = assembleComingFromReactBlock()
+  typeof assemble
+> = assemble()

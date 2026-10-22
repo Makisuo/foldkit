@@ -6,7 +6,7 @@ import { Message } from './message'
 import type { Model } from './model'
 import { update } from './update'
 
-const assembleUiBlock = () =>
+const assemble = () =>
   UiComposition.assembleBlock({
     init,
     update,
@@ -15,8 +15,7 @@ const assembleUiBlock = () =>
       requestCloseMobileMenu: Message.RequestedCloseMobileMenu,
     },
   })
-
 export const UiBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleUiBlock
-> = assembleUiBlock()
+  typeof assemble
+> = assemble()

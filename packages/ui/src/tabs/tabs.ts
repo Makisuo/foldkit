@@ -394,7 +394,6 @@ const assembleTabsBlock = () =>
     view: internalView,
     EffectsLayer,
   })
-
 /** Complete Tabs Block definition. */
 export const block: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,

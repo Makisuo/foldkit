@@ -138,26 +138,21 @@ const loadRouteData = (transition: ApplicationTransition) =>
     ),
   )
 
-const scrollAfterUrlChange = (url: Url, isChangingPathname: boolean) =>
-  ApplicationDefinition.makeStep(model => {
-    if (Option.isSome(url.hash)) {
-      return {
-        model,
-        commands: [
-          Command.ScrollToAnchor({ hash: url.hash.value }),
-          ...Array.filter(
-            [Command.ScrollSidebarActiveLinkIntoView()],
-            () => isChangingPathname,
-          ),
-        ],
-      }
-    }
-
-    return {
-      model,
-      commands: Array.filter(
-        [Command.ScrollToTop(), Command.ScrollSidebarActiveLinkIntoView()],
+const scrollAfterUrlChange = (url: Url, isChangingPathname: boolean) => {
+  if (Option.isSome(url.hash)) {
+    return ApplicationDefinition.makeCommandsStep([
+      Command.ScrollToAnchor({ hash: url.hash.value }),
+      ...Array.filter(
+        [Command.ScrollSidebarActiveLinkIntoView()],
         () => isChangingPathname,
       ),
-    }
-  })
+    ])
+  }
+
+  return ApplicationDefinition.makeCommandsStep(
+    Array.filter(
+      [Command.ScrollToTop(), Command.ScrollSidebarActiveLinkIntoView()],
+      () => isChangingPathname,
+    ),
+  )
+}

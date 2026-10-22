@@ -119,10 +119,17 @@ branches instead of constraining the matcher to a requirement-free
 Use `FeatureDefinition.makeFieldsStep(callback)` for an actual unary Model-only
 field Step. The callback returns only field transformers. Use
 `FeatureDefinition.makeNoopStep()` when a named child OutMessage intentionally
-preserves the parent Model. Keep `FeatureDefinition.makeStep` for parameterized,
-Command-producing, OutMessage-producing, connected Binding, initialization,
-delegated, conditional, and composed results. Keep ordinary update branches as
-ordinary returns instead of constructing and immediately invoking a Step.
+preserves the parent Model. Use `FeatureDefinition.makeCommandsStep(commands)`
+when a composed Step only returns an existing Command collection. Use
+`FeatureDefinition.makeOutMessageStep(outMessage)` when a Step preserves the
+Model and emits one already-known declared OutMessage; this helper is available
+only on Definitions that declare an OutMessage Schema. Keep
+`FeatureDefinition.makeStep` for additional arguments, Model-dependent Commands
+or OutMessages, connected Binding, initialization, delegated, conditional, and
+composed results. `Update.combineSteps` rejects OutMessage-producing Steps;
+attach an OutMessage to its result with `Update.withOutMessage`. Keep ordinary
+update branches as ordinary returns instead of constructing and immediately
+invoking a Step.
 
 For a child stored in an exact required direct field, omit `init` when its initializer accepts no arguments. The Composition initializes it automatically. Use `init: { contextToArgs }` for required inputs, or `init: false` when the parent supplies that required field in the init plan's `model`. Optional, keyed, and accessor storage remains parent-owned when `init` is omitted; explicit `init.contextToArgs`, `init.instances`, or a checked custom projection chooses automatic startup. For an Option field, `contextToArgs` returns `Option<tuple>` and `None` leaves the child absent. An optional `ChildInitContext` Schema on the parent Definition contextually types selectors that share context for direct child initializer arguments, and the Composition init plan carries the decoded value as `childInitContext` when a selector uses it. It does not describe the current Block's own init arguments. Ordinary tuple literals retain the child's exact init argument types. A custom accessor can use `init: { contextToArgs, toParentFields }` to project the exact initialized child into one declared parent field. Direct and wrapped keyed arrays use `init.instances` returning ordered `{ key, args }` records and `init.toItem(occurrence, childModel)`. Preserve the planned key and the exact initialized child object; a wrapper literal can retain parent-owned metadata. General keyed accessors retain explicit occurrence creation through named parent Steps.
 

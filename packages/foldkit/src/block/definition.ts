@@ -120,6 +120,10 @@ import {
   type RuntimeOutMessagePolicy,
   registerOperationGraphOutMessagePolicies,
 } from './outMessagePolicyRuntime.js'
+import {
+  type MakeOutMessageStep,
+  makeOutMessageStep,
+} from './outMessageStep.js'
 import type { Owner } from './owner.js'
 import { makeOwnedName } from './ownerName.js'
 import type { ValidateBindingPolicies } from './policyEvidence.js'
@@ -3669,6 +3673,12 @@ export type Definition<
         /** Builds an exhaustive child OutMessage mapper into this Definition's
          * declared parent OutMessage contract. */
         makeOutMessageForward: MakeOutMessageForward<OutMessageSchema['Type']>
+        /** Creates a Step preserving the incoming Model and emitting the supplied
+         * declared OutMessage, with no Commands. */
+        makeOutMessageStep: MakeOutMessageStep<
+          ModelSchema['Type'],
+          OutMessageSchema['Type']
+        >
       }>
     : NoOutMessage)
 
@@ -4491,6 +4501,7 @@ export const makeDefinition = (
       : {
           OutMessage: config.OutMessage,
           makeOutMessageForward: defineOutMessageForward,
+          makeOutMessageStep: makeOutMessageStep(),
         }),
     mounts,
     [LocalMountsTypeId]: localMounts,
@@ -4622,6 +4633,7 @@ export const makeBaseDefinition = (
       : {
           OutMessage: base.OutMessage,
           makeOutMessageForward: base.makeOutMessageForward,
+          makeOutMessageStep: base.makeOutMessageStep,
         }),
     mounts: base.mounts,
     [LocalMountsTypeId]: base[LocalMountsTypeId],

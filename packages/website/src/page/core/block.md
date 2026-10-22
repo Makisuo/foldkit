@@ -49,7 +49,7 @@ Declare the Schemas, then call `Block.makeDefinition('Settings', { Model, Messag
 
 Name the Definition `SettingsDefinition`. Its ID is local to the feature, so it needs no ancestor or filesystem path. Keep this value in one module and import it; creating another Definition with the readable ID `Settings` creates a different Definition.
 
-The Definition supplies `makeCommand`, `makeMount`, `makeMountStream`, `makeResource`, `makeStep`, `makeFieldsStep`, `makeNoopStep`, `makeCommandsStep`, `makeSubscriptions`, `makeManagedResources`, and `makeBinding`. These methods declare behavior owned by Settings before its graph exists.
+The Definition supplies `makeCommand`, `makeMount`, `makeMountStream`, `makeResource`, `makeStep`, `makeFieldsStep`, `makeNoopStep`, `makeCommandsStep`, `makeOutMessageStep`, `makeSubscriptions`, `makeManagedResources`, and `makeBinding`. These methods declare behavior owned by Settings before its graph exists.
 
 Add a `ChildInitContext` Schema only when this feature's direct child initializer selectors share one input. [Init & Flags](/core/init-and-flags) explains that boundary and the supported initializer signatures.
 
@@ -484,7 +484,13 @@ For a generic factory that shares definitions, `Block.makeNamespace(id)` supplie
 
 `FeatureDefinition.makeCommandsStep(commands)` authors a Model-preserving Step from an existing Command collection. Use it when a composed Step only returns Commands, such as focusing a field after opening a Dialog. It retains result Message checks, Service requirements, and Binding registration evidence. Creating or applying the Step does not execute its Commands; Runtime executes them independently.
 
-`FeatureDefinition.makeStep(producer)` handles parameterized, Command-producing, OutMessage-producing, connected Binding, initialization, delegated, conditional, and composed results. It preserves or wraps a connected value until a Composition interprets it under the registered graph, and infers the operation's arguments, result Messages, Command requirements, and Binding requirements. Ordinary update branches continue to return `{ model: modifyFields(...) }`; do not create and immediately invoke a Step solely to use the field helpers. Public operations belong in the completed Block's `operations` record as local Message constructors or Message tuple producers.
+`FeatureDefinition.makeOutMessageStep(outMessage)` authors a Model-preserving Step that emits one already-known OutMessage and no Commands. It is available only when the Definition declares an OutMessage Schema and preserves the exact variant or refined payload. Use `makeStep` when the OutMessage depends on the current Model or the same Step changes fields or returns Commands. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain result or when the value may be `undefined`.
+
+::Snippet{name="blockOutMessageStep" label="Reporting a fixed OutMessage"}
+
+`Update.combineSteps` rejects OutMessage-producing Steps, including this helper. Attach an OutMessage to the combined plain result with `Update.withOutMessage`.
+
+`FeatureDefinition.makeStep(producer)` handles parameterized, Model-dependent Command or OutMessage production, connected Binding, initialization, delegated, conditional, and composed results. It preserves or wraps a connected value until a Composition interprets it under the registered graph, and infers the operation's arguments, result Messages, Command requirements, and Binding requirements. Ordinary update branches continue to return `{ model: modifyFields(...) }`; do not create and immediately invoke a Step solely to use the narrow helpers. Public operations belong in the completed Block's `operations` record as local Message constructors or Message tuple producers.
 
 ### ParentDefinition.makeOutMessageFold
 

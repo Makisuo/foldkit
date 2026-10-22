@@ -456,10 +456,15 @@ field Step; its callback returns only field transformers. Use
 parent Model. In a `makeOutMessageFold` case record, pass that helper point-free
 as the handler (`Closed: FeatureDefinition.makeNoopStep`). Use
 `FeatureDefinition.makeCommandsStep(commands)` when a composed Step only returns
-an existing Command collection. Keep `FeatureDefinition.makeStep` for additional
-arguments, Model-dependent Commands, OutMessages, connected Binding, initialization,
-delegated, conditional, and composed results. Keep ordinary update branches as
-ordinary returns instead of constructing and immediately invoking a Step.
+an existing Command collection. Use
+`FeatureDefinition.makeOutMessageStep(outMessage)` when a Step preserves the
+Model and emits one already-known declared OutMessage. It is available only on a
+Definition with an OutMessage Schema. Keep `FeatureDefinition.makeStep` for
+additional arguments, Model-dependent Commands or OutMessages, connected Binding,
+initialization, delegated, conditional, and composed results. `Update.combineSteps`
+rejects OutMessage-producing Steps; attach an OutMessage to its result with
+`Update.withOutMessage`. Keep ordinary update branches as ordinary returns instead
+of constructing and immediately invoking a Step.
 
 When a Binding handles an OutMessage locally, select the callable fold under `withOutMessagePolicy({ fold })`. Add the callable `forward` only for variants that continue upward. A derived parent OutMessage takes precedence over forwarding for that dispatch.
 

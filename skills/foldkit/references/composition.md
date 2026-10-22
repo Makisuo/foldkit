@@ -109,6 +109,19 @@ Use `InformedOf*` for parent notifications and `Requested*` for requested
 actions. `Update.combineSteps` accepts unary Steps, so wrap a contextual curried
 update in a unary adapter that supplies every required context argument.
 
+Use `FeatureDefinition.makeFieldsStep(callback)` for a unary Step that only
+transforms owning Model fields, `FeatureDefinition.makeNoopStep()` for a Step
+that only preserves the Model, and `FeatureDefinition.makeCommandsStep(commands)`
+for a Model-preserving Step returning an existing Command collection. Use
+`FeatureDefinition.makeOutMessageStep(outMessage)` for a Model-preserving Step
+that emits one already-known OutMessage declared by that Definition; it is
+available only when the Definition declares an OutMessage Schema. Keep additional
+arguments, Model-dependent Commands or OutMessages, connected Binding,
+initialization, delegated, conditional, and composed results on `makeStep`.
+Keep ordinary update branches as direct returns. `Update.combineSteps` rejects
+OutMessage-producing Steps because its result has no OutMessage channel. Attach
+an OutMessage to the combined result with `Update.withOutMessage`.
+
 Parent-facing operation names describe the communication: `requestCloseMenu` produces `Message.RequestedCloseMenu`, `informJoined` produces `Message.InformedOfJoin`, and `informRouteChanged` produces `Message.InformedOfRouteChange`. Use `request*` for actions and `inform*` for notifications. Both enter child update; avoid silent `reflect*` Model synchronization. Keep an actual UI fact separate when it represents a different event.
 
 An owned `Definition.makeSubscriptions(...)` registry exposes `subscriptions.layer`

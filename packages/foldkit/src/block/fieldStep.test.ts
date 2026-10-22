@@ -53,10 +53,9 @@ it('contextually types fields and preserves valid result refinements', () => {
   expect(evaluations).toBe(1)
   expectTypeOf<typeof next.model.status>().toEqualTypeOf<'Ready'>()
   expectTypeOf<Update.RequirementsOf<typeof ready>>().toEqualTypeOf<never>()
-  // @ts-expect-error Field Steps do not produce Commands.
-  next.commands
-  // @ts-expect-error Field Steps do not produce an OutMessage.
-  next.outMessage
+  expectTypeOf<typeof next.commands>().toEqualTypeOf<undefined>()
+  expectTypeOf<typeof next.outMessage>().toEqualTypeOf<undefined>()
+  expect(Object.keys(next)).toEqual(['model'])
 })
 
 it('combines ordinary field Steps sequentially for Blocks and Applications', () => {

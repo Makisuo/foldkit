@@ -228,6 +228,8 @@ Run the project's formatter, typecheck, lint, tests, and build after these edits
 
 Use `Definition.makeCommandsStep(commands)` for a composed Step whose only job is returning an existing Command collection. It preserves the Model and keeps Command requirements and Binding evidence. Keep `Definition.makeStep` when the Commands depend on the current Model or the transition also changes fields or emits an OutMessage. Ordinary update branches can keep returning their result objects directly.
 
+Use `Definition.makeOutMessageStep(outMessage)` for a reusable Step that preserves the Model and emits one already-known declared OutMessage. Use `Update.withOutMessage` to attach an OutMessage to an existing result or when the value may be `undefined`. `Update.combineSteps` rejects OutMessage-producing Steps; attach an OutMessage to its plain result afterward.
+
 These conveniences can shorten current code; they are optional when upgrading.
 
 An exact required `Schema.Option` field containing one keyed Struct wrapper can use the `field`, `key`, and `childField` Binding shorthand. `None` means absent, and `Binding.init` remains responsible for creating an occurrence. Existing explicit `readAll`, `read`, `writeAt`, and `keySchema` policies remain supported. See [Optional keyed children](/core/block#fold-child-at) before choosing the shorthand.

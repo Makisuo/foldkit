@@ -108,7 +108,7 @@ The graph requirement is intentional: an ordinary `Model` type says nothing abou
 
 #### Combining Steps
 
-Use `Update.combineSteps` when two or more operations transform the same Model and a later Step should receive the Model produced by an earlier Step. Name that parameter `stepModel` when an inline Step needs it:
+Use `Update.combineSteps` when two or more operations transform the same Model and a later Step should receive the Model produced by an earlier Step. Use the owning Definition's narrow helper when that Step only changes fields:
 
 ::Snippet{name="updateCombineFoldDialog" label="Composing a child fold and another Step"}
 
@@ -179,6 +179,8 @@ The missing field means this update emitted no OutMessage.
 When the OutMessage is already known while constructing a new result, include it directly:
 
 ::Snippet{name="updateKnownOutMessage" label="Returning a known OutMessage"}
+
+For a reusable Step whose only job is to emit a known OutMessage while preserving the Model, use the owning Definition's [`makeOutMessageStep`](/core/block) helper. Ordinary update branches can keep returning the result directly.
 
 #### Attaching an Optional OutMessage
 

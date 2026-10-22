@@ -1,5 +1,4 @@
 import { Update } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
 
 import { Dialog } from '@foldkit/ui'
 
@@ -29,9 +28,9 @@ export const update = EditorComposition.makeUpdate((model, message) =>
   Message.match(message, {
     SavedProject: ({ project }) =>
       Update.combineSteps(model, [
-        stepModel => ({
-          model: modifyFields(stepModel, { project: () => project }),
-        }),
+        EditorDefinition.makeFieldsStep(() => ({
+          project: () => project,
+        })),
         DialogBinding.requestClose(),
       ]),
   }),

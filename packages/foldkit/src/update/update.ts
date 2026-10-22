@@ -668,6 +668,8 @@ type WithOutMessageOutput<Input, OutMessage> =
 /** Adds a known or optional OutMessage to a plain update return while
  *  preserving its Model and Commands. Use this helper when attaching to an
  *  existing return or when the value has the type `OutMessage | undefined`.
+ *  For a reusable Model-preserving Step that only emits a known OutMessage,
+ *  use the owning Definition's `makeOutMessageStep` helper.
  *  `undefined` means that the operation emitted no OutMessage, so the returned
  *  record omits the property.
  *

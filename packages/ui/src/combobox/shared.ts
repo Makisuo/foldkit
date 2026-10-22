@@ -425,6 +425,7 @@ export const makeUpdate = <
   step: Block.DefineStep<BaseModel, Message<Item>, OutMessage<Item>>,
   stepFields: Block.DefineStepFields<BaseModel>,
   stepNoop: Block.DefineStepNoop<BaseModel>,
+  commandsStep: Block.MakeCommandsStep<BaseModel, Message<Item>>,
   selectionBehavior: 'CloseWithFocus' | 'KeepOpen',
   handlers: Readonly<{
     handleClose: (
@@ -753,7 +754,7 @@ export const makeUpdate = <
           if (model.isAnimated) {
             return Update.combineSteps([
               step(() => ({ model: toggledModel, commands: [focusInput] })),
-              step(stepModel => ({ model: stepModel, commands: openCommands })),
+              commandsStep(openCommands),
               AnimationBinding.requestShow(),
               stepFields(() => ({ isOpen: () => true })),
             ])

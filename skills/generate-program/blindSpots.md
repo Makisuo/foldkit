@@ -110,10 +110,16 @@ named child OutMessage branch that intentionally preserves the parent Model uses
 `FeatureDefinition.makeNoopStep()`. In a `makeOutMessageFold` case record, pass the
 no-op helper point-free as the handler (`Closed: FeatureDefinition.makeNoopStep`).
 Use `FeatureDefinition.makeCommandsStep(commands)` when a composed Step only
-returns an existing Command collection. Additional arguments, Model-dependent
-Commands, OutMessages, connected Binding, initialization, delegated, conditional,
-and composed results stay on `FeatureDefinition.makeStep`. Do not construct and
-immediately invoke one of these helpers in an ordinary update branch.
+returns an existing Command collection. Use
+`FeatureDefinition.makeOutMessageStep(outMessage)` when a Step preserves the
+Model and emits one already-known OutMessage declared by that Definition. Keep
+Model-dependent Commands or OutMessages on `FeatureDefinition.makeStep`. Do not put an
+OutMessage-producing Step in `Update.combineSteps`; its result has no OutMessage
+channel. Attach an OutMessage to the combined result with
+`Update.withOutMessage`. Additional arguments, connected Binding, initialization,
+delegated, conditional, and composed results stay on `FeatureDefinition.makeStep`.
+Do not construct and immediately invoke one of these helpers in an ordinary
+update branch.
 
 When several operations update the same Model in sequence, use `Update.combineSteps`. Initialize each child through its registered Binding recipe so Composition assembles the parent Model and mapped Commands.
 

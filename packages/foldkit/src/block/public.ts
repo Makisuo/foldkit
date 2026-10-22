@@ -87,6 +87,7 @@ export type {
 export { makeDefinition, makeNamespace } from './define.js'
 export type { DefineStepFields, DefineStepNoop } from './fieldStep.js'
 export type { CommandsStep, MakeCommandsStep } from './commandsStep.js'
+export type { OutMessageStep, MakeOutMessageStep } from './outMessageStep.js'
 export type {
   Namespace,
   AuthoringDefinition,

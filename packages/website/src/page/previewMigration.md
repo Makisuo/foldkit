@@ -20,6 +20,10 @@ The stable side of this guide was checked against the published `foldkit@0.168.0
 
 If the project already maintains a version-pinned Foldkit source reference or subtree, repin it to the `sourceCommit` recorded by the deployment manifest. If it already maintains generated `FOLDKIT.md` guidance or installed Foldkit skills, refresh those from the same snapshot. These steps keep existing project references aligned; a migration does not require adding a source checkout, guidance file, or skills to a project that does not maintain them.
 
+## Check Compiler and Editor Setup
+
+The target scaffold uses native TypeScript `7.1.0-beta`. Follow the shared [native TypeScript tooling guidance](/preview-upgrade#native-typescript-tooling) when updating an existing native compiler or editor SDK. Keep that tooling choice separate from the application API migration below, and verify the application's normal checks with the compiler it actually resolves.
+
 ## Inventory the Stable Application
 
 Take one pass through the application before editing. Record the baseline result of its existing typecheck, lint, unit tests, browser tests, and production build. A failure that already exists belongs in the baseline; a new failure belongs to the migration.

@@ -2,7 +2,14 @@
 
 ## Overview
 
-This guide covers the direct upgrade from the previous Block preview to the candidate represented by this website deployment. It applies when the installed canary source suffix is `c701daa80af1`, `396b19976386`, or `bfd880b1e6ca`. Those snapshots have the same application API for this migration. The separate local rehearsal starts from Coverchart checkpoint `084f1c94f38137837e9609c63ef08176ad607c9a`, with `foldkit@0.168.0-canary.bfd880b1e6ca` and its installed Foldkit packages aligned to that snapshot. Local packed-artifact checks do not replace acceptance against the published target packages.
+This guide covers upgrades from the Block previews listed below to the candidate represented by this website deployment. Identify the installed snapshot before choosing its migration path.
+
+| Installed canary source suffix                    | Upgrade path                                                                                                                                                                        |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `1fbeaffe6563`                                    | [Upgrade from 1fbeaffe6563](#upgrade-from-1fbeaffe6563).                                                                                                                            |
+| `c701daa80af1`, `396b19976386`, or `bfd880b1e6ca` | Follow the complete guide, including the application boundary, Step composition, and UI call-site changes. These three snapshots share the same application API for this migration. |
+
+The older-preview baseline was checked at Coverchart checkpoint `084f1c94f38137837e9609c63ef08176ad607c9a`, with `foldkit@0.168.0-canary.bfd880b1e6ca` and its installed Foldkit packages aligned to that snapshot.
 
 The candidate is not available merely because this page exists. An uploaded integration preview identifies itself in the page banner and in the same-origin [`preview-release.json`](/preview-release.json). Use the exact source commit and package versions from that manifest. Do not guess a version, npm tag, or package URL.
 
@@ -24,7 +31,26 @@ Do not combine candidate packages with packages from the previous preview. Inter
 
 If the project enforces pnpm's `minimumReleaseAge`, a newly uploaded preview may be too recent to install. Preserve that policy and add only the exact `name@version` entries from the verified manifest to `minimumReleaseAgeExclude`. Do not disable the age check globally.
 
+## Upgrade from 1fbeaffe6563
+
+The verified source is `1fbeaffe656303b44d8fd20c18d598f08014a5c9`. Its root already completes through `assembleBlock` and uses `Program.make` or `Program.makeElement`. Keep its existing wiring:
+
+- Child policies use `withOutMessagePolicy`.
+- Animation content uses `toView`.
+- Toast tests use the completed Block's helper.
+- Step composition uses `Update.combineSteps`.
+
+After installing one coherent target, make the changes used by your application:
+
+1. Apply the [Definition and Namespace factory renames](#rename-definition-authoring-factories). The old names have no compatibility aliases.
+2. Replace `Animation.defaultLeaveCommand` with the [bound leave-settlement operation](#replace-the-standard-animation-leave-helper) wherever the application uses standard CSS settlement. Keep custom settlement Commands for additional signals.
+3. Run [the upgrade checks](#verify-the-upgrade). Assembly now rejects incompatible same-named Command handler contracts inside generic Block factories. Correct the owning definitions or handler Layers when this exposes invalid wiring.
+
+The compiler-work reductions also apply without changing Block authoring. [Native TypeScript tooling](#native-typescript-tooling), [canonical Model Schema exports](#keep-source-model-schemas-independent-of-completion), and [Command-only Steps](#optional-convenience) are separate setup or organization choices.
+
 ## Update the Application Boundary
+
+This section applies to `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca`.
 
 ### Complete an ordinary root Block
 
@@ -83,11 +109,15 @@ Apply the primitive factory renames to an early Namespace used by a generic Bloc
 
 ## Rename Step Composition
 
+This change applies to `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca`.
+
 Replace `Update.combine` with `Update.combineSteps` in both data-first and data-last calls. The helper applies pure Steps sequentially to the Model and collects their Commands; it does not sequence Command execution. Its arguments, inferred requirements, and registration checks are unchanged. See [Combining Steps](/core/update#combining-steps).
 
 ## Update UI Call Sites
 
 ### Render Animation content through `toView`
+
+This change applies to `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca`.
 
 Animation replaced its `content: Html` ViewInput with `toView: () => Html`. The renderer runs at the parent embedding boundary, so event handlers created inside it use the parent dispatcher.
 
@@ -101,11 +131,21 @@ Keep a custom leave Command when settlement also watches another signal, such as
 
 ### Select the completed Toast Block and Binding in tests
 
+This change applies to `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca`.
+
 The module-level `Toast.test` fixture is gone. Call `test.drainEntry` on the exact completed Block returned by `Toast.make`, and pass the exact Binding registered for that Block. A keyed Binding also needs its occurrence key.
 
 ::Snippet{name="uiToastDrainEntry" label="Selecting the Toast fixture and Binding"}
 
 The helper handles a freshly shown, non-sticky entry whose first enter and auto-dismiss lifecycle is pending. Use individual Command resolvers after another test step has advanced that lifecycle.
+
+## Native TypeScript Tooling
+
+The target scaffold pins its `typescript` development dependency to native TypeScript `7.1.0-beta`. Existing applications using native TypeScript can adopt the same exact version to use the compiler version checked for this preview. This tooling update is separate from the required factory and Animation API changes.
+
+After installation, confirm that the project's typecheck command and editor language server resolve the intended installed compiler. Restart the language server after changing its package or SDK path. A different global compiler or editor server can produce different performance and diagnostics. Preserve any separate compatibility compiler used by other tools.
+
+The preview reduces repeated compiler work during Block assembly. Large root assemblies can still produce noticeable editor delays; the update does not guarantee a particular response time or memory limit in every editor. Keep the project's normal typecheck and test coverage when changing compiler versions.
 
 ## Keep Source Model Schemas Independent of Completion
 
@@ -117,7 +157,7 @@ This is an organization improvement; existing `ChildBlock.Model` access remains 
 
 ## Confirm the Remaining Compiler Findings
 
-Search first, then change only the code the project contains:
+The checklist below applies to the older `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca` snapshots. For `1fbeaffe6563`, use [its direct upgrade path](#upgrade-from-1fbeaffe6563), then [verify the upgrade](#verify-the-upgrade). Search first, then change only the code the project contains:
 
 - Replace every removed Definition or Namespace factory name using the table above. Do not rename completion config fields, completed Block metadata, or standalone Command and Update APIs.
 - Replace remaining `makeApplicationDefinition`, `assembleApplication`, and `assembleElement` uses with the completed root Block and Program boundary above.
@@ -129,7 +169,9 @@ Search first, then change only the code the project contains:
 - Run typechecking against every `makeInit` plan and connected Binding Step. An ordinary Step must return an update result. Preserve a deferred connected operation through the owning Definition's `makeStep`, and execute it only inside the Composition that registered its Binding. The stronger checks also retain Command requirements from combined initialization Steps.
 - Keep callbacks at the top level of `viewInputs`. A callback nested in a record, array, tuple, union, or `Option` is rejected because its dispatch boundary is ambiguous. Return callback-bearing Html from a top-level renderer such as `toView` instead.
 
-Run the project's formatter, typecheck, lint, tests, and build after these edits. Treat each reported site as evidence. Do not mechanically rewrite every Binding or OutMessage policy.
+## Verify the Upgrade
+
+Run the project's formatter, typecheck, lint, tests, and build after these edits. Treat each reported site as evidence. Do not mechanically rewrite every Binding or OutMessage policy. Include test files in typechecking and exercise the browser, SSR/SSG, or embedding path the application uses. Confirm that the lockfile resolves one exact Foldkit snapshot.
 
 ## Optional Convenience
 

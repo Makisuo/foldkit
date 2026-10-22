@@ -149,3 +149,11 @@ The migration covers 69 ordinary completed exports, twelve inferred UI assembly 
 - [x] Review snippet references, upstream documentation and shell syntax.
 - [x] Execute the literal portable install recipe in isolation with the documented pin and flags. macOS arm64 on Node 24.22.1/npm 11.19.1 verifies public package identity and Neovim 0.12.5 setup/revert APIs without starting an LSP. The package pin and reported TypeScript binary version remain distinct.
 - [ ] Verify the rendered guide on a matching deployment before updating PR #1655's publication checklist. The published Ready snapshot and three migration paths remain unchanged.
+
+## Additional root-alternative Service correction
+
+The final scoped community refresh found an ordinary-Block counterexample in [draft PR #1762](https://github.com/foldkit/foldkit/pull/1762), independent of its proposed terminal-root API. A keyed child resource registered by one possible root could incorrectly satisfy a Program requirement when another possible root did not register it. Different keyed placements could also be conflated. This was reproduced against the checked-boundary checkpoint before changing the code.
+
+Runtime Service guarantees now retain only capabilities installed by every possible root. Residual requirements are computed per alternative before subtracting its own Layer outputs. Positive cases where all alternatives register the same Service, including different local registration field names, remain accepted. Explicit provider and unrelated-Service checks retain precise requirements.
+
+[Source assertions](../packages/foldkit/src/block/requirements.test.ts), [accepted Program fixtures](../packages/foldkit/declaration-tests/program-union-services.accepted.ts), [rejected wiring](../packages/foldkit/declaration-tests/program-union-services.rejected.ts) and [relocated declaration consumers](../packages/foldkit/declaration-tests/program-union-services.consume.ts) cover this correction. Source, package emission/relocation, 18 requirements tests, all 37 consumer/UI source projects and unchanged compiler budgets pass. All 276 emitted runtime JavaScript files are identical to the checkpoint. Independent review reports no findings. No terminal-root API is adopted.

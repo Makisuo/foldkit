@@ -517,11 +517,13 @@ const checks: ReadonlyArray<
     accepted: [
       'program.accepted.ts',
       'program-inferred-portability.accepted.ts',
+      'program-union-services.accepted.ts',
     ],
-    rejected: ['program.rejected.ts'],
+    rejected: ['program.rejected.ts', 'program-union-services.rejected.ts'],
     consumers: [
       'program.consume.ts',
       'program-inferred-portability.consume.ts',
+      'program-union-services.consume.ts',
     ],
   },
   {

@@ -370,13 +370,33 @@ type ChildRuntimeServices<Block> =
     ? BindingRuntimeServices<Binding>
     : never
 
+type RuntimeServicesOfBlockMember<Block> = Block extends unknown
+  ?
+      | ManagedResourceRuntimeServices<BlockManagedResources<Block>>
+      | ChildRuntimeServices<Block>
+  : never
+
+type BlocksMissingRuntimeService<Block, Service> = Block extends unknown
+  ? [Service] extends [RuntimeServicesOfBlockMember<Block>]
+    ? never
+    : Block
+  : never
+
+type RuntimeServiceProvidedByEveryBlock<Block, Service> =
+  Service extends unknown
+    ? [BlocksMissingRuntimeService<Block, Service>] extends [never]
+      ? Service
+      : never
+    : never
+
 /**
- * @internal Extracts every ManagedResource service installed by a block
- * graph, including keyed child placements whose channels are not flattened.
+ * @internal Extracts ManagedResource services installed by every alternative
+ * of a Block graph, retaining complete keyed child placement capabilities.
  */
-export type RuntimeServicesOfBlock<Block> =
-  | ManagedResourceRuntimeServices<BlockManagedResources<Block>>
-  | ChildRuntimeServices<Block>
+export type RuntimeServicesOfBlock<Block> = RuntimeServiceProvidedByEveryBlock<
+  Block,
+  RuntimeServicesOfBlockMember<Block>
+>
 
 type BlockLocalMounts<Block> =
   Block extends Readonly<{ [LocalMountsTypeId]: infer Mounts }>
@@ -482,7 +502,9 @@ type ResidualRequirements<Block> =
  * requirements after startup. The selected Layer graph satisfies matching
  * operation services; unrelated Layer construction inputs remain requirements.
  */
-export type RequirementsOfBlock<Block> = ResidualRequirements<Block>
+export type RequirementsOfBlock<Block> = Block extends unknown
+  ? ResidualRequirements<Block>
+  : never
 
 type ResidualHandlers<Block> = HandlerRequirements<ResidualRequirements<Block>>
 

@@ -25,6 +25,7 @@ import type {
   OperationRequirementsOfBlock,
   ProducerRequirements,
   RequirementsOfBlock,
+  RuntimeServicesOfBlock,
   SubscriptionRequirements,
   ValidateComposition,
   ValidateImplementationComposition,
@@ -348,6 +349,25 @@ it('satisfies operation and Layer construction handles at runtime', () => {
   expectTypeOf<Exclude<Expected, Requirements>>().toEqualTypeOf<never>()
 })
 
+it('retains only runtime services installed by every Block alternative', () => {
+  type WithoutRegistration = Omit<RuntimeHandleBlock, 'managedResources'> &
+    Readonly<{ managedResources: EmptyRecord }>
+  type RenamedRegistration = Omit<RuntimeHandleBlock, 'managedResources'> &
+    Readonly<{
+      managedResources: Readonly<{ alternateRoom: ManageRoomConnection }>
+    }>
+
+  expectTypeOf<
+    RuntimeServicesOfBlock<RuntimeHandleBlock | WithoutRegistration>
+  >().toEqualTypeOf<never>()
+  expectTypeOf<
+    RuntimeServicesOfBlock<RuntimeHandleBlock | RenamedRegistration>
+  >().toEqualTypeOf<RoomConnectionService>()
+  expectTypeOf<
+    RequirementsOfBlock<RuntimeHandleBlock | WithoutRegistration>
+  >().toEqualTypeOf<ResourceHandler | RoomConnectionService>()
+})
+
 type RuntimeHandleBinding = BindingBlockEvidence<RuntimeHandleBlock> &
   Readonly<{
     fold: (model: Model) => Update.Return<Model, Message>
@@ -395,6 +415,15 @@ it('separates unchanged operation services from Layer completion residuals', () 
   >().toEqualTypeOf<never>()
   expectTypeOf<
     OperationRequirementsOfBlock<NearbyOrdinaryServiceBlock>
+  >().toEqualTypeOf<RoomsClient>()
+})
+
+it('satisfies ordinary requirements with the same Block alternative', () => {
+  type WithoutProvider = Omit<NearbyOrdinaryServiceBlock, 'EffectsLayer'> &
+    Readonly<{ EffectsLayer: Layer.Layer<never, never, never> }>
+
+  expectTypeOf<
+    RequirementsOfBlock<NearbyOrdinaryServiceBlock | WithoutProvider>
   >().toEqualTypeOf<RoomsClient>()
 })
 

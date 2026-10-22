@@ -30,8 +30,8 @@ const reset = ChildDefinition.makeStep(_model => ({
   model: ChildModel.make({ count: 0 }),
 }))
 const ChildComposition = ChildDefinition.makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
     update: ChildComposition.makeUpdate((model, message) =>
       Message.match(message, {
@@ -49,8 +49,8 @@ const assembleChildBlock = () =>
   })
 const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const ParentModel = Schema.Struct({
   child: ChildModel,
@@ -97,8 +97,8 @@ const OmittedParent = OmittedParentBaseDefinition.makeComposition({
   bindings: [AlternateChildBinding],
 })
 
-const assembleRegisteredFold = () =>
-  RegisteredParent.assembleBlock({
+const prepareRegisteredFold = () =>
+  RegisteredParent.prepareBlock({
     init: RegisteredParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -109,11 +109,11 @@ const assembleRegisteredFold = () =>
   })
 const registeredFold: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRegisteredFold
-> = Block.complete(assembleRegisteredFold)
-const assembleOmittedFold = () =>
+  typeof prepareRegisteredFold
+> = Block.assemble(prepareRegisteredFold)
+const prepareOmittedFold = () =>
   // @ts-expect-error A pure fold may use only a registered child binding.
-  OmittedParent.assembleBlock({
+  OmittedParent.prepareBlock({
     init: OmittedParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -125,11 +125,11 @@ const assembleOmittedFold = () =>
   })
 const omittedFold: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleOmittedFold
-> = Block.complete(assembleOmittedFold)
+  typeof prepareOmittedFold
+> = Block.assemble(prepareOmittedFold)
 
-const assembleRegisteredStep = () =>
-  RegisteredParent.assembleBlock({
+const prepareRegisteredStep = () =>
+  RegisteredParent.prepareBlock({
     init: RegisteredParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -138,11 +138,11 @@ const assembleRegisteredStep = () =>
   })
 const registeredStep: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRegisteredStep
-> = Block.complete(assembleRegisteredStep)
-const assembleOmittedStep = () =>
+  typeof prepareRegisteredStep
+> = Block.assemble(prepareRegisteredStep)
+const prepareOmittedStep = () =>
   // @ts-expect-error A pure Step may use only a registered child binding.
-  OmittedParent.assembleBlock({
+  OmittedParent.prepareBlock({
     init: OmittedParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -154,11 +154,11 @@ const assembleOmittedStep = () =>
   })
 const omittedStep: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleOmittedStep
-> = Block.complete(assembleOmittedStep)
+  typeof prepareOmittedStep
+> = Block.assemble(prepareOmittedStep)
 
-const assembleRegisteredCombinedStep = () =>
-  RegisteredParent.assembleBlock({
+const prepareRegisteredCombinedStep = () =>
+  RegisteredParent.prepareBlock({
     init: RegisteredParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -169,11 +169,11 @@ const assembleRegisteredCombinedStep = () =>
   })
 const registeredCombinedStep: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRegisteredCombinedStep
-> = Block.complete(assembleRegisteredCombinedStep)
-const assembleOmittedCombinedStep = () =>
+  typeof prepareRegisteredCombinedStep
+> = Block.assemble(prepareRegisteredCombinedStep)
+const prepareOmittedCombinedStep = () =>
   // @ts-expect-error combine preserves the registration of every child Step.
-  OmittedParent.assembleBlock({
+  OmittedParent.prepareBlock({
     init: OmittedParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -185,15 +185,15 @@ const assembleOmittedCombinedStep = () =>
   })
 const omittedCombinedStep: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleOmittedCombinedStep
-> = Block.complete(assembleOmittedCombinedStep)
+  typeof prepareOmittedCombinedStep
+> = Block.assemble(prepareOmittedCombinedStep)
 
 const dynamicChildSteps = Array.map([ChildBinding.reset()], step => step)
 const registeredDynamicCombinedUpdate = RegisteredParent.makeUpdate(model =>
   Update.combineSteps(model, dynamicChildSteps),
 )
-const assembleRegisteredDynamicCombinedStep = () =>
-  RegisteredParent.assembleBlock({
+const prepareRegisteredDynamicCombinedStep = () =>
+  RegisteredParent.prepareBlock({
     init: RegisteredParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -202,8 +202,8 @@ const assembleRegisteredDynamicCombinedStep = () =>
   })
 const registeredDynamicCombinedStep: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRegisteredDynamicCombinedStep
-> = Block.complete(assembleRegisteredDynamicCombinedStep)
+  typeof prepareRegisteredDynamicCombinedStep
+> = Block.assemble(prepareRegisteredDynamicCombinedStep)
 
 const mixedConnectedSteps = Tuple.make(
   ChildBinding.reset(),
@@ -263,8 +263,8 @@ void rejectReadableMixedRecipe
 
 // @ts-expect-error A computed Step list cannot execute without its registered Binding.
 OmittedParent.makeUpdate(model => Update.combineSteps(model, dynamicChildSteps))
-const assembleOmittedDynamicCombinedStep = () =>
-  OmittedParent.assembleBlock({
+const prepareOmittedDynamicCombinedStep = () =>
+  OmittedParent.prepareBlock({
     init: OmittedParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -272,10 +272,10 @@ const assembleOmittedDynamicCombinedStep = () =>
     update: registeredDynamicCombinedUpdate,
     EffectsLayer: Layer.empty,
   })
-const omittedDynamicCombinedStep = assembleOmittedDynamicCombinedStep()
+const omittedDynamicCombinedStep = prepareOmittedDynamicCombinedStep()
 
-const assembleRegisteredInit = () =>
-  RegisteredParent.assembleBlock({
+const prepareRegisteredInit = () =>
+  RegisteredParent.prepareBlock({
     init: RegisteredParent.makeInit(() =>
       ChildBinding.init({ args: [], toParentModel: makeParentModel }),
     ),
@@ -284,11 +284,11 @@ const assembleRegisteredInit = () =>
   })
 const registeredInit: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRegisteredInit
-> = Block.complete(assembleRegisteredInit)
-const assembleOmittedInit = () =>
+  typeof prepareRegisteredInit
+> = Block.assemble(prepareRegisteredInit)
+const prepareOmittedInit = () =>
   // @ts-expect-error Forwarded init Commands retain their child registration.
-  OmittedParent.assembleBlock({
+  OmittedParent.prepareBlock({
     init: OmittedParent.makeInit(() =>
       ChildBinding.init({ args: [], toParentModel: makeParentModel }),
     ),
@@ -297,37 +297,37 @@ const assembleOmittedInit = () =>
   })
 const omittedInit: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleOmittedInit
-> = Block.complete(assembleOmittedInit)
+  typeof prepareOmittedInit
+> = Block.assemble(prepareOmittedInit)
 
 const registeredDefinedUpdate = RegisteredParent.makeUpdate((model, message) =>
   ChildBinding.fold(model, message),
 )
-const assembleRegisteredDefinitionUpdate = () =>
-  RegisteredParent.assembleBlock({
+const prepareRegisteredDefinitionUpdate = () =>
+  RegisteredParent.prepareBlock({
     init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
     update: registeredDefinedUpdate,
     EffectsLayer: Layer.empty,
   })
 const registeredDefinitionUpdate: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRegisteredDefinitionUpdate
-> = Block.complete(assembleRegisteredDefinitionUpdate)
+  typeof prepareRegisteredDefinitionUpdate
+> = Block.assemble(prepareRegisteredDefinitionUpdate)
 const omittedDefinedUpdate = OmittedParent.makeUpdate((model, message) =>
   // @ts-expect-error A defined update cannot execute an unregistered child Binding.
   ChildBinding.fold(model, message),
 )
-const assembleOmittedDefinitionUpdate = () =>
+const prepareOmittedDefinitionUpdate = () =>
   // @ts-expect-error A defined update preserves the binding used by its result.
-  OmittedParent.assembleBlock({
+  OmittedParent.prepareBlock({
     init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
     update: omittedDefinedUpdate,
     EffectsLayer: Layer.empty,
   })
 const omittedDefinitionUpdate: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleOmittedDefinitionUpdate
-> = Block.complete(assembleOmittedDefinitionUpdate)
+  typeof prepareOmittedDefinitionUpdate
+> = Block.assemble(prepareOmittedDefinitionUpdate)
 
 // @ts-expect-error A standalone Update cannot retain a child Binding before graph registration.
 const genericUpdate = Update.define((model: ParentModel, message: Message) =>
@@ -342,8 +342,8 @@ const branchUpdate = RegisteredParentBaseDefinition.makeStep(
 const registeredBranchDefinedUpdate = RegisteredParent.makeUpdate(
   (model, message) => branchUpdate(model, message),
 )
-const assembleRegisteredBranchUpdate = () =>
-  RegisteredParent.assembleBlock({
+const prepareRegisteredBranchUpdate = () =>
+  RegisteredParent.prepareBlock({
     init: RegisteredParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -352,12 +352,12 @@ const assembleRegisteredBranchUpdate = () =>
   })
 const registeredBranchUpdate: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRegisteredBranchUpdate
-> = Block.complete(assembleRegisteredBranchUpdate)
+  typeof prepareRegisteredBranchUpdate
+> = Block.assemble(prepareRegisteredBranchUpdate)
 // @ts-expect-error A conditional child Step cannot execute without its registered Binding.
 OmittedParent.makeUpdate((model, message) => branchUpdate(model, message))
-const assembleOmittedBranchUpdate = () =>
-  OmittedParent.assembleBlock({
+const prepareOmittedBranchUpdate = () =>
+  OmittedParent.prepareBlock({
     init: OmittedParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -365,7 +365,7 @@ const assembleOmittedBranchUpdate = () =>
     update: registeredBranchDefinedUpdate,
     EffectsLayer: Layer.empty,
   })
-const omittedBranchUpdate = assembleOmittedBranchUpdate()
+const omittedBranchUpdate = prepareOmittedBranchUpdate()
 
 const explicitlyAnnotatedUpdate = (model: ParentModel, message: Message) =>
   Message.match<Update.Return<ParentModel, Message>>(message, {
@@ -394,27 +394,27 @@ const mappedChildInit = () => {
 mappedChildInit().model
 // @ts-expect-error A passive init recipe does not expose Commands before interpretation.
 mappedChildInit().commands
-const assembleRegisteredMappedInit = () =>
-  RegisteredParent.assembleBlock({
+const prepareRegisteredMappedInit = () =>
+  RegisteredParent.prepareBlock({
     init: RegisteredParent.makeInit(mappedChildInit),
     update: RegisteredParent.makeUpdate(model => ({ model })),
     EffectsLayer: Layer.empty,
   })
 const registeredMappedInit: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRegisteredMappedInit
-> = Block.complete(assembleRegisteredMappedInit)
-const assembleOmittedMappedInit = () =>
+  typeof prepareRegisteredMappedInit
+> = Block.assemble(prepareRegisteredMappedInit)
+const prepareOmittedMappedInit = () =>
   // @ts-expect-error mapMessages preserves child registration on the collection.
-  OmittedParent.assembleBlock({
+  OmittedParent.prepareBlock({
     init: OmittedParent.makeInit(mappedChildInit),
     update: OmittedParent.makeUpdate(model => ({ model })),
     EffectsLayer: Layer.empty,
   })
 const omittedMappedInit: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleOmittedMappedInit
-> = Block.complete(assembleOmittedMappedInit)
+  typeof prepareOmittedMappedInit
+> = Block.assemble(prepareOmittedMappedInit)
 
 const foldedChildInit = () =>
   Update.foldChildInit(
@@ -472,26 +472,26 @@ const RemovedUnusedChildParent = makeNamespace('RemovedUnusedChildParent')
     Message,
   })
   .makeComposition()
-const assembleUnusedChild = () =>
-  UnusedChildParent.assembleBlock({
+const prepareUnusedChild = () =>
+  UnusedChildParent.prepareBlock({
     init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
     update: model => ({ model }),
     EffectsLayer: Layer.empty,
   })
 const unusedChild: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleUnusedChild
-> = Block.complete(assembleUnusedChild)
-const assembleRemovedUnusedChild = () =>
-  RemovedUnusedChildParent.assembleBlock({
+  typeof prepareUnusedChild
+> = Block.assemble(prepareUnusedChild)
+const prepareRemovedUnusedChild = () =>
+  RemovedUnusedChildParent.prepareBlock({
     init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
     update: model => ({ model }),
     EffectsLayer: Layer.empty,
   })
 const removedUnusedChild: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRemovedUnusedChild
-> = Block.complete(assembleRemovedUnusedChild)
+  typeof prepareRemovedUnusedChild
+> = Block.assemble(prepareRemovedUnusedChild)
 
 const KeyedParentMessage = defineMessageUnion({
   Advanced: {},
@@ -547,8 +547,8 @@ const OmittedKeyedParent = OmittedKeyedParentBaseDefinition.makeComposition({
   bindings: [AlternateChildrenBinding],
 })
 
-const assembleRegisteredKeyedFold = () =>
-  RegisteredKeyedParent.assembleBlock({
+const prepareRegisteredKeyedFold = () =>
+  RegisteredKeyedParent.prepareBlock({
     init: RegisteredKeyedParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -559,11 +559,11 @@ const assembleRegisteredKeyedFold = () =>
   })
 const registeredKeyedFold: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRegisteredKeyedFold
-> = Block.complete(assembleRegisteredKeyedFold)
-const assembleOmittedKeyedFold = () =>
+  typeof prepareRegisteredKeyedFold
+> = Block.assemble(prepareRegisteredKeyedFold)
+const prepareOmittedKeyedFold = () =>
   // @ts-expect-error A keyed pure fold requires its registered collection.
-  OmittedKeyedParent.assembleBlock({
+  OmittedKeyedParent.prepareBlock({
     init: OmittedKeyedParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -575,11 +575,11 @@ const assembleOmittedKeyedFold = () =>
   })
 const omittedKeyedFold: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleOmittedKeyedFold
-> = Block.complete(assembleOmittedKeyedFold)
+  typeof prepareOmittedKeyedFold
+> = Block.assemble(prepareOmittedKeyedFold)
 
-const assembleRegisteredKeyedStep = () =>
-  RegisteredKeyedParent.assembleBlock({
+const prepareRegisteredKeyedStep = () =>
+  RegisteredKeyedParent.prepareBlock({
     init: RegisteredKeyedParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -590,11 +590,11 @@ const assembleRegisteredKeyedStep = () =>
   })
 const registeredKeyedStep: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRegisteredKeyedStep
-> = Block.complete(assembleRegisteredKeyedStep)
-const assembleOmittedKeyedStep = () =>
+  typeof prepareRegisteredKeyedStep
+> = Block.assemble(prepareRegisteredKeyedStep)
+const prepareOmittedKeyedStep = () =>
   // @ts-expect-error A keyed pure Step requires its registered collection.
-  OmittedKeyedParent.assembleBlock({
+  OmittedKeyedParent.prepareBlock({
     init: OmittedKeyedParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -606,11 +606,11 @@ const assembleOmittedKeyedStep = () =>
   })
 const omittedKeyedStep: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleOmittedKeyedStep
-> = Block.complete(assembleOmittedKeyedStep)
+  typeof prepareOmittedKeyedStep
+> = Block.assemble(prepareOmittedKeyedStep)
 
-const assembleRegisteredKeyedCombinedStep = () =>
-  RegisteredKeyedParent.assembleBlock({
+const prepareRegisteredKeyedCombinedStep = () =>
+  RegisteredKeyedParent.prepareBlock({
     init: RegisteredKeyedParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -621,11 +621,11 @@ const assembleRegisteredKeyedCombinedStep = () =>
   })
 const registeredKeyedCombinedStep: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRegisteredKeyedCombinedStep
-> = Block.complete(assembleRegisteredKeyedCombinedStep)
-const assembleOmittedKeyedCombinedStep = () =>
+  typeof prepareRegisteredKeyedCombinedStep
+> = Block.assemble(prepareRegisteredKeyedCombinedStep)
+const prepareOmittedKeyedCombinedStep = () =>
   // @ts-expect-error combine preserves a keyed child Step's registration.
-  OmittedKeyedParent.assembleBlock({
+  OmittedKeyedParent.prepareBlock({
     init: OmittedKeyedParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -637,11 +637,11 @@ const assembleOmittedKeyedCombinedStep = () =>
   })
 const omittedKeyedCombinedStep: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleOmittedKeyedCombinedStep
-> = Block.complete(assembleOmittedKeyedCombinedStep)
+  typeof prepareOmittedKeyedCombinedStep
+> = Block.assemble(prepareOmittedKeyedCombinedStep)
 
-const assembleRegisteredKeyedInit = () =>
-  RegisteredKeyedParent.assembleBlock({
+const prepareRegisteredKeyedInit = () =>
+  RegisteredKeyedParent.prepareBlock({
     init: RegisteredKeyedParent.makeInit(() =>
       ChildrenBinding.init({
         key: 0,
@@ -654,11 +654,11 @@ const assembleRegisteredKeyedInit = () =>
   })
 const registeredKeyedInit: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRegisteredKeyedInit
-> = Block.complete(assembleRegisteredKeyedInit)
-const assembleOmittedKeyedInit = () =>
+  typeof prepareRegisteredKeyedInit
+> = Block.assemble(prepareRegisteredKeyedInit)
+const prepareOmittedKeyedInit = () =>
   // @ts-expect-error Keyed init Commands retain their collection registration.
-  OmittedKeyedParent.assembleBlock({
+  OmittedKeyedParent.prepareBlock({
     init: OmittedKeyedParent.makeInit(() =>
       ChildrenBinding.init({
         key: 0,
@@ -671,13 +671,13 @@ const assembleOmittedKeyedInit = () =>
   })
 const omittedKeyedInit: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleOmittedKeyedInit
-> = Block.complete(assembleOmittedKeyedInit)
+  typeof prepareOmittedKeyedInit
+> = Block.assemble(prepareOmittedKeyedInit)
 
 const PolicyOutMessage = defineMessageUnion({ RequestedSecondaryReset: {} })
 type PolicyOutMessage = typeof PolicyOutMessage.Type
 
-const assemblePolicyChildBlock = () =>
+const preparePolicyChildBlock = () =>
   makeNamespace('RegistrationPolicyChild')
     .makeDefinition({
       Model: ChildModel,
@@ -685,7 +685,7 @@ const assemblePolicyChildBlock = () =>
       OutMessage: PolicyOutMessage,
     })
     .makeComposition()
-    .assembleBlock({
+    .prepareBlock({
       init: () => ({ model: ChildModel.make({ count: 0 }) }),
       update: model => ({
         model,
@@ -696,8 +696,8 @@ const assemblePolicyChildBlock = () =>
     })
 const PolicyChildBlock: Block.FromAssemblyWithOutMessage<
   typeof ChildModel,
-  typeof assemblePolicyChildBlock
-> = Block.complete(assemblePolicyChildBlock)
+  typeof preparePolicyChildBlock
+> = Block.assemble(preparePolicyChildBlock)
 
 const PolicyParentMessage = defineMessageUnion({
   Advanced: {},
@@ -778,8 +778,8 @@ const AlternateSecondaryChildBinding =
 const OmittedPolicyParent = OmittedPolicyParentBaseDefinition.makeComposition({
   bindings: [OmittedPolicyChildBinding, AlternateSecondaryChildBinding],
 })
-const assembleRegisteredPolicyFold = () =>
-  RegisteredPolicyParent.assembleBlock({
+const prepareRegisteredPolicyFold = () =>
+  RegisteredPolicyParent.prepareBlock({
     init: RegisteredPolicyParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -790,8 +790,8 @@ const assembleRegisteredPolicyFold = () =>
   })
 const registeredPolicyFold: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRegisteredPolicyFold
-> = Block.complete(assembleRegisteredPolicyFold)
+  typeof prepareRegisteredPolicyFold
+> = Block.assemble(prepareRegisteredPolicyFold)
 const combinedPolicyStep = Update.combineSteps([
   PolicyChildBinding.requestSecondaryReset(),
   PolicyParentBaseDefinition.makeNoopStep(),
@@ -919,8 +919,8 @@ const OmittedKeyedPolicyParent =
   OmittedKeyedPolicyParentBaseDefinition.makeComposition({
     bindings: [OmittedPolicyChildrenBinding, AlternateSecondaryChildrenBinding],
   })
-const assembleRegisteredKeyedPolicyFold = () =>
-  RegisteredKeyedPolicyParent.assembleBlock({
+const prepareRegisteredKeyedPolicyFold = () =>
+  RegisteredKeyedPolicyParent.prepareBlock({
     init: RegisteredKeyedPolicyParent.makeInit(() => ({
       model: makeParentModel(ChildModel.make({ count: 0 })),
     })),
@@ -931,8 +931,8 @@ const assembleRegisteredKeyedPolicyFold = () =>
   })
 const registeredKeyedPolicyFold: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRegisteredKeyedPolicyFold
-> = Block.complete(assembleRegisteredKeyedPolicyFold)
+  typeof prepareRegisteredKeyedPolicyFold
+> = Block.assemble(prepareRegisteredKeyedPolicyFold)
 const FoldOutMessageParentBaseDefinition = makeNamespace(
   'RegisteredFoldOutMessageInitParent',
 ).makeDefinition({
@@ -986,8 +986,8 @@ const OmittedFoldOutMessageParent =
   OmittedFoldOutMessageParentBaseDefinition.makeComposition({
     bindings: [AlternateInitPrimaryBinding, AlternateInitSecondaryBinding],
   })
-const assembleRegisteredFoldOutMessageInit = () =>
-  RegisteredFoldOutMessageParent.assembleBlock({
+const prepareRegisteredFoldOutMessageInit = () =>
+  RegisteredFoldOutMessageParent.prepareBlock({
     init: RegisteredFoldOutMessageParent.makeInit(() =>
       FoldOutMessageChildBinding.init({
         args: [],
@@ -999,11 +999,11 @@ const assembleRegisteredFoldOutMessageInit = () =>
   })
 const registeredFoldOutMessageInit: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRegisteredFoldOutMessageInit
-> = Block.complete(assembleRegisteredFoldOutMessageInit)
-const assembleOmittedFoldOutMessageInit = () =>
+  typeof prepareRegisteredFoldOutMessageInit
+> = Block.assemble(prepareRegisteredFoldOutMessageInit)
+const prepareOmittedFoldOutMessageInit = () =>
   // @ts-expect-error A passive init recipe requires its registered child Binding at completion.
-  OmittedFoldOutMessageParent.assembleBlock({
+  OmittedFoldOutMessageParent.prepareBlock({
     init: OmittedFoldOutMessageParent.makeInit(() =>
       OmittedFoldOutMessageChildBinding.init({
         args: [],
@@ -1015,8 +1015,8 @@ const assembleOmittedFoldOutMessageInit = () =>
   })
 const omittedFoldOutMessageInit: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleOmittedFoldOutMessageInit
-> = Block.complete(assembleOmittedFoldOutMessageInit)
+  typeof prepareOmittedFoldOutMessageInit
+> = Block.assemble(prepareOmittedFoldOutMessageInit)
 const passiveFoldOutMessageRecipe = FoldOutMessageChildBinding.init({
   args: [],
   toParentModel: makeParentModel,
@@ -1057,8 +1057,8 @@ const lifecycleSubscriptions = LifecycleDefinition.makeSubscriptions(entry => ({
     },
   }),
 }))
-const assembleLifecycleChild = () =>
-  LifecycleDefinition.makeComposition().assembleBlock({
+const prepareLifecycleChild = () =>
+  LifecycleDefinition.makeComposition().prepareBlock({
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
     update: model => ({ model }),
     subscriptions: lifecycleSubscriptions,
@@ -1066,8 +1066,8 @@ const assembleLifecycleChild = () =>
   })
 const LifecycleChild: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleLifecycleChild
-> = Block.complete(assembleLifecycleChild)
+  typeof prepareLifecycleChild
+> = Block.assemble(prepareLifecycleChild)
 const LifecycleOnlyParentBaseDefinition = makeNamespace(
   'LifecycleOnlyChildParent',
 ).makeDefinition({
@@ -1093,26 +1093,26 @@ const RemovedLifecycleParent = makeNamespace('RemovedLifecycleChildParent')
     Message,
   })
   .makeComposition()
-const assembleLifecycleOnlyChild = () =>
-  LifecycleOnlyParent.assembleBlock({
+const prepareLifecycleOnlyChild = () =>
+  LifecycleOnlyParent.prepareBlock({
     init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
     update: model => ({ model }),
     EffectsLayer: Layer.empty,
   })
 const lifecycleOnlyChild: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleLifecycleOnlyChild
-> = Block.complete(assembleLifecycleOnlyChild)
-const assembleRemovedLifecycleChild = () =>
-  RemovedLifecycleParent.assembleBlock({
+  typeof prepareLifecycleOnlyChild
+> = Block.assemble(prepareLifecycleOnlyChild)
+const prepareRemovedLifecycleChild = () =>
+  RemovedLifecycleParent.prepareBlock({
     init: () => ({ model: makeParentModel(ChildModel.make({ count: 0 })) }),
     update: model => ({ model }),
     EffectsLayer: Layer.empty,
   })
 const removedLifecycleChild: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRemovedLifecycleChild
-> = Block.complete(assembleRemovedLifecycleChild)
+  typeof prepareRemovedLifecycleChild
+> = Block.assemble(prepareRemovedLifecycleChild)
 
 const childResultWithOutMessage = (
   model: Parameters<ReturnType<typeof ChildBinding.reset>>[0],

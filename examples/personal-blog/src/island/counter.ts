@@ -63,13 +63,13 @@ const view = CounterComposition.makeView((model, h) =>
   ),
 )
 
-const assemble = () =>
-  CounterComposition.assembleBlock({
+const prepare = () =>
+  CounterComposition.prepareBlock({
     init,
     update,
     view,
   })
 export const CounterBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

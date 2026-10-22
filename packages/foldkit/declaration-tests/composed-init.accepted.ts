@@ -43,20 +43,20 @@ export const init = ComposedInitComposition.makeInit((isReady: boolean) => ({
   model: { isReady },
   steps: [prepareTogether],
 }))
-export const assembleComposedInitBlock = () =>
-  ComposedInitComposition.assembleBlock({
+export const prepareComposedInitBlock = () =>
+  ComposedInitComposition.prepareBlock({
     init,
     update: ComposedInitComposition.makeUpdate(model => ({ model })),
     EffectsLayer: Prepare.layer,
   })
 
 export const RawComposedInitBlock: CompletedAssembly<
-  typeof assembleComposedInitBlock
-> = Block.complete(assembleComposedInitBlock)
+  typeof prepareComposedInitBlock
+> = Block.assemble(prepareComposedInitBlock)
 export const ComposedInitBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ComposedInitComposition.Model,
-  typeof assembleComposedInitBlock
-> = Block.complete(assembleComposedInitBlock)
+  typeof prepareComposedInitBlock
+> = Block.assemble(prepareComposedInitBlock)
 
 type Equal<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends <

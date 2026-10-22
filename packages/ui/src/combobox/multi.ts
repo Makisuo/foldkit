@@ -213,11 +213,11 @@ const makeBlock = <Item extends string, ItemEncoded>(
 ): Completed<Item, ItemEncoded> => {
   const { composition, implementation } = makeBlockParts(Item)
 
-  const assemble = () => composition.assembleBlock(implementation)
+  const prepare = () => composition.prepareBlock(implementation)
   const completedBlock: Block.FromAssemblyWithViewAndOutMessage<
     typeof Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
 
   return completedBlock
 }

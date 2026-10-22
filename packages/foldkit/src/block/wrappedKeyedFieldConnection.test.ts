@@ -44,8 +44,8 @@ const setCount = Counter.makeStep((model, count: number) => ({
   model: modifyFields(model, { count: () => count }),
 }))
 const CounterComposition = Counter.makeComposition()
-const assembleCounterBlock = () =>
-  CounterComposition.assembleBlock({
+const prepareCounterBlock = () =>
+  CounterComposition.prepareBlock({
     init: CounterComposition.makeInit((count: number) => ({
       model: CounterModel.make({ count }),
       commands: [FinishInitialization({ count })],
@@ -65,8 +65,8 @@ const assembleCounterBlock = () =>
   })
 const counterBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof CounterModel,
-  typeof assembleCounterBlock
-> = Block.complete(assembleCounterBlock)
+  typeof prepareCounterBlock
+> = Block.assemble(prepareCounterBlock)
 
 const CounterEntry = Schema.Struct({
   id: Schema.String,
@@ -82,8 +82,8 @@ const TextComposition = makeDefinition('WrappedKeyedFieldText', {
   Model: Schema.String,
   Message: TextMessage,
 }).makeComposition()
-const assembleTextBlock = () =>
-  TextComposition.assembleBlock({
+const prepareTextBlock = () =>
+  TextComposition.prepareBlock({
     init: TextComposition.makeInit((value: string) => ({ model: value })),
     update: TextComposition.makeUpdate((_model, { value }) => ({
       model: value,
@@ -91,8 +91,8 @@ const assembleTextBlock = () =>
   })
 const textBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Schema.String,
-  typeof assembleTextBlock
-> = Block.complete(assembleTextBlock)
+  typeof prepareTextBlock
+> = Block.assemble(prepareTextBlock)
 const TextEntry = Schema.Struct({
   id: Schema.String,
   text: Schema.String,
@@ -129,8 +129,8 @@ const TextEntriesBinding = Parent.makeBinding(textBlock, {
 const ParentComposition = Parent.makeComposition({
   bindings: [CountersBinding, TextEntriesBinding],
 })
-const assembleParentBlock = () =>
-  ParentComposition.assembleBlock({
+const prepareParentBlock = () =>
+  ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() => ({
       model: ParentModel.make({ counters: [], textEntries: [] }),
     })),
@@ -147,8 +147,8 @@ const assembleParentBlock = () =>
   })
 const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleParentBlock
-> = Block.complete(assembleParentBlock)
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 const noSlowSubscriptionDependencies: Option.Option<
   ResolvedSlowPhaseConfig<SlowSubscriptionDependenciesContext<ParentModel>>
 > = Option.none()

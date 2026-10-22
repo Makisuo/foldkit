@@ -36,8 +36,8 @@ const ChildComposition = ChildOwnerNamespace.makeDefinition({
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: () => ({ model: { value: 'child' } }),
     update: ChildComposition.makeUpdate((model, { value }) => ({
       model: modifyFields(model, { value: () => value }),
@@ -46,8 +46,8 @@ const assembleChildBlock = () =>
   })
 const childBlock: Block.FromAssemblyWithView<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const Model = Schema.Struct({
   rootValue: Schema.String,
@@ -157,7 +157,7 @@ const noMessageElementView = NoMessageComposition.makeView(
 )
 
 const typecheckRootCompletion = (): void => {
-  NoMessageComposition.assembleBlock({
+  NoMessageComposition.prepareBlock({
     init: noMessageInit,
     update: noMessageUpdate,
     // @ts-expect-error Inline views still require Composition.makeView ownership.
@@ -165,7 +165,7 @@ const typecheckRootCompletion = (): void => {
     EffectsLayer: Layer.empty,
   })
 
-  NoMessageComposition.assembleBlock({
+  NoMessageComposition.prepareBlock({
     init: noMessageInit,
     update: noMessageUpdate,
     // @ts-expect-error Inline views still require Composition.makeView ownership.
@@ -210,8 +210,8 @@ const typecheckRootCompletion = (): void => {
     }),
   )
 
-  const assembleElementBlock = () =>
-    composition.assembleBlock({
+  const prepareElementBlock = () =>
+    composition.prepareBlock({
       init,
       update,
       view: graphlessElementView,
@@ -219,12 +219,12 @@ const typecheckRootCompletion = (): void => {
     })
   const elementBlock: Block.FromAssemblyWithView<
     typeof Model,
-    typeof assembleElementBlock
-  > = Block.complete(assembleElementBlock)
+    typeof prepareElementBlock
+  > = Block.assemble(prepareElementBlock)
   Program.makeElement({ block: elementBlock, container: null })
 
-  const assembleDocumentBlock = () =>
-    composition.assembleBlock({
+  const prepareDocumentBlock = () =>
+    composition.prepareBlock({
       init,
       update,
       view: documentView,
@@ -232,8 +232,8 @@ const typecheckRootCompletion = (): void => {
     })
   const documentBlock: Block.FromAssemblyWithView<
     typeof Model,
-    typeof assembleDocumentBlock
-  > = Block.complete(assembleDocumentBlock)
+    typeof prepareDocumentBlock
+  > = Block.assemble(prepareDocumentBlock)
   const application = Program.make({ block: documentBlock, container: null })
   const pendingApplication: Program.Program<
     undefined,
@@ -244,27 +244,27 @@ const typecheckRootCompletion = (): void => {
   > = application
   void pendingApplication
 
-  const assembleNoMessageDocumentBlock = () =>
-    NoMessageComposition.assembleBlock({
+  const prepareNoMessageDocumentBlock = () =>
+    NoMessageComposition.prepareBlock({
       init: noMessageInit,
       update: noMessageUpdate,
       view: noMessageDocumentView,
     })
   const noMessageDocumentBlock: Block.FromAssemblyWithView<
     typeof NoMessageModel,
-    typeof assembleNoMessageDocumentBlock
-  > = Block.complete(assembleNoMessageDocumentBlock)
+    typeof prepareNoMessageDocumentBlock
+  > = Block.assemble(prepareNoMessageDocumentBlock)
   Program.make({ block: noMessageDocumentBlock, container: null })
-  const assembleNoMessageElementBlock = () =>
-    NoMessageComposition.assembleBlock({
+  const prepareNoMessageElementBlock = () =>
+    NoMessageComposition.prepareBlock({
       init: noMessageInit,
       update: noMessageUpdate,
       view: noMessageElementView,
     })
   const noMessageElementBlock: Block.FromAssemblyWithView<
     typeof NoMessageModel,
-    typeof assembleNoMessageElementBlock
-  > = Block.complete(assembleNoMessageElementBlock)
+    typeof prepareNoMessageElementBlock
+  > = Block.assemble(prepareNoMessageElementBlock)
   Program.makeElement({ block: noMessageElementBlock, container: null })
 
   // @ts-expect-error Program.make requires a Document view.
@@ -291,7 +291,7 @@ const typecheckRootCompletion = (): void => {
       }),
   )
 
-  unregisteredComposition.assembleBlock({
+  unregisteredComposition.prepareBlock({
     init: unregisteredInit,
     update: unregisteredUpdate,
     // @ts-expect-error The Composition has not registered the child used by this view.
@@ -299,7 +299,7 @@ const typecheckRootCompletion = (): void => {
     EffectsLayer: ReadRootValue.layer,
   })
 
-  unregisteredComposition.assembleBlock({
+  unregisteredComposition.prepareBlock({
     init: unregisteredInit,
     update: unregisteredUpdate,
     // @ts-expect-error The Composition has not registered the Mount used by this view.
@@ -308,7 +308,7 @@ const typecheckRootCompletion = (): void => {
   })
 
   // @ts-expect-error Root handler definitions must be included in EffectsLayer.
-  composition.assembleBlock({
+  composition.prepareBlock({
     init,
     update,
     view,
@@ -328,8 +328,8 @@ const typecheckRootCompletion = (): void => {
       child: { value: 'child' },
     },
   })
-  const assembleFlagsBlock = () =>
-    composition.assembleBlock({
+  const prepareFlagsBlock = () =>
+    composition.prepareBlock({
       init: initWithFlags,
       update,
       view,
@@ -337,8 +337,8 @@ const typecheckRootCompletion = (): void => {
     })
   const flagsBlock: Block.FromAssemblyWithView<
     typeof Model,
-    typeof assembleFlagsBlock
-  > = Block.complete(assembleFlagsBlock)
+    typeof prepareFlagsBlock
+  > = Block.assemble(prepareFlagsBlock)
   const elementWithFlags = Program.makeElement({
     block: flagsBlock,
     Flags,
@@ -359,12 +359,12 @@ const typecheckRootCompletion = (): void => {
     view: documentView,
     EffectsLayer: ReadRootValue.layer,
   }
-  const assembleRoutedBlock = () =>
-    composition.assembleBlock(routedImplementation)
+  const prepareRoutedBlock = () =>
+    composition.prepareBlock(routedImplementation)
   const routedBlock: Block.FromAssemblyWithView<
     typeof Model,
-    typeof assembleRoutedBlock
-  > = Block.complete(assembleRoutedBlock)
+    typeof prepareRoutedBlock
+  > = Block.assemble(prepareRoutedBlock)
   const routedApplication = Program.make({
     block: routedBlock,
     container: null,
@@ -395,12 +395,12 @@ const typecheckRootCompletion = (): void => {
     view: documentView,
     EffectsLayer: ReadRootValue.layer,
   }
-  const assembleRoutedFlagsBlock = () =>
-    composition.assembleBlock(routedFlagsImplementation)
+  const prepareRoutedFlagsBlock = () =>
+    composition.prepareBlock(routedFlagsImplementation)
   const routedFlagsBlock: Block.FromAssemblyWithView<
     typeof Model,
-    typeof assembleRoutedFlagsBlock
-  > = Block.complete(assembleRoutedFlagsBlock)
+    typeof prepareRoutedFlagsBlock
+  > = Block.assemble(prepareRoutedFlagsBlock)
   const routedFlagsApplication = Program.make({
     block: routedFlagsBlock,
     Flags,
@@ -503,22 +503,22 @@ describe('Program root Block authoring', () => {
 
     // @ts-expect-error A root Definition is not a completed reusable Block.
     void ApplicationDefinition.bind
-    expect(composition.assembleBlock).toBeTypeOf('function')
+    expect(composition.prepareBlock).toBeTypeOf('function')
     // @ts-expect-error an application can only be composed once.
     void composition.makeComposition
   })
 
   it('hosts a completed empty Block', () => {
-    const assemble = () =>
-      NoMessageComposition.assembleBlock({
+    const prepare = () =>
+      NoMessageComposition.prepareBlock({
         init: noMessageInit,
         update: noMessageUpdate,
         view: noMessageElementView,
       })
     const completedBlock: Block.FromAssemblyWithView<
       typeof NoMessageModel,
-      typeof assemble
-    > = Block.complete(assemble)
+      typeof prepare
+    > = Block.assemble(prepare)
     expect(() =>
       Program.makeElement({
         block: completedBlock,
@@ -532,8 +532,8 @@ describe('Program root Block authoring', () => {
     container.id = 'application-authoring'
     document.body.append(container)
 
-    const assemble = () =>
-      composition.assembleBlock({
+    const prepare = () =>
+      composition.prepareBlock({
         init,
         update,
         view,
@@ -541,8 +541,8 @@ describe('Program root Block authoring', () => {
       })
     const completedBlock: Block.FromAssemblyWithView<
       typeof Model,
-      typeof assemble
-    > = Block.complete(assemble)
+      typeof prepare
+    > = Block.assemble(prepare)
     const element = Program.makeElement({
       block: completedBlock,
       container,

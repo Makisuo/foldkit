@@ -74,7 +74,7 @@ Scene.scene(
 )
 
 // @ts-expect-error Child handler recipes remain required at local assembly.
-GeneratedDispatchChildComposition.assembleBlock({
+GeneratedDispatchChildComposition.prepareBlock({
   init: childInit,
   update: childUpdate,
   view: childView,
@@ -109,17 +109,17 @@ EmptyParentComposition.makeUpdate(model =>
   // @ts-expect-error Generated operations require the exact registered child graph.
   ChildBinding.requestSetCount({ count: 1 })(model),
 )
-EmptyParentComposition.assembleBlock({
+EmptyParentComposition.prepareBlock({
   // @ts-expect-error The child initializer cannot be installed without its registered Binding.
   init: parentInit,
   update: EmptyParentComposition.makeUpdate(model => ({ model })),
 })
-EmptyParentComposition.assembleBlock({
+EmptyParentComposition.prepareBlock({
   init: () => ({ model: ParentModel.make({ child: { count: 0 }, title: '' }) }),
   // @ts-expect-error Child update routing retains its Binding registration evidence.
   update: parentUpdate,
 })
-EmptyParentComposition.assembleBlock({
+EmptyParentComposition.prepareBlock({
   init: () => ({ model: ParentModel.make({ child: { count: 0 }, title: '' }) }),
   update: EmptyParentComposition.makeUpdate(model => ({ model })),
   // @ts-expect-error A view's child capability cannot disappear at completion.
@@ -127,7 +127,7 @@ EmptyParentComposition.assembleBlock({
 })
 
 const EmptyApplicationComposition = ApplicationDefinition.makeComposition()
-EmptyApplicationComposition.assembleBlock({
+EmptyApplicationComposition.prepareBlock({
   // @ts-expect-error Nested init keeps root Binding registration evidence.
   init,
   update: EmptyApplicationComposition.makeUpdate(model => ({ model })),

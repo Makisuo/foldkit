@@ -157,8 +157,8 @@ type CurriedStepReturn = Expect<
   Equal<ReturnType<typeof changedCountStep>, ReturnType<typeof update>>
 >
 
-const assembleCounterBlock = () =>
-  CounterComposition.assembleBlock({
+const prepareCounterBlock = () =>
+  CounterComposition.prepareBlock({
     init: CounterComposition.makeInit(() => ({
       model: Model.make({ count: 0 }),
     })),
@@ -167,10 +167,10 @@ const assembleCounterBlock = () =>
   })
 const CounterBlock: Block.FromAssemblyWithOutMessage<
   typeof Model,
-  typeof assembleCounterBlock
-> = Block.complete(assembleCounterBlock)
-const assembleTernaryBlock = () =>
-  CounterComposition.assembleBlock({
+  typeof prepareCounterBlock
+> = Block.assemble(prepareCounterBlock)
+const prepareTernaryBlock = () =>
+  CounterComposition.prepareBlock({
     init: CounterComposition.makeInit(() => ({
       model: Model.make({ count: 0 }),
     })),
@@ -179,10 +179,10 @@ const assembleTernaryBlock = () =>
   })
 const TernaryBlock: Block.FromAssemblyWithOutMessage<
   typeof Model,
-  typeof assembleTernaryBlock
-> = Block.complete(assembleTernaryBlock)
-const assembleEarlyReturnBlock = () =>
-  CounterComposition.assembleBlock({
+  typeof prepareTernaryBlock
+> = Block.assemble(prepareTernaryBlock)
+const prepareEarlyReturnBlock = () =>
+  CounterComposition.prepareBlock({
     init: CounterComposition.makeInit(() => ({
       model: Model.make({ count: 0 }),
     })),
@@ -191,11 +191,11 @@ const assembleEarlyReturnBlock = () =>
   })
 const EarlyReturnBlock: Block.FromAssemblyWithOutMessage<
   typeof Model,
-  typeof assembleEarlyReturnBlock
-> = Block.complete(assembleEarlyReturnBlock)
+  typeof prepareEarlyReturnBlock
+> = Block.assemble(prepareEarlyReturnBlock)
 const plainUpdate = (model: Model, _message: Message) => ({ model })
-const assemblePlainUpdateBlock = () =>
-  CounterComposition.assembleBlock({
+const preparePlainUpdateBlock = () =>
+  CounterComposition.prepareBlock({
     init: CounterComposition.makeInit(() => ({
       model: Model.make({ count: 0 }),
     })),
@@ -203,8 +203,8 @@ const assemblePlainUpdateBlock = () =>
   })
 const PlainUpdateBlock: Block.FromAssemblyWithOutMessage<
   typeof Model,
-  typeof assemblePlainUpdateBlock
-> = Block.complete(assemblePlainUpdateBlock)
+  typeof preparePlainUpdateBlock
+> = Block.assemble(preparePlainUpdateBlock)
 function handAuthoredDualUpdate(
   message: Message,
 ): (model: Model) => Readonly<{ model: Model; audit: 'preserved' }>
@@ -224,8 +224,8 @@ function handAuthoredDualUpdate(
 
   return (model: Model) => ({ model, audit: 'preserved' })
 }
-const assembleHandAuthoredDualBlock = () =>
-  CounterComposition.assembleBlock({
+const prepareHandAuthoredDualBlock = () =>
+  CounterComposition.prepareBlock({
     init: CounterComposition.makeInit(() => ({
       model: Model.make({ count: 0 }),
     })),
@@ -233,8 +233,8 @@ const assembleHandAuthoredDualBlock = () =>
   })
 const HandAuthoredDualBlock: Block.FromAssemblyWithOutMessage<
   typeof Model,
-  typeof assembleHandAuthoredDualBlock
-> = Block.complete(assembleHandAuthoredDualBlock)
+  typeof prepareHandAuthoredDualBlock
+> = Block.assemble(prepareHandAuthoredDualBlock)
 
 type PlainUpdateRemainsPlain = Expect<
   Equal<typeof PlainUpdateBlock.update, typeof plainUpdate>
@@ -292,8 +292,8 @@ const fullChannelUpdate = CounterComposition.makeUpdate(
     outMessage: OutMessage.ReportedCount({ count: model.count }),
   }),
 )
-const assembleFullChannelBlock = () =>
-  CounterComposition.assembleBlock({
+const prepareFullChannelBlock = () =>
+  CounterComposition.prepareBlock({
     init: CounterComposition.makeInit(() => ({
       model: Model.make({ count: 0 }),
     })),
@@ -302,8 +302,8 @@ const assembleFullChannelBlock = () =>
   })
 const FullChannelBlock: Block.FromAssemblyWithOutMessage<
   typeof Model,
-  typeof assembleFullChannelBlock
-> = Block.complete(assembleFullChannelBlock)
+  typeof prepareFullChannelBlock
+> = Block.assemble(prepareFullChannelBlock)
 const fullChannelStep = FullChannelBlock.update(changedCount)
 
 type FullChannelParameters = Expect<
@@ -427,8 +427,8 @@ requiredRestContextUpdate(changedCount)(Model.make({ count: 0 }), {
   multiplier: 2,
 })
 
-const assembleRequiredRestBlock = () =>
-  ContextualComposition.assembleBlock({
+const prepareRequiredRestBlock = () =>
+  ContextualComposition.prepareBlock({
     init: ContextualComposition.makeInit(() => ({
       model: Model.make({ count: 0 }),
     })),
@@ -436,8 +436,8 @@ const assembleRequiredRestBlock = () =>
   })
 const RequiredRestBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleRequiredRestBlock
-> = Block.complete(assembleRequiredRestBlock)
+  typeof prepareRequiredRestBlock
+> = Block.assemble(prepareRequiredRestBlock)
 const RequiredRestParentModel = Schema.Struct({ child: Model })
 const RequiredRestParentMessage = defineMessageUnion({
   ClickedParent: {},
@@ -462,8 +462,8 @@ const ChildComposition = Block.makeDefinition('DualUpdatePrototypeChild', {
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: ChildComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
     })),
@@ -475,8 +475,8 @@ const assembleChildBlock = () =>
   })
 const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const GraphFullModel = Schema.Struct({
   child: ChildModel,
@@ -536,8 +536,8 @@ const graphFullUpdate = GraphFullComposition.makeUpdate(
     }
   },
 )
-const assembleGraphFullBlock = () =>
-  GraphFullComposition.assembleBlock({
+const prepareGraphFullBlock = () =>
+  GraphFullComposition.prepareBlock({
     init: GraphFullComposition.makeInit(() => ({
       model: { count: 0 },
     })),
@@ -546,8 +546,8 @@ const assembleGraphFullBlock = () =>
   })
 const GraphFullBlock: Block.FromAssemblyWithOutMessage<
   typeof GraphFullModel,
-  typeof assembleGraphFullBlock
-> = Block.complete(assembleGraphFullBlock)
+  typeof prepareGraphFullBlock
+> = Block.assemble(prepareGraphFullBlock)
 const graphFullMessage = GraphFullMessage.ChangedCount({ amount: 2 })
 const graphFullStep = GraphFullBlock.update(graphFullMessage)
 
@@ -640,15 +640,15 @@ const graphCombined = Update.combineSteps(parentModel, [
   countParentUpdate,
 ])
 
-const assembleParentBlock = () =>
-  ParentComposition.assembleBlock({
+const prepareParentBlock = () =>
+  ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() => ({ model: { updates: 0 } })),
     update: parentUpdate,
   })
 const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleParentBlock
-> = Block.complete(assembleParentBlock)
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 const completedParentStep = ParentBlock.update(parentMessage)
 const completedGraphCombined = Update.combineSteps(parentModel, [
   completedParentStep,
@@ -718,17 +718,15 @@ const rootView = RootComposition.makeView((model, h) => ({
   body: h.empty,
 }))
 
-const assemble = () =>
-  RootComposition.assembleBlock({
+const prepare = () =>
+  RootComposition.prepareBlock({
     init: rootInit,
     update: rootUpdate,
     view: rootView,
     EffectsLayer: PersistLayer,
   })
-const completedBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+const completedBlock: Block.FromAssemblyWithView<typeof Model, typeof prepare> =
+  Block.assemble(prepare)
 const makePendingApplication = () =>
   Program.make({
     block: completedBlock,

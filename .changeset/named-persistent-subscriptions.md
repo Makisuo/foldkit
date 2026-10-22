@@ -50,13 +50,18 @@ const subscriptions = FeatureDefinition.makeSubscriptions(entry => ({
 const EffectsLayer = subscriptions.layer
 const FeatureComposition = FeatureDefinition.makeComposition()
 
-export const FeatureBlock = FeatureComposition.assembleBlock({
-  init,
-  update,
-  view,
-  subscriptions,
-  EffectsLayer,
-})
+const prepare = () =>
+  FeatureComposition.prepareBlock({
+    init,
+    update,
+    view,
+    subscriptions,
+    EffectsLayer,
+  })
+export const FeatureBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)
 ```
 
 Build inbound Port handlers from `Port.stream(port)`. This example assumes `ports.inbound.stepChanged` is an inbound Port and `Feature` is the owning Block definition.
@@ -95,11 +100,16 @@ const subscriptions = FeatureDefinition.makeSubscriptions(entry => ({
 const EffectsLayer = subscriptions.layer
 const FeatureComposition = FeatureDefinition.makeComposition()
 
-export const FeatureBlock = FeatureComposition.assembleBlock({
-  init,
-  update,
-  view,
-  subscriptions,
-  EffectsLayer,
-})
+const prepare = () =>
+  FeatureComposition.prepareBlock({
+    init,
+    update,
+    view,
+    subscriptions,
+    EffectsLayer,
+  })
+export const FeatureBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)
 ```

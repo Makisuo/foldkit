@@ -1540,8 +1540,8 @@ const operations = {
   requestScrollToEnd: Message.RequestedScrollToEnd,
 }
 
-const assembleVirtualListBlock = () =>
-  VirtualListComposition.assembleBlock({
+const prepareVirtualListBlock = () =>
+  VirtualListComposition.prepareBlock({
     init,
     update,
     view: viewImpl,
@@ -1551,8 +1551,8 @@ const assembleVirtualListBlock = () =>
 /** Complete VirtualList Block definition using an unknown item type. */
 export const block: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleVirtualListBlock
-> = Block.complete(assembleVirtualListBlock)
+  typeof prepareVirtualListBlock
+> = Block.assemble(prepareVirtualListBlock)
 
 /** Programmatically scrolls to a logical target. */
 export const scrollTo = block.operations.requestScrollTo
@@ -1598,11 +1598,11 @@ export interface Completed<Item> extends Block.CompletedWithViewAndOutMessage<
 export const create = <Item>(): Completed<Item> => {
   const { composition, implementation } = makeBlockParts<Item>()
 
-  const assemble = () => composition.assembleBlock(implementation)
+  const prepare = () => composition.prepareBlock(implementation)
   const completedBlock: Block.FromAssemblyWithViewAndOutMessage<
     typeof Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
 
   return completedBlock
 }

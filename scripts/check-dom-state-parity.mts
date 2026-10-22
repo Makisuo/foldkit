@@ -26,8 +26,8 @@ const makeParityBlock = (
     h: HtmlBuilder<never>,
   ) => Readonly<{ title: string; body: Html }>,
 ) => {
-  const assemble = () =>
-    ApplicationComposition.assembleBlock({
+  const prepare = () =>
+    ApplicationComposition.prepareBlock({
       init: ApplicationComposition.makeInit(() => ({ model: null })),
       update: ApplicationComposition.makeUpdate(),
       view: ApplicationComposition.makeView(view),
@@ -35,8 +35,8 @@ const makeParityBlock = (
     })
   const ApplicationBlock: Block.FromAssemblyWithView<
     typeof Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
 
   return ApplicationBlock
 }

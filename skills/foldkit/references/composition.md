@@ -13,19 +13,19 @@ Its parent owns integration policy: where the child Model is stored, whether an
 occurrence exists, when child delivery is accepted, what OutMessages mean to
 the parent, and where the child renders.
 
-Build that boundary through Definition → Composition → assembly → completion. All four stages are passive:
+Build that boundary through Definition → Composition → preparation → assembly. All four stages are passive:
 
 1. `Block.makeDefinition` establishes the contracts and authors Commands, Steps,
    lifecycle entries, and child Bindings.
 2. `makeComposition` fixes the registered child and Mount graph. The named
    Composition authors init, update, and the canonical view against that graph.
-3. `assembleBlock` checks and packages that authored implementation plus local
+3. `prepareBlock` checks and packages that authored implementation plus local
    operations, Subscriptions, ManagedResources, `EffectsLayer`, and
    `hostHandlers` as an opaque unfinished assembly with no Model or runtime
    methods.
-4. `Block.complete` invokes the producer once and returns the branded Block
-   accepted by Bindings, Programs, and Server rendering. It does not run init,
-   construct Layers, or start effects.
+4. `Block.assemble` invokes the producer exactly once while constructing the
+   passive branded Block accepted by Bindings, Programs, and Server rendering.
+   It does not run init, construct Layers, or start effects.
 
 The root is an ordinary Block built through the same four stages. Name its
 completed value `ApplicationBlock`. `Program.make` or `Program.makeElement`
@@ -65,16 +65,16 @@ export const view = SettingsComposition.makeView((model, h) =>
   h.p([], [model.theme]),
 )
 
-const assemble = () =>
-  SettingsComposition.assembleBlock({
+const prepare = () =>
+  SettingsComposition.prepareBlock({
     init,
     update,
     view,
   })
 export const SettingsBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 ```
 
 Ordinary source exports use an explicit zero-argument assembly producer and
@@ -82,24 +82,26 @@ header. Choose `Block.FromAssemblyWithView`,
 `Block.FromAssemblyWithViewAndOutMessage`, `Block.FromAssemblyWithOutMessage`,
 or `Block.FromAssemblyWithoutViewOrOutMessage` from the actual assembled view
 and Definition OutMessage. Name the single private zero-argument producer
-`assemble`, pass `typeof Model` and `typeof assemble`, and put the annotated
+`prepare`, pass `typeof Model` and `typeof prepare`, and put the annotated
 completed export immediately after it with no blank line. Use a descriptive
 producer name only when one file genuinely contains multiple assembly
-producers. Initialize the completed export with `Block.complete(assemble)`. Parent
+producers. Initialize the completed export with `Block.assemble(prepare)`. Parent
 Schemas use `ChildBlock.Model`, and the feature barrel exports the completed
-Block while Model remains internal. The explicit four shapes avoid a unified
-conditional boundary that would force parent Schema access back through the
-implementation graph. Helper constraints still check the actual contract.
+Block while Model remains internal. The explicit canonical Model header keeps a
+parent Schema projection from forcing TypeScript through the entire inferred
+implementation graph. This boundary can improve targeted checking and member
+completion; it does not eliminate all TypeScript latency. Helper constraints
+still check the actual contract.
 Casts, broad Block annotations, `satisfies`, raw producer calls, and annotations
 without the matching finisher do not establish this boundary. `replaceEffectsLayer`
-and `provideHandlers` preserve the completion brand, object metadata, and passive
+and `provideHandlers` preserve the assembly brand, object metadata, and passive
 runtime behavior.
 
 An authored update is dual: the Runtime uses
 `update(model, message, ...context)`, while application composition can use
 `update(message)(model, ...context)` as an internal Step. Put a local Message
 constructor directly under `operations` when its payload is the public input.
-Completion creates the callable operation without constructing a Message. A constructor with fields takes one constructor payload
+Assembly creates the callable operation without constructing a Message. A constructor with fields takes one constructor payload
 object followed by the update context, with constructor defaults honored; a
 constructor without fields takes no payload placeholder. Keep a tuple producer
 under `operations` when public inputs need mapping, refinement, defaults, or an
@@ -390,16 +392,16 @@ OutMessage.
 
 Composition and Layers describe different parts of the program:
 
-| Value                                   | Owns                                                                                           |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `FeatureComposition`                    | Registered child placements and Mount capabilities; authors init, update, and the primary view |
-| `FeatureComposition.assembleBlock(...)` | Local operations, Subscriptions, ManagedResources, `EffectsLayer`, and declared `hostHandlers` |
-| Feature `EffectsLayer`                  | Handler recipes declared by that feature                                                       |
-| Registered child Binding                | The selected completed child's registrations and handler graph                                 |
-| Root `ApplicationLayer`                 | Shared HTTP, storage, RPC, browser, and other environment Service providers                    |
+| Value                                  | Owns                                                                                           |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `FeatureComposition`                   | Registered child placements and Mount capabilities; authors init, update, and the primary view |
+| `FeatureComposition.prepareBlock(...)` | Local operations, Subscriptions, ManagedResources, `EffectsLayer`, and declared `hostHandlers` |
+| Feature `EffectsLayer`                 | Handler recipes declared by that feature                                                       |
+| Registered child Binding               | The selected completed child's registrations and handler graph                                 |
+| Root `ApplicationLayer`                | Shared HTTP, storage, RPC, browser, and other environment Service providers                    |
 
-Pass only local handler recipes to `FeatureComposition.assembleBlock` or root
-completion. Registered child Bindings contribute their selected recipes and
+Pass only local handler recipes to `FeatureComposition.prepareBlock` or root
+preparation. Registered child Bindings contribute their selected recipes and
 descendants automatically. Never merge a child's `EffectsLayer` again at its
 parent or root.
 
@@ -453,12 +455,12 @@ Do not capture a Command argument, current time, Subscription dependency, DOM
 element, or active ManagedResource handle in an application-scoped constructor.
 
 Omit `handler` only for a contract intentionally supplied by an external host.
-List that definition under `hostHandlers` when completing the Block, then call
+List that definition under `hostHandlers` when preparing the Block, then call
 `provideHandlers` on that completed Block before binding it:
 
 ```ts
-const assemble = () =>
-  EditorComposition.assembleBlock({
+const prepare = () =>
+  EditorComposition.prepareBlock({
     init,
     update,
     view,
@@ -466,8 +468,8 @@ const assemble = () =>
   })
 const EditorBlockWithHostContract: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 
 const SaveDocumentLayer = SaveDocument.toLayer(saveDocumentHandler)
 
@@ -488,8 +490,8 @@ the ordinary Service providers below them.
 At the root:
 
 ```ts
-const assemble = () =>
-  ApplicationComposition.assembleBlock({
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
     init,
     update,
     view,
@@ -497,8 +499,8 @@ const assemble = () =>
   })
 export const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 
 const program = Program.make({
   block: ApplicationBlock,
@@ -525,7 +527,7 @@ A split graphless feature puts its empty Composition in `composition.ts`.
 A retained split `definition.ts` contains contracts and the Definition, never a Composition or owner-specific ViewBuilder. Do not inline the factory into a callback, loop, or conditional because the owner identity must remain a singleton.
 A split root always gives its Composition an assembly module, including when
 the graph is empty. The root entry imports init, update, view, local
-`EffectsLayer`, and `ApplicationLayer` from their owners, completes the
+`EffectsLayer`, and `ApplicationLayer` from their owners, assembles the
 Application, and starts the Runtime. It does not maintain a second child or
 handler inventory.
 
@@ -551,5 +553,5 @@ Before finishing composition work, verify these properties:
   ordinary Services once.
 - An ordinary feature barrel exports only its completed `FooBlock`; reusable
   Schemas and pure utilities use an explicit domain barrel.
-- Definition, Composition, completion, Binding, and `provide` remain passive;
+- Definition, Composition, preparation, assembly, Binding, and `provide` remain passive;
   only the Runtime starts execution.

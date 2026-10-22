@@ -23,8 +23,8 @@ const update = KeyedEntryComposition.makeUpdate((model, message) =>
     }),
   }),
 )
-const assemble = () =>
-  KeyedEntryComposition.assembleBlock({
+const prepare = () =>
+  KeyedEntryComposition.prepareBlock({
   init,
   update,
   operations: {
@@ -34,5 +34,5 @@ const assemble = () =>
 })
 export const KeyedEntryBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

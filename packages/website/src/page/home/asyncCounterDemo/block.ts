@@ -9,8 +9,8 @@ import {
 } from './asyncCounterDemo'
 import type { Model } from './definition'
 
-const assemble = () =>
-  AsyncCounterDemoComposition.assembleBlock({
+const prepare = () =>
+  AsyncCounterDemoComposition.prepareBlock({
     init,
     update,
     view,
@@ -18,5 +18,5 @@ const assemble = () =>
   })
 export const AsyncCounterDemoBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

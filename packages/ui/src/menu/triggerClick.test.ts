@@ -50,8 +50,8 @@ const view = MenuTriggerClickTestComposition.makeView((model, h) =>
     ],
   ),
 )
-const assemble = () =>
-  MenuTriggerClickTestComposition.assembleBlock({
+const prepare = () =>
+  MenuTriggerClickTestComposition.prepareBlock({
     init: MenuTriggerClickTestComposition.makeInit(() =>
       MenuBinding.init({
         args: [{ id: 'actions', isModal: true }],
@@ -63,8 +63,8 @@ const assemble = () =>
   })
 const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 
 const requireElement = (id: string): HTMLElement => {
   const element = document.getElementById(id)

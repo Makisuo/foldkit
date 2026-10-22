@@ -194,8 +194,8 @@ export const refreshSettings = SettingsDefinition.makeStep(
 )
 
 export const SettingsEffectsLayer = SyncSettings.layer
-const assembleSettingsBlock = () =>
-  SettingsComposition.assembleBlock({
+const prepareSettingsBlock = () =>
+  SettingsComposition.prepareBlock({
     init: settingsInit,
     update: settingsUpdate,
     operations: {
@@ -206,8 +206,8 @@ const assembleSettingsBlock = () =>
   })
 export const SettingsBlock: Block.FromAssemblyWithOutMessage<
   typeof SettingsModel,
-  typeof assembleSettingsBlock
-> = Block.complete(assembleSettingsBlock)
+  typeof prepareSettingsBlock
+> = Block.assemble(prepareSettingsBlock)
 
 type SettingsServicesAreExact = Expect<
   Equal<Layer.Services<typeof SettingsEffectsLayer>, SettingsClient>
@@ -247,8 +247,8 @@ const StatusComposition = Block.makeDefinition('Status', {
   Model: StatusModel,
   Message: StatusMessage,
 }).makeComposition()
-const assembleStatusBlock = () =>
-  StatusComposition.assembleBlock({
+const prepareStatusBlock = () =>
+  StatusComposition.prepareBlock({
     init: StatusComposition.makeInit(() => ({
       model: StatusModel.make({ count: 0 }),
     })),
@@ -260,8 +260,8 @@ const assembleStatusBlock = () =>
   })
 export const StatusBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof StatusModel,
-  typeof assembleStatusBlock
-> = Block.complete(assembleStatusBlock)
+  typeof prepareStatusBlock
+> = Block.assemble(prepareStatusBlock)
 
 export const RoomModel = Schema.Struct({
   id: Schema.String,
@@ -277,8 +277,8 @@ const RoomComposition = Block.makeDefinition('Room', {
   Model: RoomModel,
   Message: RoomMessage,
 }).makeComposition()
-const assembleRoomBlock = () =>
-  RoomComposition.assembleBlock({
+const prepareRoomBlock = () =>
+  RoomComposition.prepareBlock({
     init: RoomComposition.makeInit((id: string, name: string) => ({
       model: RoomModel.make({ id, name }),
     })),
@@ -298,8 +298,8 @@ const assembleRoomBlock = () =>
   })
 export const RoomBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof RoomModel,
-  typeof assembleRoomBlock
-> = Block.complete(assembleRoomBlock)
+  typeof prepareRoomBlock
+> = Block.assemble(prepareRoomBlock)
 
 export const ParentModel = Schema.Struct({
   settings: SettingsModel,
@@ -495,19 +495,19 @@ export const foldRoom = ParentComposition.makeUpdate(
   ) => RoomBinding.fold(model, roomId, childMessage, context),
 )
 
-const assembleParentBlock = () =>
-  ParentComposition.assembleBlock({
+const prepareParentBlock = () =>
+  ParentComposition.prepareBlock({
     init: parentInit,
     update: parentUpdate,
     EffectsLayer: Layer.empty,
   })
 export const ParentBlock: Block.FromAssemblyWithOutMessage<
   typeof ParentModel,
-  typeof assembleParentBlock
-> = Block.complete(assembleParentBlock)
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 
-const assembleParentRefreshBlock = () =>
-  ParentComposition.assembleBlock({
+const prepareParentRefreshBlock = () =>
+  ParentComposition.prepareBlock({
     init: parentInit,
     update: parentRefreshUpdate,
     operations: {
@@ -517,8 +517,8 @@ const assembleParentRefreshBlock = () =>
   })
 export const ParentRefreshBlock: Block.FromAssemblyWithOutMessage<
   typeof ParentModel,
-  typeof assembleParentRefreshBlock
-> = Block.complete(assembleParentRefreshBlock)
+  typeof prepareParentRefreshBlock
+> = Block.assemble(prepareParentRefreshBlock)
 
 type ParentInitParametersAreExact = Expect<
   Equal<
@@ -827,16 +827,16 @@ export const applicationView = ApplicationComposition.makeView((model, h) =>
   h.main([], [globalThis.String(model.count)]),
 )
 
-const assemble = () =>
-  ApplicationComposition.assembleBlock({
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
     init: applicationInit,
     update: applicationUpdate,
     view: applicationView,
   })
 const completedBlock: Block.FromAssemblyWithView<
   typeof ApplicationModel,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 export const ApplicationElement = Program.makeElement({
   block: completedBlock,
   container: null,
@@ -924,8 +924,8 @@ export const serviceApplicationView = ServiceApplicationComposition.makeView(
   (model, h) => h.main([], [globalThis.String(model.count)]),
 )
 
-const assemble2 = () =>
-  ServiceApplicationComposition.assembleBlock({
+const prepare2 = () =>
+  ServiceApplicationComposition.prepareBlock({
     init: serviceApplicationInit,
     update: serviceApplicationUpdate,
     view: serviceApplicationView,
@@ -933,8 +933,8 @@ const assemble2 = () =>
   })
 const completedBlock2: Block.FromAssemblyWithView<
   typeof ServiceApplicationModel,
-  typeof assemble2
-> = Block.complete(assemble2)
+  typeof prepare2
+> = Block.assemble(prepare2)
 export const PendingServiceApplicationElement = Program.makeElement({
   block: completedBlock2,
   container: null,
@@ -998,15 +998,15 @@ export const symbolMetadataInit = NoStartupComposition.makeInit(() => ({
   childInitContext: { source: 'declaration-test' },
   [InitializationMetadata]: true,
 }))
-const assembleNoStartupBlock = () =>
-  NoStartupComposition.assembleBlock({
+const prepareNoStartupBlock = () =>
+  NoStartupComposition.prepareBlock({
     init: noStartupInit,
     update: NoStartupComposition.makeUpdate(),
   })
 export const NoStartupBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof NoStartupModel,
-  typeof assembleNoStartupBlock
-> = Block.complete(assembleNoStartupBlock)
+  typeof prepareNoStartupBlock
+> = Block.assemble(prepareNoStartupBlock)
 export type NoStartupArgumentsAreExact = Expect<
   Equal<Parameters<typeof noStartupInit>, []>
 >

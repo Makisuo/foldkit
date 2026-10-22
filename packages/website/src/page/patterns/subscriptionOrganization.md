@@ -12,7 +12,7 @@ Use the Block definition's `makeSubscriptions` helper. It fixes the Model and Me
 
 ::Snippet{name="subscriptionOrganizationChild" label="Block Subscription definitions"}
 
-Compose the attached entry recipes in the feature's local `EffectsLayer`. Pass that bundle to `FeatureComposition.assembleBlock`. A parent Binding contributes it automatically.
+Compose the attached entry recipes in the feature's local `EffectsLayer`. Pass that bundle to `FeatureComposition.prepareBlock`. A parent Binding contributes it automatically.
 
 ## Connect the Child Once
 
@@ -30,7 +30,7 @@ Nested Blocks repeat the same pattern. By the time a Stream reaches the root, ev
 
 ## Install the Root
 
-The Application Composition already contains the Subscription and handler graph. Its `assembleBlock` method produces the unfinished implementation assembly, and `Block.complete(assemble)` finishes `ApplicationBlock`; `Program.make` adds the browser host configuration:
+The Application Composition already contains the Subscription and handler graph. Its `prepareBlock` method produces the unfinished implementation assembly, and `Block.assemble(prepare)` finishes `ApplicationBlock`; `Program.make` adds the browser host configuration:
 
 ::Snippet{name="subscriptionOrganizationRoot" label="Installing the root Subscription graph"}
 

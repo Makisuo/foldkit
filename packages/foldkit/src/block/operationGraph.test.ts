@@ -47,8 +47,8 @@ const reset = ChildDefinition.makeStep(_model => {
   return { model: ChildModel.make({ count: 0 }) }
 })
 const ChildComposition = ChildDefinition.makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     view: ChildComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
     update: ChildComposition.makeUpdate((model, message) =>
@@ -70,8 +70,8 @@ const assembleChildBlock = () =>
   })
 const ChildBlock: Block.FromAssemblyWithView<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const OmittedParentDefinition = makeNamespace(
   'OperationGraphOmittedParent',
@@ -95,8 +95,8 @@ const initializeOmittedChild = OmittedParentDefinition.makeStep(model =>
 const omittedParentComposition = OmittedParentDefinition.makeComposition({
   bindings: [OmittedChildBinding],
 })
-const assembleOmittedParent = () =>
-  omittedParentComposition.assembleBlock({
+const prepareOmittedParent = () =>
+  omittedParentComposition.prepareBlock({
     view: omittedParentComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: initialModel }),
     update: omittedParentComposition.makeUpdate((model, message) =>
@@ -115,8 +115,8 @@ const assembleOmittedParent = () =>
   })
 const OmittedParent: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assembleOmittedParent
-> = Block.complete(assembleOmittedParent)
+  typeof prepareOmittedParent
+> = Block.assemble(prepareOmittedParent)
 
 const ForeignOmittedChildBinding = OmittedParentDefinition.makeBinding(
   ChildBlock,
@@ -284,8 +284,8 @@ const initializeWrongPlacement = ExactParentBaseDefinition.makeStep(model =>
     toParentModel: child => modifyFields(model, { primary: () => child }),
   }),
 )
-const assembleExactParent = () =>
-  exactParentComposition.assembleBlock({
+const prepareExactParent = () =>
+  exactParentComposition.prepareBlock({
     view: exactParentComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: initialModel }),
     update: exactParentComposition.makeUpdate((model, message) =>
@@ -305,8 +305,8 @@ const assembleExactParent = () =>
   })
 const ExactParent: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assembleExactParent
-> = Block.complete(assembleExactParent)
+  typeof prepareExactParent
+> = Block.assemble(prepareExactParent)
 
 it('checks exact binding identity before reading or writing the parent Model', () => {
   const lowered = lowerBlock(ExactParent)
@@ -436,8 +436,8 @@ const policyComposition = PolicyNamespace.makeDefinition({
   Message,
   OutMessage: PolicyOutMessage,
 }).makeComposition()
-const assemblePolicyChild = () =>
-  policyComposition.assembleBlock({
+const preparePolicyChild = () =>
+  policyComposition.prepareBlock({
     view: policyComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
     update: model => ({
@@ -448,8 +448,8 @@ const assemblePolicyChild = () =>
   })
 const PolicyChild: Block.FromAssemblyWithViewAndOutMessage<
   typeof ChildModel,
-  typeof assemblePolicyChild
-> = Block.complete(assemblePolicyChild)
+  typeof preparePolicyChild
+> = Block.assemble(preparePolicyChild)
 
 const PolicyParentMessage = Schema.Never
 const PolicyParentBaseDefinition = makeNamespace(
@@ -476,8 +476,8 @@ const PolicyChildBinding = PolicyParentBaseDefinition.makeBinding(PolicyChild, {
 const policyParentComposition = PolicyParentBaseDefinition.makeComposition({
   bindings: [PolicyChildBinding, SiblingChildBinding],
 })
-const assemblePolicyParent = () =>
-  policyParentComposition.assembleBlock({
+const preparePolicyParent = () =>
+  policyParentComposition.prepareBlock({
     view: policyParentComposition.makeView((_model, h) => h.div([])),
     init: () => ({ model: initialModel }),
     update: policyParentComposition.makeUpdate(),
@@ -485,8 +485,8 @@ const assemblePolicyParent = () =>
   })
 const PolicyParent: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assemblePolicyParent
-> = Block.complete(assemblePolicyParent)
+  typeof preparePolicyParent
+> = Block.assemble(preparePolicyParent)
 
 it('restores the parent graph before folding a child OutMessage', () => {
   const lowered = lowerBlock(PolicyParent)

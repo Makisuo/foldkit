@@ -43,16 +43,16 @@ const OtherWork = Command.define('Work', {
 })
 
 const ChildComposition = ChildDefinition.makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: () => ({ model: {} }),
     update: ChildComposition.makeUpdate(model => ({ model })),
     EffectsLayer: Work.layer,
   })
 const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildComposition.Model,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const ParentDefinition = makeDefinition('BindingMatcherParent', {
   Model: Schema.Struct({}),
@@ -204,16 +204,16 @@ describe('__bindCommandMatcher', () => {
 
   it('rejects a Binding from another completed Block instance', () => {
     const OtherComposition = ChildDefinition.makeComposition()
-    const assembleOtherBlock = () =>
-      OtherComposition.assembleBlock({
+    const prepareOtherBlock = () =>
+      OtherComposition.prepareBlock({
         init: () => ({ model: {} }),
         update: OtherComposition.makeUpdate(model => ({ model })),
         EffectsLayer: Work.layer,
       })
     const OtherBlock: Block.FromAssemblyWithoutViewOrOutMessage<
       typeof OtherComposition.Model,
-      typeof assembleOtherBlock
-    > = Block.complete(assembleOtherBlock)
+      typeof prepareOtherBlock
+    > = Block.assemble(prepareOtherBlock)
 
     expect(() =>
       __bindCommandMatcher(OtherBlock, LeftBinding, Work(args)),

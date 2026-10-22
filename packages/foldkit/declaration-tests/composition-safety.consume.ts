@@ -372,7 +372,7 @@ const emittedDirectConnectedInit =
     }),
   )
 // @ts-expect-error Emitted directly connected initializers retain their missing Binding evidence.
-EmittedMissingPlainBindingComposition.assembleBlock({
+EmittedMissingPlainBindingComposition.prepareBlock({
   init: emittedDirectConnectedInit,
   update: EmittedMissingPlainBindingComposition.makeUpdate(model => ({
     model,

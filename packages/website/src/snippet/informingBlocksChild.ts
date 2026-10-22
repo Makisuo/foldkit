@@ -36,8 +36,8 @@ export const update = PeopleComposition.makeUpdate((model, message) =>
   }),
 )
 
-const assemble = () =>
-  PeopleComposition.assembleBlock({
+const prepare = () =>
+  PeopleComposition.prepareBlock({
     init,
     update,
     operations: { informRouteChanged },
@@ -45,5 +45,5 @@ const assemble = () =>
   })
 export const PeopleBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

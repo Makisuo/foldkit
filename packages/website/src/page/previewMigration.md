@@ -55,9 +55,9 @@ The final API separates four responsibilities:
 | Completed Block | The fixed graph plus init, update, view, local lifecycle declarations, operations, and local `EffectsLayer`                   | It does not choose a container, request Flags, or application Service providers. |
 | Program         | Page or element host configuration, including the container, Flags Schema, routing, Ports, and DevTools                       | It does not own feature behavior or handler definitions.                         |
 
-`Block.makeDefinition`, `makeComposition`, `assembleBlock`, `Program.make`, and `Program.makeElement` all return passive values. `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` builds the selected Layers and starts the application.
+`Block.makeDefinition`, `makeComposition`, `prepareBlock`, `Program.make`, and `Program.makeElement` all return passive values. `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` builds the selected Layers and starts the application.
 
-For ordinary source Blocks, name the single private zero-argument assembly producer `assemble` and put the matching four-shape export header immediately after it with no blank line. Use a descriptive producer name only when one file genuinely contains multiple assembly producers. Keep the feature barrel focused on its completed Block, and compose parent state with `ChildBlock.Model`. The recommended `foldkit/no-completed-block-model-in-schema` rule guards inferred assembly dependencies while accepting the recognized checked boundary. See [Model Schema dependencies](/patterns/project-organization#keep-model-schema-dependencies-small).
+For ordinary source Blocks, name the single private zero-argument preparation producer `prepare` and put the matching four-shape export header immediately after it with no blank line. Use a descriptive producer name only when one file genuinely contains multiple preparation producers. Keep the feature barrel focused on its completed Block, and compose parent state with `ChildBlock.Model`. The recommended `foldkit/no-completed-block-model-in-schema` rule guards inferred assembly dependencies while accepting the recognized checked boundary. See [Model Schema dependencies](/patterns/project-organization#keep-model-schema-dependencies-small).
 
 The completed Block is the boundary that parents consume. It carries its Model Schema, complete Message Codec, optional OutMessage matcher, operations, view contract, lifecycle declarations, handler graph, and child graph together.
 
@@ -87,7 +87,7 @@ Apply the same ownership to every effect primitive:
 
 `makeSubscriptions` entries take a dependency Schema field record, in the same shape passed to `Schema.Struct`. If an adapter already supplies a Struct as `dependenciesSchema`, pass `dependenciesSchema.fields` to `entry`.
 
-Every attached handler exposes a `.layer`. Merge only the definitions owned by that feature into its local `EffectsLayer`, then pass that bundle to `assembleBlock`. Registered child Bindings contribute their own handler graphs automatically.
+Every attached handler exposes a `.layer`. Merge only the definitions owned by that feature into its local `EffectsLayer`, then pass that bundle to `prepareBlock`. Registered child Bindings contribute their own handler graphs automatically.
 
 ::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}
 
@@ -233,7 +233,7 @@ Make the root an ordinary completed Block named `Application`:
 2. Rename a root route union named `AppRoute` to `ApplicationRoute`, including its imports and type queries.
 3. Build `ApplicationComposition` through `makeComposition({ bindings, mounts })` as needed.
 4. Author root init, update, and view through that Composition.
-5. Return `ApplicationComposition.assembleBlock(...)` from the private `assemble` producer, then complete `ApplicationBlock` with `Block.complete(assemble)`.
+5. Return `ApplicationComposition.prepareBlock(...)` from the private `prepare` producer, then complete `ApplicationBlock` with `Block.assemble(prepare)`.
 6. Move container, Flags, routing, Ports, DevTools, and other browser host fields into `Program.make`.
 7. Supply ordinary application Services with `program.provide(ApplicationLayer)` before starting the Runtime.
 
@@ -269,7 +269,7 @@ Split a growing feature by ownership:
 | `command.ts`, `subscription.ts`, `mount.ts`, `managedResource.ts` | Local effect and lifecycle declarations                                                       |
 | `composition.ts` or `composition/`                                | Bindings, OutMessage policy, Mount registration, Composition, and optional view builder alias |
 | `init.ts`, `update.ts`, `view.ts`                                 | Behavior authored through that Composition                                                    |
-| `block.ts`                                                        | `assembleBlock` and the local `EffectsLayer` selection                                        |
+| `block.ts`                                                        | `prepareBlock` and the local `EffectsLayer` selection                                         |
 | `services.ts`                                                     | Root `ApplicationLayer` and test providers for ordinary Services                              |
 | `entry.ts`                                                        | Program host configuration and Runtime startup                                                |
 

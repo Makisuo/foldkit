@@ -33,7 +33,7 @@ If the project enforces pnpm's `minimumReleaseAge`, a newly uploaded preview may
 
 ## Upgrade from 1fbeaffe6563
 
-The verified source is `1fbeaffe656303b44d8fd20c18d598f08014a5c9`. Its root already uses `assembleBlock` and `Program.make` or `Program.makeElement`. Add the required `Block.complete` finisher while keeping the existing graph and host wiring:
+The verified source is `1fbeaffe656303b44d8fd20c18d598f08014a5c9`. Its root already uses the previous `assembleBlock` preparation method and `Program.make` or `Program.makeElement`. Rename that method to `prepareBlock`, name its private zero-argument producer `prepare`, and assemble the returned draft with `Block.assemble(prepare)` while keeping the existing graph and host wiring:
 
 - Child policies use `withOutMessagePolicy`.
 - Animation content uses `toView`.
@@ -42,13 +42,14 @@ The verified source is `1fbeaffe656303b44d8fd20c18d598f08014a5c9`. Its root alre
 
 After installing one coherent target, make the changes used by your application:
 
-1. Apply the [Definition and Namespace factory renames](#rename-definition-authoring-factories). The old names have no compatibility aliases.
-2. Replace `Animation.defaultLeaveCommand` with the [bound leave-settlement operation](#replace-the-standard-animation-leave-helper) wherever the application uses standard CSS settlement. Keep custom settlement Commands for additional signals.
-3. Update any affected [UI trigger and focus tests](#update-ui-trigger-and-focus-tests).
-4. Apply the [Vite security patches](#vite-security-patches) to affected installed development tooling.
-5. Run [the upgrade checks](#verify-the-upgrade). Assembly now rejects incompatible same-named Command handler contracts inside generic Block factories. Correct the owning definitions or handler Layers when this exposes invalid wiring.
+1. Replace `assembleBlock` with `prepareBlock`, replace `Block.complete` with `Block.assemble`, and rename each ordinary private `assemble` producer to `prepare`. For direct `foldkit/block` imports, rename the `complete` function to `assemble` and the `AssembleBlock` method type to `PrepareBlock`. The four `FromAssembly*` annotation types retain their names. The old names have no compatibility aliases.
+2. Apply the [Definition and Namespace factory renames](#rename-definition-authoring-factories). The old names have no compatibility aliases.
+3. Replace `Animation.defaultLeaveCommand` with the [bound leave-settlement operation](#replace-the-standard-animation-leave-helper) wherever the application uses standard CSS settlement. Keep custom settlement Commands for additional signals.
+4. Update any affected [UI trigger and focus tests](#update-ui-trigger-and-focus-tests).
+5. Apply the [Vite security patches](#vite-security-patches) to affected installed development tooling.
+6. Run [the upgrade checks](#verify-the-upgrade). Assembly now rejects incompatible same-named Command handler contracts inside generic Block factories. Correct the owning definitions or handler Layers when this exposes invalid wiring.
 
-The checked assembly completion below is required for every source Block. [Native TypeScript tooling](#native-typescript-tooling) and [Command-only Steps](#optional-convenience) remain separate setup or organization choices. The explicit producer/header shape also keeps parent Model Schema access independent of the completed implementation graph.
+The checked preparation and assembly boundary below is required for every source Block. [Native TypeScript tooling](#native-typescript-tooling) and [Command-only Steps](#optional-convenience) remain separate setup or organization choices. The explicit producer/header shape also keeps parent Model Schema access independent of the completed implementation graph.
 
 ### Update UI trigger and focus tests
 
@@ -62,9 +63,9 @@ This section applies to `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca`.
 
 ### Complete an ordinary root Block
 
-The root now follows the same Definition, Composition, and checked assembly stages as every feature. Replace `makeApplicationDefinition` with `Block.makeDefinition('Application', ...)`. Return the authored init, update, view, lifecycle declarations, and local `EffectsLayer` from an `ApplicationComposition.assembleBlock(...)` producer, then finish `ApplicationBlock` with `Block.complete(assemble)`.
+The root now follows the same Definition, Composition, preparation, and assembly stages as every feature. Replace `makeApplicationDefinition` with `Block.makeDefinition('Application', ...)`. Return the authored init, update, view, lifecycle declarations, and local `EffectsLayer` from an `ApplicationComposition.prepareBlock(...)` producer named `prepare`, then finish `ApplicationBlock` with `Block.assemble(prepare)`.
 
-The old `ApplicationComposition.assembleApplication` and `ApplicationComposition.assembleElement` methods have been removed. Browser host fields do not belong in `assembleBlock`.
+The old `ApplicationComposition.assembleApplication` and `ApplicationComposition.assembleElement` methods have been removed. Browser host fields do not belong in `prepareBlock`.
 
 ::Snippet{name="counterApplicationWithFlags" label="Completing the root Block"}
 
@@ -187,11 +188,11 @@ See the [official editor setup](https://github.com/oxc-project/tsrs/blob/467182f
 
 ## Keep Source Model Schemas Independent of Completion
 
-Give an ordinary completed Block an explicit producer/header boundary. Move its existing `assembleBlock` call into one private zero-argument function named `assemble`, then place the `SettingsBlock` export immediately after it with no blank line. Apply the matching `Block.FromAssemblyWith*` annotation and initialize the export with `Block.complete(assemble)`. A direct `assemble()` call now returns only the opaque unfinished assembly and has no Model or Block methods. Use a descriptive producer name only when one file genuinely contains multiple assembly producers. Keep the payload, local effects and graph unchanged.
+Give an ordinary completed Block an explicit producer/header boundary. Move its existing `prepareBlock` call into one private zero-argument function named `prepare`, then place the `SettingsBlock` export immediately after it with no blank line. Apply the matching `Block.FromAssemblyWith*` annotation and initialize the export with `Block.assemble(prepare)`. A direct `prepare()` call returns only the opaque draft and has no Model or Block methods. Use a descriptive producer name only when one file genuinely contains multiple preparation producers. Keep the payload, local effects and graph unchanged.
 
 ::Snippet{name="blockFeatureExports" label="An explicit completed Block boundary"}
 
-Choose the helper from the Definition's declared OutMessage and the assembled view:
+Choose the helper from the Definition's declared OutMessage and prepared view:
 
 | Assembled view | Declared OutMessage | Export annotation                           |
 | -------------- | ------------------- | ------------------------------------------- |
@@ -200,7 +201,7 @@ Choose the helper from the Definition's declared OutMessage and the assembled vi
 | No             | Yes                 | `Block.FromAssemblyWithOutMessage`          |
 | No             | No                  | `Block.FromAssemblyWithoutViewOrOutMessage` |
 
-Each helper takes `typeof Model` and `typeof assemble`. The four names keep the view and OutMessage shapes explicit; there is no unified `FromAssembly` helper. The longer annotation gives TypeScript a direct Model member without making a parent infer the whole source implementation merely to read its Schema. The producer infers the unfinished assembly, and the helper checks its exact completed contract and Model Schema through `Block.complete`. Do not replace this with a cast, a broad Block annotation, `satisfies`, a raw producer call, or an annotation without the matching finisher.
+Each helper takes `typeof Model` and `typeof prepare`. The four names keep the view and OutMessage shapes explicit; there is no unified `FromAssembly` helper. The longer annotation gives TypeScript a direct Model member without making a parent infer the whole source implementation merely to read its Schema. The producer infers the opaque draft, and the helper checks its exact completed contract and Model Schema through `Block.assemble`. Do not replace this with a cast, a broad Block annotation, `satisfies`, a raw producer call, or an annotation without the matching assembly call.
 
 The feature barrel exports its completed Block. Keep the Model Schema internal to the feature and compose parent state with `SettingsBlock.Model`. An application that adopted a separate canonical Model reexport for compiler performance can remove that reexport after adding the checked header and updating its parent imports. Preserve independently public domain Schemas and generic component contracts.
 
@@ -210,6 +211,7 @@ The recommended `foldkit/no-completed-block-model-in-schema` rule still reports 
 
 The checklist below applies to the older `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca` snapshots. For `1fbeaffe6563`, use [its direct upgrade path](#upgrade-from-1fbeaffe6563), then [verify the upgrade](#verify-the-upgrade). Search first, then change only the code the project contains:
 
+- Replace `assembleBlock` with `prepareBlock`, replace `Block.complete` with `Block.assemble`, and rename an ordinary private `assemble` producer to `prepare`.
 - Replace every removed Definition or Namespace factory name using the table above. Do not rename completion config fields, completed Block metadata, or standalone Command and Update APIs.
 - Replace remaining `makeApplicationDefinition`, `assembleApplication`, and `assembleElement` uses with the completed root Block and Program boundary above.
 - Update each server render whose first argument is an Application Composition or whose host config repeats `init`, `update`, or `view`.
@@ -244,7 +246,7 @@ When asking a coding agent to perform the migration, give it this page URL and t
 
 ## Troubleshooting
 
-- **The Program rejects `ApplicationBlock`.** Make sure the root has no OutMessage for a host to discard. Author its view through the same Composition used by `assembleBlock`; `Program.make` requires a `Document` view and `Program.makeElement` requires an Html view.
+- **The Program rejects `ApplicationBlock`.** Make sure the root has no OutMessage for a host to discard. Author its view through the same Composition used by `prepareBlock`; `Program.make` requires a `Document` view and `Program.makeElement` requires an Html view.
 - **Server init arguments do not match.** The presence of `Flags` and `routing` determines whether root init receives Flags, a URL, both, or neither. Keep request values in the third `renderToString` argument.
 - **A connected Step has no readable `model` or `commands`.** Return or compose the opaque result inside the registered Composition. Do not execute a Binding operation against a raw parent Model outside that graph.
 - **A ViewInput reports a nested callback.** Move the callback to a top-level ViewInput renderer. Keep the data it consumes in sibling fields or close over parent view values.

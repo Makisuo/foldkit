@@ -24,7 +24,7 @@ The counter starts at zero and has no startup work:
 
 ::Snippet{name="initSimple" label="Using init"}
 
-A non-routing Program calls `init` with no arguments. A routing Program passes the current URL, so its first Model can reflect the route. When the Program declares Flags, they become the first argument in either form. `ApplicationComposition.assembleBlock` receives `init` explicitly and checks it against the registered child and handler graph. `Program.make` or `Program.makeElement` then checks the initializer's arguments against its Flags and routing configuration.
+A non-routing Program calls `init` with no arguments. A routing Program passes the current URL, so its first Model can reflect the route. When the Program declares Flags, they become the first argument in either form. `ApplicationComposition.prepareBlock` receives `init` explicitly and checks it against the registered child and handler graph. `Program.make` or `Program.makeElement` then checks the initializer's arguments against its Flags and routing configuration.
 
 Give `ApplicationComposition.makeInit` one concrete function signature. Optional, default, and rest parameters are supported. Wrap an overloaded domain helper or callable object in a concretely typed callback. A generic Block factory closes over its type parameters and keeps the initializer itself concrete.
 

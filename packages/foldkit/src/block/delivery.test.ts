@@ -38,8 +38,8 @@ describe('Composition update delivery', () => {
       Model: ContextualChildModel,
       Message: ContextualChildMessage,
     }).makeComposition()
-    const assembleContextualBlock = () =>
-      contextualComposition.assembleBlock({
+    const prepareContextualBlock = () =>
+      contextualComposition.prepareBlock({
         init: contextualComposition.makeInit(() => ({
           model: ContextualChildModel.make({ count: 0 }),
         })),
@@ -51,8 +51,8 @@ describe('Composition update delivery', () => {
       })
     const contextualBlock: Block.FromAssemblyWithoutViewOrOutMessage<
       typeof ContextualChildModel,
-      typeof assembleContextualBlock
-    > = Block.complete(assembleContextualBlock)
+      typeof prepareContextualBlock
+    > = Block.assemble(prepareContextualBlock)
     const ContextualParentModel = Schema.Struct({
       child: ContextualChildModel,
     })
@@ -109,8 +109,8 @@ describe('Composition update delivery', () => {
       Model: CounterModel,
       Message: ChildMessage,
     }).makeComposition()
-    const assembleCounterBlock = () =>
-      CounterComposition.assembleBlock({
+    const prepareCounterBlock = () =>
+      CounterComposition.prepareBlock({
         init: CounterComposition.makeInit(() => ({
           model: CounterModel.make({ count: 0 }),
         })),
@@ -124,8 +124,8 @@ describe('Composition update delivery', () => {
       })
     const counterBlock: Block.FromAssemblyWithoutViewOrOutMessage<
       typeof CounterModel,
-      typeof assembleCounterBlock
-    > = Block.complete(assembleCounterBlock)
+      typeof prepareCounterBlock
+    > = Block.assemble(prepareCounterBlock)
     const CounterInstance = Schema.Struct({
       id: Schema.String,
       counter: CounterModel,

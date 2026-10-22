@@ -23,8 +23,8 @@ const leafRegistered = MountCapabilityLeaf.makeComposition({
 const leafView = leafRegistered.makeView((model, h) =>
   h.div([h.OnMount(ObserveLeaf())], [globalThis.String(model.count)]),
 )
-const assembleLeafBlock = () =>
-  leafRegistered.assembleBlock({
+const prepareLeafBlock = () =>
+  leafRegistered.prepareBlock({
     init: () => ({ model: LeafModel.make({ count: 0 }) }),
     update: leafRegistered.makeUpdate(model => ({ model })),
     view: leafView,
@@ -32,8 +32,8 @@ const assembleLeafBlock = () =>
   })
 const leafBlock: Block.FromAssemblyWithView<
   typeof LeafModel,
-  typeof assembleLeafBlock
-> = Block.complete(assembleLeafBlock)
+  typeof prepareLeafBlock
+> = Block.assemble(prepareLeafBlock)
 
 const MiddleModel = Schema.Struct({ leaf: LeafModel })
 const MountCapabilityMiddle = makeDefinition('MountCapabilityMiddle', {
@@ -59,8 +59,8 @@ const middleView = middleRegistered.makeView((model, h) =>
     }),
   ),
 )
-const assembleMiddleBlock = () =>
-  middleRegistered.assembleBlock({
+const prepareMiddleBlock = () =>
+  middleRegistered.prepareBlock({
     init: middleRegistered.makeInit(() =>
       LeafBinding.init({
         args: [],
@@ -72,8 +72,8 @@ const assembleMiddleBlock = () =>
   })
 const middleBlock: Block.FromAssemblyWithView<
   typeof MiddleModel,
-  typeof assembleMiddleBlock
-> = Block.complete(assembleMiddleBlock)
+  typeof prepareMiddleBlock
+> = Block.assemble(prepareMiddleBlock)
 
 const RootModel = Schema.Struct({ middle: MiddleModel })
 const MountCapabilityRoot = makeDefinition('MountCapabilityRoot', {
@@ -99,8 +99,8 @@ const rootView = rootRegistered.makeView((model, h) =>
     }),
   ),
 )
-const assembleRootBlock = () =>
-  rootRegistered.assembleBlock({
+const prepareRootBlock = () =>
+  rootRegistered.prepareBlock({
     init: rootRegistered.makeInit(() =>
       MiddleBinding.init({
         args: [],
@@ -112,8 +112,8 @@ const assembleRootBlock = () =>
   })
 const rootBlock: Block.FromAssemblyWithView<
   typeof RootModel,
-  typeof assembleRootBlock
-> = Block.complete(assembleRootBlock)
+  typeof prepareRootBlock
+> = Block.assemble(prepareRootBlock)
 
 const SiblingMessage = defineMessageUnion({ CompletedObserveSibling: {} })
 const MountCapabilitySibling = makeDefinition('MountCapabilitySibling', {

@@ -9,8 +9,8 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const assemble = () =>
-  ApplicationComposition.assembleBlock({
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
     init,
     update,
     view,
@@ -20,5 +20,5 @@ const assemble = () =>
   })
 export const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

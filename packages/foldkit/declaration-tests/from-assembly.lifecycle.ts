@@ -49,8 +49,8 @@ const managedResources = Definition.makeManagedResources(entry => ({
   }),
 }))
 const Composition = Definition.makeComposition({ mounts: [ObserveElement] })
-export const assembleRootBlock = () =>
-  Composition.assembleBlock({
+export const prepareRootBlock = () =>
+  Composition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
     update: Composition.makeUpdate((model, message) =>
       RootMessage.match(message, {
@@ -72,12 +72,12 @@ export const assembleRootBlock = () =>
     ),
   })
 
-export const RawRootBlock: Assembled<typeof assembleRootBlock> =
-  Block.complete(assembleRootBlock)
+export const RawRootBlock: Assembled<typeof prepareRootBlock> =
+  Block.assemble(prepareRootBlock)
 export const RootBlock: Block.FromAssemblyWithView<
   typeof Composition.Model,
-  typeof assembleRootBlock
-> = Block.complete(assembleRootBlock)
+  typeof prepareRootBlock
+> = Block.assemble(prepareRootBlock)
 
 export const inferredPortableProgram = Program.makeElement({
   block: RootBlock,

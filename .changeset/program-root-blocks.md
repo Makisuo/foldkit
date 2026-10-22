@@ -5,7 +5,7 @@
 
 Use an ordinary completed Block as the application root and keep browser host behavior in `Program`.
 
-The root now follows the same Definition → Composition → Block sequence as every other feature. Create it with `Block.makeDefinition('Application', { Model, Message, ChildInitContext? })`, author init, update, and view through `ApplicationComposition`, and export `ApplicationBlock = ApplicationComposition.assembleBlock({ ... })`. A root Block cannot leave an OutMessage for its host to discard.
+The root now follows the same Definition → Composition → preparation → Block sequence as every other feature. Create it with `Block.makeDefinition('Application', { Model, Message, ChildInitContext? })`, author init, update, and view through `ApplicationComposition`, prepare the implementation with `ApplicationComposition.prepareBlock({ ... })`, and export the checked `ApplicationBlock = Block.assemble(prepare)`. A root Block cannot leave an OutMessage for its host to discard.
 
 Create the browser host in `entry.ts` with `Program.make({ block: ApplicationBlock, container, Flags?, routing?, ...hostOptions })` for a page-owning app or `Program.makeElement({ block: ApplicationBlock, container, Flags?, flags?, ...hostOptions })` for a container-scoped app. Program configuration contains host behavior only; init, update, view, lifecycle declarations, and `EffectsLayer` remain on `ApplicationBlock`. Supply ordinary Services through `program.provide(ApplicationLayer)`, then pass the result to `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` as before.
 
@@ -55,12 +55,17 @@ const ApplicationComposition = Block.makeDefinition('Application', {
   Message,
 }).makeComposition()
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-  EffectsLayer,
-})
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
+    init,
+    update,
+    view,
+    EffectsLayer,
+  })
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)
 
 const program = Program.make({
   block: ApplicationBlock,

@@ -169,8 +169,8 @@ export const ReplacedViewedBinding = ParentDefinition.makeBinding(
 export const ReplacedViewedParentComposition = ParentDefinition.makeComposition(
   { bindings: [ReplacedViewedBinding] },
 )
-const assemble = () =>
-  ReplacedViewedParentComposition.assembleBlock({
+const prepare = () =>
+  ReplacedViewedParentComposition.prepareBlock({
     init: ReplacedViewedParentComposition.makeInit(() => ({ model: {} })),
     update: ReplacedViewedParentComposition.makeUpdate(),
     view: ReplacedViewedParentComposition.makeView((model, h) =>
@@ -185,8 +185,8 @@ const assemble = () =>
   })
 export const ReplacedViewedParent: Block.FromAssemblyWithView<
   typeof ParentDefinition.Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 
 export const ProgramWithStoreRequirement = Program.makeElement({
   block: Parent,

@@ -19,8 +19,8 @@ const ChildComposition = makeDefinition('BindingInitChild', {
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: ChildComposition.makeInit((config: Readonly<{ count: number }>) => ({
       model: ChildModel.make({ count: config.count }),
     })),
@@ -34,8 +34,8 @@ const assembleChildBlock = () =>
   })
 const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const ParentModel = Schema.Struct({
   first: ChildModel,

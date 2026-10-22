@@ -448,11 +448,11 @@ export const author = (composition: Composition) => {
   const update = composition.makeUpdate((model, _message) => ({ model }))
   const view = composition.makeView((model, h) => helper(model, h))
 
-  const assemble = () => composition.assembleBlock({ init, update, view })
+  const prepare = () => composition.prepareBlock({ init, update, view })
   const completedBlock: Block.FromAssemblyWithView<
     typeof Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
   return completedBlock
 }
 
@@ -615,26 +615,26 @@ const withViewAndOutMessageImplementation = {
   view,
   EffectsLayer: Layer.empty,
 }
-const assembleWithViewAndOutMessage = () =>
-  DeclarationWithOutMessageComposition.assembleBlock(
+const prepareWithViewAndOutMessage = () =>
+  DeclarationWithOutMessageComposition.prepareBlock(
     withViewAndOutMessageImplementation,
   )
 export const WithViewAndOutMessage: Block.FromAssemblyWithViewAndOutMessage<
   typeof ShapeModel,
-  typeof assembleWithViewAndOutMessage
-> = Block.complete(assembleWithViewAndOutMessage)
-const assembleWithOutMessageOnly = () =>
-  DeclarationWithOutMessageComposition.assembleBlock({
+  typeof prepareWithViewAndOutMessage
+> = Block.assemble(prepareWithViewAndOutMessage)
+const prepareWithOutMessageOnly = () =>
+  DeclarationWithOutMessageComposition.prepareBlock({
     init: withOutMessageInit,
     update,
     EffectsLayer: Layer.empty,
   })
 export const WithOutMessageOnly: Block.FromAssemblyWithOutMessage<
   typeof ShapeModel,
-  typeof assembleWithOutMessageOnly
-> = Block.complete(assembleWithOutMessageOnly)
-const assembleWithViewOnly = () =>
-  DeclarationWithoutOutMessageComposition.assembleBlock({
+  typeof prepareWithOutMessageOnly
+> = Block.assemble(prepareWithOutMessageOnly)
+const prepareWithViewOnly = () =>
+  DeclarationWithoutOutMessageComposition.prepareBlock({
     init: withoutOutMessageInit,
     update,
     view: plainView,
@@ -642,18 +642,18 @@ const assembleWithViewOnly = () =>
   })
 export const WithViewOnly: Block.FromAssemblyWithView<
   typeof ShapeModel,
-  typeof assembleWithViewOnly
-> = Block.complete(assembleWithViewOnly)
-const assembleWithoutViewOrOutMessage = () =>
-  DeclarationWithoutOutMessageComposition.assembleBlock({
+  typeof prepareWithViewOnly
+> = Block.assemble(prepareWithViewOnly)
+const prepareWithoutViewOrOutMessage = () =>
+  DeclarationWithoutOutMessageComposition.prepareBlock({
     init: withoutOutMessageInit,
     update,
     EffectsLayer: Layer.empty,
   })
 export const WithoutViewOrOutMessage: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ShapeModel,
-  typeof assembleWithoutViewOrOutMessage
-> = Block.complete(assembleWithoutViewOrOutMessage)
+  typeof prepareWithoutViewOrOutMessage
+> = Block.assemble(prepareWithoutViewOrOutMessage)
 
 type BroadOutMessageBlock = Block.Block<
   typeof DeclarationWithOutMessageDefinition.owner,

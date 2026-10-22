@@ -470,7 +470,7 @@ export interface DefineView<
  * initialization recipe. The helper preserves graph obligations until the
  * matching Composition interprets them under its registered graph.
  *
- * Public parent-driven operations belong in `assembleBlock({ operations })`. Each
+ * Public parent-driven operations belong in `prepareBlock({ operations })`. Each
  * exposed producer returns a local Message and its update context instead of a
  * Model transformation.
  */
@@ -1213,7 +1213,7 @@ type ImplementationHostHandlers<Implementation> =
     : readonly []
 
 /**
- * The channels supplied to a Block Composition's `assembleBlock` method. The
+ * The channels supplied to a Block Composition's `prepareBlock` method. The
  * block retains the exact types of the supplied functions,
  * registrations, and local Layer recipe. Check an implementation with
  * `satisfies Implementation<Model, Message, OutMessage>` to retain its inferred
@@ -1257,7 +1257,7 @@ type ImplementationChannels<Model, Message, OutMessage, Operations> = Readonly<{
   /** The complete local handler recipe for this Block. Child Bindings contribute
    * their recipes automatically. Ordinary Service requirements remain for the
    * application root to provide. This field is explicit on the broad
-   * `Implementation` contract. An inferred concrete `assembleBlock` argument may
+   * `Implementation` contract. An inferred concrete `prepareBlock` argument may
    * omit it, in which case completion uses `Layer.empty`. */
   EffectsLayer: Layer.Layer<never, any, any> | Layer.Layer<any, any, any>
   /** Handler service contracts intentionally left for the host to provide before
@@ -1267,7 +1267,7 @@ type ImplementationChannels<Model, Message, OutMessage, Operations> = Readonly<{
 
 /**
  * The implementation channels accepted by a Block Composition. Use this type
- * with `satisfies` so `assembleBlock` can retain each channel's exact inferred
+ * with `satisfies` so `prepareBlock` can retain each channel's exact inferred
  * service requirements.
  */
 export type Implementation<
@@ -2509,11 +2509,11 @@ type ManagedExposedOperationsImplementation<
 > &
   Readonly<{ operations: ExposedOperations }>
 
-type AssembleBlockDefinition<OwnerValue extends Owner<string>> = Readonly<{
+type PrepareBlockDefinition<OwnerValue extends Owner<string>> = Readonly<{
   owner: OwnerValue
 }>
 
-type AssembleBlockComposition<
+type PrepareBlockComposition<
   OwnerValue extends Owner<string>,
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
@@ -2531,7 +2531,7 @@ type AssembleBlockComposition<
     ? Readonly<{ OutMessage: OutMessageSchema }>
     : NoOutMessage)
 
-type AssembleBlockCompositionForValidation<
+type PrepareBlockCompositionForValidation<
   Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
   Children extends ReadonlyArray<AnyBinding>,
   ImplementationValue,
@@ -2541,7 +2541,7 @@ type AssembleBlockCompositionForValidation<
   CheckedImplementationValue<ImplementationValue>
 >
 
-type ValidateAssembleBlockComposition<
+type ValidatePrepareBlockComposition<
   OwnerValue extends Owner<string>,
   _ModelSchema extends AnySchema,
   _MessageSchema extends AnySchema,
@@ -2550,8 +2550,8 @@ type ValidateAssembleBlockComposition<
   Children extends ReadonlyArray<AnyBinding>,
   ImplementationValue,
 > = ValidateImplementationComposition<
-  AssembleBlockDefinition<OwnerValue>,
-  AssembleBlockCompositionForValidation<Mounts, Children, ImplementationValue>
+  PrepareBlockDefinition<OwnerValue>,
+  PrepareBlockCompositionForValidation<Mounts, Children, ImplementationValue>
 > &
   ValidateBindingOperationNames<
     ImplementationExposedOperations<ImplementationValue>
@@ -2563,7 +2563,7 @@ type ValidateAssembleBlockComposition<
       >
     : unknown)
 
-type PublicAssembleBlockImplementation<
+type PublicPrepareBlockImplementation<
   ModelSchema extends AnySchema,
   MessageSchema extends AnySchema,
   ImplementationValue,
@@ -2638,7 +2638,7 @@ type ImplementationRecipeValidation<
     Children,
     ImplementationValue
   > &
-  ValidateAssembleBlockComposition<
+  ValidatePrepareBlockComposition<
     OwnerValue,
     ModelSchema,
     MessageSchema,
@@ -2666,7 +2666,7 @@ type ValidateHeadlessAssembly<
   Children extends ReadonlyArray<AnyBinding>,
   ImplementationValue extends object,
 > = [ImplementationValue] extends [unknown]
-  ? ValidateAssembleBlockComposition<
+  ? ValidatePrepareBlockComposition<
       OwnerValue,
       ModelSchema,
       MessageSchema,
@@ -2694,7 +2694,7 @@ type ValidateDefaultEffectsAssembly<
         MessageSchema['Type'],
         DefinitionViewRequirements<Mounts, Children>
       > &
-      ValidateAssembleBlockComposition<
+      ValidatePrepareBlockComposition<
         OwnerValue,
         ModelSchema,
         MessageSchema,
@@ -2722,7 +2722,7 @@ type ValidateInferredAssembly<
         MessageSchema['Type'],
         DefinitionViewRequirements<Mounts, Children>
       > &
-      ValidateAssembleBlockComposition<
+      ValidatePrepareBlockComposition<
         OwnerValue,
         ModelSchema,
         MessageSchema,
@@ -2743,7 +2743,7 @@ type ValidateShapedAssembly<
   Children extends ReadonlyArray<AnyBinding>,
   ImplementationValue,
 > = [Init] extends [unknown]
-  ? ValidateAssembleBlockComposition<
+  ? ValidatePrepareBlockComposition<
       OwnerValue,
       ModelSchema,
       MessageSchema,
@@ -2754,9 +2754,16 @@ type ValidateShapedAssembly<
     >
   : unknown
 
-/** Assembles a Composition's implementation channels into an opaque, passive
- * draft. Complete its private producer through a matching `FromAssembly`
- * annotation and `Block.complete(assemble)` before using the Block.
+/** Prepares a Composition's implementation channels as an opaque, passive
+ * draft. Assemble its private producer through a matching `FromAssembly`
+ * annotation and `Block.assemble(prepare)` before using the Block.
+ *
+ * Call this method inside a private zero-argument `prepare` function. The
+ * matching `FromAssembly` annotation names `typeof Model` and `typeof prepare`.
+ * That explicit boundary lets a parent read the canonical `ChildBlock.Model`
+ * Schema without inferring it through the child's complete implementation,
+ * reducing TypeScript checking and editor work. See `Block.FromAssemblyWithView`
+ * for the full pattern. It does not guarantee that every editor operation is fast.
  *
  * `init` and `update` are required. At an inferred concrete
  * call, an omitted `EffectsLayer` defaults to `Layer.empty`. Omitted local view,
@@ -2768,7 +2775,7 @@ type ValidateShapedAssembly<
  * lifecycle work. `EffectsLayer` contains the Block's local handler recipes;
  * child Bindings contribute their recipes automatically, and ordinary Service
  * requirements remain for the application root to provide. */
-export interface AssembleBlock<
+export interface PrepareBlock<
   OwnerValue extends Owner<string>,
   ModelSchema extends Schema.Codec<any, any, any, any>,
   MessageSchema extends Schema.Codec<any, any, any, any>,
@@ -2804,7 +2811,7 @@ export interface AssembleBlock<
       OutMessageSchema,
       Mounts,
       Children,
-      PublicAssembleBlockImplementation<
+      PublicPrepareBlockImplementation<
         ModelSchema,
         MessageSchema,
         CompletedImplementationValue<ImplementationValue>
@@ -2838,7 +2845,7 @@ export interface AssembleBlock<
       OutMessageSchema,
       Mounts,
       Children,
-      PublicAssembleBlockImplementation<
+      PublicPrepareBlockImplementation<
         ModelSchema,
         MessageSchema,
         ImplementationValue
@@ -2872,7 +2879,7 @@ export interface AssembleBlock<
       hostHandlers?: never
       EffectsLayer: EffectsLayer &
         NoInfer<
-          ValidateAssembleBlockComposition<
+          ValidatePrepareBlockComposition<
             OwnerValue,
             ModelSchema,
             MessageSchema,
@@ -2904,7 +2911,7 @@ export interface AssembleBlock<
       OutMessageSchema,
       Mounts,
       Children,
-      PublicAssembleBlockImplementation<
+      PublicPrepareBlockImplementation<
         ModelSchema,
         MessageSchema,
         ViewImplementation<Init, UpdateFunction, View, EffectsLayer>
@@ -2945,7 +2952,7 @@ export interface AssembleBlock<
       hostHandlers?: never
       EffectsLayer: EffectsLayer &
         NoInfer<
-          ValidateAssembleBlockComposition<
+          ValidatePrepareBlockComposition<
             OwnerValue,
             ModelSchema,
             MessageSchema,
@@ -2983,7 +2990,7 @@ export interface AssembleBlock<
       OutMessageSchema,
       Mounts,
       Children,
-      PublicAssembleBlockImplementation<
+      PublicPrepareBlockImplementation<
         ModelSchema,
         MessageSchema,
         ViewSubscriptionsImplementation<
@@ -3030,7 +3037,7 @@ export interface AssembleBlock<
         subscriptions: Subscriptions
         EffectsLayer: EffectsLayer &
           NoInfer<
-            ValidateAssembleBlockComposition<
+            ValidatePrepareBlockComposition<
               OwnerValue,
               ModelSchema,
               MessageSchema,
@@ -3069,7 +3076,7 @@ export interface AssembleBlock<
       OutMessageSchema,
       Mounts,
       Children,
-      PublicAssembleBlockImplementation<
+      PublicPrepareBlockImplementation<
         ModelSchema,
         MessageSchema,
         ViewSubscriptionImplementation<
@@ -3084,7 +3091,7 @@ export interface AssembleBlock<
     >
   >
   <
-    const CompositionValue extends AssembleBlockComposition<
+    const CompositionValue extends PrepareBlockComposition<
       OwnerValue,
       ModelSchema,
       MessageSchema,
@@ -3154,7 +3161,7 @@ export interface AssembleBlock<
       OutMessageSchema,
       Mounts,
       Children,
-      PublicAssembleBlockImplementation<
+      PublicPrepareBlockImplementation<
         ModelSchema,
         MessageSchema,
         DefaultEffectsImplementation<ImplementationValue>
@@ -3204,7 +3211,7 @@ export interface AssembleBlock<
       OutMessageSchema,
       Mounts,
       Children,
-      PublicAssembleBlockImplementation<
+      PublicPrepareBlockImplementation<
         ModelSchema,
         MessageSchema,
         ImplementationValue
@@ -3285,7 +3292,7 @@ export interface AssembleBlock<
       OutMessageSchema,
       Mounts,
       Children,
-      PublicAssembleBlockImplementation<
+      PublicPrepareBlockImplementation<
         ModelSchema,
         MessageSchema,
         ManagedExposedOperationsImplementation<
@@ -3330,7 +3337,7 @@ export interface AssembleBlock<
       managedResources: ManagedResources
       EffectsLayer: EffectsLayer &
         NoInfer<
-          ValidateAssembleBlockComposition<
+          ValidatePrepareBlockComposition<
             OwnerValue,
             ModelSchema,
             MessageSchema,
@@ -3368,7 +3375,7 @@ export interface AssembleBlock<
       OutMessageSchema,
       Mounts,
       Children,
-      PublicAssembleBlockImplementation<
+      PublicPrepareBlockImplementation<
         ModelSchema,
         MessageSchema,
         ManagedImplementation<
@@ -3415,7 +3422,7 @@ export interface AssembleBlock<
       managedResources: ManagedResources
       EffectsLayer: EffectsLayer &
         NoInfer<
-          ValidateAssembleBlockComposition<
+          ValidatePrepareBlockComposition<
             OwnerValue,
             ModelSchema,
             MessageSchema,
@@ -3454,7 +3461,7 @@ export interface AssembleBlock<
       OutMessageSchema,
       Mounts,
       Children,
-      PublicAssembleBlockImplementation<
+      PublicPrepareBlockImplementation<
         ModelSchema,
         MessageSchema,
         ManagedSubscriptionImplementation<
@@ -3538,7 +3545,7 @@ export interface AssembleBlock<
       OutMessageSchema,
       Mounts,
       Children,
-      PublicAssembleBlockImplementation<
+      PublicPrepareBlockImplementation<
         ModelSchema,
         MessageSchema,
         ViewExposedOperationsImplementation<
@@ -3606,7 +3613,7 @@ export type Definition<
   bindings: Children
   /** Authors an internal Model transformation for update, init, or child
    * OutMessage policy composition. Declare parent-driven operations as local
-   * Message producers under `assembleBlock({ operations })`. */
+   * Message producers under `prepareBlock({ operations })`. */
   makeStep: DefineStep<
     ModelSchema['Type'],
     MessageSchema['Type'],
@@ -3743,10 +3750,12 @@ export type Composition<
     DispatchSchemaFor<MessageSchema, Children>['Type'],
     DefinitionViewRequirements<Mounts, Children>
   >
-  /** Assembles this Composition's implementation channels into an opaque,
-   * passive draft. Complete its private producer through a matching
-   * `FromAssembly` annotation and `Block.complete(assemble)`. */
-  readonly assembleBlock: AssembleBlock<
+  /** Prepares an opaque, passive draft inside a private zero-argument `prepare`
+   * function. Assemble it with a matching `FromAssembly` annotation and
+   * `Block.assemble(prepare)`. The explicit Model Schema and producer establish
+   * a TypeScript performance boundary for parent Model Schema construction.
+   * See `Block.FromAssemblyWithView` for the full pattern and its limits. */
+  readonly prepareBlock: PrepareBlock<
     OwnerValue,
     ModelSchema,
     DispatchSchemaFor<MessageSchema, Children>,
@@ -4355,7 +4364,7 @@ export const makeDefinition = (
     return completed
   }
 
-  function assembleBlock(
+  function prepareBlock(
     implementation: {
       readonly view?: AnyAuthoredView
       readonly init: AnyFunction
@@ -4431,7 +4440,7 @@ export const makeDefinition = (
       assertCompletedBlock(block)
 
       return completeDerivedBlock(
-        assembleBlock(
+        prepareBlock(
           { ...implementation, EffectsLayer },
           hostIdentities,
           areHostHandlersProvided,
@@ -4443,7 +4452,7 @@ export const makeDefinition = (
       assertCompletedBlock(block)
 
       return completeDerivedBlock(
-        assembleBlock(
+        prepareBlock(
           {
             ...implementation,
             EffectsLayer: Layer.merge(localEffectsLayer, HandlersLayer),
@@ -4517,7 +4526,7 @@ export const makeDefinition = (
     makeSubscriptions: defineSubscriptions,
     makeManagedResources: defineManagedResources,
     makeBinding: bindChild,
-    assembleBlock,
+    prepareBlock,
   }
 }
 type RuntimeCompositionGraph = Readonly<{
@@ -4613,8 +4622,8 @@ export const makeBaseDefinition = (
       makeInit: composition.makeInit,
       makeUpdate: composition.makeUpdate,
       makeView: composition.makeView,
-      assembleBlock: (implementation: unknown) =>
-        makeAssemblyDraft(composition.assembleBlock(implementation)),
+      prepareBlock: (implementation: unknown) =>
+        makeAssemblyDraft(composition.prepareBlock(implementation)),
     }
 
     compositions.add(publicComposition)

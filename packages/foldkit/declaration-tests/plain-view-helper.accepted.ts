@@ -21,8 +21,8 @@ export const childViewHelper = (
 const childView = DeclarationViewHelperChildComposition.makeView((model, h) =>
   childViewHelper(model, h),
 )
-const assembleChildBlock = () =>
-  DeclarationViewHelperChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  DeclarationViewHelperChildComposition.prepareBlock({
     init: DeclarationViewHelperChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: 'initial' }),
     })),
@@ -34,8 +34,8 @@ const assembleChildBlock = () =>
   })
 export const ChildBlock: Block.FromAssemblyWithView<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 export const ParentModel = Schema.Struct({ child: ChildModel })
 export const ParentMessage = Message.defineMessageUnion({

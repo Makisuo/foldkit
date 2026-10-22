@@ -20,8 +20,8 @@ const setCount = Child.makeStep((model, count: number) => ({
   model: modifyFields(model, { count: () => count }),
 }))
 const ChildComposition = Child.makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: ChildComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
     })),
@@ -38,8 +38,8 @@ const assembleChildBlock = () =>
   })
 const childBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 const Model = Schema.Struct({
   child: ChildModel,
   maybeChild: Schema.Option(ChildModel),
@@ -78,8 +78,8 @@ const initial = Model.make({
 })
 
 const gatedUpdate = update
-const assembleParent = () =>
-  composition.assembleBlock({
+const prepareParent = () =>
+  composition.prepareBlock({
     init: () => ({ model: initial }),
     update,
     operations: {
@@ -91,8 +91,8 @@ const assembleParent = () =>
   })
 const parent: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleParent
-> = Block.complete(assembleParent)
+  typeof prepareParent
+> = Block.assemble(prepareParent)
 
 it('folds exact Option fields without creating absent children', () => {
   expectTypeOf(OptionalBinding.placement).toEqualTypeOf<'maybeChild'>()
@@ -148,8 +148,8 @@ it('distinguishes Option child Models from optional storage wrappers', () => {
     Model: OptionModel,
     Message: OptionMessage,
   }).makeComposition()
-  const assembleBlock = () =>
-    OptionChildComposition.assembleBlock({
+  const prepareBlock = () =>
+    OptionChildComposition.prepareBlock({
       init: OptionChildComposition.makeInit(() => ({
         model: Option.none<string>(),
       })),
@@ -159,8 +159,8 @@ it('distinguishes Option child Models from optional storage wrappers', () => {
     })
   const block: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof OptionModel,
-    typeof assembleBlock
-  > = Block.complete(assembleBlock)
+    typeof prepareBlock
+  > = Block.assemble(prepareBlock)
   const Model = Schema.Struct({
     required: Schema.Option(Schema.String),
     maybe: Schema.Option(OptionModel),

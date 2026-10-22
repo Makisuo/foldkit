@@ -42,8 +42,8 @@ const childComposition = ChildOwnerNamespace.makeDefinition({
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const assembleChildBlock = () =>
-  childComposition.assembleBlock({
+const prepareChildBlock = () =>
+  childComposition.prepareBlock({
     init: (label: string) => ({ model: { label }, commands: [ReadValue()] }),
     update: childComposition.makeUpdate((model, { value }) => ({
       model: modifyFields(model, { label: () => value }),
@@ -53,8 +53,8 @@ const assembleChildBlock = () =>
   })
 const childBlock: Block.FromAssemblyWithView<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const Model = Schema.Struct({ left: ChildModel, right: ChildModel })
 const ApplicationDefinition = Block.makeDefinition('Application', {
@@ -104,8 +104,8 @@ const hostChildComposition = HostChildOwnerNamespace.makeDefinition({
   Model: HostChildModel,
   Message: HostChildMessage,
 }).makeComposition()
-const assembleUnresolvedHostChild = () =>
-  hostChildComposition.assembleBlock({
+const prepareUnresolvedHostChild = () =>
+  hostChildComposition.prepareBlock({
     init: () => ({ model: { value: '' }, commands: [ReadHostValue()] }),
     update: hostChildComposition.makeUpdate((model, { value }) => ({
       model: modifyFields(model, { value: () => value }),
@@ -118,8 +118,8 @@ const assembleUnresolvedHostChild = () =>
   })
 const unresolvedHostChild: Block.FromAssemblyWithView<
   typeof HostChildModel,
-  typeof assembleUnresolvedHostChild
-> = Block.complete(assembleUnresolvedHostChild)
+  typeof prepareUnresolvedHostChild
+> = Block.assemble(prepareUnresolvedHostChild)
 const resolvedHostChild = unresolvedHostChild.provideHandlers(
   ReadHostValue.toLayer(
     Effect.gen(function* () {
@@ -226,8 +226,8 @@ describe('completed root Block hosting', () => {
       ),
     )
 
-    const assemble = () =>
-      composition.assembleBlock({
+    const prepare = () =>
+      composition.prepareBlock({
         init,
         update,
         view,
@@ -235,8 +235,8 @@ describe('completed root Block hosting', () => {
       })
     const completedBlock: Block.FromAssemblyWithView<
       typeof Model,
-      typeof assemble
-    > = Block.complete(assemble)
+      typeof prepare
+    > = Block.assemble(prepare)
     const application = Program.makeElement({
       block: completedBlock,
       container,
@@ -306,8 +306,8 @@ describe('completed root Block hosting', () => {
       }),
     }))
     const leafComposition = LeafDefinition.makeComposition()
-    const assembleLeafBlock = () =>
-      leafComposition.assembleBlock({
+    const prepareLeafBlock = () =>
+      leafComposition.prepareBlock({
         init: () => ({ model: { value: 'pending' } }),
         update: leafComposition.makeUpdate((model, message) =>
           LeafMessage.match(message, {
@@ -344,8 +344,8 @@ describe('completed root Block hosting', () => {
       })
     const leafBlock: Block.FromAssemblyWithView<
       typeof LeafModel,
-      typeof assembleLeafBlock
-    > = Block.complete(assembleLeafBlock)
+      typeof prepareLeafBlock
+    > = Block.assemble(prepareLeafBlock)
 
     const MiddleOwnerNamespace = makeNamespace('NestedCommandMiddle')
     const MiddleModel = Schema.Struct({ leaf: LeafModel })
@@ -360,8 +360,8 @@ describe('completed root Block hosting', () => {
     const middleComposition = MiddleDefinition.makeComposition({
       bindings: [LeafBinding],
     })
-    const assembleMiddleBlock = () =>
-      middleComposition.assembleBlock({
+    const prepareMiddleBlock = () =>
+      middleComposition.prepareBlock({
         init: middleComposition.makeInit(() =>
           LeafBinding.init({ args: [], toParentModel: leaf => ({ leaf }) }),
         ),
@@ -378,8 +378,8 @@ describe('completed root Block hosting', () => {
       })
     const middleBlock: Block.FromAssemblyWithView<
       typeof MiddleModel,
-      typeof assembleMiddleBlock
-    > = Block.complete(assembleMiddleBlock)
+      typeof prepareMiddleBlock
+    > = Block.assemble(prepareMiddleBlock)
 
     const RootModel = Schema.Struct({ middle: MiddleModel })
     const RootDefinition = Block.makeDefinition('Application', {
@@ -410,8 +410,8 @@ describe('completed root Block hosting', () => {
     container.id = 'nested-command-root'
     document.body.append(container)
 
-    const assemble = () =>
-      nestedComposition.assembleBlock({
+    const prepare = () =>
+      nestedComposition.prepareBlock({
         init: nestedInit,
         update: nestedUpdate,
         view: nestedView,
@@ -419,8 +419,8 @@ describe('completed root Block hosting', () => {
       })
     const completedBlock: Block.FromAssemblyWithView<
       typeof RootModel,
-      typeof assemble
-    > = Block.complete(assemble)
+      typeof prepare
+    > = Block.assemble(prepare)
     const handle = embed(
       Program.makeElement({
         block: completedBlock,
@@ -488,8 +488,8 @@ describe('completed root Block hosting', () => {
       Model: ServiceChildModel,
       Message: ServiceChildMessage,
     }).makeComposition()
-    const assembleServiceChildBlock = () =>
-      serviceChildComposition.assembleBlock({
+    const prepareServiceChildBlock = () =>
+      serviceChildComposition.prepareBlock({
         init: () => ({
           model: { value: 'pending' },
           commands: [ReadSharedValue()],
@@ -504,8 +504,8 @@ describe('completed root Block hosting', () => {
       })
     const serviceChildBlock: Block.FromAssemblyWithView<
       typeof ServiceChildModel,
-      typeof assembleServiceChildBlock
-    > = Block.complete(assembleServiceChildBlock)
+      typeof prepareServiceChildBlock
+    > = Block.assemble(prepareServiceChildBlock)
     const ServiceRootModel = Schema.Struct({
       maybeChild: Schema.Option(ServiceChildModel),
     })
@@ -586,8 +586,8 @@ describe('completed root Block hosting', () => {
     container.id = 'service-lifetime-root'
     document.body.append(container)
 
-    const assemble = () =>
-      serviceComposition.assembleBlock({
+    const prepare = () =>
+      serviceComposition.prepareBlock({
         init: serviceInit,
         update: serviceUpdate,
         view: serviceView,
@@ -595,8 +595,8 @@ describe('completed root Block hosting', () => {
       })
     const completedBlock: Block.FromAssemblyWithView<
       typeof ServiceRootModel,
-      typeof assemble
-    > = Block.complete(assemble)
+      typeof prepare
+    > = Block.assemble(prepare)
     const handle = embed(
       Program.makeElement({
         block: completedBlock,
@@ -700,8 +700,8 @@ describe('completed root Block hosting', () => {
         },
       ),
     }))
-    const assembleFeatureBlock = () =>
-      featureComposition.assembleBlock({
+    const prepareFeatureBlock = () =>
+      featureComposition.prepareBlock({
         init: (label: string) => ({ model: { label } }),
         update: featureComposition.makeUpdate((model, message) =>
           FeatureMessage.match(message, {
@@ -729,8 +729,8 @@ describe('completed root Block hosting', () => {
       })
     const featureBlock: Block.FromAssemblyWithViewAndOutMessage<
       typeof FeatureModel,
-      typeof assembleFeatureBlock
-    > = Block.complete(assembleFeatureBlock)
+      typeof prepareFeatureBlock
+    > = Block.assemble(prepareFeatureBlock)
     const RootModel = Schema.Struct({ left: FeatureModel, right: FeatureModel })
     const RootDefinition = Block.makeDefinition('Application', {
       Model: RootModel,
@@ -790,8 +790,8 @@ describe('completed root Block hosting', () => {
     container.id = 'mounted-root'
     document.body.append(container)
 
-    const assemble = () =>
-      rootComposition.assembleBlock({
+    const prepare = () =>
+      rootComposition.prepareBlock({
         init: rootInit,
         update: rootUpdate,
         view: rootView,
@@ -799,8 +799,8 @@ describe('completed root Block hosting', () => {
       })
     const completedBlock: Block.FromAssemblyWithView<
       typeof RootModel,
-      typeof assemble
-    > = Block.complete(assemble)
+      typeof prepare
+    > = Block.assemble(prepare)
     const handle = embed(
       Program.makeElement({
         block: completedBlock,
@@ -821,15 +821,15 @@ describe('completed root Block hosting', () => {
 })
 
 const checkAssemblyTypes = (container: HTMLElement) => {
-  const assembleBlock = () =>
-    composition.assembleBlock({
+  const prepareBlock = () =>
+    composition.prepareBlock({
       init,
       update,
       view,
       EffectsLayer: Layer.empty,
     })
-  const block: Block.FromAssemblyWithView<typeof Model, typeof assembleBlock> =
-    Block.complete(assembleBlock)
+  const block: Block.FromAssemblyWithView<typeof Model, typeof prepareBlock> =
+    Block.assemble(prepareBlock)
   const application = Program.makeElement({
     block,
     container,
@@ -841,8 +841,8 @@ const checkAssemblyTypes = (container: HTMLElement) => {
     block,
     container,
   })
-  const assemble = () =>
-    unresolvedHostComposition.assembleBlock({
+  const prepare = () =>
+    unresolvedHostComposition.prepareBlock({
       init: unresolvedHostInit,
       update: unresolvedHostUpdate,
       view: unresolvedHostView,
@@ -850,8 +850,8 @@ const checkAssemblyTypes = (container: HTMLElement) => {
     })
   const completedBlock: Block.FromAssemblyWithView<
     typeof HostParentModel,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
 
   // @ts-expect-error Root completion requires inherited host handlers to be supplied first.
   Program.makeElement({
@@ -859,8 +859,8 @@ const checkAssemblyTypes = (container: HTMLElement) => {
     container,
   })
 
-  const assemble2 = () =>
-    resolvedHostComposition.assembleBlock({
+  const prepare2 = () =>
+    resolvedHostComposition.prepareBlock({
       init: resolvedHostInit,
       update: resolvedHostUpdate,
       view: resolvedHostView,
@@ -868,8 +868,8 @@ const checkAssemblyTypes = (container: HTMLElement) => {
     })
   const completedBlock2: Block.FromAssemblyWithView<
     typeof HostParentModel,
-    typeof assemble2
-  > = Block.complete(assemble2)
+    typeof prepare2
+  > = Block.assemble(prepare2)
   const hostApplication = Program.makeElement({
     block: completedBlock2,
     container,

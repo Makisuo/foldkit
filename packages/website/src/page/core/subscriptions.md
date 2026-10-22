@@ -97,7 +97,7 @@ An external generic Stream helper can infer its result Message from one callback
 
 ### Handler Construction and Layers
 
-Each entry, such as `subscriptions.gameClockTicks`, is an individual owned definition. Its record key identifies the local runtime entry, while its handler name becomes part of the owned Layer requirement that assembly must satisfy. Several child Bindings can carry one definition into different placements while retaining separate Stream scopes. Naming also gives tools a declared identity to display; Subscription lifecycle events in DevTools are follow-up work. An entry with `handler` exposes `.layer`; include that recipe in the local `EffectsLayer` passed to `FeatureComposition.assembleBlock`.
+Each entry, such as `subscriptions.gameClockTicks`, is an individual owned definition. Its record key identifies the local runtime entry, while its handler name becomes part of the owned Layer requirement that assembly must satisfy. Several child Bindings can carry one definition into different placements while retaining separate Stream scopes. Naming also gives tools a declared identity to display; Subscription lifecycle events in DevTools are follow-up work. An entry with `handler` exposes `.layer`; include that recipe in the local `EffectsLayer` passed to `FeatureComposition.prepareBlock`.
 
 When every entry has an attached handler, the owned registry also exposes `subscriptions.layer`. Use it to include all the record's handlers in `EffectsLayer`. It merges the recipes passively; the Runtime still constructs them later. An empty record supplies an empty Layer. The aggregate preserves each handler's Service requirements and constructor errors.
 
@@ -117,7 +117,7 @@ In a whole-application execution test, retain that real Stream handler and repla
 
 Subscription names are local to their named Block. Two features can both declare `GameClockTicks`; their owners keep the definitions distinct. Names must be unique within one owner. Composition derives a path for each Binding placement, so repeated uses of one completed child share its handler recipe while retaining separate Stream scopes.
 
-A Subscription handler requirement contains its owned name, decoded dependency record, and declared Message union. `FeatureComposition.assembleBlock` checks that each local requirement is supplied by `EffectsLayer` or declared in `hostHandlers`; `block.provideHandlers` checks an external provider against those declared contracts. Use `Subscription.HandlerOf<typeof subscriptions.gameClockTicks>` for an explicit requirement; the expanded form is `Subscription.Handler<Name, Dependencies, DeclaredMessage>`, with all three arguments required.
+A Subscription handler requirement contains its owned name, decoded dependency record, and declared Message union. `FeatureComposition.prepareBlock` checks that each local requirement is supplied by `EffectsLayer` or declared in `hostHandlers`; `block.provideHandlers` checks an external provider against those declared contracts. Use `Subscription.HandlerOf<typeof subscriptions.gameClockTicks>` for an explicit requirement; the expanded form is `Subscription.Handler<Name, Dependencies, DeclaredMessage>`, with all three arguments required.
 
 Definitions created by different named Blocks receive different owned names even when their local names and protocols match. Each definition also retains a private runtime identity. An external implementation should use the declared entry's `toLayer` so it keeps that identity.
 
@@ -179,7 +179,7 @@ Most entries should use the first `dependencies` argument directly. Reach for `r
 
 When a parent embeds a Block with Subscriptions, its Binding lifts the child's Messages into the parent Message type and applies the same presence policy used by update. `None` in a direct Option field, `false` from `presentWhen`, or `None` from a custom `read` stops every child Stream without reading child dependencies.
 
-`ParentDefinition.makeBinding(ChildBlock, { field, ... })` performs that lift once for a direct child field. Custom storage uses `read` and `write`. Include the Binding in the parent's `bindings` list, and the parent collects the lifted entries under placement-qualified keys. The same Composition routes the child's generated envelopes through its Binding and installs the collected graph through `assembleBlock({ init, update, view, ... })`.
+`ParentDefinition.makeBinding(ChildBlock, { field, ... })` performs that lift once for a direct child field. Custom storage uses `read` and `write`. Include the Binding in the parent's `bindings` list, and the parent collects the lifted entries under placement-qualified keys. The same Composition routes the child's generated envelopes through its Binding and installs the collected graph through `prepareBlock({ init, update, view, ... })`.
 
 ### Gating Child Subscriptions
 

@@ -20,8 +20,8 @@ const CompleteChildInit = Child.makeCommand('CompleteChildInit', {
     return () => Effect.succeed(ChildMessage.CompletedChildInit())
   },
 })
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: ChildComposition.makeInit((config: typeof Config.Type) => ({
       model: ChildModel.make({ count: childInitialized(config) }),
       commands: [CompleteChildInit()],
@@ -31,8 +31,8 @@ const assembleChildBlock = () =>
   })
 const childBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const ParentModel = Schema.Struct({ child: Schema.Option(ChildModel) })
 const ParentMessage = defineMessageUnion({

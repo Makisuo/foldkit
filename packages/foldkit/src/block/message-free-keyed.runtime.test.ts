@@ -27,8 +27,8 @@ const markReady = Silent.makeStep(model => ({
 }))
 const SilentComposition = Silent.makeComposition()
 const silentUpdate = SilentComposition.makeUpdate()
-const assembleSilentBlock = () =>
-  SilentComposition.assembleBlock({
+const prepareSilentBlock = () =>
+  SilentComposition.prepareBlock({
     view: SilentComposition.makeView((_model, h) => h.empty),
     init: () => ({
       model: SilentModel.make({ ready: false }),
@@ -40,8 +40,8 @@ const assembleSilentBlock = () =>
   })
 const SilentBlock: Block.FromAssemblyWithView<
   typeof SilentModel,
-  typeof assembleSilentBlock
-> = Block.complete(assembleSilentBlock)
+  typeof prepareSilentBlock
+> = Block.assemble(prepareSilentBlock)
 
 if (false) {
   const mutatingExposeConfig = {
@@ -55,7 +55,7 @@ if (false) {
     EffectsLayer: WaitForever.layer,
   }
   // @ts-expect-error A Message-free Block cannot expose a mutating operation.
-  SilentComposition.assembleBlock(mutatingExposeConfig)
+  SilentComposition.prepareBlock(mutatingExposeConfig)
 }
 
 const Entry = Schema.Struct({ id: Schema.String, child: SilentModel })
@@ -82,8 +82,8 @@ const SilentBinding = Parent.makeBinding(SilentBlock, {
 const ParentComposition = Parent.makeComposition({
   bindings: [SilentBinding],
 })
-const assembleParentBlock = () =>
-  ParentComposition.assembleBlock({
+const prepareParentBlock = () =>
+  ParentComposition.prepareBlock({
     view: ParentComposition.makeView((_model, h) => h.empty),
     init: ParentComposition.makeInit(() =>
       SilentBinding.init({
@@ -101,8 +101,8 @@ const assembleParentBlock = () =>
   })
 const ParentBlock: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assembleParentBlock
-> = Block.complete(assembleParentBlock)
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 
 it('keeps a Message-free general keyed child routeless across every channel', () => {
   const initial = ParentBlock.init().model

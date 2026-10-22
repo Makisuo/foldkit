@@ -22,8 +22,8 @@ const DeclarationKeyedFieldChildComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const assembleChildBlock = () =>
-  DeclarationKeyedFieldChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  DeclarationKeyedFieldChildComposition.prepareBlock({
     init: DeclarationKeyedFieldChildComposition.makeInit(() => ({
       model: ChildModel.make({ id: 'initial', count: 0 }),
     })),
@@ -43,8 +43,8 @@ const assembleChildBlock = () =>
   })
 export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 export const CallableChildModel = FoldkitSchema.taggedStruct(
   'DeclarationCallableKeyedFieldChild',
@@ -58,8 +58,8 @@ const DeclarationCallableKeyedFieldChildComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const assembleCallableChildBlock = () =>
-  DeclarationCallableKeyedFieldChildComposition.assembleBlock({
+const prepareCallableChildBlock = () =>
+  DeclarationCallableKeyedFieldChildComposition.prepareBlock({
     init: DeclarationCallableKeyedFieldChildComposition.makeInit(() => ({
       model: CallableChildModel({ id: 'initial', count: 0 }),
     })),
@@ -80,8 +80,8 @@ const assembleCallableChildBlock = () =>
   })
 export const CallableChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof CallableChildModel,
-  typeof assembleCallableChildBlock
-> = Block.complete(assembleCallableChildBlock)
+  typeof prepareCallableChildBlock
+> = Block.assemble(prepareCallableChildBlock)
 
 export const RefinedId = Schema.String.pipe(
   Schema.brand('DeclarationKeyedFieldRefinedId'),
@@ -100,8 +100,8 @@ const DeclarationRefinedKeyChildComposition = Block.makeDefinition(
     Message: RefinedKeyMessage,
   },
 ).makeComposition()
-const assembleRefinedKeyBlock = () =>
-  DeclarationRefinedKeyChildComposition.assembleBlock({
+const prepareRefinedKeyBlock = () =>
+  DeclarationRefinedKeyChildComposition.prepareBlock({
     init: DeclarationRefinedKeyChildComposition.makeInit(() => ({
       model: RefinedKeyModel.make({
         id: Schema.decodeSync(RefinedId)('initial'),
@@ -116,8 +116,8 @@ const assembleRefinedKeyBlock = () =>
   })
 export const RefinedKeyBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof RefinedKeyModel,
-  typeof assembleRefinedKeyBlock
-> = Block.complete(assembleRefinedKeyBlock)
+  typeof prepareRefinedKeyBlock
+> = Block.assemble(prepareRefinedKeyBlock)
 
 const ArrayChildModel = Schema.Array(Schema.String)
 const ArrayChildMessage = Message.defineMessageUnion({ IgnoredValue: {} })
@@ -129,8 +129,8 @@ const DeclarationArrayModelChildComposition = Block.makeDefinition(
     Message: ArrayChildMessage,
   },
 ).makeComposition()
-const assembleArrayChildBlock = () =>
-  DeclarationArrayModelChildComposition.assembleBlock({
+const prepareArrayChildBlock = () =>
+  DeclarationArrayModelChildComposition.prepareBlock({
     init: DeclarationArrayModelChildComposition.makeInit(() => ({
       model: ArrayChildModel.make(['initial']),
     })),
@@ -141,8 +141,8 @@ const assembleArrayChildBlock = () =>
   })
 export const ArrayChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ArrayChildModel,
-  typeof assembleArrayChildBlock
-> = Block.complete(assembleArrayChildBlock)
+  typeof prepareArrayChildBlock
+> = Block.assemble(prepareArrayChildBlock)
 
 export class ChildCounter extends Context.Service<
   ChildCounter,
@@ -173,8 +173,8 @@ export const ReadChildCount =
   })
 const DeclarationKeyedFieldOutChildComposition =
   DeclarationKeyedFieldOutChildDefinition.makeComposition()
-const assembleOutChildBlock = () =>
-  DeclarationKeyedFieldOutChildComposition.assembleBlock({
+const prepareOutChildBlock = () =>
+  DeclarationKeyedFieldOutChildComposition.prepareBlock({
     init: DeclarationKeyedFieldOutChildComposition.makeInit(() => ({
       model: ChildModel.make({ id: 'initial', count: 0 }),
     })),
@@ -202,8 +202,8 @@ const assembleOutChildBlock = () =>
   })
 export const OutChildBlock: Block.FromAssemblyWithOutMessage<
   typeof ChildModel,
-  typeof assembleOutChildBlock
-> = Block.complete(assembleOutChildBlock)
+  typeof prepareOutChildBlock
+> = Block.assemble(prepareOutChildBlock)
 
 const WrappedRow = Schema.Struct({
   rowId: Schema.String,

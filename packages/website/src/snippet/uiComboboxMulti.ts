@@ -119,13 +119,13 @@ const view = CitiesPickerComposition.makeView((model, h) => {
   )
 })
 
-const assemble = () =>
-  CitiesPickerComposition.assembleBlock({
+const prepare = () =>
+  CitiesPickerComposition.prepareBlock({
     init,
     update,
     view,
   })
 export const CitiesPickerBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

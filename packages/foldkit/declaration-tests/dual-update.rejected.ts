@@ -27,12 +27,12 @@ import {
 
 const rejectMissingBranchHandlers = () => {
   // @ts-expect-error A Command in one ternary branch still requires its handler.
-  CounterComposition.assembleBlock({
+  CounterComposition.prepareBlock({
     init: () => ({ model: CounterModel.make({ count: 0 }) }),
     update: ternaryUpdate,
   })
   // @ts-expect-error A Command before an early return still requires its handler.
-  CounterComposition.assembleBlock({
+  CounterComposition.prepareBlock({
     init: () => ({ model: CounterModel.make({ count: 0 }) }),
     update: earlyReturnUpdate,
   })
@@ -94,7 +94,7 @@ const omittedComposedUpdate = OmittedComposition.makeUpdate(
 void omittedDirectUpdate
 void omittedComposedUpdate
 
-OmittedComposition.assembleBlock({
+OmittedComposition.prepareBlock({
   init: () => ({ model: parentModel }),
   update: OmittedComposition.makeUpdate((current, _message) => ({
     model: current,
@@ -105,7 +105,7 @@ OmittedComposition.assembleBlock({
 })
 
 // @ts-expect-error Block completion requires the update's Command handler Layer.
-RootComposition.assembleBlock({
+RootComposition.prepareBlock({
   init: rootInit,
   update: rootUpdate,
   view: rootView,

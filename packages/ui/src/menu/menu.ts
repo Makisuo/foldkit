@@ -1331,8 +1331,8 @@ type RefineOutMessage<Return, OutMessage> =
         ? Omit<Return, 'outMessage'> & Readonly<{ outMessage?: OutMessage }>
         : never
 
-const assembleMenuBlock = () =>
-  MenuComposition.assembleBlock({
+const prepareMenuBlock = () =>
+  MenuComposition.prepareBlock({
     init,
     update,
     view,
@@ -1342,8 +1342,8 @@ const assembleMenuBlock = () =>
 /** Complete default Menu Block definition. */
 export const block: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleMenuBlock
-> = Block.complete(assembleMenuBlock)
+  typeof prepareMenuBlock
+> = Block.assemble(prepareMenuBlock)
 
 /** Programmatically opens the Menu through Menu update. */
 export const open = block.operations.requestOpen
@@ -1440,11 +1440,11 @@ export interface Completed<
 const makeBlock = <Item extends string>(): Completed<Item> => {
   const { composition, implementation } = makeBlockParts<Item>()
 
-  const assemble = () => composition.assembleBlock(implementation)
+  const prepare = () => composition.prepareBlock(implementation)
   const completedBlock: Block.FromAssemblyWithViewAndOutMessage<
     typeof Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
 
   return completedBlock
 }

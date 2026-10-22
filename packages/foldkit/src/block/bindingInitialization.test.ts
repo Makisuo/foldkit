@@ -28,8 +28,8 @@ const Read = Child.makeCommand('Read', {
 })
 const initialized = vi.fn<(count: number) => void>()
 const ChildComposition = Child.makeComposition()
-const assembleChild = () =>
-  ChildComposition.assembleBlock({
+const prepareChild = () =>
+  ChildComposition.prepareBlock({
     init: ChildComposition.makeInit((count: number) => {
       initialized(count)
 
@@ -40,8 +40,8 @@ const assembleChild = () =>
   })
 const child: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChild
-> = Block.complete(assembleChild)
+  typeof prepareChild
+> = Block.assemble(prepareChild)
 
 const ParentModel = Schema.Struct({
   items: Schema.Array(Schema.Struct({ id: Schema.String, child: ChildModel })),
@@ -79,16 +79,16 @@ const init = ParentComposition.makeInit(() =>
     commands: [Record()],
   }),
 )
-const assembleParent = () =>
-  ParentComposition.assembleBlock({
+const prepareParent = () =>
+  ParentComposition.prepareBlock({
     init,
     update: ParentComposition.makeUpdate(model => ({ model })),
     EffectsLayer: Record.layer,
   })
 const parent: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleParent
-> = Block.complete(assembleParent)
+  typeof prepareParent
+> = Block.assemble(prepareParent)
 
 beforeEach(() => initialized.mockClear())
 
@@ -204,8 +204,8 @@ describe('connected initialization', () => {
           modifyFields(model, { items: Array.append({ id: 'first', child }) }),
       }),
     )
-    const assembleCompleted = () =>
-      ParentComposition.assembleBlock({
+    const prepareCompleted = () =>
+      ParentComposition.prepareBlock({
         init: () => ({ model: initialModel }),
         update: ParentComposition.makeUpdate((model, message) =>
           ParentMessage.match(message, {
@@ -221,8 +221,8 @@ describe('connected initialization', () => {
       })
     const completed: Block.FromAssemblyWithoutViewOrOutMessage<
       typeof ParentModel,
-      typeof assembleCompleted
-    > = Block.complete(assembleCompleted)
+      typeof prepareCompleted
+    > = Block.assemble(prepareCompleted)
     const created = completed.operations.createChild(initialModel)
 
     expect(Option.getOrThrow(Array.head(created.model.items))).toBe(existing)
@@ -253,8 +253,8 @@ describe('connected initialization', () => {
           }),
       }),
     )
-    const assembleCompleted = () =>
-      ParentComposition.assembleBlock({
+    const prepareCompleted = () =>
+      ParentComposition.prepareBlock({
         init: () => ({ model: ParentModel.make({ items: [] }) }),
         update: ParentComposition.makeUpdate((model, message) =>
           ParentMessage.match(message, {
@@ -283,8 +283,8 @@ describe('connected initialization', () => {
       })
     const completed: Block.FromAssemblyWithoutViewOrOutMessage<
       typeof ParentModel,
-      typeof assembleCompleted
-    > = Block.complete(assembleCompleted)
+      typeof prepareCompleted
+    > = Block.assemble(prepareCompleted)
     const created = completed.operations.createChildren(
       ParentModel.make({ items: [] }),
     )
@@ -406,8 +406,8 @@ const createIncompleteDirectChild = Direct.makeStep(
       },
     ]),
 )
-const assembleDynamicDirect = () =>
-  DirectComposition.assembleBlock({
+const prepareDynamicDirect = () =>
+  DirectComposition.prepareBlock({
     init: DirectComposition.makeInit(() => ({
       model: DirectModel.make({ child: Option.none(), label: 'initial' }),
     })),
@@ -427,8 +427,8 @@ const assembleDynamicDirect = () =>
   })
 const dynamicDirect: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof DirectModel,
-  typeof assembleDynamicDirect
-> = Block.complete(assembleDynamicDirect)
+  typeof prepareDynamicDirect
+> = Block.assemble(prepareDynamicDirect)
 
 describe('direct connected initialization', () => {
   it('constructs an optional child and retains its lifted Commands', async () => {
@@ -439,16 +439,16 @@ describe('direct connected initialization', () => {
           DirectModel.make({ child: Option.some(child), label: 'parent' }),
       }),
     )
-    const assembleDirect = () =>
-      DirectComposition.assembleBlock({
+    const prepareDirect = () =>
+      DirectComposition.prepareBlock({
         init: directInit,
         update: dynamicDirect.update,
         operations: {},
       })
     const direct: Block.FromAssemblyWithoutViewOrOutMessage<
       typeof DirectModel,
-      typeof assembleDirect
-    > = Block.complete(assembleDirect)
+      typeof prepareDirect
+    > = Block.assemble(prepareDirect)
     const initialized = directInit()
     const command = Option.getOrThrow(Array.head(initialized.commands ?? []))
     const message = await Effect.runPromise(
@@ -580,8 +580,8 @@ const sequencedInitialModel = SequencedParentModel.make({
   second: Option.none(),
   didSecondSeeFirst: false,
 })
-const assembleSequencedParent = () =>
-  SequencedParentComposition.assembleBlock({
+const prepareSequencedParent = () =>
+  SequencedParentComposition.prepareBlock({
     init: SequencedParentComposition.makeInit(() => ({
       model: sequencedInitialModel,
     })),
@@ -605,8 +605,8 @@ const assembleSequencedParent = () =>
   })
 const sequencedParent: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof SequencedParentModel,
-  typeof assembleSequencedParent
-> = Block.complete(assembleSequencedParent)
+  typeof prepareSequencedParent
+> = Block.assemble(prepareSequencedParent)
 
 it('threads a derived Model through registered connected initialization Steps', async () => {
   const opened = sequencedParent.operations.open(sequencedInitialModel)
@@ -680,8 +680,8 @@ const createIncompleteKeyedChild = CompleteKeyed.makeStep(
       },
     ]),
 )
-const assembleDynamicKeyed = () =>
-  CompleteKeyedComposition.assembleBlock({
+const prepareDynamicKeyed = () =>
+  CompleteKeyedComposition.prepareBlock({
     init: CompleteKeyedComposition.makeInit(() => ({
       model: CompleteKeyedModel.make({ items: [], label: 'initial' }),
     })),
@@ -704,8 +704,8 @@ const assembleDynamicKeyed = () =>
   })
 const dynamicKeyed: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof CompleteKeyedModel,
-  typeof assembleDynamicKeyed
-> = Block.complete(assembleDynamicKeyed)
+  typeof prepareDynamicKeyed
+> = Block.assemble(prepareDynamicKeyed)
 
 describe('keyed complete parent validation', () => {
   it('accepts a complete parent Model from a completed exposed operation', () => {

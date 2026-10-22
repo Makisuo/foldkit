@@ -6,13 +6,13 @@ import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const assemble = () =>
-  LoggedOutComposition.assembleBlock({
+const prepare = () =>
+  LoggedOutComposition.prepareBlock({
     init,
     update,
     view,
   })
 export const LoggedOutBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

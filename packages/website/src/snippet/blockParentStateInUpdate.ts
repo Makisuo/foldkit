@@ -38,13 +38,13 @@ const accountSettingsUpdate = AccountSettingsComposition.makeUpdate(
 const accountSettingsView = AccountSettingsComposition.makeView((model, h) =>
   h.p([], [`${model.theme}; audit: ${Array.join(model.auditTrail, ', ')}`]),
 )
-const assembleAccountSettings = () =>
-  AccountSettingsComposition.assembleBlock({
+const prepare = () =>
+  AccountSettingsComposition.prepareBlock({
     init: accountSettingsInit,
     update: accountSettingsUpdate,
     view: accountSettingsView,
   })
-const AccountSettingsBlock = Block.complete(assembleAccountSettings)
+const AccountSettingsBlock = Block.assemble(prepare)
 
 const ProfileModel = Schema.Struct({
   currentUser: CurrentUser,

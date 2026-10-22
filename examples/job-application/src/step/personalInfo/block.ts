@@ -8,8 +8,8 @@ import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const assemble = () =>
-  PersonalInfoComposition.assembleBlock({
+const prepare = () =>
+  PersonalInfoComposition.prepareBlock({
     init,
     update,
     view,
@@ -18,5 +18,5 @@ const assemble = () =>
   })
 export const PersonalInfoBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

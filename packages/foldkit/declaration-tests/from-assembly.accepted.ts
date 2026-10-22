@@ -80,8 +80,8 @@ export const view = CountComposition.makeView.withInputs<
 
 export const EffectsLayer = Layer.merge(SaveCount.layer, ObservePanel.layer)
 
-export const assembleViewed = () =>
-  CountComposition.assembleBlock({
+export const prepareViewed = () =>
+  CountComposition.prepareBlock({
     init,
     update,
     view,
@@ -89,8 +89,8 @@ export const assembleViewed = () =>
     EffectsLayer,
   })
 
-export const assembleHeadless = () =>
-  CountComposition.assembleBlock({
+export const prepareHeadless = () =>
+  CountComposition.prepareBlock({
     init,
     update,
     operations: { setCount: Message.RequestedSetCount },
@@ -115,57 +115,56 @@ const reportingView = ReportingComposition.makeView((model, h) =>
   h.div([], [globalThis.String(model.count)]),
 )
 
-export const assembleReportingViewed = () =>
-  ReportingComposition.assembleBlock({
+export const prepareReportingViewed = () =>
+  ReportingComposition.prepareBlock({
     init: reportingInit,
     update: reportingUpdate,
     view: reportingView,
     operations: { setCount: Message.RequestedSetCount },
   })
 
-export const assembleReportingHeadless = () =>
-  ReportingComposition.assembleBlock({
+export const prepareReportingHeadless = () =>
+  ReportingComposition.prepareBlock({
     init: reportingInit,
     update: reportingUpdate,
     operations: { setCount: Message.RequestedSetCount },
   })
 
-export declare const assembleErased: () => never
+export declare const prepareErased: () => never
 
-export const OriginalViewed: Assembled<typeof assembleViewed> =
-  Block.complete(assembleViewed)
+export const OriginalViewed: Assembled<typeof prepareViewed> =
+  Block.assemble(prepareViewed)
 export const Viewed: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleViewed
-> = Block.complete(assembleViewed)
+  typeof prepareViewed
+> = Block.assemble(prepareViewed)
 
 export const replaceOriginalViewed: typeof OriginalViewed.replaceEffectsLayer =
   OriginalViewed.replaceEffectsLayer
 export const replaceViewed: typeof Viewed.replaceEffectsLayer =
   Viewed.replaceEffectsLayer
 
-export const OriginalHeadless: Assembled<typeof assembleHeadless> =
-  Block.complete(assembleHeadless)
+export const OriginalHeadless: Assembled<typeof prepareHeadless> =
+  Block.assemble(prepareHeadless)
 export const Headless: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleHeadless
-> = Block.complete(assembleHeadless)
+  typeof prepareHeadless
+> = Block.assemble(prepareHeadless)
 
-export const OriginalReportingViewed: Assembled<
-  typeof assembleReportingViewed
-> = Block.complete(assembleReportingViewed)
+export const OriginalReportingViewed: Assembled<typeof prepareReportingViewed> =
+  Block.assemble(prepareReportingViewed)
 export const ReportingViewed: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleReportingViewed
-> = Block.complete(assembleReportingViewed)
+  typeof prepareReportingViewed
+> = Block.assemble(prepareReportingViewed)
 
 export const OriginalReportingHeadless: Assembled<
-  typeof assembleReportingHeadless
-> = Block.complete(assembleReportingHeadless)
+  typeof prepareReportingHeadless
+> = Block.assemble(prepareReportingHeadless)
 export const ReportingHeadless: Block.FromAssemblyWithOutMessage<
   typeof Model,
-  typeof assembleReportingHeadless
-> = Block.complete(assembleReportingHeadless)
+  typeof prepareReportingHeadless
+> = Block.assemble(prepareReportingHeadless)
 
 export const RawParentDefinition = Block.makeDefinition(
   'FromAssemblyRawParent',
@@ -184,8 +183,8 @@ export const RawParentComposition = RawParentDefinition.makeComposition({
   bindings: [RawParentBinding],
 })
 
-const assembleRawParent = () =>
-  RawParentComposition.assembleBlock({
+const prepareRawParent = () =>
+  RawParentComposition.prepareBlock({
     init: RawParentComposition.makeInit(() => ({ model: {} })),
     update: RawParentComposition.makeUpdate(),
     view: RawParentComposition.makeView((model, h) =>
@@ -199,8 +198,8 @@ const assembleRawParent = () =>
     ),
   })
 
-export const RawParent: Assembled<typeof assembleRawParent> =
-  Block.complete(assembleRawParent)
+export const RawParent: Assembled<typeof prepareRawParent> =
+  Block.assemble(prepareRawParent)
 
 export const ParentDefinition = Block.makeDefinition('FromAssemblyParent', {
   Model: Schema.Struct({ child: Viewed.Model }),
@@ -216,8 +215,8 @@ export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ParentBinding],
 })
 
-const assembleParent = () =>
-  ParentComposition.assembleBlock({
+const prepareParent = () =>
+  ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() => ({ model: {} })),
     update: ParentComposition.makeUpdate(),
     view: ParentComposition.makeView((model, h) =>
@@ -231,18 +230,18 @@ const assembleParent = () =>
     ),
   })
 
-export const OriginalParent: Assembled<typeof assembleParent> =
-  Block.complete(assembleParent)
+export const OriginalParent: Assembled<typeof prepareParent> =
+  Block.assemble(prepareParent)
 export const Parent: Block.FromAssemblyWithView<
   typeof ParentDefinition.Model,
-  typeof assembleParent
-> = Block.complete(assembleParent)
+  typeof prepareParent
+> = Block.assemble(prepareParent)
 
-export const OriginalErased = assembleErased()
+export const OriginalErased = prepareErased()
 export const ErasedAnnotation: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleErased
-> = assembleErased()
+  typeof prepareErased
+> = prepareErased()
 
 declare const bottomProducer: never
 export declare const BottomAnnotation: Block.FromAssemblyWithView<

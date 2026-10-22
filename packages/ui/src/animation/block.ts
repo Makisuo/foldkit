@@ -139,8 +139,8 @@ export const view = AnimationComposition.makeView.withInputs<ViewInputs>(
   },
 )
 
-const assemble = () =>
-  AnimationComposition.assembleBlock({
+const prepare = () =>
+  AnimationComposition.prepareBlock({
     init,
     update: (
       model: Model,
@@ -167,8 +167,8 @@ const assemble = () =>
 /** Complete Animation Block definition for connecting to a parent. */
 export const AnimationBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 
 /** Programmatically starts the enter lifecycle through Animation update. */
 export const show = AnimationBlock.operations.requestShow

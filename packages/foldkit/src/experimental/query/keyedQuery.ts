@@ -758,8 +758,8 @@ const makeHostKeyedQuery = <
   const api = makeKeyedQueryApi(config, Args, Model, Message, Fetch)
   const QueryComposition = QueryDefinition.makeComposition()
   const init = QueryComposition.makeInit(api.init)
-  const assemble = () =>
-    QueryComposition.assembleBlock({
+  const prepare = () =>
+    QueryComposition.prepareBlock({
       init,
       update: QueryComposition.makeUpdate(api.update),
       operations: {
@@ -771,8 +771,8 @@ const makeHostKeyedQuery = <
     })
   const block: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
 
   return enrichKeyedQuery(block, {
     Fetch,
@@ -845,8 +845,8 @@ const makeCanonicalKeyedQuery = <
   const api = makeKeyedQueryApi(config, Args, Model, Message, Fetch)
   const QueryComposition = QueryDefinition.makeComposition()
   const init = QueryComposition.makeInit(api.init)
-  const assemble = () =>
-    QueryComposition.assembleBlock({
+  const prepare = () =>
+    QueryComposition.prepareBlock({
       init,
       update: QueryComposition.makeUpdate(api.update),
       operations: {
@@ -857,8 +857,8 @@ const makeCanonicalKeyedQuery = <
     })
   const block: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
 
   return enrichKeyedQuery(block, {
     Fetch,

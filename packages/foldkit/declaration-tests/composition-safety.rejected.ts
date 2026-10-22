@@ -134,7 +134,7 @@ const directConnectedInit = MissingPlainBindingComposition.makeInit(() =>
   }),
 )
 // @ts-expect-error A directly connected initializer retains its missing Binding evidence.
-MissingPlainBindingComposition.assembleBlock({
+MissingPlainBindingComposition.prepareBlock({
   init: directConnectedInit,
   update: MissingPlainBindingComposition.makeUpdate(model => ({ model })),
   EffectsLayer: LoadParameterizedChild.layer,

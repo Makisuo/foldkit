@@ -938,8 +938,8 @@ export const maybeDropTarget = (
     Match.orElse(() => Option.none()),
   )
 
-const assemble = () =>
-  DragAndDropComposition.assembleBlock({
+const prepare = () =>
+  DragAndDropComposition.prepareBlock({
     init,
     update,
     view,
@@ -949,5 +949,5 @@ const assemble = () =>
 /** Complete DragAndDrop Block definition for connecting to a parent. */
 export const DragAndDropBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

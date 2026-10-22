@@ -6,13 +6,13 @@ import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const assemble = () =>
-  AttachmentsComposition.assembleBlock({
+const prepare = () =>
+  AttachmentsComposition.prepareBlock({
     init,
     update,
     view,
   })
 export const AttachmentsBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

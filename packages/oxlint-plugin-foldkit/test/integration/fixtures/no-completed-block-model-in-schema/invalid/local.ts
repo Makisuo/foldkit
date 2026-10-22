@@ -7,8 +7,8 @@ const ChildDefinition = Feature.makeDefinition('Child', {
   Message: defineMessageUnion({ ClickedIncrement: {} }),
 })
 const ChildComposition = ChildDefinition.makeComposition()
-const assemble = () => ChildComposition.assembleBlock({})
-const value = Feature.complete(assemble)
+const prepare = () => ChildComposition.prepareBlock({})
+const value = Feature.assemble(prepare)
 const alias = value
 export const Parent = Schema.Struct({ child: alias['Model'] })
 

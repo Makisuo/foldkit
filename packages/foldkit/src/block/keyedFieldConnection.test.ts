@@ -55,8 +55,8 @@ const ChildComposition = makeDefinition('KeyedFieldConnectionChild', {
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: ChildComposition.makeInit(() => ({
       model: ChildModel.make({ id: 'initial', count: 0 }),
     })),
@@ -74,16 +74,16 @@ const assembleChildBlock = () =>
   })
 const childBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 const ArrayChildMessage = defineMessageUnion({ IgnoredValue: {} })
 
 const ArrayChildComposition = makeDefinition('KeyedFieldConnectionArrayChild', {
   Model: ArrayChildModel,
   Message: ArrayChildMessage,
 }).makeComposition()
-const assembleArrayChildBlock = () =>
-  ArrayChildComposition.assembleBlock({
+const prepareArrayChildBlock = () =>
+  ArrayChildComposition.prepareBlock({
     init: ArrayChildComposition.makeInit(() => ({
       model: ArrayChildModel.make(['initial']),
     })),
@@ -92,8 +92,8 @@ const assembleArrayChildBlock = () =>
   })
 const arrayChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ArrayChildModel,
-  typeof assembleArrayChildBlock
-> = Block.complete(assembleArrayChildBlock)
+  typeof prepareArrayChildBlock
+> = Block.assemble(prepareArrayChildBlock)
 const keyedFieldCandidate: RequiredKeyedField<
   typeof ParentModel.Type,
   typeof childBlock.Model.Type
@@ -131,8 +131,8 @@ const CallableChildComposition = makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const assembleCallableChildBlock = () =>
-  CallableChildComposition.assembleBlock({
+const prepareCallableChildBlock = () =>
+  CallableChildComposition.prepareBlock({
     init: CallableChildComposition.makeInit(() => ({
       model: CallableChildModel({ id: 'initial', count: 0 }),
     })),
@@ -150,8 +150,8 @@ const assembleCallableChildBlock = () =>
   })
 const callableChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof CallableChildModel,
-  typeof assembleCallableChildBlock
-> = Block.complete(assembleCallableChildBlock)
+  typeof prepareCallableChildBlock
+> = Block.assemble(prepareCallableChildBlock)
 const CallableParentModel = taggedStruct('CallableParent', {
   entries: Schema.Array(CallableChildModel),
 })

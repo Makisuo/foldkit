@@ -44,8 +44,8 @@ const subscriptions = ChildDefinition.makeSubscriptions(entry => ({
   }),
 }))
 const ChildComposition = ChildDefinition.makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
     update: ChildComposition.makeUpdate((model, message) =>
       ChildMessage.match(message, {
@@ -79,8 +79,8 @@ const assembleChildBlock = () =>
   })
 const ChildBlock: Block.FromAssemblyWithView<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const ParentModel = Schema.Struct({ child: ChildBlock.Model })
 const ParentMessage = defineMessageUnion({ RequestedRefresh: {} })
@@ -94,8 +94,8 @@ const ChildBinding = ParentDefinition.makeBinding(ChildBlock, {
 const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding],
 })
-const assembleParentBlock = () =>
-  ParentComposition.assembleBlock({
+const prepareParentBlock = () =>
+  ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() => ({ model: {} })),
     update: ParentComposition.makeUpdate((model, message) =>
       ParentMessage.match(message, {
@@ -109,8 +109,8 @@ const assembleParentBlock = () =>
   })
 const ParentBlock: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assembleParentBlock
-> = Block.complete(assembleParentBlock)
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 
 const Model = Schema.Struct({ parent: ParentBlock.Model })
 const Message = defineMessageUnion({ RequestedRefresh: {} })
@@ -278,12 +278,12 @@ it('decodes a complete dispatch contract and replays it through pure update', ()
 })
 
 it('renders nested generated Blocks on the server without constructing handlers', async () => {
-  const assemble = () =>
-    ApplicationComposition.assembleBlock({ init, update, view })
+  const prepare = () =>
+    ApplicationComposition.prepareBlock({ init, update, view })
   const completedBlock: Block.FromAssemblyWithView<
     typeof Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
   const rendered = await Effect.runPromise(
     renderToString(completedBlock, {}, { isHydratable: false }),
   )

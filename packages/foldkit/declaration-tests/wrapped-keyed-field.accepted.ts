@@ -66,8 +66,8 @@ const makeChoice = <const Values extends ReadonlyArray<string>>(
   )
   const DeclarationWrappedKeyedFieldChoiceComposition =
     DeclarationWrappedKeyedFieldChoiceDefinition.makeComposition()
-  const assembleBlock = () =>
-    DeclarationWrappedKeyedFieldChoiceComposition.assembleBlock({
+  const prepareBlock = () =>
+    DeclarationWrappedKeyedFieldChoiceComposition.prepareBlock({
       init: DeclarationWrappedKeyedFieldChoiceComposition.makeInit(
         (value: Value) => ({
           model: Model.make({ value }),
@@ -92,8 +92,8 @@ const makeChoice = <const Values extends ReadonlyArray<string>>(
     })
   const block: Block.FromAssemblyWithOutMessage<
     typeof Model,
-    typeof assembleBlock
-  > = Block.complete(assembleBlock)
+    typeof prepareBlock
+  > = Block.assemble(prepareBlock)
 
   return {
     block,
@@ -112,8 +112,8 @@ const DeclarationWrappedKeyedFieldPlainChoiceComposition = Block.makeDefinition(
     Message: Choice.Message,
   },
 ).makeComposition()
-const assemblePlainChoiceBlock = () =>
-  DeclarationWrappedKeyedFieldPlainChoiceComposition.assembleBlock({
+const preparePlainChoiceBlock = () =>
+  DeclarationWrappedKeyedFieldPlainChoiceComposition.prepareBlock({
     init: DeclarationWrappedKeyedFieldPlainChoiceComposition.makeInit(() => ({
       model: Choice.block.Model.make({ value: 'One' }),
     })),
@@ -132,8 +132,8 @@ const assemblePlainChoiceBlock = () =>
   })
 export const PlainChoiceBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Choice.block.Model,
-  typeof assemblePlainChoiceBlock
-> = Block.complete(assemblePlainChoiceBlock)
+  typeof preparePlainChoiceBlock
+> = Block.assemble(preparePlainChoiceBlock)
 
 export const ChoiceId = Schema.String.pipe(
   Schema.brand('DeclarationWrappedKeyedFieldChoiceId'),
@@ -159,8 +159,8 @@ const DeclarationWrappedKeyedFieldTextComposition = Block.makeDefinition(
     Message: TextMessage,
   },
 ).makeComposition()
-const assembleTextBlock = () =>
-  DeclarationWrappedKeyedFieldTextComposition.assembleBlock({
+const prepareTextBlock = () =>
+  DeclarationWrappedKeyedFieldTextComposition.prepareBlock({
     init: DeclarationWrappedKeyedFieldTextComposition.makeInit(() => ({
       model: '',
     })),
@@ -171,8 +171,8 @@ const assembleTextBlock = () =>
   })
 export const TextBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Schema.String,
-  typeof assembleTextBlock
-> = Block.complete(assembleTextBlock)
+  typeof prepareTextBlock
+> = Block.assemble(prepareTextBlock)
 export const TextEntry = Schema.Struct({
   id: Schema.String,
   text: Schema.String,
@@ -487,16 +487,16 @@ export const initialize = initialComposition.makeInit(
   }),
 )
 
-const assembleInitializedBlock = () =>
-  initialComposition.assembleBlock({
+const prepareInitializedBlock = () =>
+  initialComposition.prepareBlock({
     init: initialize,
     update: initialComposition.makeUpdate(model => ({ model })),
     EffectsLayer: Layer.empty,
   })
 export const initializedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleInitializedBlock
-> = Block.complete(assembleInitializedBlock)
+  typeof prepareInitializedBlock
+> = Block.assemble(prepareInitializedBlock)
 
 export const initialParentModel = ParentModel.make({
   choices: [

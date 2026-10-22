@@ -5,9 +5,9 @@ import { Model } from './from-assembly.accepted.js'
 import {
   CountComposition,
   EffectsLayer,
-  assembleHeadless,
-  assembleReportingViewed,
-  assembleViewed,
+  prepareHeadless,
+  prepareReportingViewed,
+  prepareViewed,
   init,
   update,
   view,
@@ -25,6 +25,11 @@ import {
   RawParent,
   Viewed,
 } from './from-assembly.accepted.js'
+
+// @ts-expect-error An inline producer cannot infer the explicit Model boundary.
+Block.assemble(() =>
+  CountComposition.prepareBlock({ init, update, view, EffectsLayer }),
+)
 
 // @ts-expect-error A never-producing annotation cannot satisfy AnyBlock.
 export const ErasedAsBlock: Block.AnyBlock = ErasedAnnotation
@@ -77,8 +82,8 @@ const rawParentProgram = Program.makeElement({
 // @ts-expect-error Store remains required when the root and child both retain their full contracts.
 Runtime.run(rawParentProgram)
 
-export const assembleWithUnknownLayer = () =>
-  CountComposition.assembleBlock<
+export const prepareWithUnknownLayer = () =>
+  CountComposition.prepareBlock<
     typeof init,
     typeof update,
     typeof view,
@@ -143,7 +148,7 @@ export const OldCovariantAcceptance: UncheckedHeader<
 export const CovariantAnnotation: Block.FromAssemblyWithView<
   typeof MutableBroadHeader,
   // @ts-expect-error A broader mutable decoded/encoded Model cannot replace the assembly's exact Schema.
-  typeof assembleViewed
+  typeof prepareViewed
 > = OriginalViewed
 export const MutableExactHeader: Schema.Codec<
   { count: number },
@@ -154,52 +159,52 @@ export const OldMutableAcceptance: UncheckedHeader<typeof MutableExactHeader> =
 export const MutableAnnotation: Block.FromAssemblyWithView<
   typeof MutableExactHeader,
   // @ts-expect-error A structurally assignable but different mutable Schema header cannot replace the assembly Schema.
-  typeof assembleViewed
+  typeof prepareViewed
 > = OriginalViewed
 export const AnyModelAnnotation: Block.FromAssemblyWithView<
   any,
   // @ts-expect-error A completely any Model Schema cannot disable header agreement.
-  typeof assembleViewed
+  typeof prepareViewed
 > = OriginalViewed
 
 // @ts-expect-error Headless assembly cannot acquire a default view through an annotation.
 export const InventedView: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleHeadless
+  typeof prepareHeadless
 > = Headless
 // @ts-expect-error A view-capable assembly cannot claim no default view.
 export const ErasedView: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleViewed
+  typeof prepareViewed
 > = OriginalViewed
 // @ts-expect-error A reporting assembly cannot erase its OutMessage Schema.
 export const ErasedOutMessage: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleReportingViewed
-> = Block.complete(assembleReportingViewed)
+  typeof prepareReportingViewed
+> = Block.assemble(prepareReportingViewed)
 // @ts-expect-error A plain assembly cannot invent an OutMessage Schema.
 export const InventedOutMessage: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleViewed
+  typeof prepareViewed
 > = OriginalViewed
 
 declare const unionProducer: () =>
-  | ReturnType<typeof assembleViewed>
-  | ReturnType<typeof assembleHeadless>
+  | ReturnType<typeof prepareViewed>
+  | ReturnType<typeof prepareHeadless>
 export type UnionAnnotation = Block.FromAssemblyWithView<
   typeof Model,
   // @ts-expect-error A union producer is rejected instead of losing cross-member capability correlations.
   typeof unionProducer
 >
 
-const assembleExtended = () => Object.assign(assembleViewed(), { test: true })
+const prepareExtended = () => Object.assign(prepareViewed(), { test: true })
 export type ExtendedAnnotation = Block.FromAssemblyWithView<
   typeof Model,
   // @ts-expect-error Extra fields must be added after the checked plain assembly annotation.
-  typeof assembleExtended
+  typeof prepareExtended
 >
 export type ExtendedCarrier = Block.AssemblyWithView<
   typeof Model,
   // @ts-expect-error Public declaration support retains the same exact completed-key requirement.
-  typeof assembleExtended
+  typeof prepareExtended
 >

@@ -101,8 +101,8 @@ export const childView = GeneratedDispatchChildComposition.makeView(
       [globalThis.String(model.count)],
     ),
 )
-export const assembleGeneratedDispatchChildBlock = () =>
-  GeneratedDispatchChildComposition.assembleBlock({
+export const prepareGeneratedDispatchChildBlock = () =>
+  GeneratedDispatchChildComposition.prepareBlock({
     init: childInit,
     update: childUpdate,
     view: childView,
@@ -118,12 +118,12 @@ export const assembleGeneratedDispatchChildBlock = () =>
   })
 
 export const RawGeneratedDispatchChildBlock: CompletedAssembly<
-  typeof assembleGeneratedDispatchChildBlock
-> = Block.complete(assembleGeneratedDispatchChildBlock)
+  typeof prepareGeneratedDispatchChildBlock
+> = Block.assemble(prepareGeneratedDispatchChildBlock)
 export const GeneratedDispatchChildBlock: Block.FromAssemblyWithView<
   typeof GeneratedDispatchChildComposition.Model,
-  typeof assembleGeneratedDispatchChildBlock
-> = Block.complete(assembleGeneratedDispatchChildBlock)
+  typeof prepareGeneratedDispatchChildBlock
+> = Block.assemble(prepareGeneratedDispatchChildBlock)
 
 export const ParentModel = Schema.Struct({
   child: GeneratedDispatchChildBlock.Model,
@@ -177,20 +177,20 @@ export const parentView = GeneratedDispatchParentComposition.makeView(
       ],
     ),
 )
-export const assembleGeneratedDispatchParentBlock = () =>
-  GeneratedDispatchParentComposition.assembleBlock({
+export const prepareGeneratedDispatchParentBlock = () =>
+  GeneratedDispatchParentComposition.prepareBlock({
     init: parentInit,
     update: parentUpdate,
     view: parentView,
   })
 
 export const RawGeneratedDispatchParentBlock: CompletedAssembly<
-  typeof assembleGeneratedDispatchParentBlock
-> = Block.complete(assembleGeneratedDispatchParentBlock)
+  typeof prepareGeneratedDispatchParentBlock
+> = Block.assemble(prepareGeneratedDispatchParentBlock)
 export const GeneratedDispatchParentBlock: Block.FromAssemblyWithView<
   typeof GeneratedDispatchParentComposition.Model,
-  typeof assembleGeneratedDispatchParentBlock
-> = Block.complete(assembleGeneratedDispatchParentBlock)
+  typeof prepareGeneratedDispatchParentBlock
+> = Block.assemble(prepareGeneratedDispatchParentBlock)
 
 export const simulateChildObservations = () =>
   Scene.scene(
@@ -237,20 +237,20 @@ export const view = ApplicationComposition.makeView((model, h) =>
     ],
   ),
 )
-export const assembleApplicationBlock = () =>
-  ApplicationComposition.assembleBlock({
+export const prepareApplicationBlock = () =>
+  ApplicationComposition.prepareBlock({
     init,
     update,
     view,
   })
 
 export const RawApplicationBlock: CompletedAssembly<
-  typeof assembleApplicationBlock
-> = Block.complete(assembleApplicationBlock)
+  typeof prepareApplicationBlock
+> = Block.assemble(prepareApplicationBlock)
 export const ApplicationBlock: Block.FromAssemblyWithView<
   typeof ApplicationComposition.Model,
-  typeof assembleApplicationBlock
-> = Block.complete(assembleApplicationBlock)
+  typeof prepareApplicationBlock
+> = Block.assemble(prepareApplicationBlock)
 
 export const element = Program.makeElement({
   block: ApplicationBlock,

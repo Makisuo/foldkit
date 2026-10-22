@@ -15,7 +15,7 @@ import {
 } from './commands-steps.accepted.js'
 
 // @ts-expect-error Command-only Steps still require attached handlers.
-CommandsComposition.assembleBlock({ init, update })
+CommandsComposition.prepareBlock({ init, update })
 // @ts-expect-error The Program still requires the handler's ordinary Store Service.
 Runtime.run(program)
 const other = {

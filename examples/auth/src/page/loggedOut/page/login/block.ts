@@ -5,8 +5,8 @@ import type { Model } from './definition'
 import { EffectsLayer, init, update } from './login'
 import { view } from './view'
 
-const assemble = () =>
-  LoginComposition.assembleBlock({
+const prepare = () =>
+  LoginComposition.prepareBlock({
     init,
     update,
     view,
@@ -14,5 +14,5 @@ const assemble = () =>
   })
 export const LoginBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

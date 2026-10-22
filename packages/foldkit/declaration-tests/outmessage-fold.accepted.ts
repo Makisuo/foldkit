@@ -35,8 +35,8 @@ export const ObserveChoice = DeclarationFoldChildDefinition.makeCommand(
     },
   },
 )
-const assembleChildBlock = () =>
-  DeclarationFoldChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  DeclarationFoldChildComposition.prepareBlock({
     init: DeclarationFoldChildComposition.makeInit(() => ({
       model: { count: 0 },
     })),
@@ -58,8 +58,8 @@ const assembleChildBlock = () =>
   })
 export const ChildBlock: Block.FromAssemblyWithOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 export const LiteralModel = Schema.Struct({
   phase: Schema.Literals(['Idle', 'Done']),
@@ -247,8 +247,8 @@ export const conditionalParentUpdate =
       ? { model, commands: [RecordChoice({ value: message.value })] }
       : { model },
   )
-const assembleParentBlock = () =>
-  DeclarationFoldParentComposition.assembleBlock({
+const prepareParentBlock = () =>
+  DeclarationFoldParentComposition.prepareBlock({
     init: DeclarationFoldParentComposition.makeInit(() => ({
       model: { choice: 'Apple' },
     })),
@@ -257,8 +257,8 @@ const assembleParentBlock = () =>
   })
 export const ParentBlock: Block.FromAssemblyWithOutMessage<
   typeof Model,
-  typeof assembleParentBlock
-> = Block.complete(assembleParentBlock)
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 
 export const RootModel = Schema.Struct({
   child: ChildBlock.Model,
@@ -302,8 +302,8 @@ export const rootView = DeclarationFoldRootComposition.makeView(() => ({
   title: 'Fold',
   body: null,
 }))
-const assembleRootBlock = () =>
-  DeclarationFoldRootComposition.assembleBlock({
+const prepareRootBlock = () =>
+  DeclarationFoldRootComposition.prepareBlock({
     init: rootInit,
     update: rootUpdate,
     view: rootView,
@@ -311,8 +311,8 @@ const assembleRootBlock = () =>
   })
 export const RootBlock: Block.FromAssemblyWithView<
   typeof RootModel,
-  typeof assembleRootBlock
-> = Block.complete(assembleRootBlock)
+  typeof prepareRootBlock
+> = Block.assemble(prepareRootBlock)
 export const program = Program.make({ block: RootBlock, container: null })
 export const runnable = program.provide(
   Layer.succeed(ChoiceStore)({

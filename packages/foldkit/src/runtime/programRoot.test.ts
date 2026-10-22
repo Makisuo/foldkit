@@ -62,8 +62,8 @@ describe('completed root Block hosting', () => {
       Model: Schema.Struct({ count: Schema.Number }),
       Message: Schema.Never,
     }).makeComposition()
-    const assembleProgramPageBlock = () =>
-      ProgramPageComposition.assembleBlock({
+    const prepareProgramPageBlock = () =>
+      ProgramPageComposition.prepareBlock({
         init: ProgramPageComposition.makeInit(() => ({ model: { count: 0 } })),
         update: ProgramPageComposition.makeUpdate(),
         view: ProgramPageComposition.makeView((model, h) => ({
@@ -73,8 +73,8 @@ describe('completed root Block hosting', () => {
       })
     const ProgramPageBlock: Block.FromAssemblyWithView<
       typeof ProgramPageComposition.Model,
-      typeof assembleProgramPageBlock
-    > = Block.complete(assembleProgramPageBlock)
+      typeof prepareProgramPageBlock
+    > = Block.assemble(prepareProgramPageBlock)
     const program = Program.make({
       block: ProgramPageBlock,
       container: document.createElement('div'),
@@ -126,8 +126,8 @@ describe('completed root Block hosting', () => {
       ),
     )
 
-    const assembleRootProvidedBlock = () =>
-      Composition.assembleBlock({
+    const prepareRootProvidedBlock = () =>
+      Composition.prepareBlock({
         init,
         update,
         view,
@@ -135,8 +135,8 @@ describe('completed root Block hosting', () => {
       })
     const RootProvidedBlock: Block.FromAssemblyWithView<
       typeof Composition.Model,
-      typeof assembleRootProvidedBlock
-    > = Block.complete(assembleRootProvidedBlock)
+      typeof prepareRootProvidedBlock
+    > = Block.assemble(prepareRootProvidedBlock)
     const rootContainer = document.createElement('div')
     rootContainer.id = 'root-provided-dispatch'
     document.body.append(rootContainer)
@@ -155,16 +155,16 @@ describe('completed root Block hosting', () => {
       rootContainer.remove()
     }
 
-    const assembleExternallyProvidedBlock = () =>
-      Composition.assembleBlock({
+    const prepareExternallyProvidedBlock = () =>
+      Composition.prepareBlock({
         init,
         update,
         view,
       })
     const ExternallyProvidedBlock: Block.FromAssemblyWithView<
       typeof Composition.Model,
-      typeof assembleExternallyProvidedBlock
-    > = Block.complete(assembleExternallyProvidedBlock)
+      typeof prepareExternallyProvidedBlock
+    > = Block.assemble(prepareExternallyProvidedBlock)
     const externalContainer = document.createElement('div')
     externalContainer.id = 'externally-provided-dispatch'
     document.body.append(externalContainer)
@@ -239,8 +239,8 @@ describe('completed root Block hosting', () => {
     const view = ProgramRootComposition.makeView((model, h) =>
       h.button([h.OnClick(Message.ClickedReadValue())], [model.value]),
     )
-    const assembleProgramRootBlock = () =>
-      ProgramRootComposition.assembleBlock({
+    const prepareProgramRootBlock = () =>
+      ProgramRootComposition.prepareBlock({
         init,
         update,
         view,
@@ -248,8 +248,8 @@ describe('completed root Block hosting', () => {
       })
     const ProgramRootBlock: Block.FromAssemblyWithView<
       typeof Model,
-      typeof assembleProgramRootBlock
-    > = Block.complete(assembleProgramRootBlock)
+      typeof prepareProgramRootBlock
+    > = Block.assemble(prepareProgramRootBlock)
     const container = document.createElement('div')
     container.id = 'program-root'
     document.body.append(container)
@@ -327,8 +327,8 @@ describe('completed root Block hosting', () => {
       Model: Schema.Struct({ value: Schema.String }),
       Message: Schema.Never,
     }).makeComposition()
-    const assembleErasedRootBlock = () =>
-      ErasedRootComposition.assembleBlock({
+    const prepareErasedRootBlock = () =>
+      ErasedRootComposition.prepareBlock({
         init: () => ({ model: { value: 'ready' } }),
         update: ErasedRootComposition.makeUpdate(),
         view: ErasedRootComposition.makeView((model, h) =>
@@ -337,8 +337,8 @@ describe('completed root Block hosting', () => {
       })
     const ErasedRootBlock: Block.FromAssemblyWithView<
       typeof ErasedRootComposition.Model,
-      typeof assembleErasedRootBlock
-    > = Block.complete(assembleErasedRootBlock)
+      typeof prepareErasedRootBlock
+    > = Block.assemble(prepareErasedRootBlock)
 
     expect(() =>
       assertProgramConfig(
@@ -371,7 +371,7 @@ describe('completed root Block hosting', () => {
     ).toThrow('field "flags" must be an Effect')
     expect(() =>
       assertProgramConfig({ block: {}, container: null }, 'Element'),
-    ).toThrow('must be completed with Block.complete(assemble)')
+    ).toThrow('must be completed with Block.assemble(prepare)')
     expect(() =>
       assertProgramConfig(
         {

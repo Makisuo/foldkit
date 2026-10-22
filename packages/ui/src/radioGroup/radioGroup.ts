@@ -458,8 +458,8 @@ const internalView = RadioGroupComposition.makeView.withInputs<ViewInputs>(
   },
 )
 
-const assembleRadioGroupBlock = () =>
-  RadioGroupComposition.assembleBlock({
+const prepareRadioGroupBlock = () =>
+  RadioGroupComposition.prepareBlock({
     init,
     update,
     view: internalView,
@@ -468,8 +468,8 @@ const assembleRadioGroupBlock = () =>
 /** Complete RadioGroup Block definition. */
 export const block: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleRadioGroupBlock
-> = Block.complete(assembleRadioGroupBlock)
+  typeof prepareRadioGroupBlock
+> = Block.assemble(prepareRadioGroupBlock)
 
 const makeBlockParts = <Value extends string>() => {
   type GenericReturn = Update.ReturnWithOutMessage<
@@ -531,11 +531,11 @@ export interface Completed<
 const makeBlock = <Value extends string>(): Completed<Value> => {
   const { composition, implementation } = makeBlockParts<Value>()
 
-  const assemble = () => composition.assembleBlock(implementation)
+  const prepare = () => composition.prepareBlock(implementation)
   const completedBlock: Block.FromAssemblyWithViewAndOutMessage<
     typeof Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
 
   return completedBlock
 }

@@ -18,8 +18,8 @@ const DeclarationOptionalWrappedKeyedRoomDefinition = Block.makeDefinition(
 )
 const DeclarationOptionalWrappedKeyedRoomComposition =
   DeclarationOptionalWrappedKeyedRoomDefinition.makeComposition()
-const assembleRoomBlock = () =>
-  DeclarationOptionalWrappedKeyedRoomComposition.assembleBlock({
+const prepareRoomBlock = () =>
+  DeclarationOptionalWrappedKeyedRoomComposition.prepareBlock({
     init: DeclarationOptionalWrappedKeyedRoomComposition.makeInit(
       (count: number) => ({
         model: RoomModel.make({ count }),
@@ -41,8 +41,8 @@ const assembleRoomBlock = () =>
   })
 export const RoomBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof RoomModel,
-  typeof assembleRoomBlock
-> = Block.complete(assembleRoomBlock)
+  typeof prepareRoomBlock
+> = Block.assemble(prepareRoomBlock)
 const DeclarationOptionalWrappedKeyedPlainRoomDefinition = Block.makeDefinition(
   'DeclarationOptionalWrappedKeyedPlainRoom',
   {
@@ -52,8 +52,8 @@ const DeclarationOptionalWrappedKeyedPlainRoomDefinition = Block.makeDefinition(
 )
 const DeclarationOptionalWrappedKeyedPlainRoomComposition =
   DeclarationOptionalWrappedKeyedPlainRoomDefinition.makeComposition()
-const assemblePlainRoomBlock = () =>
-  DeclarationOptionalWrappedKeyedPlainRoomComposition.assembleBlock({
+const preparePlainRoomBlock = () =>
+  DeclarationOptionalWrappedKeyedPlainRoomComposition.prepareBlock({
     init: DeclarationOptionalWrappedKeyedPlainRoomComposition.makeInit(() => ({
       model: RoomModel.make({ count: 0 }),
     })),
@@ -62,8 +62,8 @@ const assemblePlainRoomBlock = () =>
   })
 const PlainRoomBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof RoomModel,
-  typeof assemblePlainRoomBlock
-> = Block.complete(assemblePlainRoomBlock)
+  typeof preparePlainRoomBlock
+> = Block.assemble(preparePlainRoomBlock)
 
 export const RoomInstance = Schema.Struct({
   roomId: RoomId,

@@ -44,8 +44,8 @@ const Message = message.defineMessageUnion({ IgnoredRender: {} })
 const ApplicationComposition = block
   .makeDefinition('Application', { Model, Message })
   .makeComposition()
-const ApplicationBlock = block.complete(() =>
-  ApplicationComposition.assembleBlock({
+const ApplicationBlock = block.assemble(() =>
+  ApplicationComposition.prepareBlock({
     init: ApplicationComposition.makeInit(() => ({ model: Model.make({}) })),
     update: ApplicationComposition.makeUpdate(model => ({ model })),
     view: ApplicationComposition.makeView(() => ({ title: 't', body: null })),

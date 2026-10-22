@@ -154,8 +154,8 @@ const childUpdate = ChildComposition.makeUpdate(
     }),
 )
 
-const assembleChild = () =>
-  ChildComposition.assembleBlock({
+const prepareChild = () =>
+  ChildComposition.prepareBlock({
     view: childView,
     init: (count: number) => ({ model: ChildModel.make({ count }) }),
     update: childUpdate,
@@ -178,8 +178,8 @@ const assembleChild = () =>
   })
 const Child: Block.FromAssemblyWithViewAndOutMessage<
   typeof ChildModel,
-  typeof assembleChild
-> = Block.complete(assembleChild)
+  typeof prepareChild
+> = Block.assemble(prepareChild)
 
 const ParentModel = Schema.Struct({
   maybeChild: Schema.Option(ChildModel),
@@ -392,8 +392,8 @@ const addHomeForRoom = Parent.makeStep(
     HomeBinding.addForRoom(amount, context),
 )
 const reportHome = Parent.makeStep(_model => HomeBinding.report())
-const assembleParentRuntime = () =>
-  ParentComposition.assembleBlock({
+const prepareParentRuntime = () =>
+  ParentComposition.prepareBlock({
     init: () => ({ model: initialParent }),
     update: ParentComposition.makeUpdate((model, message) =>
       ParentMessage.match(message, {
@@ -419,8 +419,8 @@ const assembleParentRuntime = () =>
   })
 const ParentRuntime: Block.FromAssemblyWithOutMessage<
   typeof ParentModel,
-  typeof assembleParentRuntime
-> = Block.complete(assembleParentRuntime)
+  typeof prepareParentRuntime
+> = Block.assemble(prepareParentRuntime)
 
 const ParentPolicyComposition = ParentPolicyDefinition.makeComposition({
   bindings: [ParentCommandHomeBinding],
@@ -438,8 +438,8 @@ const foldParentPolicy = ParentPolicyComposition.makeUpdate((model, message) =>
     CompletedPolicyWork: () => ({ model }),
   }),
 )
-const assembleParentPolicyRuntime = () =>
-  ParentPolicyComposition.assembleBlock({
+const prepareParentPolicyRuntime = () =>
+  ParentPolicyComposition.prepareBlock({
     init: () => ({ model: initialParent }),
     update: foldParentPolicy,
     operations: {
@@ -453,8 +453,8 @@ const assembleParentPolicyRuntime = () =>
   })
 const ParentPolicyRuntime: Block.FromAssemblyWithOutMessage<
   typeof ParentModel,
-  typeof assembleParentPolicyRuntime
-> = Block.complete(assembleParentPolicyRuntime)
+  typeof prepareParentPolicyRuntime
+> = Block.assemble(prepareParentPolicyRuntime)
 
 const callFoldDataLast = () =>
   // @ts-expect-error fold executes immediately and requires the parent Model
@@ -558,8 +558,8 @@ const wrappedArityUpdate = WrappedArityComposition.makeUpdate(
       }),
     }),
 )
-const assembleWrappedArityBlock = () =>
-  WrappedArityComposition.assembleBlock({
+const prepareWrappedArityBlock = () =>
+  WrappedArityComposition.prepareBlock({
     init: () => ({ model: ArityModel.make({ count: 0 }) }),
     update: wrappedArityUpdate,
     operations: {
@@ -605,8 +605,8 @@ const assembleWrappedArityBlock = () =>
   })
 const WrappedArityBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ArityModel,
-  typeof assembleWrappedArityBlock
-> = Block.complete(assembleWrappedArityBlock)
+  typeof prepareWrappedArityBlock
+> = Block.assemble(prepareWrappedArityBlock)
 const WrappedArityParent = makeDefinition('BindingWrappedArityParent', {
   Model: ArityParent,
   Message: ArityParentMessage,
@@ -638,15 +638,15 @@ const IgnoredMessageComposition = IgnoredMessageNamespace.makeDefinition({
 const ignoredMessageUpdate = (model: typeof ArityModel.Type) => ({
   model: modifyFields(model, { count: count => count + 1 }),
 })
-const assembleIgnoredMessage = () =>
-  IgnoredMessageComposition.assembleBlock({
+const prepareIgnoredMessage = () =>
+  IgnoredMessageComposition.prepareBlock({
     init: IgnoredMessageComposition.makeInit(arityInit),
     update: IgnoredMessageComposition.makeUpdate(ignoredMessageUpdate),
   })
 const IgnoredMessage: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ArityModel,
-  typeof assembleIgnoredMessage
-> = Block.complete(assembleIgnoredMessage)
+  typeof prepareIgnoredMessage
+> = Block.assemble(prepareIgnoredMessage)
 const IgnoredMessageBinding = WrappedArityParent.makeBinding(IgnoredMessage, {
   placement: 'ignored-message',
   read: readArityChild,
@@ -658,8 +658,8 @@ const DefaultContextComposition = DefaultContextNamespace.makeDefinition({
   Model: ArityModel,
   Message: ArityMessage,
 }).makeComposition()
-const assembleDefaultContext = () =>
-  DefaultContextComposition.assembleBlock({
+const prepareDefaultContext = () =>
+  DefaultContextComposition.prepareBlock({
     init: DefaultContextComposition.makeInit(arityInit),
     update: DefaultContextComposition.makeUpdate(
       (
@@ -673,8 +673,8 @@ const assembleDefaultContext = () =>
   })
 const DefaultContext: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ArityModel,
-  typeof assembleDefaultContext
-> = Block.complete(assembleDefaultContext)
+  typeof prepareDefaultContext
+> = Block.assemble(prepareDefaultContext)
 const DefaultContextBinding = WrappedArityParent.makeBinding(DefaultContext, {
   placement: 'default-context',
   read: readArityChild,
@@ -687,8 +687,8 @@ const OptionalContextComposition = OptionalContextNamespace.makeDefinition({
   Model: ArityModel,
   Message: ArityMessage,
 }).makeComposition()
-const assembleOptionalContext = () =>
-  OptionalContextComposition.assembleBlock({
+const prepareOptionalContext = () =>
+  OptionalContextComposition.prepareBlock({
     init: OptionalContextComposition.makeInit(arityInit),
     update: OptionalContextComposition.makeUpdate(
       (model, _message, context?: Readonly<{ amount: number }>) => ({
@@ -700,8 +700,8 @@ const assembleOptionalContext = () =>
   })
 const OptionalContext: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ArityModel,
-  typeof assembleOptionalContext
-> = Block.complete(assembleOptionalContext)
+  typeof prepareOptionalContext
+> = Block.assemble(prepareOptionalContext)
 const OptionalContextBinding = WrappedArityParent.makeBinding(OptionalContext, {
   placement: 'optional-context',
   read: readArityChild,
@@ -736,8 +736,8 @@ const runAddMany = WrappedArityParent.makeStep(
 const runResetArity = WrappedArityParent.makeStep(_model =>
   WrappedArityBinding.resetArity(),
 )
-const assembleWrappedArityRuntime = () =>
-  WrappedArityParentComposition.assembleBlock({
+const prepareWrappedArityRuntime = () =>
+  WrappedArityParentComposition.prepareBlock({
     init: () => ({ model: initialArityParent }),
     update: WrappedArityParentComposition.makeUpdate((model, message) =>
       ArityParentMessage.match(message, {
@@ -762,8 +762,8 @@ const assembleWrappedArityRuntime = () =>
   })
 const WrappedArityRuntime: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ArityParent,
-  typeof assembleWrappedArityRuntime
-> = Block.complete(assembleWrappedArityRuntime)
+  typeof prepareWrappedArityRuntime
+> = Block.assemble(prepareWrappedArityRuntime)
 
 const foldIgnoredMessage = WrappedArityParentComposition.makeUpdate(model => ({
   model,
@@ -1013,8 +1013,8 @@ describe('Block binding', () => {
   })
 
   it('preserves lifecycle contracts from a named child array', () => {
-    const assemblePulseChild = () =>
-      ChildComposition.assembleBlock({
+    const preparePulseChild = () =>
+      ChildComposition.prepareBlock({
         init: Child.init,
         update: Child.update,
         subscriptions: { pulses: childSubscriptions.ticks },
@@ -1023,8 +1023,8 @@ describe('Block binding', () => {
       })
     const pulseChild: Block.FromAssemblyWithOutMessage<
       typeof ChildModel,
-      typeof assemblePulseChild
-    > = Block.complete(assemblePulseChild)
+      typeof preparePulseChild
+    > = Block.assemble(preparePulseChild)
     const ParentSchema = Schema.Struct({
       maybeChild: Schema.Option(ChildModel),
       reports: Schema.Array(Schema.Number),
@@ -1076,16 +1076,16 @@ describe('Block binding', () => {
     const parentContract = ParentBaseDefinition.makeComposition({
       bindings,
     })
-    const assembleParent = () =>
-      parentContract.assembleBlock({
+    const prepareParent = () =>
+      parentContract.prepareBlock({
         init: () => ({ model: initialParent }),
         update: (model, _message) => ({ model }),
         EffectsLayer: Layer.empty,
       })
     const parent: Block.FromAssemblyWithOutMessage<
       typeof ParentSchema,
-      typeof assembleParent
-    > = Block.complete(assembleParent)
+      typeof prepareParent
+    > = Block.assemble(prepareParent)
 
     const inline = aggregateChildren([NamedHomeBinding, RoomBinding])
 
@@ -1365,8 +1365,8 @@ describe('Block child registration composition', () => {
         buildCount += 1
         return {}
       })
-      const assembleRepeated = () =>
-        RepeatedComposition.assembleBlock({
+      const prepareRepeated = () =>
+        RepeatedComposition.prepareBlock({
           init: () => ({ model: ChildModel.make({ count: 0 }) }),
           update: model => ({ model }),
           EffectsLayer,
@@ -1374,8 +1374,8 @@ describe('Block child registration composition', () => {
         })
       const Repeated: Block.FromAssemblyWithoutViewOrOutMessage<
         typeof ChildModel,
-        typeof assembleRepeated
-      > = Block.complete(assembleRepeated)
+        typeof prepareRepeated
+      > = Block.assemble(prepareRepeated)
       const RepeatedParentModel = Schema.Struct({ child: ChildModel })
       type RepeatedParentModel = typeof RepeatedParentModel.Type
       const RepeatedParentMessage = Schema.Never
@@ -1440,8 +1440,8 @@ describe('generic block refinement', () => {
         return { model }
       }
     })
-    const assemble = () =>
-      Composition.assembleBlock({
+    const prepare = () =>
+      Composition.prepareBlock({
         init: (value: Value) => ({ model: Model.make({ value }) }),
         update,
         operations: {
@@ -1452,8 +1452,8 @@ describe('generic block refinement', () => {
       })
     const completedBlock: Block.FromAssemblyWithOutMessage<
       typeof Model,
-      typeof assemble
-    > = Block.complete(assemble)
+      typeof prepare
+    > = Block.assemble(prepare)
     return completedBlock
   }
 

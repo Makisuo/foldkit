@@ -44,7 +44,7 @@ Values the app announces to the host leave through an outbound Port, written fro
 
 ::Snippet{name="embeddingOutboundCommand" label="Outbound Command"}
 
-The feature Definition’s `makeStep` infers the helper's Command handler requirement. Include `ReportCount.layer` in the local `EffectsLayer` passed to `FeatureComposition.assembleBlock`; `Block.complete` carries that bundle from the unfinished assembly onto the completed Block and into the Element.
+The feature Definition’s `makeStep` infers the helper's Command handler requirement. Include `ReportCount.layer` in the local `EffectsLayer` passed to `FeatureComposition.prepareBlock`; `Block.assemble` carries that bundle from the opaque draft onto the completed Block and into the Element.
 
 When the program runs without an embed handle (started with `Runtime.run`), emitting is a no-op, so the same app works embedded and standalone.
 

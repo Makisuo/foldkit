@@ -179,7 +179,7 @@ const update = FeatureComposition.makeUpdate((model, message) =>
 
 Update, init, Step, and component helper producers return `{ model }` when they statically create no Commands. When they compute a Commands collection, they return it directly without checking whether it is empty. Never write the literal `commands: []`.
 
-Init constructs the baseline Model and may return initial Commands. Author it through the owning Composition as `ApplicationComposition.makeInit(fn)` or `FeatureComposition.makeInit(fn)`. The Composition checks parent-owned Model fields, assembles registered child startup, and preserves the callback's exact arguments, return type, requirements, and child evidence. Give it one concrete function signature; optional, default, and rest parameters are supported. Wrap an overloaded helper or callable object in a concretely typed callback. A generic Block factory closes over its type parameters outside init. Completion checks the function with Flags, routing, final child evidence, and handler registration. Optional `boot` helpers are ordinary initial Steps called through a Binding after the child Model exists; Foldkit has no special Runtime boot phase. When an existing domain operation such as `requestOpen` or `requestRestore` already describes the transition, declare that Message-producing operation and call it through the Binding. Do not manufacture a separate startup-only Message when an existing Message already records the transition.
+Init constructs the baseline Model and may return initial Commands. Author it through the owning Composition as `ApplicationComposition.makeInit(fn)` or `FeatureComposition.makeInit(fn)`. The Composition checks parent-owned Model fields, assembles registered child startup, and preserves the callback's exact arguments, return type, requirements, and child evidence. Give it one concrete function signature; optional, default, and rest parameters are supported. Wrap an overloaded helper or callable object in a concretely typed callback. A generic Block factory closes over its type parameters outside init. Assembly checks the function with Flags, routing, final child evidence, and handler registration. Optional `boot` helpers are ordinary initial Steps called through a Binding after the child Model exists; Foldkit has no special Runtime boot phase. When an existing domain operation such as `requestOpen` or `requestRestore` already describes the transition, declare that Message-producing operation and call it through the Binding. Do not manufacture a separate startup-only Message when an existing Message already records the transition.
 
 For a required exact direct child field, omit `init` when its initializer can be called without arguments. A required-argument initializer uses `init: { contextToArgs }`; `init: false` makes the parent supply that field. An unkeyed optional direct field remains parent-owned when `init` is omitted, while `init.contextToArgs` can choose `None` or automatic `Some(child)` creation. Plain tuple literals preserve contextual init parameters. Add an optional `ChildInitContext` Schema to the parent Definition when selectors share context for direct child initializer arguments. It contextually types owned `init.contextToArgs` and `init.instances` callbacks without parameter annotations. The Composition initializer returns a plan: `model` contains only parent-owned fields, `childInitContext` carries the decoded context when a selector uses it, `commands` contains parent Commands, and `steps` contains ordered parent Steps applied after the complete Model exists. ChildInitContext does not describe the current Block's own init arguments. The Composition calls selected children once in `bindings` order and filters Commands for children absent from the final Model. An exact keyed array using `field` and `key`, with optional `childField`, declares `init.instances` and `init.toItem`. A direct array's `toItem` returns the exact initialized child Model with the planned key; a wrapped array's returns the parent-owned wrapper containing that exact child Model and key. An exact `Option` of one closed keyed wrapper uses the same `field`, `key`, and `childField` Binding shorthand, but it does not support `init.instances`. Create that occurrence with the exact registered `Binding.init({ key, args, toParentModel })`. Custom storage and other dynamic creation use the same operation. It returns a passive, noncallable recipe. Return it directly from `Composition.makeInit` or `Composition.makeUpdate`, or preserve it through a parent Definition's `makeStep` producer. The Composition callbacks interpret it directly. The recipe exposes no `.model` or `.commands`. The compiler checks exact key, args, parent Model, requirements, and Binding requirement. Steps evolve the Model in their declared order. Their Commands join the same execution batch, so collection order does not sequence their completion. During checked execution, runtime validation checks the active composition frame, schema-equivalent child placement, and exactly one requested keyed occurrence, but the available runtime metadata cannot reconstruct the TypeScript distinction among required, optional, defaulted, and rest initializer parameters. Startup stays inside the Composition boundary rather than adding a Runtime phase. Ordinary Model construction remains available.
 
@@ -195,7 +195,7 @@ When composing another update-shaped result, bind the whole result to a value na
 
 Pass optional Commands directly to APIs that accept them, such as `Command.mapMessages(homeInit.commands, toMessage)`. Use `result.commands ?? []` only when the next operation requires a concrete array for spreading, concatenating, execution, or an assertion.
 
-An authored update supports `update(model, message, ...context)` for Runtime dispatch and `update(message)(model, ...context)` as an internal Step. Put the local Message constructor directly under `operations` for a public operation that forwards its payload into that Message. Completion creates the callable operation without constructing a Message. A constructor with fields takes one constructor payload object followed by update context, with constructor defaults honored; an empty-fields constructor takes no payload placeholder. Keep a tuple producer under `operations` when public inputs need mapping, refinement, defaults, or an exact context tuple. Both forms pass the Message through update synchronously as part of the pure transition. Keep standalone Steps for internal Model transformations. Because `Update.combineSteps` accepts unary Steps, adapt an update with required dispatch context through an explicit unary function that supplies that context.
+An authored update supports `update(model, message, ...context)` for Runtime dispatch and `update(message)(model, ...context)` as an internal Step. Put the local Message constructor directly under `operations` for a public operation that forwards its payload into that Message. Assembly creates the callable operation without constructing a Message. A constructor with fields takes one constructor payload object followed by update context, with constructor defaults honored; an empty-fields constructor takes no payload placeholder. Keep a tuple producer under `operations` when public inputs need mapping, refinement, defaults, or an exact context tuple. Both forms pass the Message through update synchronously as part of the pure transition. Keep standalone Steps for internal Model transformations. Because `Update.combineSteps` accepts unary Steps, adapt an update with required dispatch context through an explicit unary function that supplies that context.
 
 Parent-facing operation names describe the communication: `requestCloseMenu` produces `Message.RequestedCloseMenu`, `informJoined` produces `Message.InformedOfJoin`, and `informRouteChanged` produces `Message.InformedOfRouteChange`. Use `request*` for actions and `inform*` for notifications. Both enter child update; avoid silent `reflect*` Model synchronization. Keep an actual UI fact separate when it represents a different event.
 
@@ -289,12 +289,12 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings,
 })
 
-const assemble = () =>
-  ApplicationComposition.assembleBlock({ init, update, view, EffectsLayer })
+const prepare = () =>
+  ApplicationComposition.prepareBlock({ init, update, view, EffectsLayer })
 const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 
 const program = Program.make({
   block: ApplicationBlock,
@@ -327,7 +327,7 @@ handle. The Runtime constructs handlers at startup and acquires each
 ManagedResource when its Model condition becomes active.
 
 Keep those responsibilities separate. Do not merge a registered child's Layer
-again at its parent or flatten every handler into the entry point. Completion
+again at its parent or flatten every handler into the entry point. Assembly
 and `program.provide(ApplicationLayer)` remain passive; the Runtime builds
 the graph once for each start and releases it when that run stops.
 
@@ -374,17 +374,17 @@ The view uses `h.OnMount(MeasurePanel())`. Put the Mount in `FeatureDefinition.m
 
 The owner-specific `FeatureViewBuilder` alias preserves its Composition's Message, child, and Mount evidence and creates no runtime value. Its owner prefix is the exception to the standard `Model`, `Message`, and `OutMessage` names because a plain builder type import must identify the Composition whose capabilities it carries. A helper shared across Compositions declares a `ParentMessage` generic and takes `h: HtmlBuilder<ParentMessage>`. Add a capability generic only when forwarding Mount attributes, view callbacks, or child embeddings requires preserving that capability.
 
-Complete each feature with its local Subscription registry. Include its parent-owned Binding in the parent Composition's `bindings`; composition collects child records and preserves their Message contracts automatically. Parent Subscription activation belongs in the Binding's `subscriptions.when` policy.
+Assemble each feature with its local Subscription registry. Include its parent-owned Binding in the parent Composition's `bindings`; composition collects child records and preserves their Message contracts automatically. Parent Subscription activation belongs in the Binding's `subscriptions.when` policy.
 
 ## The Block Pattern
 
 A Block gives one feature its own state machine and effect boundary. Define its
-contracts, fix its child and Mount graph in a named Composition, then complete
+contracts, fix its child and Mount graph in a named Composition, then assemble
 that same Composition as a passive Block. The parent integrates the completed
 Block through one registered Binding.
 
 Read [Block composition and Layers](../foldkit/references/composition.md) before
-creating or changing this graph. It provides the canonical three-stage shape
+creating or changing this graph. It provides the canonical four-stage shape
 and decision tables for:
 
 - choosing a view helper or Block;
@@ -576,12 +576,12 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
 })
 const ApplicationComposition = ApplicationDefinition.makeComposition()
 
-const assemble = () =>
-  ApplicationComposition.assembleBlock({ init, update, view })
+const prepare = () =>
+  ApplicationComposition.prepareBlock({ init, update, view })
 const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 
 const program = Program.make({
   block: ApplicationBlock,
@@ -604,12 +604,12 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [HomeBinding],
 })
 
-const assemble = () =>
-  ApplicationComposition.assembleBlock({ init, update, view })
+const prepare = () =>
+  ApplicationComposition.prepareBlock({ init, update, view })
 const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 
 const program = Program.make({
   block: ApplicationBlock,
@@ -626,12 +626,12 @@ const program = Program.make({
 `Program.make` owns the page and requires a root Block whose view returns a Document. `Program.makeElement` creates a container-scoped Program from a root Block whose view returns Html and has no routing config:
 
 ```ts
-const assemble = () =>
-  ApplicationComposition.assembleBlock({ init, update, view })
+const prepare = () =>
+  ApplicationComposition.prepareBlock({ init, update, view })
 const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 
 const program = Program.makeElement({
   block: ApplicationBlock,

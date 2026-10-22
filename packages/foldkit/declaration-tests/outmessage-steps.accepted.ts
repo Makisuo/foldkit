@@ -50,8 +50,8 @@ export const emitPrimitive = PrimitiveDefinition.makeOutMessageStep('Accepted')
 
 export const OutMessageStepsComposition =
   OutMessageStepsDefinition.makeComposition()
-const assemble = () =>
-  OutMessageStepsComposition.assembleBlock({
+const prepare = () =>
+  OutMessageStepsComposition.prepareBlock({
     init: OutMessageStepsComposition.makeInit(() => ({
       model: Model.make({ count: 0, status: 'Idle' }),
     })),
@@ -72,8 +72,8 @@ const assemble = () =>
   })
 export const OutMessageStepsBlock: Block.FromAssemblyWithOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 
 export const ParentModel = Schema.Struct({ child: Model })
 export const ParentOutMessage = MessageModule.defineMessageUnion({
@@ -104,8 +104,8 @@ export const ParentComposition = ParentDefinition.makeComposition({
   bindings: [ChildBinding.withOutMessagePolicy({ fold: foldChildOutMessage })],
 })
 export const makeParentBlock = () => {
-  const assemble = () =>
-    ParentComposition.assembleBlock({
+  const prepare = () =>
+    ParentComposition.prepareBlock({
       init: ParentComposition.makeInit(() => ({
         model: ParentModel.make({ child: { count: 0, status: 'Idle' } }),
       })),
@@ -113,8 +113,8 @@ export const makeParentBlock = () => {
     })
   const ParentBlock: Block.FromAssemblyWithOutMessage<
     typeof ParentModel,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
 
   return ParentBlock
 }

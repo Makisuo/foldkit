@@ -69,8 +69,8 @@ it('supports primitive Models without changing their value', () => {
 
 it('emits a derived OutMessage from an inferred Binding policy', () => {
   const SelectionComposition = SelectionDefinition.makeComposition()
-  const assembleSelection = () =>
-    SelectionComposition.assembleBlock({
+  const prepareSelection = () =>
+    SelectionComposition.prepareBlock({
       init: SelectionComposition.makeInit(() => ({ model: { count: 0 } })),
       update: SelectionComposition.makeUpdate((model, message) =>
         Message.match(message, {
@@ -84,8 +84,8 @@ it('emits a derived OutMessage from an inferred Binding policy', () => {
     })
   const SelectionBlock: Block.FromAssemblyWithOutMessage<
     typeof Model,
-    typeof assembleSelection
-  > = Block.complete(assembleSelection)
+    typeof prepareSelection
+  > = Block.assemble(prepareSelection)
   const ParentModel = Schema.Struct({ selection: SelectionBlock.Model })
   const ParentOutMessage = defineMessageUnion({
     Chose: { value: Schema.String },

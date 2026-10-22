@@ -83,19 +83,19 @@ it('retains handler completeness and ordinary Service requirements', () => {
 
   if (false) {
     // @ts-expect-error A Command-only Step still requires its handler Layer.
-    CommandsComposition.assembleBlock({ init, update })
+    CommandsComposition.prepareBlock({ init, update })
   }
 
-  const assembleBlock = () =>
-    CommandsComposition.assembleBlock({
+  const prepareBlock = () =>
+    CommandsComposition.prepareBlock({
       init,
       update,
       EffectsLayer: Save.layer,
     })
   const block: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof Model,
-    typeof assembleBlock
-  > = Block.complete(assembleBlock)
+    typeof prepareBlock
+  > = Block.assemble(prepareBlock)
   expectTypeOf<
     Layer.Services<typeof block.EffectsLayer>
   >().toEqualTypeOf<Store>()
@@ -109,15 +109,15 @@ it('retains registration obligations carried by a Command collection', () => {
     Model,
     Message: Schema.Never,
   }).makeComposition()
-  const assembleChildBlock = () =>
-    ChildComposition.assembleBlock({
+  const prepareChildBlock = () =>
+    ChildComposition.prepareBlock({
       init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
       update: ChildComposition.makeUpdate(),
     })
   const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof Model,
-    typeof assembleChildBlock
-  > = Block.complete(assembleChildBlock)
+    typeof prepareChildBlock
+  > = Block.assemble(prepareChildBlock)
   const ParentModel = Schema.Struct({ child: Model })
   const ParentDefinition = makeDefinition('CommandsStepIdentityParent', {
     Model: ParentModel,

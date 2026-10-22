@@ -164,8 +164,8 @@ const buildGraph = (
   const childView = childComposition.makeView((model, h) =>
     h.div([h.OnMount(ObservePanel())], [`child:${model.id}`]),
   )
-  const assembleChild = () =>
-    childComposition.assembleBlock({
+  const prepareChild = () =>
+    childComposition.prepareBlock({
       view: childView,
       init: () => ({ model: ChildModel.make({ id: 'one' }) }),
       update: (model, message) =>
@@ -185,8 +185,8 @@ const buildGraph = (
     })
   const Child: Block.FromAssemblyWithView<
     typeof ChildModel,
-    typeof assembleChild
-  > = Block.complete(assembleChild)
+    typeof prepareChild
+  > = Block.assemble(prepareChild)
 
   const ParentModel = Schema.Struct({
     maybeChild: Schema.Option(ChildModel),
@@ -278,8 +278,8 @@ it.each(['Option', 'Route'] as const)(
     container.id = 'block-lifecycle-test'
     document.body.appendChild(container)
 
-    const assemble = () =>
-      composition.assembleBlock({
+    const prepare = () =>
+      composition.prepareBlock({
         init,
         update,
         view,
@@ -287,8 +287,8 @@ it.each(['Option', 'Route'] as const)(
       })
     const completedBlock: Block.FromAssemblyWithView<
       typeof composition.Model,
-      typeof assemble
-    > = Block.complete(assemble)
+      typeof prepare
+    > = Block.assemble(prepare)
 
     const provided = Program.makeElement({
       block: completedBlock,
@@ -365,16 +365,16 @@ it('gates only Subscription Streams while the direct-field child remains present
   const container = document.createElement('div')
   container.id = 'block-subscription-only-lifecycle-test'
   document.body.appendChild(container)
-  const assemble = () =>
-    composition.assembleBlock({
+  const prepare = () =>
+    composition.prepareBlock({
       init,
       update,
       view,
     })
   const completedBlock: Block.FromAssemblyWithView<
     typeof composition.Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
 
   const application = Program.makeElement({
     block: completedBlock,

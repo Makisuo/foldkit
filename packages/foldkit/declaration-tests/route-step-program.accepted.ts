@@ -207,8 +207,8 @@ export const ReadValue = ChildDefinition.makeCommand('ReadValue', {
   },
 })
 export const ChildComposition = ChildDefinition.makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: ChildComposition.makeInit(() => ({ model: { value: '' } })),
     update: ChildComposition.makeUpdate((model, message) =>
       ChildMessage.match(message, {
@@ -223,8 +223,8 @@ const assembleChildBlock = () =>
   })
 export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 export const ParentModel = Schema.Struct({ child: ChildModel })
 export const ParentMessage = Message.defineMessageUnion({
@@ -261,8 +261,8 @@ export const parentUpdate = ParentComposition.makeUpdate((model, message) =>
     RequestedApplyRoutePolicy: () => connectedStep(model),
   }),
 )
-const assembleParentBlock = () =>
-  ParentComposition.assembleBlock({
+const prepareParentBlock = () =>
+  ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() => ({
       model: { child: { value: '' } },
     })),
@@ -271,8 +271,8 @@ const assembleParentBlock = () =>
   })
 export const ParentBlock: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assembleParentBlock
-> = Block.complete(assembleParentBlock)
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 export const connectedProgram = Program.makeElement({
   block: ParentBlock,
   container: document.createElement('div'),

@@ -26,8 +26,8 @@ const applicationView = ApplicationComposition.makeView(
 
 const EffectsLayer = Layer.empty
 
-const assembleElement = () =>
-  ApplicationComposition.assembleBlock({
+const prepareElement = () =>
+  ApplicationComposition.prepareBlock({
     init,
     update,
     EffectsLayer,
@@ -35,11 +35,11 @@ const assembleElement = () =>
   })
 const ElementBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleElement
-> = Block.complete(assembleElement)
+  typeof prepareElement
+> = Block.assemble(prepareElement)
 
-const assembleApplication = () =>
-  ApplicationComposition.assembleBlock({
+const prepareApplication = () =>
+  ApplicationComposition.prepareBlock({
     init,
     update,
     EffectsLayer,
@@ -47,8 +47,8 @@ const assembleApplication = () =>
   })
 const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleApplication
-> = Block.complete(assembleApplication)
+  typeof prepareApplication
+> = Block.assemble(prepareApplication)
 
 export const makeInferredElement = (container: HTMLElement) =>
   Program.makeElement({

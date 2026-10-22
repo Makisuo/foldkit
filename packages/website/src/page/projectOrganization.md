@@ -10,10 +10,10 @@ Keep these ownership boundaries visible as the application grows:
 | ----------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
 | Definition  | `definition.ts`, or the top of `composition.ts` when unnamed | Early Model, Message, OutMessage, ChildInitContext, Command, lifecycle, and Step contracts |
 | Composition | `composition.ts` or `composition/`                           | Parent-owned Bindings, Mount registrations, and graph-aware authoring                      |
-| Completion  | `block.ts` or compact `application.ts`                       | Produces an unfinished assembly and finishes it as a completed Block                       |
+| Assembly    | `block.ts` or compact `application.ts`                       | Produces an opaque draft and assembles it as a completed Block                             |
 | Host        | `entry.ts`                                                   | Chooses page or element ownership, supplies Services, and starts Runtime                   |
 
-`makeBinding` configures one parent-child relationship. A child with OutMessages then selects its parent-owned policy through `withOutMessagePolicy`. Including that full Binding in `makeComposition({ bindings })` registers it. These calls and `assembleBlock` are passive: they do not build Layers, run handlers, or start lifecycle work. `Program.make` or `Program.makeElement` adds host behavior without starting anything. A browser Runtime builds Layers, calls init, and starts effects after the entry starts it.
+`makeBinding` configures one parent-child relationship. A child with OutMessages then selects its parent-owned policy through `withOutMessagePolicy`. Including that full Binding in `makeComposition({ bindings })` registers it. These calls and `prepareBlock` are passive: they do not build Layers, run handlers, or start lifecycle work. `Program.make` or `Program.makeElement` adds host behavior without starting anything. A browser Runtime builds Layers, calls init, and starts effects after the entry starts it.
 
 ## Starting Simple
 
@@ -57,7 +57,7 @@ For a split feature, `composition.ts` owns its child Bindings, complete child an
 
 An update can import `CounterBinding` to invoke its operations. Generated child envelopes route through the Binding automatically. The view imports `DashboardComposition`. Including `CounterBinding` under `bindings` also includes the completed child's handler graph and lifecycle declarations.
 
-`block.ts` imports the Composition, init, update, view, and local `EffectsLayer`, returns `DashboardComposition.assembleBlock(...)` from its private producer, then calls `Block.complete(assemble)`. Its explicit `index.ts` exports the completed `DashboardBlock` with the checked producer/header boundary; parent Schemas use `DashboardBlock.Model`. Shared domain Schemas and selectors have a separate `domain/` barrel. Internal implementation files do not import their own completed barrel.
+`block.ts` imports the Composition, init, update, view, and local `EffectsLayer`, returns `DashboardComposition.prepareBlock(...)` from its private producer, then calls `Block.assemble(prepare)`. Its explicit `index.ts` exports the completed `DashboardBlock` with the checked producer/header boundary; parent Schemas use `DashboardBlock.Model`. Shared domain Schemas and selectors have a separate `domain/` barrel. Internal implementation files do not import their own completed barrel.
 
 ### A Feature with Mounts Only
 
@@ -123,7 +123,7 @@ Foldkit handlers and ordinary application Services solve different problems. A C
 
 Keep canonical handlers attached to their Command, Subscription, Mount, and ManagedResource definitions. Compose attached recipes such as `LoadProducts.layer` in the feature's local `EffectsLayer`. Name a standalone `LoadProductsLayer` only when that individual provider is intentionally public or independently reused, and an external alternative `LoadProductsTestLayer`.
 
-Compose a small local bundle in `block.ts`. Extract `layer.ts` when the composition is substantial or independently reused. Pass the local bundle to `FeatureComposition.assembleBlock`. A feature can provide business services that it owns while leaving HTTP, storage, RPC, and browser providers open for the root.
+Compose a small local bundle in `block.ts`. Extract `layer.ts` when the composition is substantial or independently reused. Pass the local bundle to `FeatureComposition.prepareBlock`. A feature can provide business services that it owns while leaving HTTP, storage, RPC, and browser providers open for the root.
 
 ::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}
 
@@ -203,7 +203,7 @@ Consumers use `Products.ProductsBlock.Model` when composing parent Model Schemas
 
 Reading `ProductsBlock.Model` from an inferred source Block can make TypeScript resolve init, update, views and the child graph before checking the parent Schema. An explicit export header gives the completed value a directly named Model member while preserving its checked implementation contract.
 
-::Snippet{name="blockFeatureExports" label="A checked assembly producer and export header"}
+::Snippet{name="blockFeatureExports" label="A checked preparation producer and export header"}
 
 Choose the helper from the Definition's declared OutMessage and the assembled view:
 
@@ -214,7 +214,7 @@ Choose the helper from the Definition's declared OutMessage and the assembled vi
 | No             | Yes                 | `Block.FromAssemblyWithOutMessage`          |
 | No             | No                  | `Block.FromAssemblyWithoutViewOrOutMessage` |
 
-Each helper takes `typeof Model` and `typeof assemble`. Name the single private zero-argument producer `assemble`, and put the checked export immediately after it with no blank line. Initialize it with `Block.complete(assemble)`. Use a descriptive producer name only when one file genuinely contains multiple assembly producers. The four helper names keep the view and OutMessage shapes explicit; there is no unified `FromAssembly` helper. The longer annotation gives TypeScript a direct Model member without making a parent infer the whole source implementation merely to read its Schema. The producer infers the unfinished assembly, and the helper checks the exact completed contract and Model Schema at the finisher. A cast, broad Block annotation, `satisfies`, raw producer invocation, or annotation without the matching `Block.complete` call does not establish this boundary.
+Each helper takes `typeof Model` and `typeof prepare`. Name the single private zero-argument producer `prepare`, and put the checked export immediately after it with no blank line. Initialize it with `Block.assemble(prepare)`. Use a descriptive producer name only when one file genuinely contains multiple preparation producers. The four helper names keep the view and OutMessage shapes explicit; there is no unified `FromAssembly` helper. The longer annotation gives TypeScript a direct Model member without making a parent infer the whole source implementation merely to read its Schema. The producer infers the opaque draft, and the helper checks the exact completed contract and Model Schema at the assembly boundary. A cast, broad Block annotation, `satisfies`, raw producer invocation, or annotation without the matching `Block.assemble` call does not establish this boundary.
 
 `provideHandlers` and `replaceEffectsLayer` preserve completed Blocks, but the Schema performance lint exemption does not extend to their full return contracts. Use the original checked `ChildBlock.Model` in the parent Schema and apply handler changes when creating its Binding. Both methods preserve the same Model Schema.
 
@@ -224,7 +224,7 @@ Parents can use the checked completed Block's Model directly; the feature barrel
 
 ::Snippet{name="parentSchemaGuardedModel" label="✅ Parent Schema through a checked Block boundary"}
 
-The recommended `foldkit/no-completed-block-model-in-schema` rule follows proven Foldkit assemblies, immutable aliases and nested Schema wrappers. It accepts the four actual helper imports with an exact declaration annotation, matching zero-argument producer and `Block.complete` finisher. A cast, `satisfies`, helper-shaped name or unannotated producer is insufficient. Ordinary `.Model` access, decoders and `typeof ChildBlock.Model.Type` annotations remain allowed.
+The recommended `foldkit/no-completed-block-model-in-schema` rule follows proven Foldkit assemblies, immutable aliases and nested Schema wrappers. It accepts the four actual helper imports with an exact declaration annotation, matching zero-argument producer and `Block.assemble` finisher. A cast, `satisfies`, helper-shaped name or unannotated producer is insufficient. Ordinary `.Model` access, decoders and `typeof ChildBlock.Model.Type` annotations remain allowed.
 
 This is a performance guardrail. It does not replace compiler checking or establish a response-time bound. The lint exemption is deliberately narrower than TypeScript: helper type aliases and reexport barrels, imported producer functions, arbitrary factories and dynamic aliases are outside its recognized boundary. Import the helper directly from `foldkit` or `foldkit/block` and keep the producer beside the completed export. Published generic UI contracts remain separate from this ordinary source authoring pattern.
 

@@ -220,8 +220,8 @@ const FinishInitialization = Child.makeCommand('FinishInitialization', {
       Effect.succeed(ChildMessage.CompletedInitialization({ count }))
   },
 })
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: ChildComposition.makeInit((count: number) => ({
       model: ChildModel.make({ count }),
       commands: [FinishInitialization({ count })],
@@ -244,8 +244,8 @@ const assembleChildBlock = () =>
   })
 const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 const ParentMessage = defineMessageUnion({
   IgnoredChildMessage: {},
   RequestedSetCount: { id: Schema.String, count: Schema.Number },
@@ -260,8 +260,8 @@ const ChildBinding = Parent.makeBinding(ChildBlock, {
   childField: 'child',
 })
 const ParentComposition = Parent.makeComposition({ bindings: [ChildBinding] })
-const assembleParentBlock = () =>
-  ParentComposition.assembleBlock({
+const prepareParentBlock = () =>
+  ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() => ({ model: noneModel })),
     update: ParentComposition.makeUpdate((model, message) =>
       ParentMessage.match(message, {
@@ -277,8 +277,8 @@ const assembleParentBlock = () =>
   })
 const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleParentBlock
-> = Block.complete(assembleParentBlock)
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 
 it('infers the wrapper key and keeps the child Block identity as placement', () => {
   expectTypeOf(

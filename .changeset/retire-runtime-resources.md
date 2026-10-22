@@ -2,7 +2,7 @@
 'foldkit': minor
 ---
 
-Remove `Runtime.makeApplication` and `Runtime.makeElement`, including their `resources` configuration field. Create the root through `Block.makeDefinition('Application', { Model, Message })`, then create `ApplicationComposition` with `makeComposition(...)` and assemble `ApplicationBlock` with `assembleBlock(...)`. Retain `ApplicationDefinition` as a named value when its authoring methods are used; when its only use is `makeComposition`, chain both top-level calls directly. Create the host through `Program.make` or `Program.makeElement`, then supply application-lifetime Services through `program.provide(layer)` before calling `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed`.
+Remove `Runtime.makeApplication` and `Runtime.makeElement`, including their `resources` configuration field. Create the root through `Block.makeDefinition('Application', { Model, Message })`, then create `ApplicationComposition` with `makeComposition(...)`, prepare its implementation with `prepareBlock(...)`, and assemble `ApplicationBlock` with `Block.assemble(prepare)`. Retain `ApplicationDefinition` as a named value when its authoring methods are used; when its only use is `makeComposition`, chain both top-level calls directly. Create the host through `Program.make` or `Program.makeElement`, then supply application-lifetime Services through `program.provide(layer)` before calling `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed`.
 
 The Block and Program methods are factories: they return passive values and do not execute application behavior. Only the Runtime starts the Program.
 

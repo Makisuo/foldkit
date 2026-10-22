@@ -9,9 +9,9 @@ import {
 
 const Model = Schema.Struct({ count: Schema.Number })
 const Composition = Block.makeDefinition('Child', { Model }).makeComposition()
-const assemble = () => Composition.assembleBlock({})
-const Raw = Block.complete(assemble)
-const Safe: Block.FromAssemblyWithoutViewOrOutMessage<typeof Model, typeof assemble> = Block.complete(assemble)
+const prepare = () => Composition.prepareBlock({})
+const Raw = Block.assemble(prepare)
+const Safe: Block.FromAssemblyWithoutViewOrOutMessage<typeof Model, typeof prepare> = Block.assemble(prepare)
 const RawProvided = Raw.provideHandlers(Layer.empty)
 const RawReplaced = Raw.replaceEffectsLayer(Layer.empty)
 const SafeProvided = Safe.provideHandlers(Layer.empty)

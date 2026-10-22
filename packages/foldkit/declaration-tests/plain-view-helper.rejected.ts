@@ -54,7 +54,7 @@ const helperWithForeignMessage = (h: OmittedParentViewBuilder) =>
 // @ts-expect-error Composition no longer carries a render helper.
 OmittedParentComposition.render
 
-DeclarationViewHelperChildComposition.assembleBlock({
+DeclarationViewHelperChildComposition.prepareBlock({
   init: DeclarationViewHelperChildComposition.makeInit(() => ({
     model: ChildModel.make({ value: 'initial' }),
   })),
@@ -114,7 +114,7 @@ const applicationHelperWithOmittedMount = (h: OmittedApplicationViewBuilder) =>
 // @ts-expect-error Application Composition no longer carries a render helper.
 ApplicationComposition.render
 
-ApplicationComposition.assembleBlock({
+ApplicationComposition.prepareBlock({
   init: ApplicationComposition.makeInit(() => ({
     model: ParentModel.make({
       child: ChildModel.make({ value: 'initial' }),

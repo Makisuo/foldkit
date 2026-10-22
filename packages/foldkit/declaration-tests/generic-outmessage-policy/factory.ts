@@ -32,8 +32,8 @@ export const makeSelectionFeature = <Item extends string, ItemEncoded>(
     OutMessage: SelectionOutMessage,
   })
   const SelectionComposition = SelectionDefinition.makeComposition()
-  const assembleSelectionBlock = () =>
-    SelectionComposition.assembleBlock({
+  const prepareSelectionBlock = () =>
+    SelectionComposition.prepareBlock({
       init: SelectionComposition.makeInit(() => ({
         model: SelectionModel.make({ selections: 0 }),
       })),
@@ -56,8 +56,8 @@ export const makeSelectionFeature = <Item extends string, ItemEncoded>(
     })
   const SelectionBlock: Block.FromAssemblyWithOutMessage<
     typeof SelectionModel,
-    typeof assembleSelectionBlock
-  > = Block.complete(assembleSelectionBlock)
+    typeof prepareSelectionBlock
+  > = Block.assemble(prepareSelectionBlock)
 
   const Model = Schema.Struct({
     selection: SelectionBlock.Model,
@@ -136,8 +136,8 @@ export const makeSelectionFeature = <Item extends string, ItemEncoded>(
       CompletedRecordSelection: () => ({ model }),
     }),
   )
-  const assembleBlock = () =>
-    Composition.assembleBlock({
+  const prepareBlock = () =>
+    Composition.prepareBlock({
       init,
       update,
       operations: {
@@ -148,8 +148,8 @@ export const makeSelectionFeature = <Item extends string, ItemEncoded>(
     })
   const block: Block.FromAssemblyWithOutMessage<
     typeof Model,
-    typeof assembleBlock
-  > = Block.complete(assembleBlock)
+    typeof prepareBlock
+  > = Block.assemble(prepareBlock)
 
   return {
     Model,

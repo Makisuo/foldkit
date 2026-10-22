@@ -233,15 +233,15 @@ describe('DragAndDrop.test Binding selection', () => {
   })
 })
 
-const assemble = () =>
-  DragAndDropTestParentComposition.assembleBlock({
+const prepare = () =>
+  DragAndDropTestParentComposition.prepareBlock({
     init: () => ({ model: initialModel }),
     update,
   })
 const NestedParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 
 const NestedSlot = Schema.Struct({
   key: Schema.String,

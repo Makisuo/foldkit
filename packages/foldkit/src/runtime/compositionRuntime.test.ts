@@ -86,8 +86,8 @@ const childManagedResources = ChildDefinition.makeManagedResources(entry => ({
   }),
 }))
 const childComposition = ChildDefinition.makeComposition()
-const assembleChildBlock = () =>
-  childComposition.assembleBlock({
+const prepareChildBlock = () =>
+  childComposition.prepareBlock({
     init: (id: number) => ({ model: { id } }),
     update: childComposition.makeUpdate(model => ({ model })),
     subscriptions,
@@ -99,8 +99,8 @@ const assembleChildBlock = () =>
   })
 const childBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 const RootNamespace = makeNamespace('LifecycleApp')
 const RootValue = RootNamespace.makeResource<string>()('Value')
 const RootModel = Schema.Struct({
@@ -157,8 +157,8 @@ const initialModel = RootModel.make({
   entries: [],
   subscriptionState: 'Active',
 })
-const assembleBlock = () =>
-  root.assembleBlock({
+const prepareBlock = () =>
+  root.prepareBlock({
     init: () => ({ model: initialModel }),
     update: root.makeUpdate(model => ({ model })),
     managedResources: rootManagedResources,
@@ -166,8 +166,8 @@ const assembleBlock = () =>
   })
 const block: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof RootModel,
-  typeof assembleBlock
-> = Block.complete(assembleBlock)
+  typeof prepareBlock
+> = Block.assemble(prepareBlock)
 
 const NestedParentNamespace = makeNamespace('NestedLifecycleParent')
 const NestedParentModel = Schema.Struct({
@@ -197,8 +197,8 @@ const NestedEntriesBinding = NestedParentBaseDefinition.makeBinding(
 const nestedParent = NestedParentBaseDefinition.makeComposition({
   bindings: [NestedEntriesBinding],
 })
-const assembleNestedParentBlock = () =>
-  nestedParent.assembleBlock({
+const prepareNestedParentBlock = () =>
+  nestedParent.prepareBlock({
     init: (id: number, entries: ReadonlyArray<typeof ChildModel.Type>) => ({
       model: { id, entries },
     }),
@@ -207,8 +207,8 @@ const assembleNestedParentBlock = () =>
   })
 const nestedParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof NestedParentModel,
-  typeof assembleNestedParentBlock
-> = Block.complete(assembleNestedParentBlock)
+  typeof prepareNestedParentBlock
+> = Block.assemble(prepareNestedParentBlock)
 const NestedRootNamespace = makeNamespace('NestedLifecycleApp')
 const NestedRootModel = Schema.Struct({
   parents: Schema.Array(NestedParentModel),
@@ -239,16 +239,16 @@ const nestedRoot = NestedRootBaseDefinition.makeComposition({
 const nestedInitialModel = NestedRootModel.make({
   parents: [{ id: 1, entries: [{ id: 10 }] }],
 })
-const assembleNestedBlock = () =>
-  nestedRoot.assembleBlock({
+const prepareNestedBlock = () =>
+  nestedRoot.prepareBlock({
     init: () => ({ model: nestedInitialModel }),
     update: nestedRoot.makeUpdate(),
     EffectsLayer: Layer.empty,
   })
 const nestedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof NestedRootModel,
-  typeof assembleNestedBlock
-> = Block.complete(assembleNestedBlock)
+  typeof prepareNestedBlock
+> = Block.assemble(prepareNestedBlock)
 
 registerGeneratedDelivery(
   OptionalChildBinding,

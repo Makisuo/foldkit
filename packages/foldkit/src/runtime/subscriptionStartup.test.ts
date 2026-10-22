@@ -58,8 +58,8 @@ describe('Subscription startup supervision', () => {
     }))
     const ApplicationComposition = ApplicationDefinition.makeComposition()
 
-    const assemble = () =>
-      ApplicationComposition.assembleBlock({
+    const prepare = () =>
+      ApplicationComposition.prepareBlock({
         init: () => ({ model: { count: 0 } }),
         update: ApplicationComposition.makeUpdate(model => ({ model })),
         view: ApplicationComposition.makeView((_model, h) =>
@@ -70,8 +70,8 @@ describe('Subscription startup supervision', () => {
       })
     const completedBlock: Block.FromAssemblyWithView<
       typeof Model,
-      typeof assemble
-    > = Block.complete(assemble)
+      typeof prepare
+    > = Block.assemble(prepare)
     const application = Program.makeElement({
       block: completedBlock,
       container,
@@ -124,8 +124,8 @@ describe('Subscription startup supervision', () => {
       ),
     }))
     const ChildComposition = ChildDefinition.makeComposition()
-    const assembleBlock = () =>
-      ChildComposition.assembleBlock({
+    const prepareBlock = () =>
+      ChildComposition.prepareBlock({
         init: () => ({ model: { count: 0 } }),
         update: ChildComposition.makeUpdate(model => ({ model })),
         subscriptions,
@@ -133,8 +133,8 @@ describe('Subscription startup supervision', () => {
       })
     const block: Block.FromAssemblyWithoutViewOrOutMessage<
       typeof ChildModel,
-      typeof assembleBlock
-    > = Block.complete(assembleBlock)
+      typeof prepareBlock
+    > = Block.assemble(prepareBlock)
     const Model = Schema.Struct({ maybeChild: Schema.Option(ChildModel) })
     const Message = defineMessageUnion({
       ClickedActivateChild: {},
@@ -153,8 +153,8 @@ describe('Subscription startup supervision', () => {
     })
     const report = vi.fn()
 
-    const assemble = () =>
-      ApplicationComposition.assembleBlock({
+    const prepare = () =>
+      ApplicationComposition.prepareBlock({
         init: () => ({ model: { maybeChild: Option.none() } }),
         update: ApplicationComposition.makeUpdate((model, message) =>
           Message.match(message, {
@@ -177,8 +177,8 @@ describe('Subscription startup supervision', () => {
       })
     const completedBlock: Block.FromAssemblyWithView<
       typeof Model,
-      typeof assemble
-    > = Block.complete(assemble)
+      typeof prepare
+    > = Block.assemble(prepare)
     const application = Program.makeElement({
       block: completedBlock,
       container,

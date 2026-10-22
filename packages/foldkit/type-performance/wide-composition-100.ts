@@ -61,8 +61,8 @@ const runLeaf = TypePerformanceWideLeafDefinition.makeStep(model => ({
 }))
 const TypePerformanceWideLeafComposition =
   TypePerformanceWideLeafDefinition.makeComposition()
-const assembleLeaf = () =>
-  TypePerformanceWideLeafComposition.assembleBlock({
+const prepareLeaf = () =>
+  TypePerformanceWideLeafComposition.prepareBlock({
     init: TypePerformanceWideLeafComposition.makeInit(() => ({
       model: LeafModel.make({ value: 0 }),
     })),
@@ -79,8 +79,8 @@ const assembleLeaf = () =>
   })
 const Leaf: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof LeafModel,
-  typeof assembleLeaf
-> = Block.complete(assembleLeaf)
+  typeof prepareLeaf
+> = Block.assemble(prepareLeaf)
 
 const ApplicationModel = Schema.Struct({ leaf: LeafModel })
 type ApplicationModel = typeof ApplicationModel.Type
@@ -800,8 +800,8 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
 const update = ApplicationComposition.makeUpdate()
 const view = ApplicationComposition.makeView((_model, h) => h.main([]))
 
-const assembleApplicationBlock = () =>
-  ApplicationComposition.assembleBlock({
+const prepareApplicationBlock = () =>
+  ApplicationComposition.prepareBlock({
     init: ApplicationComposition.makeInit(() => ({
       model: ApplicationModel.make({ leaf: LeafModel.make({ value: 0 }) }),
     })),
@@ -811,8 +811,8 @@ const assembleApplicationBlock = () =>
   })
 export const ApplicationBlock: Block.FromAssemblyWithView<
   typeof ApplicationModel,
-  typeof assembleApplicationBlock
-> = Block.complete(assembleApplicationBlock)
+  typeof prepareApplicationBlock
+> = Block.assemble(prepareApplicationBlock)
 
 export const program = Program.makeElement({
   block: ApplicationBlock,

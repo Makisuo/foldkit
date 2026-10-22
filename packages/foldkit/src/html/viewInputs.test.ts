@@ -214,8 +214,8 @@ const makeGenericView = <Item>() =>
 const makeGenericBlock = <Item>() => {
   const view = makeGenericView<Item>()
 
-  const assemble = () =>
-    GenericViewInputsComposition.assembleBlock({
+  const prepare = () =>
+    GenericViewInputsComposition.prepareBlock({
       init: () => ({ model: ViewInputsModel.make({ id: 'child' }) }),
       update: GenericViewInputsComposition.makeUpdate(model => ({ model })),
       view,
@@ -224,8 +224,8 @@ const makeGenericBlock = <Item>() => {
     })
   const completedBlock: Block.FromAssemblyWithView<
     typeof ViewInputsModel,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
   return completedBlock
 }
 

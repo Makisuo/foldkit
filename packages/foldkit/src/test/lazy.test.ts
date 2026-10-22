@@ -84,16 +84,14 @@ describe('Lazy.expectAllReused', () => {
     const childView = ChildComposition.makeView((model, h) =>
       h.div([], [lazyTitle(titleView, [model.title])]),
     )
-    const assembleChild = () =>
-      ChildComposition.assembleBlock({
+    const prepareChild = () =>
+      ChildComposition.prepareBlock({
         init: ChildComposition.makeInit(() => ({ model })),
         update: ChildComposition.makeUpdate(),
         view: childView,
       })
-    const child: Block.FromAssemblyWithView<
-      typeof Model,
-      typeof assembleChild
-    > = Block.complete(assembleChild)
+    const child: Block.FromAssemblyWithView<typeof Model, typeof prepareChild> =
+      Block.assemble(prepareChild)
     const ParentModel = Schema.Struct({ child: Model })
     const ParentDefinition = makeDefinition('LazyAssertionParent', {
       Model: ParentModel,

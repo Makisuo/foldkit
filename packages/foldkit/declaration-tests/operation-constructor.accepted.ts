@@ -110,8 +110,8 @@ export const EffectsLayer = Layer.merge(
   ),
 )
 
-const assembleChildBlock = () =>
-  OperationConstructorProofChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  OperationConstructorProofChildComposition.prepareBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update,
     operations: {
@@ -134,8 +134,8 @@ const assembleChildBlock = () =>
   })
 export const ChildBlock: Block.FromAssemblyWithOutMessage<
   typeof Model,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 export const ParentModel = Schema.Struct({
   maybeChild: Schema.Option(Model),
@@ -199,8 +199,8 @@ export const OperationConstructorProofParentComposition =
     bindings: [ChildBinding, EntryBinding],
   })
 
-const assembleParentBlock = () =>
-  OperationConstructorProofParentComposition.assembleBlock({
+const prepareParentBlock = () =>
+  OperationConstructorProofParentComposition.prepareBlock({
     init: () => ({
       model: ParentModel.make({ maybeChild: Option.none(), entries: [] }),
     }),
@@ -229,8 +229,8 @@ const assembleParentBlock = () =>
   })
 export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleParentBlock
-> = Block.complete(assembleParentBlock)
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 
 export function makeChoice<
   const Values extends readonly [string, ...Array<string>],
@@ -248,8 +248,8 @@ export function makeChoice<
   ).makeComposition()
   const select = ChoiceMessage.SelectedValue
 
-  const assemble = () =>
-    OperationConstructorProofChoiceComposition.assembleBlock({
+  const prepare = () =>
+    OperationConstructorProofChoiceComposition.prepareBlock({
       init: (selected: Values[number]) => ({
         model: ChoiceModel.make({ selected }),
       }),
@@ -267,8 +267,8 @@ export function makeChoice<
     })
   const completedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof ChoiceModel,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
   return completedBlock
 }
 
@@ -413,8 +413,8 @@ export const makeNamed = <const Name extends string>(name: Name) => {
     Message,
   }).makeComposition()
 
-  const assemble = () =>
-    NamedComposition.assembleBlock({
+  const prepare = () =>
+    NamedComposition.prepareBlock({
       init: () => ({ model: Model.make({ value: '' }) }),
       update: NamedComposition.makeUpdate(model => ({ model })),
       operations: {
@@ -423,7 +423,7 @@ export const makeNamed = <const Name extends string>(name: Name) => {
     })
   const completedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
   return completedBlock
 }

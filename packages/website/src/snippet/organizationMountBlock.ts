@@ -9,8 +9,8 @@ import { view } from './view'
 
 export const EffectsLayer = MeasurePanel.layer
 
-const assemble = () =>
-  PanelComposition.assembleBlock({
+const prepare = () =>
+  PanelComposition.prepareBlock({
     init,
     update,
     view,
@@ -18,5 +18,5 @@ const assemble = () =>
   })
 export const PanelBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

@@ -23,8 +23,8 @@ const reset = ResetCounter.makeStep(model => ({
   outMessage: CounterOutMessage.Reset(),
 }))
 const ResetCounterComposition = ResetCounter.makeComposition()
-const assembleBlock = () =>
-  ResetCounterComposition.assembleBlock({
+const prepareBlock = () =>
+  ResetCounterComposition.prepareBlock({
     init: (count: number) => ({ model: CounterModel.make({ count }) }),
     update: ResetCounterComposition.makeUpdate((model, _message) =>
       reset(model),
@@ -34,8 +34,8 @@ const assembleBlock = () =>
   })
 const block: Block.FromAssemblyWithOutMessage<
   typeof CounterModel,
-  typeof assembleBlock
-> = Block.complete(assembleBlock)
+  typeof prepareBlock
+> = Block.assemble(prepareBlock)
 const Model = Schema.Struct({
   counter: CounterModel,
   entries: Schema.Array(
@@ -157,8 +157,8 @@ const multiply = SequencedCounter.makeStep((model, factor: number) => ({
   model: modifyFields(model, { count: count => count * factor }),
 }))
 const SequencedCounterComposition = SequencedCounter.makeComposition()
-const assembleSequencedCounterBlock = () =>
-  SequencedCounterComposition.assembleBlock({
+const prepareSequencedCounterBlock = () =>
+  SequencedCounterComposition.prepareBlock({
     init: (count: number) => ({ model: { count } }),
     update: SequencedCounterComposition.makeUpdate((model, message) =>
       SequencedCounterMessage.match(message, {
@@ -180,8 +180,8 @@ const assembleSequencedCounterBlock = () =>
   })
 const sequencedCounterBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof SequencedCounterModel,
-  typeof assembleSequencedCounterBlock
-> = Block.complete(assembleSequencedCounterBlock)
+  typeof prepareSequencedCounterBlock
+> = Block.assemble(prepareSequencedCounterBlock)
 const SequencedParentModel = Schema.Struct({ child: SequencedCounterModel })
 const SequencedParentMessage = defineMessageUnion({
   RequestedSequence: {},
@@ -327,8 +327,8 @@ if (false) {
 const StaticComposition = Parent.makeComposition({
   bindings: [BoundCounterBinding, EntriesBinding],
 })
-const assembleStaticParent = () =>
-  StaticComposition.assembleBlock({
+const prepareStaticParent = () =>
+  StaticComposition.prepareBlock({
     init: () => ({ model: initialModel }),
     update: StaticComposition.makeUpdate((model, message) =>
       Message.match(message, {
@@ -340,13 +340,13 @@ const assembleStaticParent = () =>
   })
 const staticParent: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleStaticParent
-> = Block.complete(assembleStaticParent)
+  typeof prepareStaticParent
+> = Block.assemble(prepareStaticParent)
 const KeyedComposition = Parent.makeComposition({
   bindings: [BoundCounterBinding, EntriesBinding],
 })
-const assembleKeyedParent = () =>
-  KeyedComposition.assembleBlock({
+const prepareKeyedParent = () =>
+  KeyedComposition.prepareBlock({
     init: () => ({ model: initialModel }),
     update: KeyedComposition.makeUpdate((model, message) =>
       Message.match(message, {
@@ -360,8 +360,8 @@ const assembleKeyedParent = () =>
   })
 const keyedParent: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleKeyedParent
-> = Block.complete(assembleKeyedParent)
+  typeof prepareKeyedParent
+> = Block.assemble(prepareKeyedParent)
 
 describe('bound OutMessage context', () => {
   it('preserves the previous parent Model for static folds and exposed operations', () => {

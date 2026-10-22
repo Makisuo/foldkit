@@ -219,7 +219,7 @@ export function assertProgramConfig(
   for (const field of blockImplementationFields) {
     if (field in config) {
       throw new Error(
-        `[foldkit] Program configuration cannot supply Block implementation field "${field}". Assemble it with Composition.assembleBlock and Block.complete first, then pass the completed result as block.`,
+        `[foldkit] Program configuration cannot supply Block implementation field "${field}". Assemble it with Composition.prepareBlock and Block.assemble first, then pass the completed result as block.`,
       )
     }
   }
@@ -307,7 +307,7 @@ export function assertProgramConfig(
     !Array.isArray(Reflect.get(block, 'hostHandlers'))
   ) {
     throw new Error(
-      '[foldkit] Program block must be completed with Block.complete(assemble) under its FromAssembly export annotation.',
+      '[foldkit] Program block must be completed with Block.assemble(prepare) under its FromAssembly export annotation.',
     )
   }
 

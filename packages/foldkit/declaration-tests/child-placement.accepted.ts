@@ -12,8 +12,8 @@ const DeclarationChildPlacementChildComposition = Block.makeDefinition(
   },
 ).makeComposition()
 
-const assembleChildBlock = () =>
-  DeclarationChildPlacementChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  DeclarationChildPlacementChildComposition.prepareBlock({
     init: DeclarationChildPlacementChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: '' }),
     })),
@@ -21,8 +21,8 @@ const assembleChildBlock = () =>
   })
 export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const Entry = Schema.Struct({
   id: Schema.String,

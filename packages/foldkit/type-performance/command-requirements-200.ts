@@ -2055,8 +2055,8 @@ const runAll = TypePerformanceWorkerDefinition.makeStep(model => ({
 }))
 const TypePerformanceWorkerComposition =
   TypePerformanceWorkerDefinition.makeComposition()
-const assembleWorker = () =>
-  TypePerformanceWorkerComposition.assembleBlock({
+const prepareWorker = () =>
+  TypePerformanceWorkerComposition.prepareBlock({
     init: TypePerformanceWorkerComposition.makeInit(() => ({
       model: WorkerModel.make({ value: 0 }),
     })),
@@ -2274,8 +2274,8 @@ const assembleWorker = () =>
   })
 const Worker: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof WorkerModel,
-  typeof assembleWorker
-> = Block.complete(assembleWorker)
+  typeof prepareWorker
+> = Block.assemble(prepareWorker)
 const ApplicationMessage = Schema.Never
 const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: WorkerModel,
@@ -2292,8 +2292,8 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
 const update = ApplicationComposition.makeUpdate()
 const view = ApplicationComposition.makeView((_model, h) => h.main([]))
 
-const assembleApplicationBlock = () =>
-  ApplicationComposition.assembleBlock({
+const prepareApplicationBlock = () =>
+  ApplicationComposition.prepareBlock({
     init: ApplicationComposition.makeInit(() =>
       WorkerBinding.init({ args: [], toParentModel: model => model }),
     ),
@@ -2303,8 +2303,8 @@ const assembleApplicationBlock = () =>
   })
 export const ApplicationBlock: Block.FromAssemblyWithView<
   typeof WorkerModel,
-  typeof assembleApplicationBlock
-> = Block.complete(assembleApplicationBlock)
+  typeof prepareApplicationBlock
+> = Block.assemble(prepareApplicationBlock)
 
 export const program = Program.makeElement({
   block: ApplicationBlock,

@@ -8,7 +8,7 @@ import {
   PageDraft,
   Viewed,
   ViewedDraft,
-  assembleViewed,
+  prepareViewed,
 } from './mandatory-completion.accepted.js'
 
 // @ts-expect-error An assembly draft exposes no Model member.
@@ -51,7 +51,7 @@ export const DraftAsCompleted: typeof Viewed = ViewedDraft
 
 type ViewedHeader = Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleViewed
+  typeof prepareViewed
 >
 // @ts-expect-error A FromAssembly header describes the completed Block.
 export const DraftAsAnnotated: ViewedHeader = ViewedDraft
@@ -62,18 +62,18 @@ ViewedDraft.replaceEffectsLayer(Layer.empty)
 // @ts-expect-error Host handler provision is unavailable until completion.
 ViewedDraft.provideHandlers(HostSaveLayer)
 
-// @ts-expect-error Block.complete requires the adjacent FromAssembly header.
-export const MissingHeader = Block.complete(assembleViewed)
+// @ts-expect-error Block.assemble requires the adjacent FromAssembly header.
+export const MissingHeader = Block.assemble(prepareViewed)
 
 // @ts-expect-error Supplying only Model cannot infer the required producer header.
-Block.complete<typeof Model>(assembleViewed)
+Block.assemble<typeof Model>(prepareViewed)
 
 const produceFinishedBlock = () => Viewed
 type FinishedProducer = typeof produceFinishedBlock
 // @ts-expect-error A completion producer must return the original assembly draft.
-export const CompletedProducer = Block.complete<typeof Model, FinishedProducer>(
+export const CompletedProducer = Block.assemble<typeof Model, FinishedProducer>(
   produceFinishedBlock,
 )
 
 // @ts-expect-error A producer function is not a completed Block.
-export const ProducerAsBlock: Block.AnyBlock = assembleViewed
+export const ProducerAsBlock: Block.AnyBlock = prepareViewed

@@ -5,8 +5,8 @@ import { Block } from 'foldkit'
 const SettingsComposition = SettingsDefinition.makeComposition()
 const requestThemeChange = Message.RequestedThemeChange
 
-const assemble = () =>
-  SettingsComposition.assembleBlock({
+const prepare = () =>
+  SettingsComposition.prepareBlock({
     init,
     update,
     operations: { requestThemeChange },
@@ -14,8 +14,8 @@ const assemble = () =>
   })
 export const block: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 
 const update = ParentComposition.makeUpdate((model, message) =>
   Message.match(message, {

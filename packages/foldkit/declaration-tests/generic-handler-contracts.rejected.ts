@@ -19,24 +19,24 @@ export const checkGenericHandlerContracts = <Item extends string, ItemEncoded>(
   void wrongLayer
 
   // @ts-expect-error Same-name String handlers cannot satisfy every generic Item contract.
-  composition.assembleBlock({
+  composition.prepareBlock({
     init,
     update,
     EffectsLayer: stringEchoParts.Echo.layer,
   })
 
-  const assemble = () =>
-    composition.assembleBlock({ init, update, EffectsLayer: Echo.layer })
+  const prepare = () =>
+    composition.prepareBlock({ init, update, EffectsLayer: Echo.layer })
   const completedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof composition.Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
   return completedBlock
 }
 
 const cityParts = makeEchoParts(City)
 // @ts-expect-error The concrete handler must preserve the City payload.
-cityParts.composition.assembleBlock({
+cityParts.composition.prepareBlock({
   init: cityParts.init,
   update: cityParts.update,
   EffectsLayer: stringEchoParts.Echo.layer,
@@ -54,7 +54,7 @@ type MissingHandlerWithOptionalView = Readonly<{
   view?: typeof optionalView
 }>
 // @ts-expect-error An optional view must not bypass local handler completeness.
-cityParts.composition.assembleBlock<MissingHandlerWithOptionalView>({
+cityParts.composition.prepareBlock<MissingHandlerWithOptionalView>({
   init: cityParts.init,
   update: cityParts.update,
   EffectsLayer: Layer.empty,
@@ -66,7 +66,7 @@ type MissingHandlerWithOptionalEffects = Readonly<{
   EffectsLayer?: typeof Layer.empty
 }>
 // @ts-expect-error An optional Layer must not bypass local handler completeness.
-cityParts.composition.assembleBlock<MissingHandlerWithOptionalEffects>({
+cityParts.composition.prepareBlock<MissingHandlerWithOptionalEffects>({
   init: cityParts.init,
   update: cityParts.update,
 })

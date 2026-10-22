@@ -42,8 +42,8 @@ const subscriptions = RegistryDefinition.makeSubscriptions(entry => ({
 }))
 
 const RegistryComposition = RegistryDefinition.makeComposition()
-const assembleBlock = () =>
-  RegistryComposition.assembleBlock({
+const prepareBlock = () =>
+  RegistryComposition.prepareBlock({
     init: RegistryComposition.makeInit(() => ({
       model: Model.make({ count: 0 }),
     })),
@@ -53,8 +53,8 @@ const assembleBlock = () =>
   })
 const block: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleBlock
-> = Block.complete(assembleBlock)
+  typeof prepareBlock
+> = Block.assemble(prepareBlock)
 
 describe('Definition subscriptions registry', () => {
   it('assembles an exact nonenumerable Layer when every entry is attached', () => {

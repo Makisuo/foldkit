@@ -17,8 +17,8 @@ export const GeneratedBindingCounterDefinition = Block.makeDefinition(
 )
 export const GeneratedBindingCounterComposition =
   GeneratedBindingCounterDefinition.makeComposition()
-const assembleCounterBlock = () =>
-  GeneratedBindingCounterComposition.assembleBlock({
+const prepareCounterBlock = () =>
+  GeneratedBindingCounterComposition.prepareBlock({
     init: GeneratedBindingCounterComposition.makeInit((id: string) => ({
       model: { id, count: 0 },
     })),
@@ -31,8 +31,8 @@ const assembleCounterBlock = () =>
   })
 export const CounterBlock: Block.FromAssemblyWithView<
   typeof CounterModel,
-  typeof assembleCounterBlock
-> = Block.complete(assembleCounterBlock)
+  typeof prepareCounterBlock
+> = Block.assemble(prepareCounterBlock)
 
 export const StatusModel = Schema.Struct({ isReady: Schema.Boolean })
 export const StatusMessage = defineMessageUnion({ ToggledReady: {} })
@@ -45,8 +45,8 @@ export const GeneratedBindingStatusDefinition = Block.makeDefinition(
 )
 export const GeneratedBindingStatusComposition =
   GeneratedBindingStatusDefinition.makeComposition()
-const assembleStatusBlock = () =>
-  GeneratedBindingStatusComposition.assembleBlock({
+const prepareStatusBlock = () =>
+  GeneratedBindingStatusComposition.prepareBlock({
     init: GeneratedBindingStatusComposition.makeInit(() => ({
       model: { isReady: false },
     })),
@@ -56,8 +56,8 @@ const assembleStatusBlock = () =>
   })
 export const StatusBlock: Block.FromAssemblyWithView<
   typeof StatusModel,
-  typeof assembleStatusBlock
-> = Block.complete(assembleStatusBlock)
+  typeof prepareStatusBlock
+> = Block.assemble(prepareStatusBlock)
 
 export const Room = Schema.Struct({
   roomId: Schema.String,

@@ -58,8 +58,8 @@ const defaultView = observeComposition.makeView.withInputs<
   h.div([h.OnMount(Observe())], [`${label}: ${model.value}`]),
 )
 
-const assembleChild = () =>
-  observeComposition.assembleBlock({
+const prepareChild = () =>
+  observeComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
     update: observeComposition.makeUpdate(model => ({ model })),
     view: defaultView,
@@ -67,8 +67,8 @@ const assembleChild = () =>
   })
 const Child: Block.FromAssemblyWithView<
   typeof ChildModel,
-  typeof assembleChild
-> = Block.complete(assembleChild)
+  typeof prepareChild
+> = Block.assemble(prepareChild)
 
 const ParentModel = Schema.Struct({ child: ChildModel })
 const Parent = makeDefinition('StagedParent', {
@@ -116,7 +116,7 @@ if (false) {
     ]),
   )
 
-  graphlessComposition.assembleBlock({
+  graphlessComposition.prepareBlock({
     init: Child.init,
     update: Child.update,
     // @ts-expect-error A graphless Composition cannot complete a Mount-capable view.

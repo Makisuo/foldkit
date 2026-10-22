@@ -254,15 +254,6 @@ describe('real-oxlint rule fixtures', () => {
     expect(countDiagnostics('keyed-required-for-mapped-rows', 'invalid')).toBe(
       3,
     )
-    expect(
-      countDiagnostics('got-prefix-requires-block-payload', 'invalid'),
-    ).toBe(8)
-    expect(
-      countDiagnostics('wrap-child-output-in-got-message', 'invalid'),
-    ).toBe(3)
-    expect(
-      countDiagnostics('got-wrapper-carries-only-routing', 'invalid'),
-    ).toBe(2)
     expect(countDiagnostics('no-noop-message', 'invalid')).toBe(2)
   })
 

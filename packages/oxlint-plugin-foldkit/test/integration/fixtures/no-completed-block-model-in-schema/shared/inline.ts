@@ -6,5 +6,5 @@ const Composition = Framework.Block.makeDefinition('Inline', {
   Model: Schema.Struct({ count: Schema.Number }),
   Message: defineMessageUnion({ ClickedIncrement: {} }),
 }).makeComposition()
-const assemble = () => Composition.assembleBlock({})
-export const inline = Framework.Block.complete(assemble)
+const prepare = () => Composition.prepareBlock({})
+export const inline = Framework.Block.assemble(prepare)

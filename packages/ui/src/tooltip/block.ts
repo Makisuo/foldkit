@@ -363,8 +363,8 @@ export const view = TooltipComposition.makeView.withInputs<ViewInputs>(
   },
 )
 
-const assemble = () =>
-  TooltipComposition.assembleBlock({
+const prepare = () =>
+  TooltipComposition.prepareBlock({
     init,
     update,
     view,
@@ -382,5 +382,5 @@ const assemble = () =>
 /** Completed Tooltip Block for binding into a parent. */
 export const TooltipBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

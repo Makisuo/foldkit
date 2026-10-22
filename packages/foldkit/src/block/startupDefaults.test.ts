@@ -53,8 +53,8 @@ const FailChildConstructionLayer = FailChildConstruction.toLayer<
 )
 const childInitCalls: globalThis.Array<number> = []
 const ChildComposition = Child.makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: ChildComposition.makeInit(() => {
       childInitCalls.push(0)
       return {
@@ -72,15 +72,15 @@ const assembleChildBlock = () =>
   })
 const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const DefaultChildComposition = makeDefinition('StartupDefaultsDefaultChild', {
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const assembleDefaultChildBlock = () =>
-  DefaultChildComposition.assembleBlock({
+const prepareDefaultChildBlock = () =>
+  DefaultChildComposition.prepareBlock({
     init: DefaultChildComposition.makeInit((count = 1) => ({
       model: ChildModel.make({ count }),
     })),
@@ -88,8 +88,8 @@ const assembleDefaultChildBlock = () =>
   })
 const DefaultChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleDefaultChildBlock
-> = Block.complete(assembleDefaultChildBlock)
+  typeof prepareDefaultChildBlock
+> = Block.assemble(prepareDefaultChildBlock)
 
 const OptionalArgumentChildComposition = makeDefinition(
   'StartupDefaultsOptionalArgumentChild',
@@ -98,8 +98,8 @@ const OptionalArgumentChildComposition = makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const assembleOptionalArgumentChildBlock = () =>
-  OptionalArgumentChildComposition.assembleBlock({
+const prepareOptionalArgumentChildBlock = () =>
+  OptionalArgumentChildComposition.prepareBlock({
     init: OptionalArgumentChildComposition.makeInit((count?: number) => ({
       model: ChildModel.make({ count: count ?? 2 }),
     })),
@@ -107,8 +107,8 @@ const assembleOptionalArgumentChildBlock = () =>
   })
 const OptionalArgumentChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleOptionalArgumentChildBlock
-> = Block.complete(assembleOptionalArgumentChildBlock)
+  typeof prepareOptionalArgumentChildBlock
+> = Block.assemble(prepareOptionalArgumentChildBlock)
 
 const RequiredRestChildComposition = makeDefinition(
   'StartupDefaultsRequiredRestChild',
@@ -117,8 +117,8 @@ const RequiredRestChildComposition = makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const assembleRequiredRestChildBlock = () =>
-  RequiredRestChildComposition.assembleBlock({
+const prepareRequiredRestChildBlock = () =>
+  RequiredRestChildComposition.prepareBlock({
     init: RequiredRestChildComposition.makeInit(
       (...counts: [first: number, ...rest: Array<number>]) => ({
         model: ChildModel.make({
@@ -130,8 +130,8 @@ const assembleRequiredRestChildBlock = () =>
   })
 const RequiredRestChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleRequiredRestChildBlock
-> = Block.complete(assembleRequiredRestChildBlock)
+  typeof prepareRequiredRestChildBlock
+> = Block.assemble(prepareRequiredRestChildBlock)
 
 const RequiredChildComposition = makeDefinition(
   'StartupDefaultsRequiredChild',
@@ -140,8 +140,8 @@ const RequiredChildComposition = makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const assembleRequiredChildBlock = () =>
-  RequiredChildComposition.assembleBlock({
+const prepareRequiredChildBlock = () =>
+  RequiredChildComposition.prepareBlock({
     init: RequiredChildComposition.makeInit((count: number) => ({
       model: ChildModel.make({ count }),
     })),
@@ -149,8 +149,8 @@ const assembleRequiredChildBlock = () =>
   })
 const RequiredChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleRequiredChildBlock
-> = Block.complete(assembleRequiredChildBlock)
+  typeof prepareRequiredChildBlock
+> = Block.assemble(prepareRequiredChildBlock)
 
 const Entry = Schema.Struct({ id: Schema.String, child: ChildModel })
 const ChildInitContext = Schema.Struct({
@@ -281,8 +281,8 @@ const initialize = ParentComposition.makeInit(
     steps: [applyParentStep],
   }),
 )
-const assembleParentBlock = () =>
-  ParentComposition.assembleBlock({
+const prepareParentBlock = () =>
+  ParentComposition.prepareBlock({
     init: initialize,
     update: ParentComposition.makeUpdate(model => ({ model })),
     EffectsLayer: Layer.merge(
@@ -292,8 +292,8 @@ const assembleParentBlock = () =>
   })
 const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleParentBlock
-> = Block.complete(assembleParentBlock)
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 
 // @ts-expect-error An opted-out required child remains a mandatory parent-owned field.
 ParentComposition.makeInit((childInitContext: ChildInitContext) => ({

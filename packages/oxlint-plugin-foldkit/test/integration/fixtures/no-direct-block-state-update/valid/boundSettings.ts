@@ -22,8 +22,8 @@ const update = BoundSettingsComposition.makeUpdate((model, message) =>
     }),
   }),
 )
-const assemble = () =>
-  BoundSettingsComposition.assembleBlock({
+const prepare = () =>
+  BoundSettingsComposition.prepareBlock({
   init,
   update,
   operations: {
@@ -33,5 +33,5 @@ const assemble = () =>
 })
 export const BoundSettingsBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

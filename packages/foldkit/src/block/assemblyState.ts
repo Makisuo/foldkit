@@ -12,7 +12,7 @@ export interface CompletionProof {
 export declare const AssemblyDraftTypeId: unique symbol
 
 /**
- * An opaque assembly awaiting `Block.complete`. Its completed
+ * An opaque assembly awaiting `Block.assemble`. Its completed
  * contract is available only after the checked Model and producer boundary.
  */
 export interface AssemblyDraft<Completed extends object> {
@@ -34,7 +34,7 @@ export function assertCompletedBlock(
 ): asserts block is object & CompletionProof {
   if (!Predicate.isObject(block) || !completedBlocks.has(block)) {
     throw new Error(
-      '[foldkit] This operation requires a completed Block. Initialize its FromAssembly annotation with Block.complete(assemble).',
+      '[foldkit] This operation requires a completed Block. Initialize its FromAssembly annotation with Block.assemble(prepare).',
     )
   }
 }
@@ -65,7 +65,7 @@ export const completeAssemblyDraft = (
 ): object & CompletionProof => {
   if (!Predicate.isObject(draft)) {
     throw new Error(
-      '[foldkit] Block.complete requires a producer returning an original Composition.assembleBlock draft.',
+      '[foldkit] Block.assemble requires a producer returning an original Composition.prepareBlock draft.',
     )
   }
 
@@ -73,7 +73,7 @@ export const completeAssemblyDraft = (
 
   if (block === undefined) {
     throw new Error(
-      '[foldkit] Block.complete requires a producer returning an original Composition.assembleBlock draft.',
+      '[foldkit] Block.assemble requires a producer returning an original Composition.prepareBlock draft.',
     )
   }
 

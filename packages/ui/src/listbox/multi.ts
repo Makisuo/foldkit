@@ -155,11 +155,11 @@ export interface Completed<
 const makeBlock = <Item, Value extends string>(): Completed<Item, Value> => {
   const { composition, implementation } = makeBlockParts<Item, Value>()
 
-  const assemble = () => composition.assembleBlock(implementation)
+  const prepare = () => composition.prepareBlock(implementation)
   const completedBlock: Block.FromAssemblyWithViewAndOutMessage<
     typeof Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
 
   return completedBlock
 }

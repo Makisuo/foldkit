@@ -15,8 +15,8 @@ const BindingMessagePolicyContextChildComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const assembleContextChildBlock = () =>
-  BindingMessagePolicyContextChildComposition.assembleBlock({
+const prepareContextChildBlock = () =>
+  BindingMessagePolicyContextChildComposition.prepareBlock({
     init: BindingMessagePolicyContextChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: '' }),
     })),
@@ -26,8 +26,8 @@ const assembleContextChildBlock = () =>
   })
 export const ContextChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleContextChildBlock
-> = Block.complete(assembleContextChildBlock)
+  typeof prepareContextChildBlock
+> = Block.assemble(prepareContextChildBlock)
 
 const BindingMessagePolicySilentChildComposition = Block.makeDefinition(
   'BindingMessagePolicySilentChild',
@@ -36,8 +36,8 @@ const BindingMessagePolicySilentChildComposition = Block.makeDefinition(
     Message: Schema.Never,
   },
 ).makeComposition()
-const assembleSilentChildBlock = () =>
-  BindingMessagePolicySilentChildComposition.assembleBlock({
+const prepareSilentChildBlock = () =>
+  BindingMessagePolicySilentChildComposition.prepareBlock({
     init: BindingMessagePolicySilentChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: '' }),
     })),
@@ -45,8 +45,8 @@ const assembleSilentChildBlock = () =>
   })
 export const SilentChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleSilentChildBlock
-> = Block.complete(assembleSilentChildBlock)
+  typeof prepareSilentChildBlock
+> = Block.assemble(prepareSilentChildBlock)
 
 export const Entry = Schema.Struct({
   id: Schema.String,

@@ -16,8 +16,8 @@ const ChildComposition = makeDefinition('StrictRoutingRuntimeChild', {
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
     update: ChildComposition.makeUpdate((model, { amount }) => ({
       model: modifyFields(model, { count: count => count + amount }),
@@ -25,8 +25,8 @@ const assembleChildBlock = () =>
   })
 const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const ContextChildComposition = makeDefinition(
   'StrictRoutingRuntimeContextChild',
@@ -35,8 +35,8 @@ const ContextChildComposition = makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const assembleContextChildBlock = () =>
-  ContextChildComposition.assembleBlock({
+const prepareContextChildBlock = () =>
+  ContextChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
     update: ContextChildComposition.makeUpdate(
       (model, { amount }, context: Readonly<{ multiplier: number }>) => ({
@@ -48,8 +48,8 @@ const assembleContextChildBlock = () =>
   })
 const ContextChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleContextChildBlock
-> = Block.complete(assembleContextChildBlock)
+  typeof prepareContextChildBlock
+> = Block.assemble(prepareContextChildBlock)
 
 const Entry = Schema.Struct({ id: Schema.String, child: ChildModel })
 const ParentModel = Schema.Struct({
@@ -117,24 +117,24 @@ const rawFullMessageUpdate = (
       message._tag === 'GotChildMessage' ? resets + 100 : resets + 1,
   }),
 })
-const assembleRawCompletionBlock = () =>
-  ParentComposition.assembleBlock({
+const prepareRawCompletionBlock = () =>
+  ParentComposition.prepareBlock({
     init: () => ({ model: parentModel }),
     update: rawFullMessageUpdate,
   })
 const RawCompletionBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRawCompletionBlock
-> = Block.complete(assembleRawCompletionBlock)
-const assembleGeneratedCompletionBlock = () =>
-  ParentComposition.assembleBlock({
+  typeof prepareRawCompletionBlock
+> = Block.assemble(prepareRawCompletionBlock)
+const prepareGeneratedCompletionBlock = () =>
+  ParentComposition.prepareBlock({
     init: () => ({ model: parentModel }),
     update: parentUpdate,
   })
 const GeneratedCompletionBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleGeneratedCompletionBlock
-> = Block.complete(assembleGeneratedCompletionBlock)
+  typeof prepareGeneratedCompletionBlock
+> = Block.assemble(prepareGeneratedCompletionBlock)
 
 it('routes canonical, contextual, and keyed Messages before authored facts', () => {
   const canonical = parentUpdate(parentModel, {

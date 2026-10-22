@@ -220,8 +220,8 @@ const homeUpdate = HomeComposition.makeUpdate((model, message) =>
   }),
 )
 
-const assembleHome = () =>
-  HomeComposition.assembleBlock({
+const prepareHome = () =>
+  HomeComposition.prepareBlock({
     view: homeView,
     init: homeInit,
     update: homeUpdate,
@@ -234,8 +234,8 @@ const assembleHome = () =>
   })
 const Home: Block.FromAssemblyWithViewAndOutMessage<
   typeof HomeModel,
-  typeof assembleHome
-> = Block.complete(assembleHome)
+  typeof prepareHome
+> = Block.assemble(prepareHome)
 
 const NoMessageNamespace = makeNamespace('AuthoringNoMessage')
 
@@ -244,8 +244,8 @@ const NoMessageComposition = NoMessageNamespace.makeDefinition({
   Message: Schema.Never,
 }).makeComposition()
 const noMessageUpdate = NoMessageComposition.makeUpdate()
-const assembleNoMessage = () =>
-  NoMessageComposition.assembleBlock({
+const prepareNoMessage = () =>
+  NoMessageComposition.prepareBlock({
     init: () => ({ model: null }),
     update: noMessageUpdate,
     view: NoMessageComposition.makeView((_model, h) => ({
@@ -255,8 +255,8 @@ const assembleNoMessage = () =>
   })
 const NoMessage: Block.FromAssemblyWithView<
   typeof Schema.Null,
-  typeof assembleNoMessage
-> = Block.complete(assembleNoMessage)
+  typeof prepareNoMessage
+> = Block.assemble(prepareNoMessage)
 
 type GenericAuthoringViewInputs<Item, Value> = Readonly<{
   itemToValue: [Item] extends [Value]
@@ -296,8 +296,8 @@ const makeGenericAuthoring = <const Id extends string, Item, Value>(id: Id) => {
     GenericAuthoringViewInputs<Item, Value>
   >((model, _viewInputs, h) => h.div([], [model.value]))
 
-  const assemble = () =>
-    composition.assembleBlock({
+  const prepare = () =>
+    composition.prepareBlock({
       view,
       init: () => ({ model: GenericModel.make({ value: '' }) }),
       update: composition.makeUpdate((model, message) =>
@@ -317,8 +317,8 @@ const makeGenericAuthoring = <const Id extends string, Item, Value>(id: Id) => {
     })
   const completedBlock: Block.FromAssemblyWithView<
     typeof GenericModel,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
   return completedBlock
 }
 
@@ -359,12 +359,12 @@ const homeImplementation = {
   update: homeUpdate,
   EffectsLayer: CreateRoomTestLayer,
 } satisfies Implementation<HomeModel, HomeMessage, HomeOutMessage>
-const assembleHomeWithCheckedImplementation = () =>
-  HomeDefinition.makeComposition().assembleBlock(homeImplementation)
+const prepareHomeWithCheckedImplementation = () =>
+  HomeDefinition.makeComposition().prepareBlock(homeImplementation)
 const HomeWithCheckedImplementation: Block.FromAssemblyWithOutMessage<
   typeof HomeModel,
-  typeof assembleHomeWithCheckedImplementation
-> = Block.complete(assembleHomeWithCheckedImplementation)
+  typeof prepareHomeWithCheckedImplementation
+> = Block.assemble(prepareHomeWithCheckedImplementation)
 
 const RoomNamespace = makeNamespace('AuthoringRoom')
 
@@ -420,8 +420,8 @@ const roomUpdate = RoomComposition.makeUpdate(
     }),
 )
 
-const assembleRoom = () =>
-  RoomComposition.assembleBlock({
+const prepareRoom = () =>
+  RoomComposition.prepareBlock({
     init: (roomId: string) => ({
       model: RoomModel.make({ roomId, joinedCount: 0 }),
     }),
@@ -440,8 +440,8 @@ const assembleRoom = () =>
   })
 const Room: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof RoomModel,
-  typeof assembleRoom
-> = Block.complete(assembleRoom)
+  typeof prepareRoom
+> = Block.assemble(prepareRoom)
 
 const RoomWithHostProvider = Room.provideHandlers(
   LoadRoom.toLayer(
@@ -510,8 +510,8 @@ const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
     }
   })
 
-  const assemble = () =>
-    composition.assembleBlock({
+  const prepare = () =>
+    composition.prepareBlock({
       view,
       init: (value: Value) => ({ model: Model.make({ value }) }),
       update,
@@ -523,8 +523,8 @@ const makeChoice = <Value extends string>(Value: Schema.Schema<Value>) => {
     })
   const completedBlock: Block.FromAssemblyWithViewAndOutMessage<
     typeof Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
   return completedBlock
 }
 
@@ -541,21 +541,21 @@ const makeLeaf = <const Id extends string>(
   LeafNamespace: Namespace<Id>,
   EffectsLayer: Layer.Layer<never, never, never>,
 ) => {
-  const assemble = () =>
+  const prepare = () =>
     LeafNamespace.makeDefinition({
       Model: LeafModel,
       Message: LeafMessage,
     })
       .makeComposition()
-      .assembleBlock({
+      .prepareBlock({
         init: () => ({ model: LeafModel.make({ value: '' }) }),
         update: (model, _message) => ({ model }),
         EffectsLayer,
       })
   const completedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof LeafModel,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
   return completedBlock
 }
 
@@ -607,12 +607,12 @@ const graphChildImplementation = {
   EffectsLayer: RunChildWork.layer,
 }
 
-const assembleGraphChildBlock = () =>
-  graphChildComposition.assembleBlock(graphChildImplementation)
+const prepareGraphChildBlock = () =>
+  graphChildComposition.prepareBlock(graphChildImplementation)
 const GraphChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof GraphChildModel,
-  typeof assembleGraphChildBlock
-> = Block.complete(assembleGraphChildBlock)
+  typeof prepareGraphChildBlock
+> = Block.assemble(prepareGraphChildBlock)
 
 const GraphParentNamespace = makeNamespace('AuthoringGraphParent')
 
@@ -657,12 +657,12 @@ const graphParentImplementation = {
   EffectsLayer: Layer.empty,
 }
 
-const assembleGraphParent = () =>
-  graphParentComposition.assembleBlock(graphParentImplementation)
+const prepareGraphParent = () =>
+  graphParentComposition.prepareBlock(graphParentImplementation)
 const GraphParent: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof GraphParentModel,
-  typeof assembleGraphParent
-> = Block.complete(assembleGraphParent)
+  typeof prepareGraphParent
+> = Block.assemble(prepareGraphParent)
 
 const SelectedGraphChild = GraphChildBlock.replaceEffectsLayer(
   RunChildWork.toLayer<never, 'ChildProviderUnavailable', SelectedRoomsClient>(
@@ -689,14 +689,14 @@ const SelectedGraphChildBinding = SelectedGraphParentBaseDefinition.makeBinding(
   },
 )
 
-const assemble = () =>
+const prepare = () =>
   SelectedGraphParentBaseDefinition.makeComposition({
     bindings: [SelectedGraphChildBinding],
-  }).assembleBlock(graphParentImplementation)
+  }).prepareBlock(graphParentImplementation)
 const completedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof GraphParentModel,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 const SelectedGraphParent = completedBlock.replaceEffectsLayer(Layer.empty)
 
 const SelectedGraphParentWithFailure = SelectedGraphParent.replaceEffectsLayer(
@@ -750,8 +750,8 @@ const policyParentUpdate = policyParentComposition.makeUpdate(
     }),
 )
 
-const assemblePolicyParent = () =>
-  policyParentComposition.assembleBlock({
+const preparePolicyParent = () =>
+  policyParentComposition.prepareBlock({
     init: () => ({
       model: PolicyParentModel.make({
         choice: StringChoice.Model.make({ value: 'One' }),
@@ -764,8 +764,8 @@ const assemblePolicyParent = () =>
   })
 const PolicyParent: Block.FromAssemblyWithView<
   typeof PolicyParentModel,
-  typeof assemblePolicyParent
-> = Block.complete(assemblePolicyParent)
+  typeof preparePolicyParent
+> = Block.assemble(preparePolicyParent)
 
 const PolicyParentWithHostProvider = PolicyParent.provideHandlers(
   CreateRoom.toLayer(
@@ -824,8 +824,8 @@ const policyConflictChildComposition =
     Message: PolicyConflictChildMessage,
     OutMessage: PolicyConflictChildOutMessage,
   }).makeComposition()
-const assemblePolicyConflictChildBlock = () =>
-  policyConflictChildComposition.assembleBlock({
+const preparePolicyConflictChildBlock = () =>
+  policyConflictChildComposition.prepareBlock({
     init: () => ({ model: PolicyConflictChildModel.make({ value: '' }) }),
     update: policyConflictChildComposition.makeUpdate((model, _message) => ({
       model,
@@ -835,8 +835,8 @@ const assemblePolicyConflictChildBlock = () =>
   })
 const PolicyConflictChildBlock: Block.FromAssemblyWithOutMessage<
   typeof PolicyConflictChildModel,
-  typeof assemblePolicyConflictChildBlock
-> = Block.complete(assemblePolicyConflictChildBlock)
+  typeof preparePolicyConflictChildBlock
+> = Block.assemble(preparePolicyConflictChildBlock)
 
 const PolicyConflictParentModel = Schema.Struct({
   child: PolicyConflictChildModel,
@@ -938,8 +938,8 @@ if (false) {
       commands: maybeCreateRoomCommands(shouldCreateRoom),
     }),
   )
-  const assembleHomeWithForwardedCommands = () =>
-    HomeComposition.assembleBlock({
+  const prepareHomeWithForwardedCommands = () =>
+    HomeComposition.prepareBlock({
       init: initWithForwardedCommands,
       update: updateWithForwardedCommands,
       operations: {
@@ -950,11 +950,11 @@ if (false) {
     })
   const HomeWithForwardedCommands: Block.FromAssemblyWithOutMessage<
     typeof HomeModel,
-    typeof assembleHomeWithForwardedCommands
-  > = Block.complete(assembleHomeWithForwardedCommands)
+    typeof prepareHomeWithForwardedCommands
+  > = Block.assemble(prepareHomeWithForwardedCommands)
 
   // @ts-expect-error An exposed operation cannot overwrite a Binding member.
-  HomeComposition.assembleBlock({
+  HomeComposition.prepareBlock({
     init: homeInit,
     update: homeUpdate,
     operations: { fold: () => Tuple.make(HomeMessage.RequestedBoot()) },
@@ -978,7 +978,7 @@ if (false) {
     .toEqualTypeOf<boolean>()
 
   // @ts-expect-error Omitting EffectsLayer still rejects unresolved local handlers.
-  HomeComposition.assembleBlock({
+  HomeComposition.prepareBlock({
     init: homeInit,
     update: homeUpdate,
   })
@@ -988,7 +988,7 @@ if (false) {
     HomeMessage,
     HomeOutMessage
   > = homeImplementation
-  const erasedBlock = HomeComposition.assembleBlock(erasedImplementation)
+  const erasedBlock = HomeComposition.prepareBlock(erasedImplementation)
   // @ts-expect-error A broad annotation cannot produce a usable block.
   erasedBlock.init
 
@@ -1047,7 +1047,7 @@ if (false) {
     mounts: [MountFocus],
   })
   // @ts-expect-error A same-name Mount handler cannot satisfy a Command contract.
-  crossKindComposition.assembleBlock({
+  crossKindComposition.prepareBlock({
     init: homeInit,
     update: model => ({ model, commands: [CommandFocus()] }),
     EffectsLayer: MountFocus.layer,
@@ -1155,7 +1155,7 @@ if (false) {
   }).makeComposition({
     mounts: [ObserveHomeView, ObserveSecondaryHomeView],
   })
-  supersetHomeViewComposition.assembleBlock({
+  supersetHomeViewComposition.prepareBlock({
     init: homeInit,
     update: (model, _message) => ({ model }),
     view: subsetHomeView,
@@ -1175,7 +1175,7 @@ if (false) {
   const foreignHomeView = foreignHomeComposition.makeView((_model, h) =>
     h.div([]),
   )
-  HomeComposition.assembleBlock({
+  HomeComposition.prepareBlock({
     init: homeInit,
     update: (model, _message) => ({ model }),
     // @ts-expect-error A completed Block must use a view authored by its own definition.
@@ -1190,7 +1190,7 @@ if (false) {
   const sameOwnerDifferentView = sameOwnerDifferentComposition.makeView(
     (_model, h) => h.div([]),
   )
-  HomeComposition.assembleBlock({
+  HomeComposition.prepareBlock({
     init: homeInit,
     update: (model, _message) => ({ model }),
     // @ts-expect-error Owner identity cannot substitute for the definition's Model and Message view channels.
@@ -1200,14 +1200,14 @@ if (false) {
 
   const erasedHomeView: any = homeView
   // @ts-expect-error any cannot erase an implementation's authored view contract.
-  HomeComposition.assembleBlock({
+  HomeComposition.prepareBlock({
     init: homeInit,
     update: (model, _message) => ({ model }),
     view: erasedHomeView,
     EffectsLayer: Layer.empty,
   })
 
-  HomeComposition.assembleBlock({
+  HomeComposition.prepareBlock({
     // @ts-expect-error Specialized implementation shapes retain the definition Model returned by init.
     init: () => ({
       model: RoomModel.make({ roomId: 'foreign', joinedCount: 0 }),
@@ -1218,7 +1218,7 @@ if (false) {
     EffectsLayer: Layer.empty,
   })
 
-  HomeComposition.assembleBlock({
+  HomeComposition.prepareBlock({
     init: () => ({
       // @ts-expect-error Specialized implementations with Subscriptions retain the definition Model returned by init.
       model: RoomModel.make({ roomId: 'foreign', joinedCount: 0 }),
@@ -1333,7 +1333,7 @@ if (false) {
     return { model }
   })
 
-  RoomComposition.assembleBlock({
+  RoomComposition.prepareBlock({
     init: flags => {
       // @ts-expect-error Inline init parameters require explicit annotations.
       flags.nonexistent
@@ -1361,7 +1361,7 @@ if (false) {
   HomeComposition.makeUpdate((model, _message, _context: any) => ({ model }))
 
   // @ts-expect-error A parent operation remains uncovered by a child-provided Layer.
-  graphParentComposition.assembleBlock({
+  graphParentComposition.prepareBlock({
     init: GraphParent.init,
     update: model => ({
       model,
@@ -1404,7 +1404,7 @@ if (false) {
         CompletedParentWork: () => ({ model }),
       }),
   )
-  unregisteredGraphComposition.assembleBlock({
+  unregisteredGraphComposition.prepareBlock({
     // @ts-expect-error An unregistered Binding cannot contribute initialization.
     init: () =>
       UnregisteredGraphChildBinding.init({
@@ -1415,7 +1415,7 @@ if (false) {
     EffectsLayer: Layer.empty,
   })
   // @ts-expect-error An unregistered Binding cannot satisfy implementation evidence.
-  unregisteredGraphComposition.assembleBlock({
+  unregisteredGraphComposition.prepareBlock({
     init: () => ({
       model: GraphParentModel.make({
         child: GraphChildModel.make({ count: 0 }),
@@ -1429,7 +1429,7 @@ if (false) {
     model => ({ model }),
   )
   // @ts-expect-error A scoped policy Command must exactly match the registered child handler contract.
-  policyConflictParentComposition.assembleBlock({
+  policyConflictParentComposition.prepareBlock({
     init: () => ({
       model: PolicyConflictParentModel.make({
         child: PolicyConflictChildModel.make({ value: '' }),
@@ -1440,7 +1440,7 @@ if (false) {
   })
 
   // @ts-expect-error A child named Step's OutMessage policy Command requires its matching host handler.
-  policyParentComposition.assembleBlock({
+  policyParentComposition.prepareBlock({
     init: PolicyParent.init,
     update: PolicyParent.update,
     EffectsLayer: Layer.empty,
@@ -1678,8 +1678,8 @@ describe('Block authoring', () => {
     }).makeComposition({
       bindings: [child],
     })
-    const assembleBlock = () =>
-      definition.assembleBlock({
+    const prepareBlock = () =>
+      definition.prepareBlock({
         init: () => ({
           model: LeafParentModel.make({ leaf: LeafModel.make({ value: '' }) }),
         }),
@@ -1688,8 +1688,8 @@ describe('Block authoring', () => {
       })
     const block: Block.FromAssemblyWithoutViewOrOutMessage<
       typeof LeafParentModel,
-      typeof assembleBlock
-    > = Block.complete(assembleBlock)
+      typeof prepareBlock
+    > = Block.assemble(prepareBlock)
     const replaceEffectsLayer = block.replaceEffectsLayer
     const selected = replaceEffectsLayer(SelectedParentLayer)
 
@@ -1738,8 +1738,8 @@ describe('Block authoring', () => {
     }).makeComposition({
       bindings: [bindLeaf(block, 'default'), bindLeaf(selected, 'selected')],
     })
-    const assembleParent = () =>
-      definition.assembleBlock({
+    const prepareParent = () =>
+      definition.prepareBlock({
         init: () => ({
           model: LeafParentModel.make({ leaf: LeafModel.make({ value: '' }) }),
         }),
@@ -1748,8 +1748,8 @@ describe('Block authoring', () => {
       })
     const parent: Block.FromAssemblyWithoutViewOrOutMessage<
       typeof LeafParentModel,
-      typeof assembleParent
-    > = Block.complete(assembleParent)
+      typeof prepareParent
+    > = Block.assemble(prepareParent)
 
     // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
     await Effect.runPromise(Effect.scoped(Layer.build(parent.EffectsLayer)))
@@ -1872,7 +1872,7 @@ describe('Block authoring', () => {
     const name: string = 'fold'
 
     expect(() =>
-      HomeDefinition.makeComposition().assembleBlock({
+      HomeDefinition.makeComposition().prepareBlock({
         init: homeInit,
         update: homeUpdate,
         operations: { [name]: () => Tuple.make(HomeMessage.RequestedBoot()) },
@@ -2145,8 +2145,8 @@ describe('Block authoring', () => {
     }).makeComposition({
       bindings: [first, second],
     })
-    const assembleParent = () =>
-      definition.assembleBlock({
+    const prepareParent = () =>
+      definition.prepareBlock({
         init: () => ({
           model: LeafParentModel.make({ leaf: LeafModel.make({ value: '' }) }),
         }),
@@ -2155,8 +2155,8 @@ describe('Block authoring', () => {
       })
     const parent: Block.FromAssemblyWithoutViewOrOutMessage<
       typeof LeafParentModel,
-      typeof assembleParent
-    > = Block.complete(assembleParent)
+      typeof prepareParent
+    > = Block.assemble(prepareParent)
 
     // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
     await Effect.runPromise(Effect.scoped(Layer.build(parent.EffectsLayer)))
@@ -2185,8 +2185,8 @@ describe('Block authoring', () => {
     }).makeComposition({
       bindings: [first, second],
     })
-    const assembleParent = () =>
-      definition.assembleBlock({
+    const prepareParent = () =>
+      definition.prepareBlock({
         init: () => ({
           model: LeafParentModel.make({ leaf: LeafModel.make({ value: '' }) }),
         }),
@@ -2195,8 +2195,8 @@ describe('Block authoring', () => {
       })
     const parent: Block.FromAssemblyWithoutViewOrOutMessage<
       typeof LeafParentModel,
-      typeof assembleParent
-    > = Block.complete(assembleParent)
+      typeof prepareParent
+    > = Block.assemble(prepareParent)
 
     // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
     await Effect.runPromise(Effect.scoped(Layer.build(parent.EffectsLayer)))
@@ -2351,15 +2351,15 @@ describe('Block authoring', () => {
   })
 
   it('rejects a child handler in its parent local recipe', async () => {
-    const assembleParent = () =>
-      graphParentComposition.assembleBlock({
+    const prepareParent = () =>
+      graphParentComposition.prepareBlock({
         ...graphParentImplementation,
         EffectsLayer: RunChildWork.layer,
       })
     const parent: Block.FromAssemblyWithoutViewOrOutMessage<
       typeof GraphParentModel,
-      typeof assembleParent
-    > = Block.complete(assembleParent)
+      typeof prepareParent
+    > = Block.assemble(prepareParent)
 
     await expect(
       Effect.runPromise(Effect.scoped(Layer.build(parent.EffectsLayer))),

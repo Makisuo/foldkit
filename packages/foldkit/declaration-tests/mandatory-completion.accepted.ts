@@ -60,8 +60,8 @@ const view = CountComposition.makeView.withInputs<typeof ViewInputs.Type>(
     h.div([], [`${label}: ${globalThis.String(model.count)}`]),
 )
 
-export const assembleViewed = () =>
-  CountComposition.assembleBlock({
+export const prepareViewed = () =>
+  CountComposition.prepareBlock({
     init,
     update,
     view,
@@ -70,12 +70,12 @@ export const assembleViewed = () =>
   })
 export const Viewed: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleViewed
-> = Block.complete(assembleViewed)
-export const ViewedDraft = assembleViewed()
+  typeof prepareViewed
+> = Block.assemble(prepareViewed)
+export const ViewedDraft = prepareViewed()
 
-const assembleHeadless = () =>
-  CountComposition.assembleBlock({
+const prepareHeadless = () =>
+  CountComposition.prepareBlock({
     init,
     update,
     operations: { setCount: Message.RequestedSetCount },
@@ -83,8 +83,8 @@ const assembleHeadless = () =>
   })
 export const Headless: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleHeadless
-> = Block.complete(assembleHeadless)
+  typeof prepareHeadless
+> = Block.assemble(prepareHeadless)
 
 const ReportingDefinition = Block.makeDefinition(
   'MandatoryCompletionReportingCount',
@@ -107,26 +107,26 @@ const reportingView = ReportingComposition.makeView((model, h) =>
   h.div([], [globalThis.String(model.count)]),
 )
 
-const assembleReportingViewed = () =>
-  ReportingComposition.assembleBlock({
+const prepareReportingViewed = () =>
+  ReportingComposition.prepareBlock({
     init: reportingInit,
     update: reportingUpdate,
     view: reportingView,
   })
 export const ReportingViewed: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleReportingViewed
-> = Block.complete(assembleReportingViewed)
+  typeof prepareReportingViewed
+> = Block.assemble(prepareReportingViewed)
 
-const assembleReportingHeadless = () =>
-  ReportingComposition.assembleBlock({
+const prepareReportingHeadless = () =>
+  ReportingComposition.prepareBlock({
     init: reportingInit,
     update: reportingUpdate,
   })
 export const ReportingHeadless: Block.FromAssemblyWithOutMessage<
   typeof Model,
-  typeof assembleReportingHeadless
-> = Block.complete(assembleReportingHeadless)
+  typeof prepareReportingHeadless
+> = Block.assemble(prepareReportingHeadless)
 
 export const ParentModel = Schema.Struct({
   child: Viewed.Model,
@@ -157,8 +157,8 @@ export const HostSave = HostDefinition.makeCommand('HostSave', {
   messages: [HostMessage.CompletedHostSave],
 })
 const HostComposition = HostDefinition.makeComposition()
-const assembleHostBlock = () =>
-  HostComposition.assembleBlock({
+const prepareHostBlock = () =>
+  HostComposition.prepareBlock({
     init: HostComposition.makeInit(() => ({
       model: Model.make({ count: 0 }),
       commands: [HostSave()],
@@ -171,8 +171,8 @@ const assembleHostBlock = () =>
   })
 export const HostBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleHostBlock
-> = Block.complete(assembleHostBlock)
+  typeof prepareHostBlock
+> = Block.assemble(prepareHostBlock)
 export const HostSaveLayer = HostSave.toLayer(
   Effect.succeed(() => Effect.succeed(HostMessage.CompletedHostSave())),
 )
@@ -187,8 +187,8 @@ const PageDefinition = Block.makeDefinition('MandatoryCompletionPage', {
   Message: Schema.Never,
 })
 const PageComposition = PageDefinition.makeComposition()
-export const assemblePageBlock = () =>
-  PageComposition.assembleBlock({
+export const preparePageBlock = () =>
+  PageComposition.prepareBlock({
     init: PageComposition.makeInit(() => ({
       model: Model.make({ count: 0 }),
     })),
@@ -200,9 +200,9 @@ export const assemblePageBlock = () =>
   })
 export const PageBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemblePageBlock
-> = Block.complete(assemblePageBlock)
-export const PageDraft = assemblePageBlock()
+  typeof preparePageBlock
+> = Block.assemble(preparePageBlock)
+export const PageDraft = preparePageBlock()
 export const PageProgram = Program.make({ block: PageBlock, container: null })
 export const renderPage = () =>
   Server.renderToString(PageBlock, {}, { isHydratable: false })
@@ -225,8 +225,8 @@ export const makeChoice = <Item, Encoded>(Item: ItemSchema<Item, Encoded>) => {
     Message: ChoiceMessage,
   })
   const ChoiceComposition = ChoiceDefinition.makeComposition()
-  const assembleChoice = () =>
-    ChoiceComposition.assembleBlock({
+  const prepareChoice = () =>
+    ChoiceComposition.prepareBlock({
       init: ChoiceComposition.makeInit((selected: Item) => ({
         model: ChoiceModel.make({ selected }),
       })),
@@ -240,8 +240,8 @@ export const makeChoice = <Item, Encoded>(Item: ItemSchema<Item, Encoded>) => {
     })
   const block: Block.FromAssemblyWithView<
     typeof ChoiceModel,
-    typeof assembleChoice
-  > = Block.complete(assembleChoice)
+    typeof prepareChoice
+  > = Block.assemble(prepareChoice)
 
   return block
 }

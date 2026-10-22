@@ -92,14 +92,14 @@ const preservedOpenModel = (config: Dialog.InitConfig): Dialog.Model =>
   Dialog.update(Dialog.init(config).model, Dialog.Message.RequestedOpen()).model
 
 const makeDialogProgram = (container: HTMLElement) => {
-  const assemble = () =>
-    ApplicationComposition.assembleBlock({
+  const prepare = () =>
+    ApplicationComposition.prepareBlock({
       init,
       update,
       view,
     })
-  const block: Block.FromAssemblyWithView<typeof Model, typeof assemble> =
-    Block.complete(assemble)
+  const block: Block.FromAssemblyWithView<typeof Model, typeof prepare> =
+    Block.assemble(prepare)
 
   return Program.makeElement({
     block,

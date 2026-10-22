@@ -66,8 +66,8 @@ export const createPicker = <Item, Encoded, DecodingServices, EncodingServices>(
     h.div([h.OnMount(ObservePicker())], [format(model.selected)]),
   )
   const EffectsLayer = Layer.merge(SaveSelection.layer, ObservePicker.layer)
-  const assemblePickerBlock = () =>
-    PickerComposition.assembleBlock({
+  const preparePickerBlock = () =>
+    PickerComposition.prepareBlock({
       init,
       update,
       view,
@@ -75,12 +75,12 @@ export const createPicker = <Item, Encoded, DecodingServices, EncodingServices>(
       operations: { select: Message.RequestedSelect },
     })
 
-  const OriginalPickerBlock: Assembled<typeof assemblePickerBlock> =
-    Block.complete(assemblePickerBlock)
+  const OriginalPickerBlock: Assembled<typeof preparePickerBlock> =
+    Block.assemble(preparePickerBlock)
   const PickerBlock: Block.FromAssemblyWithViewAndOutMessage<
     typeof Model,
-    typeof assemblePickerBlock
-  > = Block.complete(assemblePickerBlock)
+    typeof preparePickerBlock
+  > = Block.assemble(preparePickerBlock)
   const originalToAnnotated: typeof PickerBlock = OriginalPickerBlock
   const annotatedToOriginal: typeof OriginalPickerBlock = PickerBlock
 

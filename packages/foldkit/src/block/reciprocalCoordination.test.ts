@@ -51,8 +51,8 @@ const requestJoin = Home.makeStep(
     outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
   }),
 )
-const assembleHomeBlock = () =>
-  HomeComposition.assembleBlock({
+const prepareHomeBlock = () =>
+  HomeComposition.prepareBlock({
     init: HomeComposition.makeInit(() => ({
       model: HomeModel.make({ username: '', resetCount: 0 }),
     })),
@@ -79,8 +79,8 @@ const assembleHomeBlock = () =>
   })
 const HomeBlock: Block.FromAssemblyWithOutMessage<
   typeof HomeModel,
-  typeof assembleHomeBlock
-> = Block.complete(assembleHomeBlock)
+  typeof prepareHomeBlock
+> = Block.assemble(prepareHomeBlock)
 
 const RoomModel = Schema.Struct({ maybeUsername: Schema.Option(Schema.String) })
 const RoomContext = Schema.Struct({ roomId: Schema.String })
@@ -102,8 +102,8 @@ const informJoined = Room.makeStep(
     model: modifyFields(model, { maybeUsername: () => Option.some(username) }),
   }),
 )
-const assembleRoomBlock = () =>
-  RoomComposition.assembleBlock({
+const prepareRoomBlock = () =>
+  RoomComposition.prepareBlock({
     init: RoomComposition.makeInit(() => ({
       model: RoomModel.make({ maybeUsername: Option.none() }),
     })),
@@ -126,8 +126,8 @@ const assembleRoomBlock = () =>
   })
 const RoomBlock: Block.FromAssemblyWithOutMessage<
   typeof RoomModel,
-  typeof assembleRoomBlock
-> = Block.complete(assembleRoomBlock)
+  typeof prepareRoomBlock
+> = Block.assemble(prepareRoomBlock)
 
 const ApplicationRoute = defineRouteUnion({
   Home: {},
@@ -262,8 +262,8 @@ ApplicationComposition.makeInit(() => ({
 }))
 
 void erasedDirectHomeRequest
-const assembleApplicationBlock = () =>
-  ApplicationComposition.assembleBlock({
+const prepareApplicationBlock = () =>
+  ApplicationComposition.prepareBlock({
     init: ApplicationComposition.makeInit(() => ({
       model: makeInitialModel(),
     })),
@@ -277,8 +277,8 @@ const assembleApplicationBlock = () =>
   })
 const ApplicationBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleApplicationBlock
-> = Block.complete(assembleApplicationBlock)
+  typeof prepareApplicationBlock
+> = Block.assemble(prepareApplicationBlock)
 const joinRoom = (model: typeof Model.Type) =>
   update(model, {
     _tag: 'GotHomeMessage',

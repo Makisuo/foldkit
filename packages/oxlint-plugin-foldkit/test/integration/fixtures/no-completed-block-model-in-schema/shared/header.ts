@@ -3,30 +3,30 @@ import { Block } from 'foldkit'
 
 const Model = Schema.Struct({ count: Schema.Number })
 const Composition = Block.makeDefinition('HeaderChild', { Model }).makeComposition()
-const assembleChild = () => Composition.assembleBlock({})
+const prepareChild = () => Composition.prepareBlock({})
 export const HeaderChild: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleChild
-> = Block.complete(assembleChild)
+  typeof prepareChild
+> = Block.assemble(prepareChild)
 
-const assembleInferred = () => Composition.assembleBlock({})
-export const InferredChild = Block.complete(assembleInferred)
+const prepareInferred = () => Composition.prepareBlock({})
+export const InferredChild = Block.assemble(prepareInferred)
 
 export const WidenedHeader: typeof HeaderChild = HeaderChild
 export const CastHeader = HeaderChild as typeof HeaderChild
 export const InferredModel = InferredChild.Model
-const assembleBad = () => Composition.assembleBlock({})
+const prepareBad = () => Composition.prepareBlock({})
 export const InferredModelHeader: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof InferredModel,
-  typeof assembleBad
-> = Block.complete(assembleBad)
+  typeof prepareBad
+> = Block.assemble(prepareBad)
 
 const WidenedModel = (HeaderChild as typeof HeaderChild).Model
-const assembleWidenedModel = () => Composition.assembleBlock({})
+const prepareWidenedModel = () => Composition.prepareBlock({})
 export const WidenedModelHeader: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof WidenedModel,
-  typeof assembleWidenedModel
-> = Block.complete(assembleWidenedModel)
+  typeof prepareWidenedModel
+> = Block.assemble(prepareWidenedModel)
 
 export const ProvidedHeader = HeaderChild.provideHandlers(Layer.empty)
 export const ReplacedHeader = HeaderChild.replaceEffectsLayer(Layer.empty)

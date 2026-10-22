@@ -106,8 +106,8 @@ const requestJoin = DeclarationReciprocalHomeDefinition.makeStep(
     outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
   }),
 )
-const assembleHomeBlock = () =>
-  DeclarationReciprocalHomeComposition.assembleBlock({
+const prepareHomeBlock = () =>
+  DeclarationReciprocalHomeComposition.prepareBlock({
     init: DeclarationReciprocalHomeComposition.makeInit(() => ({
       model: HomeModel.make({ username: '', resetCount: 0 }),
     })),
@@ -131,8 +131,8 @@ const assembleHomeBlock = () =>
   })
 export const HomeBlock: Block.FromAssemblyWithOutMessage<
   typeof HomeModel,
-  typeof assembleHomeBlock
-> = Block.complete(assembleHomeBlock)
+  typeof prepareHomeBlock
+> = Block.assemble(prepareHomeBlock)
 
 export const RoomModel = Schema.Struct({
   maybeUsername: Schema.Option(Schema.String),
@@ -162,8 +162,8 @@ const informJoined = DeclarationReciprocalRoomDefinition.makeStep(
     }),
   }),
 )
-const assembleRoomBlock = () =>
-  DeclarationReciprocalRoomComposition.assembleBlock({
+const prepareRoomBlock = () =>
+  DeclarationReciprocalRoomComposition.prepareBlock({
     init: DeclarationReciprocalRoomComposition.makeInit(
       (maybeUsername: Option.Option<string>) => ({
         model: RoomModel.make({ maybeUsername }),
@@ -188,8 +188,8 @@ const assembleRoomBlock = () =>
   })
 export const RoomBlock: Block.FromAssemblyWithOutMessage<
   typeof RoomModel,
-  typeof assembleRoomBlock
-> = Block.complete(assembleRoomBlock)
+  typeof prepareRoomBlock
+> = Block.assemble(prepareRoomBlock)
 
 export const ApplicationRoute = Route.defineRouteUnion({
   Home: {},
@@ -590,8 +590,8 @@ export const NestedPolicy = (() => {
     model,
     outMessage: HomeOutMessage.RequestedRoomWork(),
   }))
-  const assembleHomeBlock = () =>
-    HomeComposition.assembleBlock({
+  const prepareHomeBlock = () =>
+    HomeComposition.prepareBlock({
       init: HomeComposition.makeInit(() => ({
         model: HomeModel.make({ value: '' }),
       })),
@@ -607,8 +607,8 @@ export const NestedPolicy = (() => {
     })
   const HomeBlock: Block.FromAssemblyWithOutMessage<
     typeof HomeModel,
-    typeof assembleHomeBlock
-  > = Block.complete(assembleHomeBlock)
+    typeof prepareHomeBlock
+  > = Block.assemble(prepareHomeBlock)
 
   const RoomModel = Schema.Struct({ count: Schema.Number })
   const RoomMessage = Message.defineMessageUnion({
@@ -633,8 +633,8 @@ export const NestedPolicy = (() => {
     commands: [CompleteRoomWork()],
     outMessage: RoomOutMessage.ChangedRoom(),
   }))
-  const assembleRoomBlock = () =>
-    RoomComposition.assembleBlock({
+  const prepareRoomBlock = () =>
+    RoomComposition.prepareBlock({
       init: RoomComposition.makeInit(() => ({
         model: RoomModel.make({ count: 0 }),
       })),
@@ -651,8 +651,8 @@ export const NestedPolicy = (() => {
     })
   const RoomBlock: Block.FromAssemblyWithOutMessage<
     typeof RoomModel,
-    typeof assembleRoomBlock
-  > = Block.complete(assembleRoomBlock)
+    typeof prepareRoomBlock
+  > = Block.assemble(prepareRoomBlock)
 
   const ParentModel = Schema.Struct({ home: HomeModel, room: RoomModel })
   const ParentMessage = Schema.Never

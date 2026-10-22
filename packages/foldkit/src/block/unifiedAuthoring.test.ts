@@ -81,8 +81,8 @@ const update = search.makeUpdate((model, message) =>
     }),
   }),
 )
-const assembleBlock = () =>
-  search.assembleBlock({
+const prepareBlock = () =>
+  search.prepareBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update,
     operations: { clear: () => Tuple.make(Message.RequestedClear()) },
@@ -90,8 +90,8 @@ const assembleBlock = () =>
   })
 const block: Block.FromAssemblyWithOutMessage<
   typeof Model,
-  typeof assembleBlock
-> = Block.complete(assembleBlock)
+  typeof prepareBlock
+> = Block.assemble(prepareBlock)
 expectTypeOf<Update.RequirementsOf<typeof update>>().toEqualTypeOf<
   Command.HandlerOf<typeof Save>
 >()
@@ -123,8 +123,8 @@ const secondComposition = EarlyNamespace.makeDefinition({
   Model,
   Message,
 }).makeComposition()
-const assembleFirstBlock = () =>
-  firstComposition.assembleBlock({
+const prepareFirstBlock = () =>
+  firstComposition.prepareBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: firstComposition.makeUpdate(model => ({
       model,
@@ -134,10 +134,10 @@ const assembleFirstBlock = () =>
   })
 const firstBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleFirstBlock
-> = Block.complete(assembleFirstBlock)
-const assembleSecondBlock = () =>
-  secondComposition.assembleBlock({
+  typeof prepareFirstBlock
+> = Block.assemble(prepareFirstBlock)
+const prepareSecondBlock = () =>
+  secondComposition.prepareBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: secondComposition.makeUpdate(model => ({
       model,
@@ -147,8 +147,8 @@ const assembleSecondBlock = () =>
   })
 const secondBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleSecondBlock
-> = Block.complete(assembleSecondBlock)
+  typeof prepareSecondBlock
+> = Block.assemble(prepareSecondBlock)
 it('requires Model and Message Schemas for a typed Definition', () => {
   expect(() =>
     Reflect.apply(Block.makeDefinition, undefined, ['MissingContracts']),
@@ -290,7 +290,7 @@ if (false) {
   // @ts-expect-error Typed helpers retain the declared Message payload.
   update(Model.make({ value: '' }), Message.RequestedSave({ value: 1 }))
   // @ts-expect-error Missing local handler remains rejected.
-  firstComposition.assembleBlock({
+  firstComposition.prepareBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: firstComposition.makeUpdate(model => ({
       model,
@@ -303,7 +303,7 @@ if (false) {
   })
   const ForeignComposition = Foreign.makeComposition()
   // @ts-expect-error A different owner cannot provide the local handler.
-  ForeignComposition.assembleBlock({
+  ForeignComposition.prepareBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update: ForeignComposition.makeUpdate(model => ({
       model,

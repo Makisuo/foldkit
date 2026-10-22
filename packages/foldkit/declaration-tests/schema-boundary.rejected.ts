@@ -17,7 +17,7 @@ ParentDefinition.makeComposition().makeUpdate(model =>
   ChildBinding.load('Primary')(model),
 )
 // @ts-expect-error The completed producer still requires the Command handler.
-ChildComposition.assembleBlock({ init, update })
+ChildComposition.prepareBlock({ init, update })
 
 const WrongFieldDefinition = Block.makeDefinition('PublicModelWrongField', {
   Model: Schema.Struct({ child: Schema.String }),

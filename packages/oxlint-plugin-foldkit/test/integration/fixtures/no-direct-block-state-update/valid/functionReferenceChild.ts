@@ -26,8 +26,8 @@ const update = FunctionReferenceChildComposition.makeUpdate((model, message) =>
   }),
 )
 
-const assemble = () =>
-  FunctionReferenceChildComposition.assembleBlock({
+const prepare = () =>
+  FunctionReferenceChildComposition.prepareBlock({
     init,
     update,
     operations: {
@@ -37,5 +37,5 @@ const assemble = () =>
   })
 export const FunctionReferenceChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

@@ -60,15 +60,15 @@ const update = GenericMenuBindingIdentityComposition.makeUpdate(model =>
   MenuBinding.requestOpen()(model),
 )
 const requestOpen = Message.RequestedOpen
-const assemble = () =>
-  GenericMenuBindingIdentityComposition.assembleBlock({
+const prepare = () =>
+  GenericMenuBindingIdentityComposition.prepareBlock({
     init,
     update,
     operations: { requestOpen },
     EffectsLayer: RefinedMenu.EffectsLayer,
   })
-const block: Block.FromAssemblyWithOutMessage<typeof Model, typeof assemble> =
-  Block.complete(assemble)
+const block: Block.FromAssemblyWithOutMessage<typeof Model, typeof prepare> =
+  Block.assemble(prepare)
 
 const deliverMenuMessage = (
   model: Model,

@@ -51,8 +51,8 @@ const view = ListboxTriggerClickTestComposition.makeView((model, h) =>
     ],
   ),
 )
-const assemble = () =>
-  ListboxTriggerClickTestComposition.assembleBlock({
+const prepare = () =>
+  ListboxTriggerClickTestComposition.prepareBlock({
     init: ListboxTriggerClickTestComposition.makeInit(() =>
       ListboxBinding.init({
         args: [{ id: 'sort', isModal: true }],
@@ -64,8 +64,8 @@ const assemble = () =>
   })
 const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 
 const requireElement = (id: string): HTMLElement => {
   const element = document.getElementById(id)

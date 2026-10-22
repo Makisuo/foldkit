@@ -225,16 +225,16 @@ const flagsRoutingInit = InvalidApplicationComposition.makeInit(
     model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   }),
 )
-const assemble = () =>
-  InvalidApplicationComposition.assembleBlock({
+const prepare = () =>
+  InvalidApplicationComposition.prepareBlock({
     init: flagsRoutingInit,
     update: invalidApplicationImplementation.update,
     view: invalidDocumentView,
   })
 const completedBlock: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 
 // @ts-expect-error Completion requires the Flags and routing inputs declared by init.
 Program.make({
@@ -321,7 +321,7 @@ const viewHelperWithForeignMessage = (h: ViewHelperViewBuilder) =>
 // @ts-expect-error Composition no longer carries a render helper.
 ViewHelperComposition.render
 
-ViewHelperComposition.assembleBlock({
+ViewHelperComposition.prepareBlock({
   init: ViewHelperComposition.makeInit(() => ({
     model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   })),
@@ -340,15 +340,15 @@ const applicationInputView = InvalidApplicationComposition.makeView.withInputs<
   Readonly<{ label: string }>
 >((_model, { label }, h) => h.main([], [label]))
 
-const assembleApplicationInputBlock = () =>
-  InvalidApplicationComposition.assembleBlock({
+const prepareApplicationInputBlock = () =>
+  InvalidApplicationComposition.prepareBlock({
     ...invalidApplicationImplementation,
     view: applicationInputView,
   })
 const applicationInputBlock: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assembleApplicationInputBlock
-> = Block.complete(assembleApplicationInputBlock)
+  typeof prepareApplicationInputBlock
+> = Block.assemble(prepareApplicationInputBlock)
 // @ts-expect-error A Program root view cannot require parent-supplied inputs.
 Program.makeElement({
   block: applicationInputBlock,
@@ -358,7 +358,7 @@ Program.makeElement({
 // @ts-expect-error Application Composition no longer carries a render helper.
 InvalidApplicationComposition.render
 
-InvalidApplicationComposition.assembleBlock({
+InvalidApplicationComposition.prepareBlock({
   ...invalidApplicationImplementation,
   // @ts-expect-error A plain view helper cannot complete a Block as its branded view.
   view: applicationViewHelper,
@@ -415,15 +415,15 @@ const RequiresConflictingProvisionContract = Layer.effect(
   }),
 )
 
-const assemble2 = () =>
-  InvalidApplicationComposition.assembleBlock({
+const prepare2 = () =>
+  InvalidApplicationComposition.prepareBlock({
     ...invalidApplicationImplementation,
     view: invalidElementView,
   })
 const completedBlock2: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assemble2
-> = Block.complete(assemble2)
+  typeof prepare2
+> = Block.assemble(prepare2)
 const provisionContractProgram = Program.makeElement({
   block: completedBlock2,
   container: null,
@@ -438,30 +438,30 @@ programWithProvisionContract.provide(ConflictingProvisionContract.layer)
 // @ts-expect-error A later provider cannot require a conflicting handler contract.
 programWithProvisionContract.provide(RequiresConflictingProvisionContract)
 
-const assembleInvalidElementBlock = () =>
-  InvalidApplicationComposition.assembleBlock({
+const prepareInvalidElementBlock = () =>
+  InvalidApplicationComposition.prepareBlock({
     ...invalidApplicationImplementation,
     view: invalidElementView,
   })
 const invalidElementBlock: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assembleInvalidElementBlock
-> = Block.complete(assembleInvalidElementBlock)
+  typeof prepareInvalidElementBlock
+> = Block.assemble(prepareInvalidElementBlock)
 // @ts-expect-error Program.make requires a Document view.
 Program.make({
   block: invalidElementBlock,
   container: null,
 })
 
-const assembleInvalidDocumentBlock = () =>
-  InvalidApplicationComposition.assembleBlock({
+const prepareInvalidDocumentBlock = () =>
+  InvalidApplicationComposition.prepareBlock({
     ...invalidApplicationImplementation,
     view: invalidDocumentView,
   })
 const invalidDocumentBlock: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assembleInvalidDocumentBlock
-> = Block.complete(assembleInvalidDocumentBlock)
+  typeof prepareInvalidDocumentBlock
+> = Block.assemble(prepareInvalidDocumentBlock)
 // @ts-expect-error Program.makeElement requires an Html view.
 Program.makeElement({
   block: invalidDocumentBlock,
@@ -475,16 +475,16 @@ const requiredContextUpdate = InvalidApplicationComposition.makeUpdate(
   },
 )
 
-const assembleRequiredContextBlock = () =>
-  InvalidApplicationComposition.assembleBlock({
+const prepareRequiredContextBlock = () =>
+  InvalidApplicationComposition.prepareBlock({
     ...invalidApplicationImplementation,
     update: requiredContextUpdate,
     view: invalidElementView,
   })
 const requiredContextBlock: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assembleRequiredContextBlock
-> = Block.complete(assembleRequiredContextBlock)
+  typeof prepareRequiredContextBlock
+> = Block.assemble(prepareRequiredContextBlock)
 // @ts-expect-error A Program root update cannot require dispatch context.
 Program.makeElement({
   block: requiredContextBlock,
@@ -492,7 +492,6 @@ Program.makeElement({
 })
 
 const WiderMessage = defineMessageUnion({
-  // eslint-disable-next-line foldkit/got-prefix-requires-block-payload
   RequestedRefresh: {},
   RequestedExtraWork: {},
 })
@@ -511,7 +510,7 @@ const widerMessageUpdate = WiderMessageComposition.makeUpdate(
   }),
 )
 
-InvalidApplicationComposition.assembleBlock({
+InvalidApplicationComposition.prepareBlock({
   ...invalidApplicationImplementation,
   // @ts-expect-error A completed Block accepts only an update owned by its Composition.
   update: widerMessageUpdate,
@@ -534,22 +533,22 @@ const widerModelUpdate = WiderInputModelComposition.makeUpdate(
   }),
 )
 
-InvalidApplicationComposition.assembleBlock({
+InvalidApplicationComposition.prepareBlock({
   ...invalidApplicationImplementation,
   // @ts-expect-error A completed Block accepts only an update owned by its Composition.
   update: widerModelUpdate,
   view: invalidElementView,
 })
 
-const assembleInvalidServerBlock = () =>
-  InvalidApplicationComposition.assembleBlock({
+const prepareInvalidServerBlock = () =>
+  InvalidApplicationComposition.prepareBlock({
     ...invalidApplicationImplementation,
     view: invalidElementView,
   })
 const invalidServerBlock: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assembleInvalidServerBlock
-> = Block.complete(assembleInvalidServerBlock)
+  typeof prepareInvalidServerBlock
+> = Block.assemble(prepareInvalidServerBlock)
 // oxlint-disable-next-line effecttsgo/floating-effect
 Server.renderToString(
   // @ts-expect-error Server rendering requires a page-owning Document view.
@@ -742,7 +741,7 @@ const omittedChildUpdate = DeclarationTestsOmittedChildComposition.makeUpdate(
 )
 
 // @ts-expect-error Completion retains evidence from the rejected child operation.
-DeclarationTestsOmittedChildComposition.assembleBlock({
+DeclarationTestsOmittedChildComposition.prepareBlock({
   init: DeclarationTestsOmittedChildComposition.makeInit(() => ({
     model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   })),
@@ -782,7 +781,7 @@ const omittedChildInit = DeclarationTestsOmittedInitChildComposition.makeInit(
 )
 
 // @ts-expect-error A Block initializer cannot use an unregistered child Binding.
-DeclarationTestsOmittedInitChildComposition.assembleBlock({
+DeclarationTestsOmittedInitChildComposition.prepareBlock({
   init: omittedChildInit,
   update: DeclarationTestsOmittedInitChildComposition.makeUpdate(model => ({
     model,

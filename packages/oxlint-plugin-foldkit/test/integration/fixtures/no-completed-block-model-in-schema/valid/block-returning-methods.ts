@@ -3,8 +3,8 @@ import { Block } from 'foldkit'
 
 const Model = Schema.Struct({ count: Schema.Number })
 const Composition = Block.makeDefinition('Child', { Model }).makeComposition()
-const assemble = () => Composition.assembleBlock({})
-const Safe: Block.FromAssemblyWithoutViewOrOutMessage<typeof Model, typeof assemble> = Block.complete(assemble)
+const prepare = () => Composition.prepareBlock({})
+const Safe: Block.FromAssemblyWithoutViewOrOutMessage<typeof Model, typeof prepare> = Block.assemble(prepare)
 const Registry = {
   provideHandlers: () => ({ Model: Schema.String }),
   replaceEffectsLayer: () => ({ Model: Schema.Number }),

@@ -16,13 +16,13 @@ export const init = ApplicationComposition.makeInit(init_)
 export const update = ApplicationComposition.makeUpdate(update_)
 export const view = ApplicationComposition.makeView(view_)
 
-const assemble = () =>
-  ApplicationComposition.assembleBlock({
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
     init,
     update,
     view,
   })
 export const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

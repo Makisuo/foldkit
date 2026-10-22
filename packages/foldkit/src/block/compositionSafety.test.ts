@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { defineMessageUnion } from '../schema/index.js'
 import { modifyFields } from '../struct/index.js'
 import { makeDefinition } from './define.js'
-import { complete } from './fromAssembly.js'
+import { assemble } from './fromAssembly.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 const ChildMessage = defineMessageUnion({ Incremented: {} })
@@ -13,8 +13,8 @@ const PlainComposition = makeDefinition('CompositionSafetyRuntimePlain', {
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const assemblePlain = () =>
-  Reflect.apply(PlainComposition.assembleBlock, undefined, [
+const preparePlain = () =>
+  Reflect.apply(PlainComposition.prepareBlock, undefined, [
     {
       init: PlainComposition.makeInit(() => ({
         model: ChildModel.make({ count: 0 }),
@@ -35,8 +35,8 @@ const OptionalContextComposition = makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const assembleOptionalContext = () =>
-  Reflect.apply(OptionalContextComposition.assembleBlock, undefined, [
+const prepareOptionalContext = () =>
+  Reflect.apply(OptionalContextComposition.prepareBlock, undefined, [
     {
       init: OptionalContextComposition.makeInit(() => ({
         model: ChildModel.make({ count: 0 }),
@@ -56,9 +56,9 @@ const assembleOptionalContext = () =>
     },
   ])
 
-const PlainBlock = Reflect.apply(complete, undefined, [assemblePlain])
-const OptionalContextBlock = Reflect.apply(complete, undefined, [
-  assembleOptionalContext,
+const PlainBlock = Reflect.apply(assemble, undefined, [preparePlain])
+const OptionalContextBlock = Reflect.apply(assemble, undefined, [
+  prepareOptionalContext,
 ])
 
 const ParentModel = Schema.Struct({ child: ChildModel })

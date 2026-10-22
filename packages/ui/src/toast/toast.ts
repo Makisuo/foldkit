@@ -320,8 +320,8 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     },
   )
 
-  const assemble = () =>
-    ToastComposition.assembleBlock({
+  const prepare = () =>
+    ToastComposition.prepareBlock({
       init: toastRuntime.init,
       update: toastRuntime.update,
       view,
@@ -331,8 +331,8 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     })
   const block: Block.FromAssemblyWithViewAndOutMessage<
     typeof toastRuntime.Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
   const test = makeTest({
     block,
     entryAnimationBinding: EntryAnimationBinding,

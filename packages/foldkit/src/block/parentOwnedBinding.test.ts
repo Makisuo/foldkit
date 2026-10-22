@@ -42,8 +42,8 @@ const selectValue = Child.makeStep(model => ({
   outMessage: ChildOutMessage.SelectedValue({ value: model.value }),
 }))
 const ChildComposition = Child.makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
     update: ChildComposition.makeUpdate((model, message) =>
       ChildMessage.match(message, {
@@ -60,8 +60,8 @@ const assembleChildBlock = () =>
   })
 const ChildBlock: Block.FromAssemblyWithOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const PlainChild = makeDefinition('ParentOwnedBindingPlainChild', {
   Model: ChildModel,
@@ -71,8 +71,8 @@ const PlainChildComposition = PlainChild.makeComposition()
 const setPrototypeValue = PlainChild.makeStep((model, value: string) => ({
   model: modifyFields(model, { value: () => value }),
 }))
-const assemblePlainChildBlock = () =>
-  PlainChildComposition.assembleBlock({
+const preparePlainChildBlock = () =>
+  PlainChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
     update: PlainChildComposition.makeUpdate((model, message) =>
       ChildMessage.match(message, {
@@ -87,11 +87,11 @@ const assemblePlainChildBlock = () =>
   })
 const PlainChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assemblePlainChildBlock
-> = Block.complete(assemblePlainChildBlock)
+  typeof preparePlainChildBlock
+> = Block.assemble(preparePlainChildBlock)
 
-const assemblePrototypeOperationChildBlock = () =>
-  PlainChildComposition.assembleBlock({
+const preparePrototypeOperationChildBlock = () =>
+  PlainChildComposition.prepareBlock({
     init: PlainChildBlock.init,
     update: PlainChildBlock.update,
     operations: {
@@ -101,8 +101,8 @@ const assemblePrototypeOperationChildBlock = () =>
   })
 const PrototypeOperationChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assemblePrototypeOperationChildBlock
-> = Block.complete(assemblePrototypeOperationChildBlock)
+  typeof preparePrototypeOperationChildBlock
+> = Block.assemble(preparePrototypeOperationChildBlock)
 
 const Entry = Schema.Struct({ id: Schema.Number, child: ChildModel })
 type Entry = typeof Entry.Type
@@ -232,8 +232,8 @@ const ParentComposition = Parent.makeComposition({
 
 const update = ParentComposition.makeUpdate()
 
-const assembleParentBlock = () =>
-  ParentComposition.assembleBlock({
+const prepareParentBlock = () =>
+  ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() =>
       DirectChildBinding.init({
         args: [],
@@ -251,8 +251,8 @@ const assembleParentBlock = () =>
   })
 const ParentBlock: Block.FromAssemblyWithOutMessage<
   typeof ParentModel,
-  typeof assembleParentBlock
-> = Block.complete(assembleParentBlock)
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 
 const makeGenericChoice = <const Value extends string>(
   Value: Schema.Schema<Value>,
@@ -268,8 +268,8 @@ const makeGenericChoice = <const Value extends string>(
       OutMessage,
     })
     .makeComposition()
-  const assembleBlock = () =>
-    GenericChoiceComposition.assembleBlock({
+  const prepareBlock = () =>
+    GenericChoiceComposition.prepareBlock({
       init: (value: Value) => ({ model: Model.make({ value }) }),
       update: GenericChoiceComposition.makeUpdate((model, { value }) => ({
         model: modifyFields(model, { value: () => value }),
@@ -277,8 +277,8 @@ const makeGenericChoice = <const Value extends string>(
     })
   const block: Block.FromAssemblyWithOutMessage<
     typeof Model,
-    typeof assembleBlock
-  > = Block.complete(assembleBlock)
+    typeof prepareBlock
+  > = Block.assemble(prepareBlock)
 
   return { block, Message, OutMessage }
 }
@@ -449,12 +449,12 @@ const AlternateSnapshotMount = SnapshotParent.makeMount(
 
 if (false) {
   // @ts-expect-error Every Block completes through a Composition.
-  Parent.assembleBlock
+  Parent.prepareBlock
   // @ts-expect-error The breaking staging API does not retain register aliases.
   Parent.register
   // @ts-expect-error Every Block completes through a Composition.
-  ApplicationDefinition.assembleBlock
-  void ApplicationComposition.assembleBlock
+  ApplicationDefinition.prepareBlock
+  void ApplicationComposition.prepareBlock
   // @ts-expect-error A completed child has no child-owned Binding factory.
   ChildBlock.connection
   // @ts-expect-error Keyed Bindings are also created by the parent.
@@ -476,7 +476,7 @@ if (false) {
       KeyedChildBinding,
     ],
   })
-  AlternativeParentComposition.assembleBlock({
+  AlternativeParentComposition.prepareBlock({
     // @ts-expect-error A completed Block's init is bound to its registered child placements.
     init: ParentBlock.init,
     // @ts-expect-error A completed Block's update is bound to its registered child placements.
@@ -736,8 +736,8 @@ it('binds an exposed operation named __proto__ as an own property', () => {
       return Reflect.apply(boundOperation, PrototypeOperationBinding, [value])
     },
   )
-  const assembleRuntime = () =>
-    composition.assembleBlock({
+  const prepareRuntime = () =>
+    composition.prepareBlock({
       init: composition.makeInit(() => ({
         model: {
           maybeChild: Option.none(),
@@ -761,8 +761,8 @@ it('binds an exposed operation named __proto__ as an own property', () => {
     })
   const runtime: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof ParentModel,
-    typeof assembleRuntime
-  > = Block.complete(assembleRuntime)
+    typeof prepareRuntime
+  > = Block.assemble(prepareRuntime)
   const boundOperation = Reflect.get(PrototypeOperationBinding, '__proto__')
   const result = runtime.operations.invokePrototypeOperation(
     ParentBlock.init().model,

@@ -66,7 +66,7 @@ const omittedSilentInitialization = SilentParentDefinition.makeStep(model =>
 const OmittedSilentComposition = SilentParentDefinition.makeComposition()
 
 // @ts-expect-error Connected initialization requires its storage-only Binding to be registered.
-OmittedSilentComposition.assembleBlock({
+OmittedSilentComposition.prepareBlock({
   init: OmittedSilentComposition.makeInit(() => ({
     model: { silent: { ready: false } },
   })),

@@ -15,18 +15,18 @@ import * as HeaderFeature from '../shared/header-barrel'
 
 const Model = Schema.Struct({ count: Schema.Number })
 const Composition = Feature.makeDefinition('Child', { Model }).makeComposition()
-const assembleQualified = () => Composition.assembleBlock({})
-const Qualified: Boundary.FromAssemblyWithoutViewOrOutMessage<typeof Model, typeof assembleQualified> = Boundary.complete(assembleQualified)
-const assembleView = () => Composition.assembleBlock({})
-const View: ViewHeader<typeof Model, typeof assembleView> = Feature.complete(assembleView)
-const assembleViewOut = () => { return Composition.assembleBlock({}) }
-const ViewOut: ViewOutHeader<typeof Model, typeof assembleViewOut> = Feature.complete(assembleViewOut)
-const assembleOut = () => Composition.assembleBlock({})
-const Out: OutHeader<typeof Model, typeof assembleOut> = Feature.complete(assembleOut)
-const assemblePlain = () => Composition.assembleBlock({})
-const Plain: PlainHeader<typeof Model, typeof assemblePlain> = Feature.complete(assemblePlain)
-const checkedBoundaryProducer = () => Composition.assembleBlock({})
-const NamedBoundary: PlainHeader<typeof Model, typeof checkedBoundaryProducer> = Feature.complete(checkedBoundaryProducer)
+const prepareQualified = () => Composition.prepareBlock({})
+const Qualified: Boundary.FromAssemblyWithoutViewOrOutMessage<typeof Model, typeof prepareQualified> = Boundary.assemble(prepareQualified)
+const prepareView = () => Composition.prepareBlock({})
+const View: ViewHeader<typeof Model, typeof prepareView> = Feature.assemble(prepareView)
+const prepareViewOut = () => { return Composition.prepareBlock({}) }
+const ViewOut: ViewOutHeader<typeof Model, typeof prepareViewOut> = Feature.assemble(prepareViewOut)
+const prepareOut = () => Composition.prepareBlock({})
+const Out: OutHeader<typeof Model, typeof prepareOut> = Feature.assemble(prepareOut)
+const preparePlain = () => Composition.prepareBlock({})
+const Plain: PlainHeader<typeof Model, typeof preparePlain> = Feature.assemble(preparePlain)
+const checkedBoundaryProducer = () => Composition.prepareBlock({})
+const NamedBoundary: PlainHeader<typeof Model, typeof checkedBoundaryProducer> = Feature.assemble(checkedBoundaryProducer)
 const alias = Qualified
 export const Parent = Schema.Struct({
   qualified: Schema.Option(Schema.Array(alias.Model)),

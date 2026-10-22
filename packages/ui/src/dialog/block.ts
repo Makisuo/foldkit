@@ -622,9 +622,9 @@ const implementation = {
   EffectsLayer,
 }
 
-const assemble = () => DialogComposition.assembleBlock(implementation)
+const prepare = () => DialogComposition.prepareBlock(implementation)
 /** Complete Dialog Block definition. */
 export const DialogBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

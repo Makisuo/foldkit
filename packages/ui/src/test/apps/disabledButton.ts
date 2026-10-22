@@ -137,11 +137,11 @@ export const viewWithDialog = DisabledButtonTestComposition.makeView(
   },
 )
 
-const assemble = () =>
-  DisabledButtonTestComposition.assembleBlock({
+const prepare = () =>
+  DisabledButtonTestComposition.prepareBlock({
     init,
     update,
     view: viewWithDialog,
   })
-export const block: Block.FromAssemblyWithView<typeof Model, typeof assemble> =
-  Block.complete(assemble)
+export const block: Block.FromAssemblyWithView<typeof Model, typeof prepare> =
+  Block.assemble(prepare)

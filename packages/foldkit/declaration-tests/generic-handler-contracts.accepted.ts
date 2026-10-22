@@ -49,12 +49,12 @@ export const makeEchoBlock = <Item extends string, ItemEncoded>(
 ) => {
   const { composition, init, update, Echo } = makeEchoParts(Item)
 
-  const assemble = () =>
-    composition.assembleBlock({ init, update, EffectsLayer: Echo.layer })
+  const prepare = () =>
+    composition.prepareBlock({ init, update, EffectsLayer: Echo.layer })
   const completedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof composition.Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
   return completedBlock
 }
 
@@ -71,16 +71,16 @@ type OptionalViewImplementation = Readonly<{
   EffectsLayer: typeof optionalShapeParts.Echo.layer
   view?: typeof optionalView
 }>
-const assembleOptionalViewBlock = () =>
-  optionalShapeParts.composition.assembleBlock<OptionalViewImplementation>({
+const prepareOptionalViewBlock = () =>
+  optionalShapeParts.composition.prepareBlock<OptionalViewImplementation>({
     init: optionalShapeParts.init,
     update: optionalShapeParts.update,
     EffectsLayer: optionalShapeParts.Echo.layer,
   })
 export const OptionalViewBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof optionalShapeParts.composition.Model,
-  typeof assembleOptionalViewBlock
-> = Block.complete(assembleOptionalViewBlock)
+  typeof prepareOptionalViewBlock
+> = Block.assemble(prepareOptionalViewBlock)
 
 const pureUpdate = optionalShapeParts.composition.makeUpdate(model => ({
   model,
@@ -90,12 +90,12 @@ type OptionalEffectsImplementation = Readonly<{
   update: typeof pureUpdate
   EffectsLayer?: typeof Layer.empty
 }>
-const assembleOptionalEffectsBlock = () =>
-  optionalShapeParts.composition.assembleBlock<OptionalEffectsImplementation>({
+const prepareOptionalEffectsBlock = () =>
+  optionalShapeParts.composition.prepareBlock<OptionalEffectsImplementation>({
     init: optionalShapeParts.init,
     update: pureUpdate,
   })
 export const OptionalEffectsBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof optionalShapeParts.composition.Model,
-  typeof assembleOptionalEffectsBlock
-> = Block.complete(assembleOptionalEffectsBlock)
+  typeof prepareOptionalEffectsBlock
+> = Block.assemble(prepareOptionalEffectsBlock)

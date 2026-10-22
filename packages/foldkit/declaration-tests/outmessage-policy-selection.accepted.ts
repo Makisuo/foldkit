@@ -32,8 +32,8 @@ export const ResetChild = ChildDefinition.makeCommand('ResetChild', {
   },
 })
 const ChildComposition = ChildDefinition.makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: ChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: '' }),
     })),
@@ -46,8 +46,8 @@ const assembleChildBlock = () =>
   })
 export const ChildBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 export const makeRefinedChildBlock = <const Value extends string>(
   Value: Schema.Schema<Value>,
@@ -66,8 +66,8 @@ export const makeRefinedChildBlock = <const Value extends string>(
   )
   const RefinedChildComposition = RefinedChildDefinition.makeComposition()
 
-  const assemble = () =>
-    RefinedChildComposition.assembleBlock({
+  const prepare = () =>
+    RefinedChildComposition.prepareBlock({
       init: RefinedChildComposition.makeInit(() => ({
         model: ChildModel.make({ value: '' }),
       })),
@@ -78,8 +78,8 @@ export const makeRefinedChildBlock = <const Value extends string>(
     })
   const completedBlock: Block.FromAssemblyWithOutMessage<
     typeof ChildModel,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
   return completedBlock
 }
 

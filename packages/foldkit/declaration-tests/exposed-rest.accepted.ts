@@ -55,8 +55,8 @@ const childUpdate = ChildComposition.makeUpdate((model, message) =>
     RequestedReset: () => ({ model: ChildModel.make({ count: 0 }) }),
   }),
 )
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
     update: childUpdate,
     operations: {
@@ -95,12 +95,11 @@ const assembleChildBlock = () =>
   })
 export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const ParentModel = Schema.Struct({ child: ChildModel })
 const ParentMessage = Message.defineMessageUnion({
-  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture deliberately probes reserved Got* routing with a nonstandard payload.
   GotChildMessage: { message: ChildMessage },
 })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.

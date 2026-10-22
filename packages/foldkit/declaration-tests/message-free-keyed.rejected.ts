@@ -31,15 +31,15 @@ const MessagefulComposition = Block.makeDefinition(
     Message: MessagefulMessage,
   },
 ).makeComposition()
-const assembleMessagefulBlock = () =>
-  MessagefulComposition.assembleBlock({
+const prepareMessagefulBlock = () =>
+  MessagefulComposition.prepareBlock({
     init: MessagefulComposition.makeInit(() => ({ model: { ready: false } })),
     update: MessagefulComposition.makeUpdate(model => ({ model })),
   })
 const MessagefulBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof MessagefulComposition.Model,
-  typeof assembleMessagefulBlock
-> = Block.complete(assembleMessagefulBlock)
+  typeof prepareMessagefulBlock
+> = Block.assemble(prepareMessagefulBlock)
 
 // @ts-expect-error A messageful general keyed Binding requires an exact key Schema for generated delivery.
 ParentDefinition.makeBinding(MessagefulBlock, {
@@ -64,7 +64,7 @@ const omittedUpdate = OmittedComposition.makeUpdate((model, _message) =>
 )
 
 // @ts-expect-error Connected initialization requires its message-free Binding to be registered.
-OmittedComposition.assembleBlock({
+OmittedComposition.prepareBlock({
   init: OmittedComposition.makeInit(() => ({
     model: ParentModel.make({ entries: [] }),
   })),
@@ -76,7 +76,7 @@ const SilentComposition = Block.makeDefinition('InvalidSilentExposure', {
   Model: SilentBlock.Model,
   Message: Schema.Never,
 }).makeComposition()
-SilentComposition.assembleBlock({
+SilentComposition.prepareBlock({
   init: SilentComposition.makeInit((id: string) => ({
     model: SilentBlock.Model.make({ id, ready: false }),
   })),

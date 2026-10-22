@@ -10,8 +10,8 @@ import { view } from './view'
 
 const EffectsLayer = Layer.mergeAll(PushSearchUrl.layer, FetchPeople.layer)
 
-const assemble = () =>
-  PeopleComposition.assembleBlock({
+const prepare = () =>
+  PeopleComposition.prepareBlock({
     init,
     update,
     view,
@@ -20,5 +20,5 @@ const assemble = () =>
   })
 export const PeopleBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

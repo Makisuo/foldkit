@@ -65,8 +65,8 @@ export const childUpdate = ChildComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+export const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
     update: childUpdate,
     operations: {
@@ -77,12 +77,12 @@ export const assembleChildBlock = () =>
     hostHandlers: [RecordValue],
   })
 
-export const RawChildBlock: CompletedAssembly<typeof assembleChildBlock> =
-  Block.complete(assembleChildBlock)
+export const RawChildBlock: CompletedAssembly<typeof prepareChildBlock> =
+  Block.assemble(prepareChildBlock)
 export const ChildBlock: Block.FromAssemblyWithOutMessage<
   typeof ChildComposition.Model,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 export const ContextModel = Schema.Struct({ value: Schema.String })
 export const ContextMessage = defineMessageUnion({
@@ -114,8 +114,8 @@ export const contextUpdate = ContextComposition.makeUpdate(
     }),
   }),
 )
-export const assembleContextBlock = () =>
-  ContextComposition.assembleBlock({
+export const prepareContextBlock = () =>
+  ContextComposition.prepareBlock({
     init: () => ({ model: ContextModel.make({ value: '' }) }),
     update: contextUpdate,
     operations: {
@@ -139,12 +139,12 @@ export const assembleContextBlock = () =>
     },
   })
 
-export const RawContextBlock: CompletedAssembly<typeof assembleContextBlock> =
-  Block.complete(assembleContextBlock)
+export const RawContextBlock: CompletedAssembly<typeof prepareContextBlock> =
+  Block.assemble(prepareContextBlock)
 export const ContextBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ContextComposition.Model,
-  typeof assembleContextBlock
-> = Block.complete(assembleContextBlock)
+  typeof prepareContextBlock
+> = Block.assemble(prepareContextBlock)
 
 export const ParentModel = Schema.Struct({
   child: ChildModel,
@@ -199,8 +199,8 @@ export const parentUpdate = ParentComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const assembleParentBlock = () =>
-  ParentComposition.assembleBlock({
+export const prepareParentBlock = () =>
+  ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() => ({
       model: { entries: [{ id: 'first', child: { value: 'entry' } }] },
     })),
@@ -214,12 +214,12 @@ export const assembleParentBlock = () =>
     EffectsLayer: Layer.empty,
   })
 
-export const RawParentBlock: CompletedAssembly<typeof assembleParentBlock> =
-  Block.complete(assembleParentBlock)
+export const RawParentBlock: CompletedAssembly<typeof prepareParentBlock> =
+  Block.assemble(prepareParentBlock)
 export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentComposition.Model,
-  typeof assembleParentBlock
-> = Block.complete(assembleParentBlock)
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 
 export function makeChoice<
   const Values extends readonly [string, ...Array<string>],
@@ -261,8 +261,8 @@ export function makeChoice<
   const select = (value: Values[number], required: RequiredContext) =>
     Tuple.make(Message.UpdatedValue({ value }), required)
 
-  const assembleBlock = () =>
-    Composition.assembleBlock({
+  const prepareBlock = () =>
+    Composition.prepareBlock({
       init: (selected: Values[number]) => ({ model: Model.make({ selected }) }),
       update,
       view,
@@ -271,12 +271,12 @@ export function makeChoice<
       hostHandlers: [Observe],
     })
 
-  const rawBlock: CompletedAssembly<typeof assembleBlock> =
-    Block.complete(assembleBlock)
+  const rawBlock: CompletedAssembly<typeof prepareBlock> =
+    Block.assemble(prepareBlock)
   const block: Block.FromAssemblyWithView<
     typeof Composition.Model,
-    typeof assembleBlock
-  > = Block.complete(assembleBlock)
+    typeof prepareBlock
+  > = Block.assemble(prepareBlock)
   const provided = block.provideHandlers(
     Observe.toLayer(
       Effect.succeed(() => Effect.succeed(Message.CompletedObserve())),
@@ -324,8 +324,8 @@ export const mountedChoiceUpdate = MountedChoiceComposition.makeUpdate(
       CompletedObserveSelection: () => ({ model }),
     }),
 )
-export const assembleMountedChoiceBlock = () =>
-  MountedChoiceComposition.assembleBlock({
+export const prepareMountedChoiceBlock = () =>
+  MountedChoiceComposition.prepareBlock({
     init: (selected: string) => ({
       model: MountedChoiceModel.make({ selected }),
     }),
@@ -339,14 +339,14 @@ export const assembleMountedChoiceBlock = () =>
   })
 
 export const RawMountedChoiceBlock: CompletedAssembly<
-  typeof assembleMountedChoiceBlock
-> = Block.complete(assembleMountedChoiceBlock)
+  typeof prepareMountedChoiceBlock
+> = Block.assemble(prepareMountedChoiceBlock)
 export const MountedChoiceBlock: Block.FromAssemblyWithView<
   typeof MountedChoiceComposition.Model,
-  typeof assembleMountedChoiceBlock
-> = Block.complete(assembleMountedChoiceBlock)
-export const assembleManagedMountedChoiceBlock = () =>
-  MountedChoiceComposition.assembleBlock({
+  typeof prepareMountedChoiceBlock
+> = Block.assemble(prepareMountedChoiceBlock)
+export const prepareManagedMountedChoiceBlock = () =>
+  MountedChoiceComposition.prepareBlock({
     init: (selected: string) => ({
       model: MountedChoiceModel.make({ selected }),
     }),
@@ -361,12 +361,12 @@ export const assembleManagedMountedChoiceBlock = () =>
   })
 
 export const RawManagedMountedChoiceBlock: CompletedAssembly<
-  typeof assembleManagedMountedChoiceBlock
-> = Block.complete(assembleManagedMountedChoiceBlock)
+  typeof prepareManagedMountedChoiceBlock
+> = Block.assemble(prepareManagedMountedChoiceBlock)
 export const ManagedMountedChoiceBlock: Block.FromAssemblyWithView<
   typeof MountedChoiceComposition.Model,
-  typeof assembleManagedMountedChoiceBlock
-> = Block.complete(assembleManagedMountedChoiceBlock)
+  typeof prepareManagedMountedChoiceBlock
+> = Block.assemble(prepareManagedMountedChoiceBlock)
 
 export const ExactModel = Schema.Struct({ value: Schema.String })
 export const ExactMessage = defineMessageUnion({ RequestedPing: {} })
@@ -383,8 +383,8 @@ export function exactUpdate(
 }
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 export const ExactComposition = ExactDefinition.makeComposition()
-export const assembleExactBlock = () =>
-  ExactComposition.assembleBlock({
+export const prepareExactBlock = () =>
+  ExactComposition.prepareBlock({
     init: () => ({ model: ExactModel.make({ value: '' }) }),
     update: exactUpdate,
     operations: {
@@ -397,12 +397,12 @@ export const assembleExactBlock = () =>
     EffectsLayer: Layer.empty,
   })
 
-export const RawExactBlock: CompletedAssembly<typeof assembleExactBlock> =
-  Block.complete(assembleExactBlock)
+export const RawExactBlock: CompletedAssembly<typeof prepareExactBlock> =
+  Block.assemble(prepareExactBlock)
 export const ExactBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ExactComposition.Model,
-  typeof assembleExactBlock
-> = Block.complete(assembleExactBlock)
+  typeof prepareExactBlock
+> = Block.assemble(prepareExactBlock)
 
 type SetValueArguments = Expect<
   Equal<Parameters<typeof ChildBinding.setValue>, [value: string]>

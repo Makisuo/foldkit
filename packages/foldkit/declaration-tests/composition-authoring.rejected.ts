@@ -79,7 +79,7 @@ const uncompletedRawRefreshUpdate = (
   _message: typeof ParentMessage.Type,
 ) => rawRefresh(model)
 
-ParentComposition.assembleBlock({
+ParentComposition.prepareBlock({
   init: parentInit,
   // @ts-expect-error A connected recipe must pass through Composition.makeUpdate before Block completion.
   update: uncompletedRawRefreshUpdate,
@@ -87,7 +87,7 @@ ParentComposition.assembleBlock({
 })
 
 // @ts-expect-error The Settings Command handler must be registered.
-SettingsComposition.assembleBlock({
+SettingsComposition.prepareBlock({
   init: settingsInit,
   update: settingsUpdate,
   EffectsLayer: Layer.empty,

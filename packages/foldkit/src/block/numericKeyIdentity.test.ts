@@ -22,8 +22,8 @@ const Read = Child.makeCommand('Read', {
 })
 const initialized = vi.fn()
 const ChildComposition = Child.makeComposition()
-const assembleChild = () =>
-  ChildComposition.assembleBlock({
+const prepareChild = () =>
+  ChildComposition.prepareBlock({
     init: ChildComposition.makeInit(() => {
       initialized()
       return { model: { count: 0 }, commands: [Read()] }
@@ -35,8 +35,8 @@ const assembleChild = () =>
   })
 const child: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChild
-> = Block.complete(assembleChild)
+  typeof prepareChild
+> = Block.assemble(prepareChild)
 const Model = Schema.Struct({
   entries: Schema.Array(
     Schema.Struct({ id: Schema.Number, child: ChildModel }),
@@ -63,15 +63,15 @@ it('uses one zero identity for connected initialization and later dispatch', asy
       toParentModel: child => Model.make({ entries: [{ id: 0, child }] }),
     }),
   )
-  const assembleParent = () =>
-    ParentComposition.assembleBlock({
+  const prepareParent = () =>
+    ParentComposition.prepareBlock({
       init,
       update: ParentComposition.makeUpdate(),
     })
   const parent: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof Model,
-    typeof assembleParent
-  > = Block.complete(assembleParent)
+    typeof prepareParent
+  > = Block.assemble(prepareParent)
   const parentInit = init()
   const command = Option.getOrThrow(Array.head(parentInit.commands ?? []))
   const completed = await Effect.runPromise(

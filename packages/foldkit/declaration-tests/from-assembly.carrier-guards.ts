@@ -3,11 +3,11 @@ import { Block, Program } from 'foldkit'
 
 import { Model } from './from-assembly.accepted.js'
 import {
-  assembleErased,
-  assembleHeadless,
-  assembleReportingHeadless,
-  assembleReportingViewed,
-  assembleViewed,
+  prepareErased,
+  prepareHeadless,
+  prepareReportingHeadless,
+  prepareReportingViewed,
+  prepareViewed,
 } from './from-assembly.accepted.js'
 import { OriginalViewed, ParentDefinition } from './from-assembly.accepted.js'
 
@@ -44,8 +44,8 @@ Program.makeElement({ block: AnyViewed, container: null })
 
 export const NeverResult: Block.AssemblyWithView<
   typeof Model,
-  typeof assembleErased
-> = assembleErased()
+  typeof prepareErased
+> = prepareErased()
 declare const neverProducer: never
 export declare const NeverProducer: Block.AssemblyWithView<
   typeof Model,
@@ -73,23 +73,23 @@ export const MutableModel: Schema.Codec<{ count: number }, { count: number }> =
 export const BroadCarrier: Block.AssemblyWithView<
   typeof BroadModel,
   // @ts-expect-error The public carrier preserves exact Model agreement.
-  typeof assembleViewed
+  typeof prepareViewed
 > = OriginalViewed
 export const MutableCarrier: Block.AssemblyWithView<
   typeof MutableModel,
   // @ts-expect-error A structurally assignable mutable header still fails exact Schema agreement.
-  typeof assembleViewed
+  typeof prepareViewed
 > = OriginalViewed
 export const AnyModelCarrier: Block.AssemblyWithView<
   any,
   // @ts-expect-error Any Model cannot disable the carrier's header validation.
-  typeof assembleViewed
+  typeof prepareViewed
 > = OriginalViewed
 
 declare function twoOverloads(): any
 declare function twoOverloads(
   ...args: ReadonlyArray<never>
-): ReturnType<typeof assembleViewed>
+): ReturnType<typeof prepareViewed>
 export const TwoOverloads: Block.AssemblyWithView<
   typeof Model,
   // @ts-expect-error The public carrier retains the complete-producer guard.
@@ -100,7 +100,7 @@ declare function threeOverloads(): any
 declare function threeOverloads(): never
 declare function threeOverloads(
   ...args: ReadonlyArray<never>
-): ReturnType<typeof assembleViewed>
+): ReturnType<typeof prepareViewed>
 export const ThreeOverloads: Block.AssemblyWithView<
   typeof Model,
   // @ts-expect-error A never middle signature cannot bypass the public carrier's marker requirement.
@@ -110,12 +110,12 @@ export const ThreeOverloads: Block.AssemblyWithView<
 export type AnyModelHeadless = Block.AssemblyWithoutViewOrOutMessage<
   any,
   // @ts-expect-error Every carrier retains exact Model validation.
-  typeof assembleHeadless
+  typeof prepareHeadless
 >
 export type BroadModelHeadless = Block.AssemblyWithoutViewOrOutMessage<
   typeof BroadModel,
   // @ts-expect-error Every carrier rejects a broader mutable Model header.
-  typeof assembleHeadless
+  typeof prepareHeadless
 >
 export type OverloadedHeadless = Block.AssemblyWithoutViewOrOutMessage<
   typeof Model,
@@ -132,12 +132,12 @@ NeverHeadless satisfies Block.AnyBlock
 export type AnyModelReportingViewed = Block.AssemblyWithViewAndOutMessage<
   any,
   // @ts-expect-error Every carrier retains exact Model validation.
-  typeof assembleReportingViewed
+  typeof prepareReportingViewed
 >
 export type BroadModelReportingViewed = Block.AssemblyWithViewAndOutMessage<
   typeof BroadModel,
   // @ts-expect-error Every carrier rejects a broader mutable Model header.
-  typeof assembleReportingViewed
+  typeof prepareReportingViewed
 >
 export type OverloadedReportingViewed = Block.AssemblyWithViewAndOutMessage<
   typeof Model,
@@ -154,12 +154,12 @@ NeverReportingViewed satisfies Block.AnyBlock
 export type AnyModelReportingHeadless = Block.AssemblyWithOutMessage<
   any,
   // @ts-expect-error Every carrier retains exact Model validation.
-  typeof assembleReportingHeadless
+  typeof prepareReportingHeadless
 >
 export type BroadModelReportingHeadless = Block.AssemblyWithOutMessage<
   typeof BroadModel,
   // @ts-expect-error Every carrier rejects a broader mutable Model header.
-  typeof assembleReportingHeadless
+  typeof prepareReportingHeadless
 >
 export type OverloadedReportingHeadless = Block.AssemblyWithOutMessage<
   typeof Model,

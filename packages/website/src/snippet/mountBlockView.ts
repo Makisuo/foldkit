@@ -37,8 +37,8 @@ const init = PanelComposition.makeInit(() => ({
 const update = PanelComposition.makeUpdate(model => ({ model }))
 const view = PanelComposition.makeView((model, h) => panelView(model, h))
 
-const assemble = () =>
-  PanelComposition.assembleBlock({
+const prepare = () =>
+  PanelComposition.prepareBlock({
     init,
     update,
     view,
@@ -46,5 +46,5 @@ const assemble = () =>
   })
 export const PanelBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

@@ -15,8 +15,8 @@ const AccessorChildDefinition = makeDefinition('GeneratedAccessorChild', {
   Message: ChildMessage,
 })
 const AccessorChildComposition = AccessorChildDefinition.makeComposition()
-const assembleAccessorChildBlock = () =>
-  AccessorChildComposition.assembleBlock({
+const prepareAccessorChildBlock = () =>
+  AccessorChildComposition.prepareBlock({
     init: AccessorChildComposition.makeInit(() => ({ model: { count: 0 } })),
     update: AccessorChildComposition.makeUpdate(
       (model, _message, amount: number) => ({
@@ -27,8 +27,8 @@ const assembleAccessorChildBlock = () =>
   })
 const AccessorChildBlock: Block.FromAssemblyWithView<
   typeof AccessorChildModel,
-  typeof assembleAccessorChildBlock
-> = Block.complete(assembleAccessorChildBlock)
+  typeof prepareAccessorChildBlock
+> = Block.assemble(prepareAccessorChildBlock)
 
 const AccessorParentModel = Schema.Struct({
   child: AccessorChildModel,
@@ -71,8 +71,8 @@ const OptionalContextChildDefinition = makeDefinition(
 )
 const OptionalContextChildComposition =
   OptionalContextChildDefinition.makeComposition()
-const assembleOptionalContextChildBlock = () =>
-  OptionalContextChildComposition.assembleBlock({
+const prepareOptionalContextChildBlock = () =>
+  OptionalContextChildComposition.prepareBlock({
     init: OptionalContextChildComposition.makeInit(() => ({
       model: { count: 0 },
     })),
@@ -87,8 +87,8 @@ const assembleOptionalContextChildBlock = () =>
   })
 const OptionalContextChildBlock: Block.FromAssemblyWithView<
   typeof AccessorChildModel,
-  typeof assembleOptionalContextChildBlock
-> = Block.complete(assembleOptionalContextChildBlock)
+  typeof prepareOptionalContextChildBlock
+> = Block.assemble(prepareOptionalContextChildBlock)
 
 const DefaultContextChildDefinition = makeDefinition(
   'GeneratedDefaultContextChild',
@@ -99,8 +99,8 @@ const DefaultContextChildDefinition = makeDefinition(
 )
 const DefaultContextChildComposition =
   DefaultContextChildDefinition.makeComposition()
-const assembleDefaultContextChildBlock = () =>
-  DefaultContextChildComposition.assembleBlock({
+const prepareDefaultContextChildBlock = () =>
+  DefaultContextChildComposition.prepareBlock({
     init: DefaultContextChildComposition.makeInit(() => ({
       model: { count: 0 },
     })),
@@ -113,16 +113,16 @@ const assembleDefaultContextChildBlock = () =>
   })
 const DefaultContextChildBlock: Block.FromAssemblyWithView<
   typeof AccessorChildModel,
-  typeof assembleDefaultContextChildBlock
-> = Block.complete(assembleDefaultContextChildBlock)
+  typeof prepareDefaultContextChildBlock
+> = Block.assemble(prepareDefaultContextChildBlock)
 
 const RestContextChildDefinition = makeDefinition('GeneratedRestContextChild', {
   Model: AccessorChildModel,
   Message: ChildMessage,
 })
 const RestContextChildComposition = RestContextChildDefinition.makeComposition()
-const assembleRestContextChildBlock = () =>
-  RestContextChildComposition.assembleBlock({
+const prepareRestContextChildBlock = () =>
+  RestContextChildComposition.prepareBlock({
     init: RestContextChildComposition.makeInit(() => ({
       model: { count: 0 },
     })),
@@ -138,8 +138,8 @@ const assembleRestContextChildBlock = () =>
   })
 const RestContextChildBlock: Block.FromAssemblyWithView<
   typeof AccessorChildModel,
-  typeof assembleRestContextChildBlock
-> = Block.complete(assembleRestContextChildBlock)
+  typeof prepareRestContextChildBlock
+> = Block.assemble(prepareRestContextChildBlock)
 
 const optionalContextBinding = AccessorParentDefinition.makeBinding(
   OptionalContextChildBlock,
@@ -195,8 +195,8 @@ const KeyedChildDefinition = makeDefinition('GeneratedKeyedChild', {
   Message: ChildMessage,
 })
 const KeyedChildComposition = KeyedChildDefinition.makeComposition()
-const assembleKeyedChildBlock = () =>
-  KeyedChildComposition.assembleBlock({
+const prepareKeyedChildBlock = () =>
+  KeyedChildComposition.prepareBlock({
     init: KeyedChildComposition.makeInit((id: string) => ({
       model: { id, count: 0 },
     })),
@@ -209,8 +209,8 @@ const assembleKeyedChildBlock = () =>
   })
 const KeyedChildBlock: Block.FromAssemblyWithView<
   typeof KeyedChildModel,
-  typeof assembleKeyedChildBlock
-> = Block.complete(assembleKeyedChildBlock)
+  typeof prepareKeyedChildBlock
+> = Block.assemble(prepareKeyedChildBlock)
 
 const KeyedParentModel = Schema.Struct({
   children: Schema.Array(KeyedChildModel),

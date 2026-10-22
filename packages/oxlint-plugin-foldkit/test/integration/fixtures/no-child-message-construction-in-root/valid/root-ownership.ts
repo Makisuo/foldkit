@@ -18,7 +18,7 @@ const view = RootApplicationComposition.makeView((_model, h) =>
   ),
 )
 
-const ApplicationBlock = RootApplicationComposition.assembleBlock({ view })
+const ApplicationBlock = RootApplicationComposition.prepareBlock({ view })
 
 export const page = Program.make({
   block: ApplicationBlock,

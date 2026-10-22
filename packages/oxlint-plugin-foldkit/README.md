@@ -4,8 +4,6 @@ Oxlint rules for Foldkit applications. Extend `recommended.json` for the full su
 
 `foldkit/no-manual-composition-routing` keeps child delivery out of authored Composition updates. Current `makeBinding` configurations derive generated envelopes from the completed child Block; they need no parent `Got*` variant or Message mapper. The rule reports every legacy `parentMessage`, `toParentMessage`, or `fromParentMessage` property and manual `Got*` handling during migration. The presets disable it in tests.
 
-The published `got-block-message-name`, `got-prefix-requires-block-payload`, `got-wrapper-carries-only-routing`, and `wrap-child-output-in-got-message` rule IDs remain available for projects checking pre-generated-delivery source. Both presets disable them because current Foldkit applications do not author child delivery wrappers.
-
 `foldkit/no-direct-block-state-update` recognizes generated direct, accessor, exact-keyed, wrapped-keyed, and general-keyed Bindings without requiring authored Message mapping properties. It protects child-owned Model fields through registered Binding ownership. `foldkit/no-child-message-construction-in-root` separately prevents a parent from constructing child-owned Messages; parent-driven transitions use named Binding operations.
 
 `foldkit/block-name-matches-variable` requires direct literal Block authoring declarations to use the suffix for their stage. Definitions use `<BlockId>Definition`, Namespaces use `<BlockId>Namespace`, and Compositions derived in the same file use `<BlockId>Composition`:
@@ -26,12 +24,12 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 const ApplicationComposition = ApplicationDefinition.makeComposition()
-const assemble = () =>
-  ApplicationComposition.assembleBlock({ init, update, view })
+const prepare = () =>
+  ApplicationComposition.prepareBlock({ init, update, view })
 const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 ```
 
 The rule follows supported `foldkit` root and `foldkit/block` imports, including namespace and import aliases. It follows inline chains and authoring values declared in the same file. A Composition derived from an authoring value imported from another local module is not verified because Oxlint does not expose cross-module symbol or type information. Dynamic names are left for the developer to review.
@@ -57,7 +55,7 @@ The `command-define-pascal-const` rule owns the complete Command declaration con
 
 `foldkit/no-completed-block-model-in-schema` keeps parent Schema construction independent of a completed child's inferred implementation. Use a canonical child Model Schema or the checked explicit producer/header boundary below when composing the recognized Effect Schema constructors: `Struct`, `Array`, `NonEmptyArray`, `Option`, `Union`, `Record`, `Tuple`, `TupleWithRest`, `NullOr`, `UndefinedOr`, `NullishOr`, `optional`, `optionalKey`, and `mutable`. The rule follows nested field records and immutable local aliases of Blocks, Schema imports, constructors, field records, and child Schemas. A completed Block's `.Model` remains public and is allowed in ordinary accesses, decoders, predicates and `typeof ChildBlock.Model.Type` annotations.
 
-This is a performance guardrail. It reports only proven `Block.makeDefinition` or `Block.makeNamespace` → `makeDefinition` → `makeComposition` → `assembleBlock` producer → `Block.complete` provenance. It follows scope-resolved local `const` aliases and relative TypeScript imports through named and namespace re-export barrels. Imported modules are parsed with the declared runtime `oxc-parser` dependency; only top-level imports, exports and immutable authoring declarations provide evidence. Nested function declarations, templates, comments and regex literals cannot supply fake top-level evidence. Parse and file-read failures are treated as unknown provenance. Parsed modules are cached only for the current file's lint invocation.
+This is a performance guardrail. It reports only proven `Block.makeDefinition` or `Block.makeNamespace` → `makeDefinition` → `makeComposition` → `prepareBlock` producer → `Block.assemble` provenance. It follows scope-resolved local `const` aliases and relative TypeScript imports through named and namespace re-export barrels. Imported modules are parsed with the declared runtime `oxc-parser` dependency; only top-level imports, exports and immutable authoring declarations provide evidence. Nested function declarations, templates, comments and regex literals cannot supply fake top-level evidence. Parse and file-read failures are treated as unknown provenance. Parsed modules are cached only for the current file's lint invocation.
 
 The rule follows transparent TypeScript value wrappers such as `as`, `satisfies` and non-null assertions while leaving type-only annotations alone. It does not infer provenance from names or the presence of a `Model` property. Unrelated registries, shadowed parameters, decoders and ordinary `.Model` accesses remain allowed.
 
@@ -65,7 +63,7 @@ Unknown factory results, package imports, path aliases, wildcard re-exports with
 
 ## Explicit producer boundaries
 
-The rule accepts an explicit annotation using the actual Foldkit `Block.FromAssemblyWithView`, `Block.FromAssemblyWithViewAndOutMessage`, `Block.FromAssemblyWithOutMessage`, or `Block.FromAssemblyWithoutViewOrOutMessage` helper. Named helper imports from `foldkit/block` may be aliased; `Block` imports from `foldkit` may be aliased. Exactly two `typeof` arguments must name the Model and the same producer passed once to the declaration initializer's proven `Block.complete` call, without explicit type arguments. The producer must be a direct immutable zero-argument arrow, with no async, generics or return annotation, whose expression body or sole return statement directly calls a proven Composition's `assembleBlock`. Framework helper constraints remain responsible for contract checking; the lint exemption is a performance-boundary recognition, not an independent type-safety proof.
+The rule accepts an explicit annotation using the actual Foldkit `Block.FromAssemblyWithView`, `Block.FromAssemblyWithViewAndOutMessage`, `Block.FromAssemblyWithOutMessage`, or `Block.FromAssemblyWithoutViewOrOutMessage` helper. Named helper imports from `foldkit/block` may be aliased; `Block` imports from `foldkit` may be aliased. Exactly two `typeof` arguments must name the Model and the same producer passed once to the declaration initializer's proven `Block.assemble` call, without explicit type arguments. The producer must be a direct immutable zero-argument arrow, with no async, generics or return annotation, whose expression body or sole return statement directly calls a proven Composition's `prepareBlock`. Framework helper constraints remain responsible for contract checking; the lint exemption is a performance-boundary recognition, not an independent type-safety proof.
 
 The completed value and its immutable aliases can pass through the existing relative explicit barrels. Helper type aliases, helper type reexport barrels, imported producer functions, function declarations, statementful producers and indirect producer aliases do not receive this exemption. A call without that direct header receives no lint exemption. TypeScript separately checks the exact Model and producer context, supplied by a suitable annotation or both explicit type arguments; an uncontextualized call is rejected. Casts, `satisfies`, raw producer calls, annotations without the finisher, fake or shadowed helper names, mismatched producer queries, argument-bearing completion calls and wrong helper arity do not create a checked boundary. Ordinary public Model accesses and type queries remain allowed.
 

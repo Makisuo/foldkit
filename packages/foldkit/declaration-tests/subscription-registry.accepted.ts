@@ -42,8 +42,8 @@ export const subscriptions =
 
 export const DeclarationSubscriptionRegistryComposition =
   DeclarationSubscriptionRegistryDefinition.makeComposition()
-const assembleRegistryBlock = () =>
-  DeclarationSubscriptionRegistryComposition.assembleBlock({
+const prepareRegistryBlock = () =>
+  DeclarationSubscriptionRegistryComposition.prepareBlock({
     init: DeclarationSubscriptionRegistryComposition.makeInit(() => ({
       model: Model.make({ count: 0 }),
     })),
@@ -55,8 +55,8 @@ const assembleRegistryBlock = () =>
   })
 export const registryBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleRegistryBlock
-> = Block.complete(assembleRegistryBlock)
+  typeof prepareRegistryBlock
+> = Block.assemble(prepareRegistryBlock)
 
 export const aggregated = Subscription.aggregate(subscriptions)
 export const lifted = Subscription.lift(subscriptions)<

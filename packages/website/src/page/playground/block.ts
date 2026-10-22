@@ -11,8 +11,8 @@ import {
   view,
 } from './playground'
 
-const assemble = () =>
-  PlaygroundComposition.assembleBlock({
+const prepare = () =>
+  PlaygroundComposition.prepareBlock({
     init,
     update,
     view,
@@ -22,5 +22,5 @@ const assemble = () =>
   })
 export const PlaygroundBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

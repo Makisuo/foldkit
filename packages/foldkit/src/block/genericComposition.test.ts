@@ -24,8 +24,8 @@ const makeGenericComplete = <const Id extends string>(id: Id) => {
     Message,
   }).makeComposition()
 
-  const assemble = () =>
-    composition.assembleBlock({
+  const prepare = () =>
+    composition.prepareBlock({
       init: () => ({ model: Model.make({ value: '' }) }),
       update: composition.makeUpdate((model, message) =>
         Message.match(message, {
@@ -38,8 +38,8 @@ const makeGenericComplete = <const Id extends string>(id: Id) => {
     })
   const completedBlock: Block.FromAssemblyWithView<
     typeof Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
   return completedBlock
 }
 
@@ -55,8 +55,8 @@ const makeGenericMissing = <const Id extends string>(id: Id) => {
     Message,
   }).makeComposition()
 
-  const assemble = () =>
-    composition.assembleBlock({
+  const prepare = () =>
+    composition.prepareBlock({
       init: () => ({ model: Model.make({ value: '' }) }),
       update: composition.makeUpdate((model, message) =>
         Message.match(message, {
@@ -69,8 +69,8 @@ const makeGenericMissing = <const Id extends string>(id: Id) => {
     })
   const completedBlock: Block.FromAssemblyWithView<
     typeof Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
   return completedBlock
 }
 

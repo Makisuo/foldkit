@@ -42,8 +42,8 @@ const single = (value: number): [number] => [value]
 
 const initCalls: globalThis.Array<number> = []
 const ChildComposition = Child.makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: ChildComposition.makeInit((count: number) => {
       initCalls.push(count)
       return {
@@ -70,8 +70,8 @@ const assembleChildBlock = () =>
   })
 const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const Entry = Schema.Struct({
   id: Schema.String,
@@ -167,8 +167,8 @@ const KeyedChildComposition = makeDefinition('KeyedInitializationChild', {
   Model: KeyedChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const assembleKeyedChildBlock = () =>
-  KeyedChildComposition.assembleBlock({
+const prepareKeyedChildBlock = () =>
+  KeyedChildComposition.prepareBlock({
     init: KeyedChildComposition.makeInit((id: string, count: number) => ({
       model: KeyedChildModel.make({ id, count }),
     })),
@@ -176,8 +176,8 @@ const assembleKeyedChildBlock = () =>
   })
 const KeyedChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof KeyedChildModel,
-  typeof assembleKeyedChildBlock
-> = Block.complete(assembleKeyedChildBlock)
+  typeof prepareKeyedChildBlock
+> = Block.assemble(prepareKeyedChildBlock)
 const KeyedParentModel = Schema.Struct({
   entries: Schema.Array(KeyedChildModel),
   status: Schema.Literal('Ready'),

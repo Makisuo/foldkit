@@ -20,7 +20,7 @@ import {
   Viewed,
   ViewedBinding,
   ViewedDraft,
-  assembleViewed,
+  prepareViewed,
   renderPage,
 } from './mandatory-completion.accepted.js'
 
@@ -92,4 +92,4 @@ NumericChoice.operations.select({ selected: 1 }, { selected: 2 })
 export const EmittedDraftAsBlock: Block.AnyBlock = ViewedDraft
 
 // @ts-expect-error The emitted producer remains unavailable as a completed Block.
-export const EmittedProducerAsBlock: Block.AnyBlock = assembleViewed
+export const EmittedProducerAsBlock: Block.AnyBlock = prepareViewed

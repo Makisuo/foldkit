@@ -903,8 +903,8 @@ const importedOperationOwnsMessage = (
           operation,
           Option.fromNullishOr(previousOperation),
         ) !== undefined
-      const isCompletion = operation === 'assembleBlock'
-      if (!isDefinitionOperation && !isViewWithInputs && !isCompletion) {
+      const isPreparation = operation === 'prepareBlock'
+      if (!isDefinitionOperation && !isViewWithInputs && !isPreparation) {
         return false
       }
 

@@ -48,31 +48,29 @@ export const contextualView = ApplicationComposition.makeView((model, h) => {
   return h.main([], [globalThis.String(model.count)])
 })
 
-const assemble = () =>
-  ApplicationComposition.assembleBlock({
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
     init,
     update,
     view: documentView,
   })
-const completedBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+const completedBlock: Block.FromAssemblyWithView<typeof Model, typeof prepare> =
+  Block.assemble(prepare)
 export const application = Program.make({
   block: completedBlock,
   container: null,
 })
 
-const assemble2 = () =>
-  ApplicationComposition.assembleBlock({
+const prepare2 = () =>
+  ApplicationComposition.prepareBlock({
     init,
     update,
     view: elementView,
   })
 const completedBlock2: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble2
-> = Block.complete(assemble2)
+  typeof prepare2
+> = Block.assemble(prepare2)
 export const element = Program.makeElement({
   block: completedBlock2,
   container: null,

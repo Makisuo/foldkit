@@ -132,8 +132,8 @@ const DeclarationBooleanKeyChildComposition = Block.makeDefinition(
     Message: BooleanKeyMessage,
   },
 ).makeComposition()
-const assembleBooleanKeyBlock = () =>
-  DeclarationBooleanKeyChildComposition.assembleBlock({
+const prepareBooleanKeyBlock = () =>
+  DeclarationBooleanKeyChildComposition.prepareBlock({
     init: DeclarationBooleanKeyChildComposition.makeInit(() => ({
       model: BooleanKeyModel.make({ id: false, count: 0 }),
     })),
@@ -144,8 +144,8 @@ const assembleBooleanKeyBlock = () =>
   })
 const BooleanKeyBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof BooleanKeyModel,
-  typeof assembleBooleanKeyBlock
-> = Block.complete(assembleBooleanKeyBlock)
+  typeof prepareBooleanKeyBlock
+> = Block.assemble(prepareBooleanKeyBlock)
 const BooleanKeyParentModel = Schema.Struct({
   entries: Schema.Array(BooleanKeyModel),
 })
@@ -179,8 +179,8 @@ const DeclarationOptionalKeyChildComposition = Block.makeDefinition(
     Message: OptionalKeyMessage,
   },
 ).makeComposition()
-const assembleOptionalKeyBlock = () =>
-  DeclarationOptionalKeyChildComposition.assembleBlock({
+const prepareOptionalKeyBlock = () =>
+  DeclarationOptionalKeyChildComposition.prepareBlock({
     init: DeclarationOptionalKeyChildComposition.makeInit(() => ({
       model: OptionalKeyModel.make({ count: 0 }),
     })),
@@ -191,8 +191,8 @@ const assembleOptionalKeyBlock = () =>
   })
 const OptionalKeyBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof OptionalKeyModel,
-  typeof assembleOptionalKeyBlock
-> = Block.complete(assembleOptionalKeyBlock)
+  typeof prepareOptionalKeyBlock
+> = Block.assemble(prepareOptionalKeyBlock)
 const OptionalKeyParentModel = Schema.Struct({
   entries: Schema.Array(OptionalKeyModel),
 })
@@ -247,8 +247,8 @@ const DeclarationPrimitiveKeyChildComposition = Block.makeDefinition(
     Message: PrimitiveMessage,
   },
 ).makeComposition()
-const assemblePrimitiveBlock = () =>
-  DeclarationPrimitiveKeyChildComposition.assembleBlock({
+const preparePrimitiveBlock = () =>
+  DeclarationPrimitiveKeyChildComposition.prepareBlock({
     init: DeclarationPrimitiveKeyChildComposition.makeInit(() => ({
       model: 'initial',
     })),
@@ -259,8 +259,8 @@ const assemblePrimitiveBlock = () =>
   })
 const PrimitiveBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Schema.String,
-  typeof assemblePrimitiveBlock
-> = Block.complete(assemblePrimitiveBlock)
+  typeof preparePrimitiveBlock
+> = Block.assemble(preparePrimitiveBlock)
 const PrimitiveParentModel = Schema.Struct({
   entries: Schema.Array(Schema.String),
 })
@@ -302,8 +302,8 @@ const DeclarationUnionKeyChildComposition = Block.makeDefinition(
     Message: UnionKeyMessage,
   },
 ).makeComposition()
-const assembleUnionKeyBlock = () =>
-  DeclarationUnionKeyChildComposition.assembleBlock({
+const prepareUnionKeyBlock = () =>
+  DeclarationUnionKeyChildComposition.prepareBlock({
     init: DeclarationUnionKeyChildComposition.makeInit(() => ({
       model: UnionKeyModel.make({
         _tag: 'Primary',
@@ -318,8 +318,8 @@ const assembleUnionKeyBlock = () =>
   })
 const UnionKeyBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof UnionKeyModel,
-  typeof assembleUnionKeyBlock
-> = Block.complete(assembleUnionKeyBlock)
+  typeof prepareUnionKeyBlock
+> = Block.assemble(prepareUnionKeyBlock)
 const UnionKeyParentModel = Schema.Struct({
   entries: Schema.Array(UnionKeyModel),
 })
@@ -372,8 +372,8 @@ const DeclarationInvalidKeyChildComposition = Block.makeDefinition(
     Message: InvalidKeyMessage,
   },
 ).makeComposition()
-const assembleInvalidKeyBlock = () =>
-  DeclarationInvalidKeyChildComposition.assembleBlock({
+const prepareInvalidKeyBlock = () =>
+  DeclarationInvalidKeyChildComposition.prepareBlock({
     init: DeclarationInvalidKeyChildComposition.makeInit(
       (): Update.Return<
         typeof InvalidKeyModel.Type,
@@ -389,8 +389,8 @@ const assembleInvalidKeyBlock = () =>
   })
 const InvalidKeyBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof InvalidKeyModel,
-  typeof assembleInvalidKeyBlock
-> = Block.complete(assembleInvalidKeyBlock)
+  typeof prepareInvalidKeyBlock
+> = Block.assemble(prepareInvalidKeyBlock)
 const InvalidKeyParentModel = Schema.Struct({
   entries: Schema.Array(InvalidKeyModel),
 })

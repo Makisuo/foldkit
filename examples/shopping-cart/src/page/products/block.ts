@@ -5,8 +5,8 @@ import type { Model } from './definition'
 import { ReplaceSearchUrl, init, update } from './products'
 import { view } from './view'
 
-const assemble = () =>
-  ProductsComposition.assembleBlock({
+const prepare = () =>
+  ProductsComposition.prepareBlock({
     init,
     update,
     view,
@@ -14,5 +14,5 @@ const assemble = () =>
   })
 export const ProductsBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

@@ -7,8 +7,8 @@ import type { Model } from './model'
 import { EffectsLayer, update } from './update'
 import { view } from './view'
 
-const assemble = () =>
-  ApiReferenceComposition.assembleBlock({
+const prepare = () =>
+  ApiReferenceComposition.prepareBlock({
     init,
     update,
     view,
@@ -19,5 +19,5 @@ const assemble = () =>
   })
 export const ApiReferenceBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

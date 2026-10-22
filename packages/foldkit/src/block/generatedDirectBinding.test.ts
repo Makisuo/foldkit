@@ -22,8 +22,8 @@ const ScheduleIncrement = SearchDefinition.makeCommand('ScheduleIncrement', {
   messages: [SearchMessage.CompletedScheduleIncrement],
 })
 const SearchComposition = SearchDefinition.makeComposition()
-const assembleSearchBlock = () =>
-  SearchComposition.assembleBlock({
+const prepareSearchBlock = () =>
+  SearchComposition.prepareBlock({
     init: SearchComposition.makeInit(() => ({
       model: { count: 0 },
       commands: [ScheduleIncrement()],
@@ -44,8 +44,8 @@ const assembleSearchBlock = () =>
   })
 const SearchBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof SearchModel,
-  typeof assembleSearchBlock
-> = Block.complete(assembleSearchBlock)
+  typeof prepareSearchBlock
+> = Block.assemble(prepareSearchBlock)
 
 const ParentModel = Schema.Struct({ search: SearchModel, label: Schema.String })
 type ParentModel = typeof ParentModel.Type
@@ -81,8 +81,8 @@ const ContextualSearchDefinition = makeDefinition(
   },
 )
 const ContextualSearchComposition = ContextualSearchDefinition.makeComposition()
-const assembleContextualSearchBlock = () =>
-  ContextualSearchComposition.assembleBlock({
+const prepareContextualSearchBlock = () =>
+  ContextualSearchComposition.prepareBlock({
     init: ContextualSearchComposition.makeInit(() => ({ model: { count: 0 } })),
     update: ContextualSearchComposition.makeUpdate(
       (model, message, _source: string) =>
@@ -95,8 +95,8 @@ const assembleContextualSearchBlock = () =>
   })
 const ContextualSearchBlock: Block.FromAssemblyWithView<
   typeof SearchModel,
-  typeof assembleContextualSearchBlock
-> = Block.complete(assembleContextualSearchBlock)
+  typeof prepareContextualSearchBlock
+> = Block.assemble(prepareContextualSearchBlock)
 
 if (false) {
   ParentDefinition.makeBinding(ContextualSearchBlock, {

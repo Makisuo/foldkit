@@ -26,8 +26,8 @@ const ChildComposition = Block.makeDefinition('StrictRoutingChild', {
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: ChildComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
     })),
@@ -39,8 +39,8 @@ const assembleChildBlock = () =>
   })
 export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 type DispatchContext = Readonly<{ multiplier: number }>
 
@@ -54,8 +54,8 @@ const ContextChildComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const assembleContextChildBlock = () =>
-  ContextChildComposition.assembleBlock({
+const prepareContextChildBlock = () =>
+  ContextChildComposition.prepareBlock({
     init: ContextChildComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
     })),
@@ -69,8 +69,8 @@ const assembleContextChildBlock = () =>
   })
 export const ContextChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleContextChildBlock
-> = Block.complete(assembleContextChildBlock)
+  typeof prepareContextChildBlock
+> = Block.assemble(prepareContextChildBlock)
 
 const Entry = Schema.Struct({
   id: Schema.String,
@@ -148,8 +148,8 @@ export const rawFullMessageUpdate = (
   }),
 })
 
-const assembleRawCompletionBlock = () =>
-  ParentComposition.assembleBlock({
+const prepareRawCompletionBlock = () =>
+  ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() => ({
       model: {
         entries: [],
@@ -161,11 +161,11 @@ const assembleRawCompletionBlock = () =>
   })
 export const RawCompletionBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleRawCompletionBlock
-> = Block.complete(assembleRawCompletionBlock)
+  typeof prepareRawCompletionBlock
+> = Block.assemble(prepareRawCompletionBlock)
 
-const assembleGeneratedCompletionBlock = () =>
-  ParentComposition.assembleBlock({
+const prepareGeneratedCompletionBlock = () =>
+  ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() => ({
       model: {
         entries: [],
@@ -177,8 +177,8 @@ const assembleGeneratedCompletionBlock = () =>
   })
 export const GeneratedCompletionBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleGeneratedCompletionBlock
-> = Block.complete(assembleGeneratedCompletionBlock)
+  typeof prepareGeneratedCompletionBlock
+> = Block.assemble(prepareGeneratedCompletionBlock)
 
 type RawUpdateSignatureIsPreserved = Expect<
   Equal<typeof RawCompletionBlock.update, typeof rawFullMessageUpdate>
@@ -207,8 +207,8 @@ const WaitForever = SilentDefinition.makeCommand('WaitForever', {
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 const SilentComposition = SilentDefinition.makeComposition()
 export const silentUpdate = SilentComposition.makeUpdate()
-const assembleSilentBlock = () =>
-  SilentComposition.assembleBlock({
+const prepareSilentBlock = () =>
+  SilentComposition.prepareBlock({
     init: SilentComposition.makeInit(() => ({
       model: SilentModel.make({ ready: true }),
       commands: [WaitForever()],
@@ -218,8 +218,8 @@ const assembleSilentBlock = () =>
   })
 export const SilentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof SilentModel,
-  typeof assembleSilentBlock
-> = Block.complete(assembleSilentBlock)
+  typeof prepareSilentBlock
+> = Block.assemble(prepareSilentBlock)
 
 const SilentParentModel = Schema.Struct({ silent: SilentModel })
 const SilentParentMessage = defineMessageUnion({
@@ -248,8 +248,8 @@ export const initializeSilent = SilentParentDefinition.makeStep(model =>
     toParentModel: silent => modifyFields(model, { silent: () => silent }),
   }),
 )
-const assembleSilentParentBlock = () =>
-  SilentParentComposition.assembleBlock({
+const prepareSilentParentBlock = () =>
+  SilentParentComposition.prepareBlock({
     init: SilentParentComposition.makeInit(() => ({
       model: {},
     })),
@@ -257,11 +257,10 @@ const assembleSilentParentBlock = () =>
   })
 export const SilentParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof SilentParentModel,
-  typeof assembleSilentParentBlock
-> = Block.complete(assembleSilentParentBlock)
+  typeof prepareSilentParentBlock
+> = Block.assemble(prepareSilentParentBlock)
 
 const ImpossibleParentMessage = defineMessageUnion({
-  // oxlint-disable-next-line foldkit/got-prefix-requires-block-payload -- This fixture deliberately probes reserved Got* routing with a nonstandard payload.
   GotImpossible: { message: Schema.Never },
 })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.

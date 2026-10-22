@@ -6,13 +6,11 @@ import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const assemble = () =>
-  UiComposition.assembleBlock({
+const prepare = () =>
+  UiComposition.prepareBlock({
     init,
     update,
     view,
   })
-export const UiBlock: Block.FromAssemblyWithView<
-  typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+export const UiBlock: Block.FromAssemblyWithView<typeof Model, typeof prepare> =
+  Block.assemble(prepare)

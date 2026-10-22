@@ -454,8 +454,8 @@ const makeHostQuery = <Name extends string, A, AI, E, EI>(
   const api = makeQueryApi(config, Model, Message, Fetch)
   const QueryComposition = QueryDefinition.makeComposition()
   const init = QueryComposition.makeInit(api.init)
-  const assemble = () =>
-    QueryComposition.assembleBlock({
+  const prepare = () =>
+    QueryComposition.prepareBlock({
       init,
       update: QueryComposition.makeUpdate(api.update),
       operations: {
@@ -469,8 +469,8 @@ const makeHostQuery = <Name extends string, A, AI, E, EI>(
     })
   const block: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
 
   return enrichQuery(block, {
     Fetch,
@@ -522,8 +522,8 @@ const makeCanonicalQuery = <
   const api = makeQueryApi(config, Model, Message, Fetch)
   const QueryComposition = QueryDefinition.makeComposition()
   const init = QueryComposition.makeInit(api.init)
-  const assemble = () =>
-    QueryComposition.assembleBlock({
+  const prepare = () =>
+    QueryComposition.prepareBlock({
       init,
       update: QueryComposition.makeUpdate(api.update),
       operations: {
@@ -536,8 +536,8 @@ const makeCanonicalQuery = <
     })
   const block: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
 
   return enrichQuery(block, {
     Fetch,

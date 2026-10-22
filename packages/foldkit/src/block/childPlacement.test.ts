@@ -11,15 +11,15 @@ const ChildComposition = makeDefinition('ChildPlacementChild', {
   Model: ChildModel,
   Message: Schema.Never,
 }).makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ value: '' }) }),
     update: ChildComposition.makeUpdate(),
   })
 const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const Entry = Schema.Struct({ id: Schema.String, child: ChildModel })
 const ParentModel = Schema.Struct({

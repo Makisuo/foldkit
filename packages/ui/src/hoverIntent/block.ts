@@ -360,8 +360,8 @@ export const view = HoverIntentComposition.makeView.withInputs<ViewInputs>(
   },
 )
 
-const assemble = () =>
-  HoverIntentComposition.assembleBlock({
+const prepare = () =>
+  HoverIntentComposition.prepareBlock({
     init,
     update,
     view,
@@ -373,5 +373,5 @@ const assemble = () =>
 /** Complete HoverIntent Block definition for connecting to a parent. */
 export const HoverIntentBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

@@ -12,8 +12,8 @@ const HistoryDefinition = Block.makeDefinition('GenericPolicyHistory', {
 const HistoryComposition = HistoryDefinition.makeComposition()
 
 /** Sibling whose operation must remain registered when invoked by a policy. */
-const assembleHistoryBlock = () =>
-  HistoryComposition.assembleBlock({
+const prepareHistoryBlock = () =>
+  HistoryComposition.prepareBlock({
     init: HistoryComposition.makeInit(() => ({
       model: Model.make({ recordedSelections: 0 }),
     })),
@@ -30,5 +30,5 @@ const assembleHistoryBlock = () =>
   })
 export const HistoryBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleHistoryBlock
-> = Block.complete(assembleHistoryBlock)
+  typeof prepareHistoryBlock
+> = Block.assemble(prepareHistoryBlock)

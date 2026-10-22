@@ -27,8 +27,8 @@ const RejectedDeclarationPageDefinition = Block.makeDefinition(
 )
 const RejectedDeclarationPageComposition =
   RejectedDeclarationPageDefinition.makeComposition()
-const assemblePageBlock = () =>
-  RejectedDeclarationPageComposition.assembleBlock({
+const preparePageBlock = () =>
+  RejectedDeclarationPageComposition.prepareBlock({
     init: (flags: typeof Flags.Type, _url: Url.Url) => ({
       model: Model.make({ status: flags.status }),
     }),
@@ -40,8 +40,8 @@ const assemblePageBlock = () =>
   })
 const PageBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemblePageBlock
-> = Block.complete(assemblePageBlock)
+  typeof preparePageBlock
+> = Block.assemble(preparePageBlock)
 
 const RejectedDeclarationElementDefinition = Block.makeDefinition(
   'RejectedDeclarationElement',
@@ -52,8 +52,8 @@ const RejectedDeclarationElementDefinition = Block.makeDefinition(
 )
 const RejectedDeclarationElementComposition =
   RejectedDeclarationElementDefinition.makeComposition()
-const assembleElementBlock = () =>
-  RejectedDeclarationElementComposition.assembleBlock({
+const prepareElementBlock = () =>
+  RejectedDeclarationElementComposition.prepareBlock({
     init: (flags: typeof Flags.Type) => ({
       model: Model.make({ status: flags.status }),
     }),
@@ -64,8 +64,8 @@ const assembleElementBlock = () =>
       h.div([], [model.status]),
     ),
   })
-const ElementBlock: CompletedAssembly<typeof assembleElementBlock> =
-  Block.complete(assembleElementBlock)
+const ElementBlock: CompletedAssembly<typeof prepareElementBlock> =
+  Block.assemble(prepareElementBlock)
 
 const MixedView =
   globalThis.Math.random() > 0.5
@@ -76,8 +76,8 @@ const MixedView =
     : RejectedDeclarationElementComposition.makeView((model, h) =>
         h.div([], [model.status]),
       )
-const assembleMixedBlock = () =>
-  RejectedDeclarationElementComposition.assembleBlock({
+const prepareMixedBlock = () =>
+  RejectedDeclarationElementComposition.prepareBlock({
     init: (flags: typeof Flags.Type) => ({
       model: Model.make({ status: flags.status }),
     }),
@@ -88,8 +88,8 @@ const assembleMixedBlock = () =>
   })
 const MixedBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleMixedBlock
-> = Block.complete(assembleMixedBlock)
+  typeof prepareMixedBlock
+> = Block.assemble(prepareMixedBlock)
 
 const MaybeInputView =
   globalThis.Math.random() > 0.5
@@ -99,8 +99,8 @@ const MaybeInputView =
     : RejectedDeclarationElementComposition.makeView.withInputs<
         Readonly<{ label: string }>
       >((model, inputs, h) => h.div([], [model.status, inputs.label]))
-const assembleMaybeInputViewBlock = () =>
-  RejectedDeclarationElementComposition.assembleBlock({
+const prepareMaybeInputViewBlock = () =>
+  RejectedDeclarationElementComposition.prepareBlock({
     init: (flags: typeof Flags.Type) => ({
       model: Model.make({ status: flags.status }),
     }),
@@ -111,12 +111,12 @@ const assembleMaybeInputViewBlock = () =>
   })
 const MaybeInputViewBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleMaybeInputViewBlock
-> = Block.complete(assembleMaybeInputViewBlock)
+  typeof prepareMaybeInputViewBlock
+> = Block.assemble(prepareMaybeInputViewBlock)
 
 const NarrowFlags = Schema.Struct({ status: Schema.Literal('ready') })
-const assembleNarrowFlagsBlock = () =>
-  RejectedDeclarationElementComposition.assembleBlock({
+const prepareNarrowFlagsBlock = () =>
+  RejectedDeclarationElementComposition.prepareBlock({
     init: (_flags: typeof NarrowFlags.Type) => ({
       model: Model.make({ status: 'ready' }),
     }),
@@ -127,19 +127,19 @@ const assembleNarrowFlagsBlock = () =>
       h.div([], [model.status]),
     ),
   })
-const NarrowFlagsBlock: CompletedAssembly<typeof assembleNarrowFlagsBlock> =
-  Block.complete(assembleNarrowFlagsBlock)
+const NarrowFlagsBlock: CompletedAssembly<typeof prepareNarrowFlagsBlock> =
+  Block.assemble(prepareNarrowFlagsBlock)
 const MaybeNarrowFlagsBlock =
   globalThis.Math.random() > 0.5 ? ElementBlock : NarrowFlagsBlock
 
 const CheckedElementBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleElementBlock
-> = Block.complete(assembleElementBlock)
+  typeof prepareElementBlock
+> = Block.assemble(prepareElementBlock)
 const CheckedNarrowFlagsBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleNarrowFlagsBlock
-> = Block.complete(assembleNarrowFlagsBlock)
+  typeof prepareNarrowFlagsBlock
+> = Block.assemble(prepareNarrowFlagsBlock)
 const MaybeCheckedNarrowFlagsBlock =
   globalThis.Math.random() > 0.5 ? CheckedElementBlock : CheckedNarrowFlagsBlock
 const AnnotatedCheckedFlagsBlock:
@@ -173,8 +173,8 @@ const RejectedAlternativeRoutingPageDefinition = Block.makeDefinition(
 )
 const RejectedAlternativeRoutingPageComposition =
   RejectedAlternativeRoutingPageDefinition.makeComposition()
-const assembleAlternativeRoutingBlock = () =>
-  RejectedAlternativeRoutingPageComposition.assembleBlock({
+const prepareAlternativeRoutingBlock = () =>
+  RejectedAlternativeRoutingPageComposition.prepareBlock({
     init: (_url: Url.Url) => ({
       model: Model.make({ status: 'alternative' }),
     }),
@@ -188,16 +188,16 @@ const assembleAlternativeRoutingBlock = () =>
   })
 const AlternativeRoutingBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleAlternativeRoutingBlock
-> = Block.complete(assembleAlternativeRoutingBlock)
+  typeof prepareAlternativeRoutingBlock
+> = Block.assemble(prepareAlternativeRoutingBlock)
 const RejectedPrimaryRoutingPageDefinition = Block.makeDefinition(
   'RejectedPrimaryRoutingPage',
   { Model, Message: RootMessage },
 )
 const RejectedPrimaryRoutingPageComposition =
   RejectedPrimaryRoutingPageDefinition.makeComposition()
-const assemblePrimaryRoutingBlock = () =>
-  RejectedPrimaryRoutingPageComposition.assembleBlock({
+const preparePrimaryRoutingBlock = () =>
+  RejectedPrimaryRoutingPageComposition.prepareBlock({
     init: (_url: Url.Url) => ({ model: Model.make({ status: 'primary' }) }),
     update: RejectedPrimaryRoutingPageComposition.makeUpdate(model => ({
       model,
@@ -209,8 +209,8 @@ const assemblePrimaryRoutingBlock = () =>
   })
 const PrimaryRoutingBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemblePrimaryRoutingBlock
-> = Block.complete(assemblePrimaryRoutingBlock)
+  typeof preparePrimaryRoutingBlock
+> = Block.assemble(preparePrimaryRoutingBlock)
 const MaybeRoutingBlock =
   globalThis.Math.random() > 0.5 ? PrimaryRoutingBlock : AlternativeRoutingBlock
 
@@ -450,18 +450,18 @@ const DeclarationHeadlessRootDefinition = Block.makeDefinition(
 )
 const DeclarationHeadlessRootComposition =
   DeclarationHeadlessRootDefinition.makeComposition()
-const assembleHeadlessBlock = () =>
-  DeclarationHeadlessRootComposition.assembleBlock({
+const prepareHeadlessBlock = () =>
+  DeclarationHeadlessRootComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
     update: DeclarationHeadlessRootComposition.makeUpdate(model => ({ model })),
   })
 const HeadlessBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleHeadlessBlock
-> = Block.complete(assembleHeadlessBlock)
+  typeof prepareHeadlessBlock
+> = Block.assemble(prepareHeadlessBlock)
 
-const assembleHeadedBlock = () =>
-  DeclarationHeadlessRootComposition.assembleBlock({
+const prepareHeadedBlock = () =>
+  DeclarationHeadlessRootComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
     update: DeclarationHeadlessRootComposition.makeUpdate(model => ({ model })),
     view: DeclarationHeadlessRootComposition.makeView((model, h) =>
@@ -470,8 +470,8 @@ const assembleHeadedBlock = () =>
   })
 const HeadedBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleHeadedBlock
-> = Block.complete(assembleHeadedBlock)
+  typeof prepareHeadedBlock
+> = Block.assemble(prepareHeadedBlock)
 
 // @ts-expect-error A Program root Block must have a default view.
 Program.makeElement({ block: HeadlessBlock, container: null })
@@ -493,8 +493,8 @@ const DeclarationOutMessageRootDefinition = Block.makeDefinition(
 )
 const DeclarationOutMessageRootComposition =
   DeclarationOutMessageRootDefinition.makeComposition()
-const assembleOutMessageBlock = () =>
-  DeclarationOutMessageRootComposition.assembleBlock({
+const prepareOutMessageBlock = () =>
+  DeclarationOutMessageRootComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
     update: DeclarationOutMessageRootComposition.makeUpdate(model => ({
       model,
@@ -506,8 +506,8 @@ const assembleOutMessageBlock = () =>
   })
 const OutMessageBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleOutMessageBlock
-> = Block.complete(assembleOutMessageBlock)
+  typeof prepareOutMessageBlock
+> = Block.assemble(prepareOutMessageBlock)
 
 // @ts-expect-error A Program root Block cannot declare OutMessage.
 Program.make({ block: OutMessageBlock, container: null })
@@ -527,8 +527,8 @@ const DeclarationContextRootDefinition = Block.makeDefinition(
 )
 const DeclarationContextRootComposition =
   DeclarationContextRootDefinition.makeComposition()
-const assembleContextBlock = () =>
-  DeclarationContextRootComposition.assembleBlock({
+const prepareContextBlock = () =>
+  DeclarationContextRootComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
     update: DeclarationContextRootComposition.makeUpdate(
       (model, _message, _requiredContext: string) => ({ model }),
@@ -539,14 +539,14 @@ const assembleContextBlock = () =>
   })
 const ContextBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleContextBlock
-> = Block.complete(assembleContextBlock)
+  typeof prepareContextBlock
+> = Block.assemble(prepareContextBlock)
 
 // @ts-expect-error A Program root update cannot require dispatch Context.
 Program.makeElement({ block: ContextBlock, container: null })
 
-const assembleSafeContextBlock = () =>
-  DeclarationContextRootComposition.assembleBlock({
+const prepareSafeContextBlock = () =>
+  DeclarationContextRootComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
     update: DeclarationContextRootComposition.makeUpdate(model => ({ model })),
     view: DeclarationContextRootComposition.makeView((model, h) =>
@@ -555,8 +555,8 @@ const assembleSafeContextBlock = () =>
   })
 const SafeContextBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleSafeContextBlock
-> = Block.complete(assembleSafeContextBlock)
+  typeof prepareSafeContextBlock
+> = Block.assemble(prepareSafeContextBlock)
 const MaybeContextBlock =
   globalThis.Math.random() > 0.5 ? SafeContextBlock : ContextBlock
 
@@ -572,8 +572,8 @@ const DeclarationInvalidInitDefinition = Block.makeDefinition(
 )
 const DeclarationInvalidInitComposition =
   DeclarationInvalidInitDefinition.makeComposition()
-const assembleInvalidInitBlock = () =>
-  DeclarationInvalidInitComposition.assembleBlock({
+const prepareInvalidInitBlock = () =>
+  DeclarationInvalidInitComposition.prepareBlock({
     init: (_url: Url.Url, _unexpected: string) => ({
       model: Model.make({ status: 'ready' }),
     }),
@@ -584,8 +584,8 @@ const assembleInvalidInitBlock = () =>
   })
 const InvalidInitBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleInvalidInitBlock
-> = Block.complete(assembleInvalidInitBlock)
+  typeof prepareInvalidInitBlock
+> = Block.assemble(prepareInvalidInitBlock)
 
 // @ts-expect-error Program init supports only (), (Flags), (Url), or (Flags, Url).
 Program.makeElement({ block: InvalidInitBlock, container: null })

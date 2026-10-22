@@ -9,8 +9,8 @@ const DeclarationServerRootComposition = Block.makeDefinition(
   { Model, Message: Schema.Never },
 ).makeComposition()
 
-const assembleServerRootBlock = () =>
-  DeclarationServerRootComposition.assembleBlock({
+const prepareServerRootBlock = () =>
+  DeclarationServerRootComposition.prepareBlock({
     init: DeclarationServerRootComposition.makeInit(() => ({
       model: { status: 'Ready' },
     })),
@@ -22,8 +22,8 @@ const assembleServerRootBlock = () =>
   })
 export const ServerRootBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleServerRootBlock
-> = Block.complete(assembleServerRootBlock)
+  typeof prepareServerRootBlock
+> = Block.assemble(prepareServerRootBlock)
 
 export const renderPure = () =>
   Server.renderToString(ServerRootBlock, {}, { isHydratable: false })

@@ -160,8 +160,8 @@ export const view = FileDropComposition.makeView.withInputs<ViewInputs>(
   },
 )
 
-const assemble = () =>
-  FileDropComposition.assembleBlock({
+const prepare = () =>
+  FileDropComposition.prepareBlock({
     init,
     update,
     view,
@@ -169,5 +169,5 @@ const assemble = () =>
 /** Complete FileDrop Block definition for connecting to a parent. */
 export const FileDropBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

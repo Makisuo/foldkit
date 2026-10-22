@@ -474,12 +474,12 @@ const implementation = {
   },
 }
 
-const assemble = () => DatePickerComposition.assembleBlock(implementation)
+const prepare = () => DatePickerComposition.prepareBlock(implementation)
 /** Complete DatePicker Block definition. */
 export const DatePickerBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 
 /** Moves the embedded Calendar view and cursor through DatePicker update. */
 export const focusDate = DatePickerBlock.operations.requestFocusDate

@@ -61,11 +61,11 @@ const childImplementation = {
   ),
   EffectsLayer: Layer.merge(Prepare.layer, Observe.layer),
 }
-const assembleChildBlock = () => child.assembleBlock(childImplementation)
+const prepareChildBlock = () => child.prepareBlock(childImplementation)
 const childBlock: Block.FromAssemblyWithView<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 const RootModel = Schema.Struct({ title: Schema.String })
 const RootApplicationDefinition = Block.makeDefinition('Application', {
   Model: RootModel,
@@ -167,42 +167,40 @@ const htmlImplementation = {
 
 const OtherFlags = Schema.Struct({ count: Schema.Number })
 
-const assembleRootBlock = () =>
-  RegisteredApplication.assembleBlock(rootImplementation)
+const prepareRootBlock = () =>
+  RegisteredApplication.prepareBlock(rootImplementation)
 const RootBlock: Block.FromAssemblyWithView<
   typeof RootModel,
-  typeof assembleRootBlock
-> = Block.complete(assembleRootBlock)
-const assembleFlagsBlock = () =>
-  FlagsComposition.assembleBlock(flagsImplementation)
+  typeof prepareRootBlock
+> = Block.assemble(prepareRootBlock)
+const prepareFlagsBlock = () =>
+  FlagsComposition.prepareBlock(flagsImplementation)
 const FlagsBlock: Block.FromAssemblyWithView<
   typeof RootModel,
-  typeof assembleFlagsBlock
-> = Block.complete(assembleFlagsBlock)
-const assembleRoutingBlock = () =>
-  RoutingComposition.assembleBlock(routingImplementation)
+  typeof prepareFlagsBlock
+> = Block.assemble(prepareFlagsBlock)
+const prepareRoutingBlock = () =>
+  RoutingComposition.prepareBlock(routingImplementation)
 const RoutingBlock: Block.FromAssemblyWithView<
   typeof RootModel,
-  typeof assembleRoutingBlock
-> = Block.complete(assembleRoutingBlock)
-const assembleRoutingFlagsBlock = () =>
-  RoutingFlagsComposition.assembleBlock(routingFlagsImplementation)
+  typeof prepareRoutingBlock
+> = Block.assemble(prepareRoutingBlock)
+const prepareRoutingFlagsBlock = () =>
+  RoutingFlagsComposition.prepareBlock(routingFlagsImplementation)
 const RoutingFlagsBlock: Block.FromAssemblyWithView<
   typeof RootModel,
-  typeof assembleRoutingFlagsBlock
-> = Block.complete(assembleRoutingFlagsBlock)
-const assembleDataBlock = () =>
-  DataComposition.assembleBlock(dataImplementation)
+  typeof prepareRoutingFlagsBlock
+> = Block.assemble(prepareRoutingFlagsBlock)
+const prepareDataBlock = () => DataComposition.prepareBlock(dataImplementation)
 const DataBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof RootModel,
-  typeof assembleDataBlock
-> = Block.complete(assembleDataBlock)
-const assembleHtmlBlock = () =>
-  HtmlComposition.assembleBlock(htmlImplementation)
+  typeof prepareDataBlock
+> = Block.assemble(prepareDataBlock)
+const prepareHtmlBlock = () => HtmlComposition.prepareBlock(htmlImplementation)
 const HtmlBlock: Block.FromAssemblyWithView<
   typeof RootModel,
-  typeof assembleHtmlBlock
-> = Block.complete(assembleHtmlBlock)
+  typeof prepareHtmlBlock
+> = Block.assemble(prepareHtmlBlock)
 
 const verifyServerBlockContracts = (): void => {
   const rootRender = renderToString(RootBlock, {}, { isHydratable: false })

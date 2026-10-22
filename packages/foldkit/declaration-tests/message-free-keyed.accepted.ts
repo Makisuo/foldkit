@@ -41,8 +41,8 @@ const WaitForever = SilentDefinition.makeCommand('WaitForever', {
 })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 const SilentComposition = SilentDefinition.makeComposition()
-const assembleSilentBlock = () =>
-  SilentComposition.assembleBlock({
+const prepareSilentBlock = () =>
+  SilentComposition.prepareBlock({
     init: SilentComposition.makeInit((id: string) => ({
       model: SilentModel.make({ id, ready: false }),
       commands: [WaitForever()],
@@ -52,8 +52,8 @@ const assembleSilentBlock = () =>
   })
 export const SilentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof SilentModel,
-  typeof assembleSilentBlock
-> = Block.complete(assembleSilentBlock)
+  typeof prepareSilentBlock
+> = Block.assemble(prepareSilentBlock)
 
 export const Entry = Schema.Struct({
   key: Schema.String,
@@ -123,15 +123,15 @@ export const initializeGeneral = ParentDefinition.makeStep(
         }),
     }),
 )
-const assembleParentBlock = () =>
-  ParentComposition.assembleBlock({
+const prepareParentBlock = () =>
+  ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() => ({ model: { entries: [] } })),
     update: ParentComposition.makeUpdate(model => ({ model })),
   })
 export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleParentBlock
-> = Block.complete(assembleParentBlock)
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 
 type InitializationRequirements = Expect<
   Equal<

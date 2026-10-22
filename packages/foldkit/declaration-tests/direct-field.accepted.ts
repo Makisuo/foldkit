@@ -18,8 +18,8 @@ const DeclaredDirectFieldChildComposition = ChildDefinition.makeComposition()
 const childUpdate = DeclaredDirectFieldChildComposition.makeUpdate(
   (model, { count }) => setCount(model, count),
 )
-const assembleChildBlock = () =>
-  DeclaredDirectFieldChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  DeclaredDirectFieldChildComposition.prepareBlock({
     init: DeclaredDirectFieldChildComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
     })),
@@ -31,10 +31,10 @@ const assembleChildBlock = () =>
   })
 export const childBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
-const assembleArgumentChildBlock = () =>
-  DeclaredDirectFieldChildComposition.assembleBlock({
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
+const prepareArgumentChildBlock = () =>
+  DeclaredDirectFieldChildComposition.prepareBlock({
     init: DeclaredDirectFieldChildComposition.makeInit((count: number) => ({
       model: ChildModel.make({ count }),
     })),
@@ -46,8 +46,8 @@ const assembleArgumentChildBlock = () =>
   })
 export const argumentChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleArgumentChildBlock
-> = Block.complete(assembleArgumentChildBlock)
+  typeof prepareArgumentChildBlock
+> = Block.assemble(prepareArgumentChildBlock)
 export const NestedOptionChildModel = Schema.Option(ChildModel)
 // eslint-disable-next-line foldkit/block-name-matches-variable
 
@@ -58,8 +58,8 @@ const DeclaredNestedOptionChildComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const assembleNestedOptionChildBlock = () =>
-  DeclaredNestedOptionChildComposition.assembleBlock({
+const prepareNestedOptionChildBlock = () =>
+  DeclaredNestedOptionChildComposition.prepareBlock({
     init: DeclaredNestedOptionChildComposition.makeInit(() => ({
       model: Option.none(),
     })),
@@ -70,8 +70,8 @@ const assembleNestedOptionChildBlock = () =>
   })
 export const nestedOptionChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof NestedOptionChildModel,
-  typeof assembleNestedOptionChildBlock
-> = Block.complete(assembleNestedOptionChildBlock)
+  typeof prepareNestedOptionChildBlock
+> = Block.assemble(prepareNestedOptionChildBlock)
 export const ArrayChildModel = Schema.Array(Schema.String)
 // eslint-disable-next-line foldkit/block-name-matches-variable
 
@@ -82,8 +82,8 @@ const DeclaredArrayChildComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const assembleArrayChildBlock = () =>
-  DeclaredArrayChildComposition.assembleBlock({
+const prepareArrayChildBlock = () =>
+  DeclaredArrayChildComposition.prepareBlock({
     init: DeclaredArrayChildComposition.makeInit(() => ({
       model: ArrayChildModel.make([]),
     })),
@@ -92,8 +92,8 @@ const assembleArrayChildBlock = () =>
   })
 export const arrayChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ArrayChildModel,
-  typeof assembleArrayChildBlock
-> = Block.complete(assembleArrayChildBlock)
+  typeof prepareArrayChildBlock
+> = Block.assemble(prepareArrayChildBlock)
 export const Model = Schema.Struct({
   child: ChildModel,
   argumentChild: ChildModel,
@@ -233,16 +233,16 @@ export const initialize = initialComposition.makeInit(
     },
   }),
 )
-const assembleInitializedBlock = () =>
-  initialComposition.assembleBlock({
+const prepareInitializedBlock = () =>
+  initialComposition.prepareBlock({
     init: initialize,
     update: initialComposition.makeUpdate(model => ({ model })),
     EffectsLayer: Layer.empty,
   })
 export const initializedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleInitializedBlock
-> = Block.complete(assembleInitializedBlock)
+  typeof prepareInitializedBlock
+> = Block.assemble(prepareInitializedBlock)
 // eslint-disable-next-line foldkit/block-name-matches-variable
 export const composition = ParentDefinition.makeComposition({
   bindings: [

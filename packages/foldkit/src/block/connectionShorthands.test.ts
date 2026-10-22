@@ -99,8 +99,8 @@ const childUpdate = registered.makeUpdate((model, message) =>
     FailedAcquireSession: () => ({ model }),
   }),
 )
-const assembleBlock = () =>
-  registered.assembleBlock({
+const prepareBlock = () =>
+  registered.prepareBlock({
     init: () => ({ model: Model.make({ count: 0 }) }),
     update: childUpdate,
     view,
@@ -118,8 +118,8 @@ const assembleBlock = () =>
   })
 const block: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleBlock
-> = Block.complete(assembleBlock)
+  typeof prepareBlock
+> = Block.assemble(prepareBlock)
 const Entry = Schema.Struct({ id: Schema.String, child: Model })
 const ParentModel = Schema.Struct({
   primary: Model,

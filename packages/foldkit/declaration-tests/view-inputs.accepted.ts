@@ -89,8 +89,8 @@ export const dateBearingView =
     (_model, { report }, h) => h.div([], [report.createdAt.toISOString()]),
   )
 
-const assembleDateInputBlock = () =>
-  DeclarationGenericViewInputsComposition.assembleBlock({
+const prepareDateInputBlock = () =>
+  DeclarationGenericViewInputsComposition.prepareBlock({
     init: () => ({ model: ViewInputsModel.make({ id: 'date-child' }) }),
     update: DeclarationGenericViewInputsComposition.makeUpdate(model => ({
       model,
@@ -99,8 +99,8 @@ const assembleDateInputBlock = () =>
   })
 export const DateInputBlock: Block.FromAssemblyWithView<
   typeof ViewInputsModel,
-  typeof assembleDateInputBlock
-> = Block.complete(assembleDateInputBlock)
+  typeof prepareDateInputBlock
+> = Block.assemble(prepareDateInputBlock)
 
 export const makeGenericBlock = <Item>() => {
   const genericView =
@@ -108,8 +108,8 @@ export const makeGenericBlock = <Item>() => {
       GenericViewInputs<Item>
     >((_model, _viewInputs, h) => h.empty)
 
-  const assemble = () =>
-    DeclarationGenericViewInputsComposition.assembleBlock({
+  const prepare = () =>
+    DeclarationGenericViewInputsComposition.prepareBlock({
       init: () => ({ model: ViewInputsModel.make({ id: 'generic-child' }) }),
       update: DeclarationGenericViewInputsComposition.makeUpdate(model => ({
         model,
@@ -120,8 +120,8 @@ export const makeGenericBlock = <Item>() => {
     })
   const completedBlock: Block.FromAssemblyWithView<
     typeof ViewInputsModel,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
   return completedBlock
 }
 
@@ -141,8 +141,8 @@ type ViewParametersAreExact = Expect<
   >
 >
 
-const assembleBlock = () =>
-  DeclarationGenericViewInputsComposition.assembleBlock({
+const prepareBlock = () =>
+  DeclarationGenericViewInputsComposition.prepareBlock({
     init: () => ({ model: ViewInputsModel.make({ id: 'child' }) }),
     update: DeclarationGenericViewInputsComposition.makeUpdate(model => ({
       model,
@@ -153,8 +153,8 @@ const assembleBlock = () =>
   })
 export const block: Block.FromAssemblyWithView<
   typeof ViewInputsModel,
-  typeof assembleBlock
-> = Block.complete(assembleBlock)
+  typeof prepareBlock
+> = Block.assemble(prepareBlock)
 
 const ParentModel = Schema.Struct({ child: ViewInputsModel })
 const DeclarationViewInputsParentDefinition = Block.makeDefinition(

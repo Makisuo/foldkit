@@ -1,10 +1,10 @@
 const Registry = {
   makeDefinition: () => ({
     makeComposition: () => ({
-      assembleBlock: () => ({ Model: 'unrelated' }),
+      prepareBlock: () => ({ Model: 'unrelated' }),
     }),
   }),
 }
 const ChildDefinition = Registry.makeDefinition()
 const ChildComposition = ChildDefinition.makeComposition()
-export const ChildBlock = ChildComposition.assembleBlock()
+export const ChildBlock = ChildComposition.prepareBlock()

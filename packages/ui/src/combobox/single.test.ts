@@ -110,8 +110,8 @@ const fruitParentUpdate = FruitComboboxTestComposition.makeUpdate(
 const requestSelectFruitAndClose = (item: Fruit) =>
   Tuple.make(FruitParentMessage.RequestedSelectFruitAndClose({ item }))
 
-const assemble = () =>
-  FruitComboboxTestComposition.assembleBlock({
+const prepare = () =>
+  FruitComboboxTestComposition.prepareBlock({
     init: FruitComboboxTestComposition.makeInit(() => ({
       model: {
         combobox: FruitCombobox.init({ id: 'fruit' }).model,
@@ -124,8 +124,8 @@ const assemble = () =>
   })
 const FruitComboboxTestBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof FruitParentModel,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 
 type TestHtmlBuilder = Parameters<typeof view>[2]
 

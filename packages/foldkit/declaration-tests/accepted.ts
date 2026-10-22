@@ -204,12 +204,12 @@ export type CompletedChild = Block.Completed<
   typeof childImplementation
 >
 
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock(childImplementation)
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock(childImplementation)
 export const ChildBlock: Block.FromAssemblyWithView<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 type CompletedChildIsExact = Expect<Equal<CompletedChild, typeof ChildBlock>>
 
@@ -284,8 +284,8 @@ export const refreshDirectValue = DeclarationTestsDirectDefinition.makeStep(
   }),
 )
 
-const assembleDirect = () =>
-  DeclarationTestsDirectComposition.assembleBlock({
+const prepareDirect = () =>
+  DeclarationTestsDirectComposition.prepareBlock({
     init: DeclarationTestsDirectComposition.makeInit(() => ({
       model: DirectModel.make({ value: 0 }),
     })),
@@ -297,8 +297,8 @@ const assembleDirect = () =>
   })
 export const Direct: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof DirectModel,
-  typeof assembleDirect
-> = Block.complete(assembleDirect)
+  typeof prepareDirect
+> = Block.assemble(prepareDirect)
 
 const DeclarationTestsPureDefinition = Block.makeDefinition(
   'DeclarationTestsPure',
@@ -325,11 +325,11 @@ export type CompletedPure = Block.Completed<
   typeof pureImplementation
 >
 
-const assemblePure = () => PureComposition.assembleBlock(pureImplementation)
+const preparePure = () => PureComposition.prepareBlock(pureImplementation)
 export const Pure: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof DirectModel,
-  typeof assemblePure
-> = Block.complete(assemblePure)
+  typeof preparePure
+> = Block.assemble(preparePure)
 
 type CompletedPureIsExact = Expect<Equal<CompletedPure, typeof Pure>>
 
@@ -368,15 +368,15 @@ export const directResultInit = DeclarationTestsDirectInitComposition.makeInit(
     }),
 )
 const directInitUpdate = DeclarationTestsDirectInitComposition.makeUpdate()
-const assembleDirectInitBlock = () =>
-  DeclarationTestsDirectInitComposition.assembleBlock({
+const prepareDirectInitBlock = () =>
+  DeclarationTestsDirectInitComposition.prepareBlock({
     init: directResultInit,
     update: directInitUpdate,
   })
 export const DirectInitBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleDirectInitBlock
-> = Block.complete(assembleDirectInitBlock)
+  typeof prepareDirectInitBlock
+> = Block.assemble(prepareDirectInitBlock)
 
 type DirectResultInitEvidenceIsExact = Expect<
   Equal<
@@ -523,8 +523,8 @@ export const contextualRefreshChild = DeclarationTestsParentDefinition.makeStep(
   (_model, _context?: RefreshContext) => ChildBinding.refresh(),
 )
 
-const assembleParent = () =>
-  ParentComposition.assembleBlock({
+const prepareParent = () =>
+  ParentComposition.prepareBlock({
     init: ParentComposition.makeInit(() =>
       ChildBinding.init({
         args: [],
@@ -538,8 +538,8 @@ const assembleParent = () =>
   })
 export const Parent: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assembleParent
-> = Block.complete(assembleParent)
+  typeof prepareParent
+> = Block.assemble(prepareParent)
 
 type ParentServicesAreExact = Expect<
   Equal<Layer.Services<typeof Parent.EffectsLayer>, Clock>
@@ -619,11 +619,11 @@ const makeChoice = <const Values extends ReadonlyArray<string>>(
 ): CompletedChoice<Values> => {
   const { composition, implementation } = makeChoiceParts(Value)
 
-  const assemble = () => composition.assembleBlock(implementation)
+  const prepare = () => composition.prepareBlock(implementation)
   const completedBlock: Block.FromAssemblyWithOutMessage<
     typeof composition.Model,
-    typeof assemble
-  > = Block.complete(assemble)
+    typeof prepare
+  > = Block.assemble(prepare)
   return completedBlock
 }
 
@@ -771,32 +771,32 @@ const pureDocumentView = PureApplicationComposition.makeView((_model, h) => ({
   body: h.main([]),
 }))
 
-const assemble = () =>
-  PureApplicationComposition.assembleBlock({
+const prepare = () =>
+  PureApplicationComposition.prepareBlock({
     init: pureInit,
     update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
     view: pureElementView,
   })
 const completedBlock: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 const pureElementProgram: ElementProgram<undefined, never, never, never> =
   Program.makeElement({
     block: completedBlock,
     container: null,
   })
 
-const assemble2 = () =>
-  PureApplicationComposition.assembleBlock({
+const prepare2 = () =>
+  PureApplicationComposition.prepareBlock({
     init: pureInit,
     update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
     view: pureDocumentView,
   })
 const completedBlock2: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assemble2
-> = Block.complete(assemble2)
+  typeof prepare2
+> = Block.assemble(prepare2)
 const purePageProgram: ProgramType<undefined, void, never, never, never> =
   Program.make({
     block: completedBlock2,
@@ -895,8 +895,8 @@ export const provisionRoutingInit = PureApplicationComposition.makeInit(
   }),
 )
 
-const assemble3 = () =>
-  PureApplicationComposition.assembleBlock({
+const prepare3 = () =>
+  PureApplicationComposition.prepareBlock({
     init: PureApplicationComposition.makeInit(
       ({ initialValue }: ProvisionFlags) => ({
         model: ParentModel.make({
@@ -909,8 +909,8 @@ const assemble3 = () =>
   })
 const completedBlock3: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assemble3
-> = Block.complete(assemble3)
+  typeof prepare3
+> = Block.assemble(prepare3)
 const makeInferredProvisionPageAwaitingDependency = (
   container: HTMLElement | null,
 ) =>
@@ -940,16 +940,16 @@ export const makeProvisionPageAwaitingDependency: (
   container: HTMLElement | null,
 ) => ProvisionPage = makeInferredProvisionPageAwaitingDependency
 
-const assemble4 = () =>
-  PureApplicationComposition.assembleBlock({
+const prepare4 = () =>
+  PureApplicationComposition.prepareBlock({
     init: pureInit,
     update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
     view: pureElementView,
   })
 const completedBlock4: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assemble4
-> = Block.complete(assemble4)
+  typeof prepare4
+> = Block.assemble(prepare4)
 const makeInferredProvisionElement = (container: HTMLElement | null) =>
   Program.makeElement({
     block: completedBlock4,
@@ -978,46 +978,46 @@ type ProvisionAssertions = [ProvisionPageIsExact, ProvisionElementIsExact]
 const provisionAssertions: ProvisionAssertions = [true, true]
 void provisionAssertions
 
-const assemble5 = () =>
-  ApplicationComposition.assembleBlock({
+const prepare5 = () =>
+  ApplicationComposition.prepareBlock({
     ...applicationImplementation,
     view: applicationElementView,
   })
 const completedBlock5: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assemble5
-> = Block.complete(assemble5)
+  typeof prepare5
+> = Block.assemble(prepare5)
 export const makeProgram = (container: HTMLElement) =>
   Program.makeElement({
     block: completedBlock5,
     container,
   }).provide(ClockLayer)
 
-const assemble6 = () =>
-  ApplicationComposition.assembleBlock({
+const prepare6 = () =>
+  ApplicationComposition.prepareBlock({
     ...applicationImplementation,
     view: applicationDocumentView,
   })
 const completedBlock6: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assemble6
-> = Block.complete(assemble6)
+  typeof prepare6
+> = Block.assemble(prepare6)
 export const makePageProgram = (container: HTMLElement | null) =>
   Program.make({
     block: completedBlock6,
     container,
   }).provide(ClockLayer)
 
-const assemble7 = () =>
-  PureApplicationComposition.assembleBlock({
+const prepare7 = () =>
+  PureApplicationComposition.prepareBlock({
     init: provisionRoutingInit,
     update: PureApplicationComposition.makeUpdate(wrappedPureUpdate.fn),
     view: pureDocumentView,
   })
 const completedBlock7: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assemble7
-> = Block.complete(assemble7)
+  typeof prepare7
+> = Block.assemble(prepare7)
 export const makeRoutedFlagsPage = (container: HTMLElement | null) =>
   Program.make({
     block: completedBlock7,
@@ -1029,15 +1029,15 @@ export const makeRoutedFlagsPage = (container: HTMLElement | null) =>
     },
   })
 
-const assemble8 = () =>
-  ApplicationComposition.assembleBlock({
+const prepare8 = () =>
+  ApplicationComposition.prepareBlock({
     ...applicationImplementation,
     view: applicationDocumentView,
   })
 const completedBlock8: Block.FromAssemblyWithView<
   typeof ParentModel,
-  typeof assemble8
-> = Block.complete(assemble8)
+  typeof prepare8
+> = Block.assemble(prepare8)
 export const renderPage = () =>
   Server.renderToString(completedBlock8, {}, { isHydratable: false })
 

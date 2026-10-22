@@ -31,8 +31,8 @@ export const pinsSubscriptions = PinsDefinition.makeSubscriptions(entry => ({
 }))
 
 const PinsComposition = PinsDefinition.makeComposition()
-const assemble = () =>
-  PinsComposition.assembleBlock({
+const prepare = () =>
+  PinsComposition.prepareBlock({
     init: PinsComposition.makeInit(() => ({ model: { count: 0 } })),
     update: PinsComposition.makeUpdate((model, message) =>
       PinsMessage.match(message, {
@@ -57,8 +57,8 @@ const assemble = () =>
   })
 export const PinsBlock: Block.FromAssemblyWithView<
   typeof PinsModel,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 
 const Model = Schema.Struct({ pins: PinsBlock.Model })
 export const Message = defineMessageUnion({ RequestedRefreshPins: {} })

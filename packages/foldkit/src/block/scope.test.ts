@@ -51,16 +51,16 @@ const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
     model,
     commands: [ReadValue()],
   }))
-  const assembleBlock = () =>
-    composition.assembleBlock({
+  const prepareBlock = () =>
+    composition.prepareBlock({
       init: () => ({ model: {} }),
       update,
       EffectsLayer: ReadValue.layer,
     })
   const block: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof composition.Model,
-    typeof assembleBlock
-  > = Block.complete(assembleBlock)
+    typeof prepareBlock
+  > = Block.assemble(prepareBlock)
   const bind = (placement: string) =>
     ScopeParent.makeBinding(block, {
       placement,

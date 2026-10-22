@@ -201,7 +201,7 @@ DeclarationRejectedParentDefinition.makeBinding(PlainChildBlock, {
 })
 
 // @ts-expect-error A Definition cannot complete before makeComposition.
-DeclarationRejectedParentDefinition.assembleBlock
+DeclarationRejectedParentDefinition.prepareBlock
 // @ts-expect-error The breaking staging API has no register alias.
 DeclarationRejectedParentDefinition.register
 // @ts-expect-error A completed child has no child-owned Binding factory.
@@ -243,7 +243,7 @@ const DeclarationRejectedParentComposition =
     ],
   })
 // @ts-expect-error Completion also rejects unregistered child operation evidence.
-DeclarationRejectedParentComposition.assembleBlock({
+DeclarationRejectedParentComposition.prepareBlock({
   init: DeclarationRejectedParentComposition.makeInit(() => ({
     model: ParentModel.make({
       child: ChildBlock.Model.make({ value: 'initial' }),
@@ -273,6 +273,6 @@ ApplicationDefinition.makeBinding(ChildBlock, {
     ParentOutMessage.ForwardedSelectedValue({ value: 'outside-root' }),
 })
 // @ts-expect-error An Application Definition cannot complete before makeComposition.
-ApplicationDefinition.assembleBlock
+ApplicationDefinition.prepareBlock
 // @ts-expect-error An Application Definition has no register alias.
 ApplicationDefinition.register

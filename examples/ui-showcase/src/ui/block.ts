@@ -6,8 +6,8 @@ import { Message } from './message'
 import type { Model } from './model'
 import { update } from './update'
 
-const assemble = () =>
-  UiComposition.assembleBlock({
+const prepare = () =>
+  UiComposition.prepareBlock({
     init,
     update,
     operations: {
@@ -17,5 +17,5 @@ const assemble = () =>
   })
 export const UiBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

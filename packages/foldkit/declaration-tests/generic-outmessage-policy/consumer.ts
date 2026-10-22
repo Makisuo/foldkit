@@ -25,8 +25,8 @@ const FeatureBinding = RootDefinition.makeBinding(CityFeature.block, {
 const RootComposition = RootDefinition.makeComposition({
   bindings: [FeatureBinding],
 })
-const assembleRootBlock = () =>
-  RootComposition.assembleBlock({
+const prepareRootBlock = () =>
+  RootComposition.prepareBlock({
     init: RootComposition.makeInit(() => ({ model: {} })),
     update: RootComposition.makeUpdate(),
     view: RootComposition.makeView((model, h) =>
@@ -35,8 +35,8 @@ const assembleRootBlock = () =>
   })
 export const RootBlock: Block.FromAssemblyWithView<
   typeof RootComposition.Model,
-  typeof assembleRootBlock
-> = Block.complete(assembleRootBlock)
+  typeof prepareRootBlock
+> = Block.assemble(prepareRootBlock)
 export const pendingProgram = Program.makeElement({
   block: RootBlock,
   container: null,

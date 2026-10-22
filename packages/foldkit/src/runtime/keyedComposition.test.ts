@@ -202,11 +202,11 @@ const itemImplementation = {
   managedResources,
   EffectsLayer: ItemEffectsLayer,
 }
-const assembleItemBlock = () => item.assembleBlock(itemImplementation)
+const prepareItemBlock = () => item.prepareBlock(itemImplementation)
 const itemBlock: Block.FromAssemblyWithView<
   typeof ItemModel,
-  typeof assembleItemBlock
-> = Block.complete(assembleItemBlock)
+  typeof prepareItemBlock
+> = Block.assemble(prepareItemBlock)
 
 const RootModel = Schema.Struct({ entries: Schema.Array(ItemModel) })
 const RootMessage = defineMessageUnion({
@@ -339,8 +339,8 @@ describe('keyed Block occurrences', () => {
     container.id = 'memoized-keyed-composition'
     document.body.append(container)
 
-    const assemble = () =>
-      root.assembleBlock({
+    const prepare = () =>
+      root.prepareBlock({
         init: rootInit,
         update: rootUpdate,
         view: rootView,
@@ -348,8 +348,8 @@ describe('keyed Block occurrences', () => {
       })
     const completedBlock: Block.FromAssemblyWithView<
       typeof RootModel,
-      typeof assemble
-    > = Block.complete(assemble)
+      typeof prepare
+    > = Block.assemble(prepare)
     const element = Program.makeElement({
       block: completedBlock,
       container,
@@ -445,8 +445,8 @@ describe('keyed Block occurrences', () => {
     container.id = 'keyed-composition'
     document.body.append(container)
 
-    const assemble = () =>
-      root.assembleBlock({
+    const prepare = () =>
+      root.prepareBlock({
         init: rootInit,
         update: rootUpdate,
         view: rootView,
@@ -454,8 +454,8 @@ describe('keyed Block occurrences', () => {
       })
     const completedBlock: Block.FromAssemblyWithView<
       typeof RootModel,
-      typeof assemble
-    > = Block.complete(assemble)
+      typeof prepare
+    > = Block.assemble(prepare)
     const application = Program.makeElement({
       block: completedBlock,
       container,
@@ -555,8 +555,8 @@ describe('keyed Block occurrences', () => {
     container.id = 'keyed-mount-barrier'
     document.body.append(container)
 
-    const assemble = () =>
-      root.assembleBlock({
+    const prepare = () =>
+      root.prepareBlock({
         init: rootInit,
         update: rootUpdate,
         view: rootView,
@@ -564,8 +564,8 @@ describe('keyed Block occurrences', () => {
       })
     const completedBlock: Block.FromAssemblyWithView<
       typeof RootModel,
-      typeof assemble
-    > = Block.complete(assemble)
+      typeof prepare
+    > = Block.assemble(prepare)
     const application = Program.makeElement({
       block: completedBlock,
       container,

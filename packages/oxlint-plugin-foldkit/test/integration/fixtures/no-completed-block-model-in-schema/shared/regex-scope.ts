@@ -8,10 +8,10 @@ export const closingBrace = /}/
 export const unrelated = (Block: {
   makeDefinition: () => {
     makeComposition: () => {
-      assembleBlock: () => unknown
+      prepareBlock: () => unknown
     }
   }
 }) => {
-  const Child = Block.makeDefinition().makeComposition().assembleBlock();
+  const Child = Block.makeDefinition().makeComposition().prepareBlock();
   return Child
 }

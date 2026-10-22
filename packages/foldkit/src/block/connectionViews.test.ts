@@ -24,16 +24,16 @@ const view = ConnectionViewsChildComposition.makeView.withInputs<ViewInputs>(
       [inputs.label, globalThis.String(model.count)],
     ),
 )
-const assembleBlock = () =>
-  ConnectionViewsChildComposition.assembleBlock({
+const prepareBlock = () =>
+  ConnectionViewsChildComposition.prepareBlock({
     init: () => ({ model: Model.make({ count: 0 }) }),
     update: ConnectionViewsChildComposition.makeUpdate(model => ({
       model: modifyFields(model, { count: count => count + 1 }),
     })),
     view,
   })
-const block: Block.FromAssemblyWithView<typeof Model, typeof assembleBlock> =
-  Block.complete(assembleBlock)
+const block: Block.FromAssemblyWithView<typeof Model, typeof prepareBlock> =
+  Block.assemble(prepareBlock)
 
 const Entry = Schema.Struct({ id: Schema.String, child: Model })
 const ParentModel = Schema.Struct({

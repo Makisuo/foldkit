@@ -18,8 +18,8 @@ export {
   view,
 } from './example'
 
-const assemble = () =>
-  ExampleDetailComposition.assembleBlock({
+const prepare = () =>
+  ExampleDetailComposition.prepareBlock({
     init,
     update,
     view,
@@ -30,5 +30,5 @@ const assemble = () =>
   })
 export const ExampleDetailBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

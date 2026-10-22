@@ -107,8 +107,8 @@ it('preserves a child transition when an OutMessage policy has no parent transit
     OutMessage: ChildOutMessage,
   })
   const ChildComposition = ChildDefinition.makeComposition()
-  const assembleChildBlock = () =>
-    ChildComposition.assembleBlock({
+  const prepareChildBlock = () =>
+    ChildComposition.prepareBlock({
       init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
       update: ChildComposition.makeUpdate((model, message) =>
         ChildMessage.match(message, {
@@ -121,8 +121,8 @@ it('preserves a child transition when an OutMessage policy has no parent transit
     })
   const ChildBlock: Block.FromAssemblyWithOutMessage<
     typeof ChildModel,
-    typeof assembleChildBlock
-  > = Block.complete(assembleChildBlock)
+    typeof prepareChildBlock
+  > = Block.assemble(prepareChildBlock)
   const ParentModel = Schema.Struct({ child: ChildModel, label: Schema.String })
   type ParentModel = typeof ParentModel.Type
   type ParentMessage = never

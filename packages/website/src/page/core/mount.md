@@ -64,7 +64,7 @@ Portal-to-body is a small example. When an overlay enters the DOM, its Mount mov
 
 ### Handler Layers
 
-A Mount starts when its element enters the DOM and stops when that element leaves. In a split feature, `mount.ts` owns the definition and handler, while `composition.ts` owns its registration, including when the feature has no children. Both Composition and view import the definition from `mount.ts`, avoiding a Composition/view cycle. Include its definition in the owning Composition's `mounts`, include its handler recipe in the local `EffectsLayer`, produce the unfinished assembly with `assembleBlock`, and finish it with `Block.complete`. Composition declares a Mount the view may render; a conditional Mount need not appear in every render.
+A Mount starts when its element enters the DOM and stops when that element leaves. In a split feature, `mount.ts` owns the definition and handler, while `composition.ts` owns its registration, including when the feature has no children. Both Composition and view import the definition from `mount.ts`, avoiding a Composition/view cycle. Include its definition in the owning Composition's `mounts`, include its handler recipe in the local `EffectsLayer`, produce the opaque draft with `prepareBlock`, and finish it with `Block.assemble`. Composition declares a Mount the view may render; a conditional Mount need not appear in every render.
 
 ::Snippet{name="mountHandlerLayers" label="Registering a Mount handler Layer"}
 
@@ -182,7 +182,7 @@ Registering a Mount that the view never renders starts no element lifecycle, lis
 
 ### Block Assembly and Child Placements
 
-For an owned Block, create `NameDefinition = Block.makeDefinition('Name', { Model, Message })`, create Mounts through that Definition, and list them in `NameComposition = NameDefinition.makeComposition({ mounts })`. Author the canonical view with `NameComposition.makeView`, then pass the local handler recipes to `NameComposition.assembleBlock({ EffectsLayer })` inside the private producer and finish it with `Block.complete`. A parent that includes the child Binding receives its Mount registrations and handler graph together. The root uses the same producer and finisher path before `Program.make` supplies host behavior.
+For an owned Block, create `NameDefinition = Block.makeDefinition('Name', { Model, Message })`, create Mounts through that Definition, and list them in `NameComposition = NameDefinition.makeComposition({ mounts })`. Author the canonical view with `NameComposition.makeView`, then pass the local handler recipes to `NameComposition.prepareBlock({ EffectsLayer })` inside the private producer and finish it with `Block.assemble`. A parent that includes the child Binding receives its Mount registrations and handler graph together. The root uses the same producer and finisher path before `Program.make` supplies host behavior.
 
 For a direct array of child Models with declared Struct key fields, use `ParentDefinition.makeBinding` with `field` and a string-valued `key`. An exact array of closed Struct wrappers adds a distinct required `childField`, leaving its key on the wrapper. Custom writes, opaque, union, or open/index-signature wrappers, and non-array enumeration retain general keyed accessors. Each active key gets independent Mount ownership, and the parent includes the keyed Binding once under `bindings`.
 

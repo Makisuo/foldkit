@@ -8,8 +8,8 @@ import { subscriptions } from './subscription'
 import { update } from './update'
 import { view } from './view'
 
-const assemble = () =>
-  HomeComposition.assembleBlock({
+const prepare = () =>
+  HomeComposition.prepareBlock({
     init,
     update,
     view,
@@ -18,5 +18,5 @@ const assemble = () =>
   })
 export const HomeBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

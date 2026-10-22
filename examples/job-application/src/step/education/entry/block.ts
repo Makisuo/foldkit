@@ -7,8 +7,8 @@ import { init } from './init'
 import { update } from './update'
 import { view } from './view'
 
-const assemble = () =>
-  EducationEntryComposition.assembleBlock({
+const prepare = () =>
+  EducationEntryComposition.prepareBlock({
     init,
     update,
     view,
@@ -16,5 +16,5 @@ const assemble = () =>
   })
 export const EducationEntryBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

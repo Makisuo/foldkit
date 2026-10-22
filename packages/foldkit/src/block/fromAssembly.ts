@@ -105,7 +105,7 @@ type ProducedBlock<Producer extends AnyProducer> =
     : never
 
 type MissingAssemblyAnnotation = Readonly<{
-  'Block.complete requires a FromAssembly annotation with typeof Model and typeof assemble': never
+  'Block.assemble requires a FromAssembly annotation with typeof Model and typeof prepare': never
 }>
 
 type CompleteAssemblyArguments<
@@ -189,7 +189,7 @@ interface AssemblyFields<
  * @typeParam ModelSchema - `typeof Model` for the canonical Schema used by the
  * producer's Definition, with its exact decoded, encoded, and service types.
  * @typeParam Producer - A plain zero-argument function with no overloads or added
- * properties, returning one assembly draft from `Composition.assembleBlock`.
+ * properties, returning one assembly draft from `Composition.prepareBlock`.
  * Its completed contract must have readonly members, no extra fields, and a
  * Model Schema type exactly matching `ModelSchema`.
  */
@@ -214,7 +214,7 @@ export interface AssemblyWithViewAndOutMessage<
  * @typeParam ModelSchema - `typeof Model` for the canonical Schema used by the
  * producer's Definition, with its exact decoded, encoded, and service types.
  * @typeParam Producer - A plain zero-argument function with no overloads or added
- * properties, returning one assembly draft from `Composition.assembleBlock`.
+ * properties, returning one assembly draft from `Composition.prepareBlock`.
  * Its completed contract must have readonly members, no extra fields, and a
  * Model Schema type exactly matching `ModelSchema`.
  */
@@ -239,7 +239,7 @@ export interface AssemblyWithView<
  * @typeParam ModelSchema - `typeof Model` for the canonical Schema used by the
  * producer's Definition, with its exact decoded, encoded, and service types.
  * @typeParam Producer - A plain zero-argument function with no overloads or added
- * properties, returning one assembly draft from `Composition.assembleBlock`.
+ * properties, returning one assembly draft from `Composition.prepareBlock`.
  * Its completed contract must have readonly members, no extra fields, and a
  * Model Schema type exactly matching `ModelSchema`.
  */
@@ -261,7 +261,7 @@ export interface AssemblyWithOutMessage<
  * @typeParam ModelSchema - `typeof Model` for the canonical Schema used by the
  * producer's Definition, with its exact decoded, encoded, and service types.
  * @typeParam Producer - A plain zero-argument function with no overloads or added
- * properties, returning one assembly draft from `Composition.assembleBlock`.
+ * properties, returning one assembly draft from `Composition.prepareBlock`.
  * Its completed contract must have readonly members, no extra fields, and a
  * Model Schema type exactly matching `ModelSchema`.
  */
@@ -274,21 +274,30 @@ export interface AssemblyWithoutViewOrOutMessage<
 }
 
 /**
- * Completes an assembly through its explicit Model and producer annotation.
+ * Assembles a completed Block through its explicit Model and producer annotation.
  *
  * Initialize a {@link FromAssemblyWithView} annotation, or its matching
- * headless or OutMessage variant, with `Block.complete(assemble)`. The producer
+ * headless or OutMessage variant, with `Block.assemble(prepare)`. The producer
  * must be a plain zero-argument function returning the original opaque draft
- * from `Composition.assembleBlock`. Its Model Schema must exactly match the
+ * from `Composition.prepareBlock`. Its Model Schema must exactly match the
  * annotation's canonical `typeof Model`.
+ *
+ * The named `prepare` function and explicit annotation establish a TypeScript
+ * performance boundary. The annotation exposes the canonical Model Schema
+ * directly, so a parent using `ChildBlock.Model` need not infer the child's
+ * entire implementation to discover that Schema. The function lets the header
+ * refer to the exact prepared contract while preserving its inferred channels.
+ * This boundary reduces inference work; it does not eliminate all editor latency.
  *
  * Calls the producer once and returns the original Block behind its draft.
  * Completion builds no Layers and starts no lifecycle work. A copied draft,
  * a completed Block, or a structurally similar object is rejected at runtime.
  *
- * @see FromAssemblyWithView for a complete assembly example.
+ * @param producer - The private, plain zero-argument `prepare` function. It is
+ * invoked once during this call, not deferred until the Runtime starts.
+ * @see FromAssemblyWithView for a complete assembly example and performance guidance.
  */
-export function complete<
+export function assemble<
   const ModelSchema extends AnySchema = never,
   Producer extends AssemblyProducer<ModelSchema, Producer> = never,
 >(
@@ -299,7 +308,7 @@ export function complete<
     Readonly<{ OutMessage: AnySchema; [DefaultViewTypeId]: unknown }>
   >
 ): AssemblyWithViewAndOutMessage<ModelSchema, Producer>
-export function complete<
+export function assemble<
   const ModelSchema extends AnySchema = never,
   Producer extends AssemblyProducer<ModelSchema, Producer> = never,
 >(
@@ -310,7 +319,7 @@ export function complete<
     Readonly<{ OutMessage?: never; [DefaultViewTypeId]: unknown }>
   >
 ): AssemblyWithView<ModelSchema, Producer>
-export function complete<
+export function assemble<
   const ModelSchema extends AnySchema = never,
   Producer extends AssemblyProducer<ModelSchema, Producer> = never,
 >(
@@ -321,7 +330,7 @@ export function complete<
     Readonly<{ OutMessage: AnySchema; [DefaultViewTypeId]?: never }>
   >
 ): AssemblyWithOutMessage<ModelSchema, Producer>
-export function complete<
+export function assemble<
   const ModelSchema extends AnySchema = never,
   Producer extends AssemblyProducer<ModelSchema, Producer> = never,
 >(
@@ -332,10 +341,10 @@ export function complete<
     Readonly<{ OutMessage?: never; [DefaultViewTypeId]?: never }>
   >
 ): AssemblyWithoutViewOrOutMessage<ModelSchema, Producer>
-export function complete(producer: AnyProducer): unknown {
+export function assemble(producer: AnyProducer): unknown {
   if (!Predicate.isFunction(producer)) {
     throw new Error(
-      '[foldkit] Block.complete requires a plain assembly producer.',
+      '[foldkit] Block.assemble requires a plain assembly producer.',
     )
   }
 
@@ -345,11 +354,14 @@ export function complete(producer: AnyProducer): unknown {
 /**
  * Annotates a completed Block with a default view and an OutMessage Schema.
  *
- * Choose this helper when `assembleBlock` receives a view and the Definition
+ * Choose this helper when `prepareBlock` receives a view and the Definition
  * declares an OutMessage Schema. Initialize the annotation with
- * `Block.complete(assemble)`. Completion preserves the original Model Schema
+ * `Block.assemble(prepare)`. Completion preserves the original Model Schema
  * object and every other member without building Layers or starting lifecycle
  * work.
+ *
+ * The explicit Model Schema and named producer provide the same TypeScript
+ * performance boundary as {@link FromAssemblyWithView}.
  *
  * A producer typed as `any`, or returning `any`, is rejected. A never-returning
  * producer cannot provide a usable Block. Union returns, mutable members, and
@@ -357,7 +369,7 @@ export function complete(producer: AnyProducer): unknown {
  *
  * @typeParam ModelSchema - `typeof Model` for the canonical Schema used by the
  * producer's Definition, with its exact decoded, encoded, and service types.
- * @typeParam Producer - `typeof assemble` for a plain zero-argument function
+ * @typeParam Producer - `typeof prepare` for a plain zero-argument function
  * with no overloads or added properties, returning an original assembly draft.
  * @see FromAssemblyWithView for an example keeping Model local to its module.
  */
@@ -372,11 +384,20 @@ export type FromAssemblyWithViewAndOutMessage<
 /**
  * Annotates a completed Block with a default view and no OutMessage Schema.
  *
- * Choose this helper when `assembleBlock` receives a view and the Definition
- * omits OutMessage. Initialize the annotation with `Block.complete(assemble)`.
+ * Choose this helper when `prepareBlock` receives a view and the Definition
+ * omits OutMessage. Initialize the annotation with `Block.assemble(prepare)`.
  * Completion preserves the original Model Schema object and every other member
  * without building Layers or starting lifecycle work. Model can stay local to
  * its module while consumers read the completed Block's `Model` member.
+ *
+ * Keep the private `prepare` function and explicit annotation together. The
+ * annotation exposes the canonical Model Schema directly instead of making a
+ * parent Schema infer it through the child's update, view, Bindings, and effects.
+ * The function supplies the exact prepared contract for the remaining members,
+ * preserving their arguments and requirements. This is a TypeScript performance
+ * boundary, not an extra Runtime phase or a guarantee of instantaneous editing.
+ * An unannotated `Block.assemble(() => ...)` call is rejected. Use the named
+ * producer pattern below so lint can also recognize the checked boundary.
  *
  * A producer typed as `any`, or returning `any`, is rejected. A never-returning
  * producer cannot provide a usable Block. Union returns, mutable members, and
@@ -384,7 +405,7 @@ export type FromAssemblyWithViewAndOutMessage<
  *
  * @typeParam ModelSchema - `typeof Model` for the canonical Schema used by the
  * producer's Definition, with its exact decoded, encoded, and service types.
- * @typeParam Producer - `typeof assemble` for a plain zero-argument function
+ * @typeParam Producer - `typeof prepare` for a plain zero-argument function
  * with no overloads or added properties, returning an original assembly draft.
  *
  * @example
@@ -398,8 +419,8 @@ export type FromAssemblyWithViewAndOutMessage<
  *   Message: Schema.Never,
  * })
  * const CounterComposition = CounterDefinition.makeComposition()
- * const assemble = () =>
- *   CounterComposition.assembleBlock({
+ * const prepare = () =>
+ *   CounterComposition.prepareBlock({
  *     init: CounterComposition.makeInit(() => ({
  *       model: Model.make({ count: 0 }),
  *     })),
@@ -410,8 +431,8 @@ export type FromAssemblyWithViewAndOutMessage<
  *   })
  * export const CounterBlock: Block.FromAssemblyWithView<
  *   typeof Model,
- *   typeof assemble
- * > = Block.complete(assemble)
+ *   typeof prepare
+ * > = Block.assemble(prepare)
  * ```
  */
 export type FromAssemblyWithView<
@@ -424,10 +445,13 @@ export type FromAssemblyWithView<
  * Annotates a completed Block with an OutMessage Schema and no default view.
  *
  * Choose this helper when the Definition declares an OutMessage Schema and
- * `assembleBlock` omits the view. Initialize the annotation with
- * `Block.complete(assemble)`. Completion preserves the original Model Schema
+ * `prepareBlock` omits the view. Initialize the annotation with
+ * `Block.assemble(prepare)`. Completion preserves the original Model Schema
  * object and every other member without building Layers or starting lifecycle
  * work.
+ *
+ * The explicit Model Schema and named producer provide the same TypeScript
+ * performance boundary as {@link FromAssemblyWithView}.
  *
  * A producer typed as `any`, or returning `any`, is rejected. A never-returning
  * producer cannot provide a usable Block. Union returns, mutable members, and
@@ -435,7 +459,7 @@ export type FromAssemblyWithView<
  *
  * @typeParam ModelSchema - `typeof Model` for the canonical Schema used by the
  * producer's Definition, with its exact decoded, encoded, and service types.
- * @typeParam Producer - `typeof assemble` for a plain zero-argument function
+ * @typeParam Producer - `typeof prepare` for a plain zero-argument function
  * with no overloads or added properties, returning an original assembly draft.
  * @see FromAssemblyWithView for an example keeping Model local to its module.
  */
@@ -450,10 +474,13 @@ export type FromAssemblyWithOutMessage<
 /**
  * Annotates a completed Block with no default view or OutMessage Schema.
  *
- * Choose this helper when the Definition omits OutMessage and `assembleBlock`
- * omits the view. Initialize the annotation with `Block.complete(assemble)`.
+ * Choose this helper when the Definition omits OutMessage and `prepareBlock`
+ * omits the view. Initialize the annotation with `Block.assemble(prepare)`.
  * Completion preserves the original Model Schema object and every other member
  * without building Layers or starting lifecycle work.
+ *
+ * The explicit Model Schema and named producer provide the same TypeScript
+ * performance boundary as {@link FromAssemblyWithView}.
  *
  * A producer typed as `any`, or returning `any`, is rejected. A never-returning
  * producer cannot provide a usable Block. Union returns, mutable members, and
@@ -461,7 +488,7 @@ export type FromAssemblyWithOutMessage<
  *
  * @typeParam ModelSchema - `typeof Model` for the canonical Schema used by the
  * producer's Definition, with its exact decoded, encoded, and service types.
- * @typeParam Producer - `typeof assemble` for a plain zero-argument function
+ * @typeParam Producer - `typeof prepare` for a plain zero-argument function
  * with no overloads or added properties, returning an original assembly draft.
  * @see FromAssemblyWithView for an example keeping Model local to its module.
  */

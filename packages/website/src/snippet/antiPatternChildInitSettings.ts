@@ -46,8 +46,8 @@ export const update = SettingsComposition.makeUpdate((model, message) =>
   }),
 )
 
-const assemble = () =>
-  SettingsComposition.assembleBlock({
+const prepare = () =>
+  SettingsComposition.prepareBlock({
     init,
     update,
     operations: { requestRestore },
@@ -55,5 +55,5 @@ const assemble = () =>
   })
 export const block: Block.FromAssemblyWithOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

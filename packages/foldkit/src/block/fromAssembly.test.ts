@@ -12,7 +12,7 @@ import {
   type FromAssemblyWithView,
   type FromAssemblyWithViewAndOutMessage,
   type FromAssemblyWithoutViewOrOutMessage,
-  complete,
+  assemble,
 } from './fromAssembly.js'
 
 type Produced<Producer extends () => AssemblyDraft<object>> =
@@ -59,41 +59,41 @@ const reportingView = ReportingComposition.makeView((model, h) =>
   h.div([], [globalThis.String(model.count)]),
 )
 
-const assembleViewed = () =>
-  Composition.assembleBlock({ init, update, view, EffectsLayer: Observe.layer })
-const assembleHeadless = () =>
-  Composition.assembleBlock({ init, update, EffectsLayer: Observe.layer })
-const assembleReportingViewed = () =>
-  ReportingComposition.assembleBlock({
+const prepareViewed = () =>
+  Composition.prepareBlock({ init, update, view, EffectsLayer: Observe.layer })
+const prepareHeadless = () =>
+  Composition.prepareBlock({ init, update, EffectsLayer: Observe.layer })
+const prepareReportingViewed = () =>
+  ReportingComposition.prepareBlock({
     init: reportingInit,
     update: reportingUpdate,
     view: reportingView,
   })
-const assembleReportingHeadless = () =>
-  ReportingComposition.assembleBlock({
+const prepareReportingHeadless = () =>
+  ReportingComposition.prepareBlock({
     init: reportingInit,
     update: reportingUpdate,
   })
 
-type ViewedHeader = FromAssemblyWithView<typeof Model, typeof assembleViewed>
+type ViewedHeader = FromAssemblyWithView<typeof Model, typeof prepareViewed>
 type HeadlessHeader = FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assembleHeadless
+  typeof prepareHeadless
 >
 type ReportingViewedHeader = FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleReportingViewed
+  typeof prepareReportingViewed
 >
 type ReportingHeadlessHeader = FromAssemblyWithOutMessage<
   typeof Model,
-  typeof assembleReportingHeadless
+  typeof prepareReportingHeadless
 >
 
-const Viewed: ViewedHeader = complete(assembleViewed)
-const Headless: HeadlessHeader = complete(assembleHeadless)
-const ReportingViewed: ReportingViewedHeader = complete(assembleReportingViewed)
-const ReportingHeadless: ReportingHeadlessHeader = complete(
-  assembleReportingHeadless,
+const Viewed: ViewedHeader = assemble(prepareViewed)
+const Headless: HeadlessHeader = assemble(prepareHeadless)
+const ReportingViewed: ReportingViewedHeader = assemble(prepareReportingViewed)
+const ReportingHeadless: ReportingHeadlessHeader = assemble(
+  prepareReportingHeadless,
 )
 
 const ParentDefinition = makeDefinition('FromAssemblyParent', {
@@ -116,34 +116,34 @@ const hostUpdate = HostComposition.makeUpdate(model => ({
 const hostView = HostComposition.makeView((model, h) =>
   h.div([], [globalThis.String(model.count)]),
 )
-const assembleHosted = () =>
-  HostComposition.assembleBlock({
+const prepareHosted = () =>
+  HostComposition.prepareBlock({
     init: hostInit,
     update: hostUpdate,
     view: hostView,
     hostHandlers: [HostObserve],
   })
-const Hosted: FromAssemblyWithView<typeof Model, typeof assembleHosted> =
-  complete(assembleHosted)
+const Hosted: FromAssemblyWithView<typeof Model, typeof prepareHosted> =
+  assemble(prepareHosted)
 
 describe('Checked Block completion', () => {
   it('rejects copied drafts and copied completed Blocks', () => {
-    const draft = assembleViewed()
+    const draft = prepareViewed()
     const copiedDraft = { ...draft }
     const copiedBlock = { ...Viewed }
 
     expect(() =>
-      Reflect.apply(complete, undefined, [() => copiedDraft]),
-    ).toThrow('original Composition.assembleBlock draft')
+      Reflect.apply(assemble, undefined, [() => copiedDraft]),
+    ).toThrow('original Composition.prepareBlock draft')
     expect(() =>
       ParentDefinition.makeBinding(copiedBlock, { field: 'child' }),
-    ).toThrow('Block.complete(assemble)')
+    ).toThrow('Block.assemble(prepare)')
     expect(() =>
       Program.makeElement({
         block: copiedBlock,
         container: document.createElement('div'),
       }),
-    ).toThrow('Block.complete(assemble)')
+    ).toThrow('Block.assemble(prepare)')
   })
 
   it('retains the exact contract for every view and OutMessage shape', () => {
@@ -161,33 +161,33 @@ describe('Checked Block completion', () => {
     expectTypeOf<typeof ReportingViewed.Model>().toEqualTypeOf<typeof Model>()
     expectTypeOf<typeof ReportingHeadless.Model>().toEqualTypeOf<typeof Model>()
     expectTypeOf<typeof Viewed>().toMatchTypeOf<
-      Produced<typeof assembleViewed>
+      Produced<typeof prepareViewed>
     >()
-    expectTypeOf<Produced<typeof assembleViewed>>().toMatchTypeOf<
+    expectTypeOf<Produced<typeof prepareViewed>>().toMatchTypeOf<
       typeof Viewed
     >()
     expectTypeOf<typeof Headless>().toMatchTypeOf<
-      Produced<typeof assembleHeadless>
+      Produced<typeof prepareHeadless>
     >()
-    expectTypeOf<Produced<typeof assembleHeadless>>().toMatchTypeOf<
+    expectTypeOf<Produced<typeof prepareHeadless>>().toMatchTypeOf<
       typeof Headless
     >()
     expectTypeOf<typeof ReportingViewed>().toMatchTypeOf<
-      Produced<typeof assembleReportingViewed>
+      Produced<typeof prepareReportingViewed>
     >()
-    expectTypeOf<Produced<typeof assembleReportingViewed>>().toMatchTypeOf<
+    expectTypeOf<Produced<typeof prepareReportingViewed>>().toMatchTypeOf<
       typeof ReportingViewed
     >()
     expectTypeOf<typeof ReportingHeadless>().toMatchTypeOf<
-      Produced<typeof assembleReportingHeadless>
+      Produced<typeof prepareReportingHeadless>
     >()
-    expectTypeOf<Produced<typeof assembleReportingHeadless>>().toMatchTypeOf<
+    expectTypeOf<Produced<typeof prepareReportingHeadless>>().toMatchTypeOf<
       typeof ReportingHeadless
     >()
   })
 
   it('keeps unfinished assemblies opaque and leaves handler recipes passive', () => {
-    const draft = assembleViewed()
+    const draft = prepareViewed()
 
     expect(Object.isFrozen(draft)).toBe(true)
     expect(Reflect.ownKeys(draft)).toEqual([])
@@ -195,16 +195,16 @@ describe('Checked Block completion', () => {
   })
 
   it('calls the producer once and preserves the original completed object', () => {
-    const draft = assembleViewed()
+    const draft = prepareViewed()
     const calls: Array<string> = []
-    const assemble = () => {
+    const prepare = () => {
       calls.push('assemble')
       return draft
     }
-    const block: FromAssemblyWithView<typeof Model, typeof assemble> =
-      complete(assemble)
-    const repeated: FromAssemblyWithView<typeof Model, typeof assemble> =
-      complete(assemble)
+    const block: FromAssemblyWithView<typeof Model, typeof prepare> =
+      assemble(prepare)
+    const repeated: FromAssemblyWithView<typeof Model, typeof prepare> =
+      assemble(prepare)
 
     expect(calls).toEqual(['assemble', 'assemble'])
     expect(block).toBe(repeated)
@@ -266,22 +266,22 @@ describe('Checked Block completion', () => {
   })
 
   it('rejects unfinished or forged Blocks at erased public boundaries', () => {
-    const draft = assembleViewed()
+    const draft = prepareViewed()
 
     expect(() =>
-      Reflect.apply(complete, undefined, [() => ({ Model })]),
-    ).toThrow('original Composition.assembleBlock draft')
+      Reflect.apply(assemble, undefined, [() => ({ Model })]),
+    ).toThrow('original Composition.prepareBlock draft')
     expect(() =>
       Reflect.apply(ParentDefinition.makeBinding, undefined, [
         draft,
         { field: 'child' },
       ]),
-    ).toThrow('Block.complete(assemble)')
+    ).toThrow('Block.assemble(prepare)')
     expect(() =>
       Reflect.apply(Program.makeElement, undefined, [
         { block: draft, container: null },
       ]),
-    ).toThrow('Block.complete(assemble)')
+    ).toThrow('Block.assemble(prepare)')
   })
 })
 
@@ -289,16 +289,16 @@ declare const anyProducer: any
 declare const unknownProducer: () => unknown
 declare function overloadedProducer(): any
 declare function overloadedProducer(): never
-declare function overloadedProducer(): ReturnType<typeof assembleViewed>
+declare function overloadedProducer(): ReturnType<typeof prepareViewed>
 
 if (false) {
-  const draft = assembleViewed()
+  const draft = prepareViewed()
   // @ts-expect-error An unfinished assembly exposes no Model Schema.
   Schema.Struct({ child: draft.Model })
   // @ts-expect-error A draft cannot be widened into a completed Block.
   const rawAsBlock: AnyBlock = draft
   // @ts-expect-error The checked header requires the finishing call.
-  const rawAsHeader: ViewedHeader = assembleViewed()
+  const rawAsHeader: ViewedHeader = prepareViewed()
   // @ts-expect-error Bindings accept only completed Blocks.
   ParentDefinition.makeBinding(draft, { field: 'child' })
   // @ts-expect-error Programs accept only completed Blocks.
@@ -306,19 +306,28 @@ if (false) {
   // @ts-expect-error A draft cannot bypass completion through a handler transform.
   draft.replaceEffectsLayer(Observe.layer)
   // @ts-expect-error Completion requires an explicit Model header.
-  complete(assembleViewed)
+  assemble(prepareViewed)
+  // @ts-expect-error An inline producer also requires an explicit Model header.
+  assemble(() =>
+    Composition.prepareBlock({
+      init,
+      update,
+      view,
+      EffectsLayer: Observe.layer,
+    }),
+  )
   // @ts-expect-error A headless assembly cannot acquire a view from its header.
-  const inventedView: ViewedHeader = complete(assembleHeadless)
+  const inventedView: ViewedHeader = assemble(prepareHeadless)
   // @ts-expect-error An OutMessage Schema cannot disappear through completion.
-  const erasedOutMessage: ViewedHeader = complete(assembleReportingViewed)
+  const erasedOutMessage: ViewedHeader = assemble(prepareReportingViewed)
   // @ts-expect-error A view cannot disappear through completion.
-  const erasedView: ReportingHeadlessHeader = complete(assembleReportingViewed)
+  const erasedView: ReportingHeadlessHeader = assemble(prepareReportingViewed)
   // @ts-expect-error An any producer cannot enter a valid header.
-  const anyBlock: ViewedHeader = complete(anyProducer)
+  const anyBlock: ViewedHeader = assemble(anyProducer)
   // @ts-expect-error An unknown producer cannot enter a valid header.
-  const unknownBlock: ViewedHeader = complete(unknownProducer)
+  const unknownBlock: ViewedHeader = assemble(unknownProducer)
   // @ts-expect-error Overload sets cannot hide an any-returning signature.
-  const overloadedBlock: ViewedHeader = complete(overloadedProducer)
+  const overloadedBlock: ViewedHeader = assemble(overloadedProducer)
 
   void [
     rawAsBlock,

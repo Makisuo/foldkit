@@ -839,8 +839,8 @@ const operations = {
   informRangeChanged: Message.InformedOfRangeChange,
 }
 
-const assembleSliderBlock = () =>
-  SliderComposition.assembleBlock({
+const prepareSliderBlock = () =>
+  SliderComposition.prepareBlock({
     init,
     update,
     view,
@@ -851,8 +851,8 @@ const assembleSliderBlock = () =>
 /** Completed Slider Block. */
 export const SliderBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleSliderBlock
-> = Block.complete(assembleSliderBlock)
+  typeof prepareSliderBlock
+> = Block.assemble(prepareSliderBlock)
 
 /**
  * Builds a complete Slider Block whose drag Subscriptions resolve tracks from
@@ -879,8 +879,8 @@ export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
     informRangeChanged: Message.InformedOfRangeChange,
   }
 
-  const assembleSliderBlock = () =>
-    SliderComposition.assembleBlock({
+  const prepareSliderBlock = () =>
+    SliderComposition.prepareBlock({
       init,
       update: rootUpdate,
       view: rootView,
@@ -891,8 +891,8 @@ export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
 
   const sliderBlock: Block.FromAssemblyWithViewAndOutMessage<
     typeof Model,
-    typeof assembleSliderBlock
-  > = Block.complete(assembleSliderBlock)
+    typeof prepareSliderBlock
+  > = Block.assemble(prepareSliderBlock)
 
   return sliderBlock
 }

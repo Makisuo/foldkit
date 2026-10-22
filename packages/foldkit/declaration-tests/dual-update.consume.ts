@@ -90,12 +90,12 @@ export type ExactCompletedEarlyReturn = Expect<
 
 const rejectMissingBranchHandlers = () => {
   // @ts-expect-error Emitted ternary Commands still require their handler.
-  CounterComposition.assembleBlock({
+  CounterComposition.prepareBlock({
     init: () => ({ model: initial }),
     update: ternaryUpdate,
   })
   // @ts-expect-error Emitted early-return Commands still require their handler.
-  CounterComposition.assembleBlock({
+  CounterComposition.prepareBlock({
     init: () => ({ model: initial }),
     update: earlyReturnUpdate,
   })

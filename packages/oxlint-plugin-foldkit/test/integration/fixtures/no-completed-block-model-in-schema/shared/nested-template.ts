@@ -3,5 +3,5 @@ import { Block } from 'foldkit'
 
 export const Registry = { Model: Schema.String }
 export const documentation = `${`
-export const Registry = Block.makeDefinition('Fake', {}).makeComposition().assembleBlock({});
+export const Registry = Block.makeDefinition('Fake', {}).makeComposition().prepareBlock({});
 `}`

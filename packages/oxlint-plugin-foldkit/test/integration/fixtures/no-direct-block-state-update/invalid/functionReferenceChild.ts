@@ -29,7 +29,7 @@ const update = FunctionReferenceChildComposition.makeUpdate((model, message) =>
 export const revealErrors = (model: Model): Model =>
   modifyFields(model, { theme: () => 'Error' })
 
-export const block = FunctionReferenceChildComposition.assembleBlock({
+export const block = FunctionReferenceChildComposition.prepareBlock({
   init,
   update,
   operations: {

@@ -265,16 +265,16 @@ export const emittedApplicationUpdate = applicationUpdate(
   ApplicationMessage.Incremented(),
 )
 
-const assemble = () =>
-  ApplicationComposition.assembleBlock({
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
     init: applicationInit,
     update: applicationUpdate,
     view: applicationView,
   })
 const completedBlock: Block.FromAssemblyWithView<
   typeof ApplicationComposition.Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)
 export const EmittedApplicationElement = Program.makeElement({
   block: completedBlock,
   container: null,

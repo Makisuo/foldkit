@@ -43,8 +43,8 @@ export const ReadChildValue = DeclarationParentOwnedChildDefinition.makeCommand(
 )
 const DeclarationParentOwnedChildComposition =
   DeclarationParentOwnedChildDefinition.makeComposition()
-const assembleChildBlock = () =>
-  DeclarationParentOwnedChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  DeclarationParentOwnedChildComposition.prepareBlock({
     init: DeclarationParentOwnedChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: 'initial' }),
     })),
@@ -73,8 +73,8 @@ const assembleChildBlock = () =>
   })
 export const ChildBlock: Block.FromAssemblyWithOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const DeclarationParentOwnedPlainChildDefinition = Block.makeDefinition(
   'DeclarationParentOwnedPlainChild',
@@ -94,8 +94,8 @@ const PlainChildSubscriptions =
   }))
 const DeclarationParentOwnedPlainChildComposition =
   DeclarationParentOwnedPlainChildDefinition.makeComposition()
-const assemblePlainChildBlock = () =>
-  DeclarationParentOwnedPlainChildComposition.assembleBlock({
+const preparePlainChildBlock = () =>
+  DeclarationParentOwnedPlainChildComposition.prepareBlock({
     init: DeclarationParentOwnedPlainChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: 'initial' }),
     })),
@@ -107,8 +107,8 @@ const assemblePlainChildBlock = () =>
   })
 export const PlainChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assemblePlainChildBlock
-> = Block.complete(assemblePlainChildBlock)
+  typeof preparePlainChildBlock
+> = Block.assemble(preparePlainChildBlock)
 
 const Entry = Schema.Struct({ id: Schema.Number, child: ChildModel })
 const NamedEntry = Schema.Struct({ id: Schema.String, child: ChildModel })
@@ -296,8 +296,8 @@ export const DeclarationParentOwnedParentComposition =
       KeyedChildWithoutOutMessageBinding,
     ],
   })
-const assembleParentBlock = () =>
-  DeclarationParentOwnedParentComposition.assembleBlock({
+const prepareParentBlock = () =>
+  DeclarationParentOwnedParentComposition.prepareBlock({
     init: DeclarationParentOwnedParentComposition.makeInit(() => ({
       model: ParentModel.make({
         child: ChildModel.make({ value: 'initial' }),
@@ -314,8 +314,8 @@ const assembleParentBlock = () =>
   })
 export const ParentBlock: Block.FromAssemblyWithOutMessage<
   typeof ParentModel,
-  typeof assembleParentBlock
-> = Block.complete(assembleParentBlock)
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 
 const ApplicationMessage = Message.defineMessageUnion({
   ClickedApplication: {},
@@ -345,8 +345,8 @@ export const DeclarationPureCompositionComposition = Block.makeDefinition(
     Message: Schema.Never,
   },
 ).makeComposition()
-const assemblePureBlock = () =>
-  DeclarationPureCompositionComposition.assembleBlock({
+const preparePureBlock = () =>
+  DeclarationPureCompositionComposition.prepareBlock({
     init: DeclarationPureCompositionComposition.makeInit(() => ({
       model: null,
     })),
@@ -354,8 +354,8 @@ const assemblePureBlock = () =>
   })
 export const pureBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Schema.Null,
-  typeof assemblePureBlock
-> = Block.complete(assemblePureBlock)
+  typeof preparePureBlock
+> = Block.assemble(preparePureBlock)
 
 export const emptyLayer = Layer.empty
 

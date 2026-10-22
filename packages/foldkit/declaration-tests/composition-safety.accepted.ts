@@ -74,8 +74,8 @@ const CompositionSafetyPlainComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const assemblePlainBlock = () =>
-  CompositionSafetyPlainComposition.assembleBlock({
+const preparePlainBlock = () =>
+  CompositionSafetyPlainComposition.prepareBlock({
     init: CompositionSafetyPlainComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
     })),
@@ -85,8 +85,8 @@ const assemblePlainBlock = () =>
   })
 export const PlainBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assemblePlainBlock
-> = Block.complete(assemblePlainBlock)
+  typeof preparePlainBlock
+> = Block.assemble(preparePlainBlock)
 
 const CompositionSafetyOptionalContextComposition = Block.makeDefinition(
   'CompositionSafetyOptionalContext',
@@ -95,8 +95,8 @@ const CompositionSafetyOptionalContextComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const assembleOptionalContextBlock = () =>
-  CompositionSafetyOptionalContextComposition.assembleBlock({
+const prepareOptionalContextBlock = () =>
+  CompositionSafetyOptionalContextComposition.prepareBlock({
     init: CompositionSafetyOptionalContextComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
     })),
@@ -105,8 +105,8 @@ const assembleOptionalContextBlock = () =>
   })
 export const OptionalContextBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleOptionalContextBlock
-> = Block.complete(assembleOptionalContextBlock)
+  typeof prepareOptionalContextBlock
+> = Block.assemble(prepareOptionalContextBlock)
 
 const CompositionSafetyRestContextComposition = Block.makeDefinition(
   'CompositionSafetyRestContext',
@@ -115,8 +115,8 @@ const CompositionSafetyRestContextComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const assembleRestContextBlock = () =>
-  CompositionSafetyRestContextComposition.assembleBlock({
+const prepareRestContextBlock = () =>
+  CompositionSafetyRestContextComposition.prepareBlock({
     init: CompositionSafetyRestContextComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
     })),
@@ -125,8 +125,8 @@ const assembleRestContextBlock = () =>
   })
 export const RestContextBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleRestContextBlock
-> = Block.complete(assembleRestContextBlock)
+  typeof prepareRestContextBlock
+> = Block.assemble(prepareRestContextBlock)
 
 export const ParameterizedChildModel = Schema.Struct({ count: Schema.Number })
 export const ParameterizedChildMessage = Message.defineMessageUnion({
@@ -151,8 +151,8 @@ export const LoadParameterizedChild =
   )
 const CompositionSafetyParameterizedComposition =
   CompositionSafetyParameterizedDefinition.makeComposition()
-const assembleParameterizedBlock = () =>
-  CompositionSafetyParameterizedComposition.assembleBlock({
+const prepareParameterizedBlock = () =>
+  CompositionSafetyParameterizedComposition.prepareBlock({
     init: CompositionSafetyParameterizedComposition.makeInit(
       (count: number) => ({
         model: ParameterizedChildModel.make({ count }),
@@ -166,8 +166,8 @@ const assembleParameterizedBlock = () =>
   })
 export const ParameterizedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParameterizedChildModel,
-  typeof assembleParameterizedBlock
-> = Block.complete(assembleParameterizedBlock)
+  typeof prepareParameterizedBlock
+> = Block.assemble(prepareParameterizedBlock)
 
 export const Entry = Schema.Struct({
   id: Schema.String,
@@ -547,8 +547,8 @@ export const initializeDerivedModel =
       initializePlainWithOwningParentCommand,
     ])
   })
-const assembleStrictBlock = () =>
-  CompositionSafetyParentComposition.assembleBlock({
+const prepareStrictBlock = () =>
+  CompositionSafetyParentComposition.prepareBlock({
     init: CompositionSafetyParentComposition.makeInit(() => ({
       model: initialParentModel,
     })),
@@ -583,8 +583,8 @@ const assembleStrictBlock = () =>
   })
 export const StrictBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleStrictBlock
-> = Block.complete(assembleStrictBlock)
+  typeof prepareStrictBlock
+> = Block.assemble(prepareStrictBlock)
 
 type EntryInitRequirementsAreExact = Expect<
   Equal<

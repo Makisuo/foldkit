@@ -17,8 +17,8 @@ const ChildDefinition = Block.makeDefinition('ForwardChild', {
   OutMessage: ChildOutMessage,
 })
 const ChildComposition = ChildDefinition.makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
     update: ChildComposition.makeUpdate(model => ({ model })),
     operations: { requestClose: ChildMessage.RequestedClose },
@@ -26,8 +26,8 @@ const assembleChildBlock = () =>
   })
 const ChildBlock: Block.FromAssemblyWithOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const ParentModel = Schema.Struct({ choice: Choice })
 const ParentMessage = defineMessageUnion({ RequestedReset: {} })

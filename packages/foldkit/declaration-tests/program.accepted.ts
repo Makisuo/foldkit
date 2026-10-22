@@ -51,8 +51,8 @@ const pageUpdate = DeclarationPageComposition.makeUpdate((model, message) =>
   }),
 )
 
-const assemblePageBlock = () =>
-  DeclarationPageComposition.assembleBlock({
+const preparePageBlock = () =>
+  DeclarationPageComposition.prepareBlock({
     init: (flags: typeof Flags.Type, _url: Url.Url) => ({
       model: Model.make({ status: flags.status }),
     }),
@@ -61,8 +61,8 @@ const assemblePageBlock = () =>
   })
 export const PageBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemblePageBlock
-> = Block.complete(assemblePageBlock)
+  typeof preparePageBlock
+> = Block.assemble(preparePageBlock)
 
 export const PageProgram = Program.make({
   block: PageBlock,
@@ -100,8 +100,8 @@ const DeclarationAlternativeRoutedPageDefinition = Block.makeDefinition(
 )
 const DeclarationAlternativeRoutedPageComposition =
   DeclarationAlternativeRoutedPageDefinition.makeComposition()
-const assembleAlternativeRoutedBlock = () =>
-  DeclarationAlternativeRoutedPageComposition.assembleBlock({
+const prepareAlternativeRoutedBlock = () =>
+  DeclarationAlternativeRoutedPageComposition.prepareBlock({
     init: (flags: typeof Flags.Type, _url: Url.Url) => ({
       model: Model.make({ status: flags.status }),
     }),
@@ -119,8 +119,8 @@ const assembleAlternativeRoutedBlock = () =>
   })
 export const AlternativeRoutedBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleAlternativeRoutedBlock
-> = Block.complete(assembleAlternativeRoutedBlock)
+  typeof prepareAlternativeRoutedBlock
+> = Block.assemble(prepareAlternativeRoutedBlock)
 export const SafeRoutedBlock =
   globalThis.Math.random() > 0.5 ? PageBlock : AlternativeRoutedBlock
 export const SafeUnionRoutedProgram = Program.make({
@@ -142,8 +142,8 @@ const DeclarationPurePageDefinition = Block.makeDefinition(
 )
 const DeclarationPurePageComposition =
   DeclarationPurePageDefinition.makeComposition()
-const assemblePurePageBlock = () =>
-  DeclarationPurePageComposition.assembleBlock({
+const preparePurePageBlock = () =>
+  DeclarationPurePageComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
     update: DeclarationPurePageComposition.makeUpdate(),
     view: DeclarationPurePageComposition.makeView(model => ({
@@ -153,8 +153,8 @@ const assemblePurePageBlock = () =>
   })
 export const PurePageBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemblePurePageBlock
-> = Block.complete(assemblePurePageBlock)
+  typeof preparePurePageBlock
+> = Block.assemble(preparePurePageBlock)
 export const PurePageProgram = Program.make({
   block: PurePageBlock,
   container: null,
@@ -181,8 +181,8 @@ const DeclarationAlternativePageDefinition = Block.makeDefinition(
 )
 const DeclarationAlternativePageComposition =
   DeclarationAlternativePageDefinition.makeComposition()
-const assembleAlternativePageBlock = () =>
-  DeclarationAlternativePageComposition.assembleBlock({
+const prepareAlternativePageBlock = () =>
+  DeclarationAlternativePageComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'alternative' }) }),
     update: DeclarationAlternativePageComposition.makeUpdate(),
     view: DeclarationAlternativePageComposition.makeView(model => ({
@@ -192,8 +192,8 @@ const assembleAlternativePageBlock = () =>
   })
 export const AlternativePageBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleAlternativePageBlock
-> = Block.complete(assembleAlternativePageBlock)
+  typeof prepareAlternativePageBlock
+> = Block.assemble(prepareAlternativePageBlock)
 export const SafePageBlock =
   globalThis.Math.random() > 0.5 ? PurePageBlock : AlternativePageBlock
 export const SafeUnionPageProgram = Program.make({
@@ -214,8 +214,8 @@ const elementView = DeclarationElementComposition.makeView((model, h) =>
   h.div([], [model.status]),
 )
 
-const assembleElementBlock = () =>
-  DeclarationElementComposition.assembleBlock({
+const prepareElementBlock = () =>
+  DeclarationElementComposition.prepareBlock({
     init: (flags: typeof Flags.Type) => ({
       model: Model.make({ status: flags.status }),
     }),
@@ -232,8 +232,8 @@ const assembleElementBlock = () =>
   })
 export const ElementBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleElementBlock
-> = Block.complete(assembleElementBlock)
+  typeof prepareElementBlock
+> = Block.assemble(prepareElementBlock)
 
 export const ElementProgram = Program.makeElement({
   block: ElementBlock,
@@ -292,18 +292,18 @@ const serviceDecodedPageView = ServiceDecodedProgramComposition.makeView(
 const DispatchDecoderLayer = Layer.succeed(DispatchDecoder, {
   prefix: 'decoded:',
 })
-const assembleServiceDecodedBlock = () =>
-  ServiceDecodedProgramComposition.assembleBlock({
+const prepareServiceDecodedBlock = () =>
+  ServiceDecodedProgramComposition.prepareBlock({
     init: serviceDecodedInit,
     update: serviceDecodedUpdate,
     view: serviceDecodedElementView,
   })
 export const ServiceDecodedBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleServiceDecodedBlock
-> = Block.complete(assembleServiceDecodedBlock)
-const assembleServiceDecodedProvidedElementBlock = () =>
-  ServiceDecodedProgramComposition.assembleBlock({
+  typeof prepareServiceDecodedBlock
+> = Block.assemble(prepareServiceDecodedBlock)
+const prepareServiceDecodedProvidedElementBlock = () =>
+  ServiceDecodedProgramComposition.prepareBlock({
     init: serviceDecodedInit,
     update: serviceDecodedUpdate,
     view: serviceDecodedElementView,
@@ -311,10 +311,10 @@ const assembleServiceDecodedProvidedElementBlock = () =>
   })
 export const ServiceDecodedProvidedElementBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleServiceDecodedProvidedElementBlock
-> = Block.complete(assembleServiceDecodedProvidedElementBlock)
-const assembleServiceDecodedProvidedPageBlock = () =>
-  ServiceDecodedProgramComposition.assembleBlock({
+  typeof prepareServiceDecodedProvidedElementBlock
+> = Block.assemble(prepareServiceDecodedProvidedElementBlock)
+const prepareServiceDecodedProvidedPageBlock = () =>
+  ServiceDecodedProgramComposition.prepareBlock({
     init: serviceDecodedInit,
     update: serviceDecodedUpdate,
     view: serviceDecodedPageView,
@@ -322,8 +322,8 @@ const assembleServiceDecodedProvidedPageBlock = () =>
   })
 const ServiceDecodedProvidedPageBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleServiceDecodedProvidedPageBlock
-> = Block.complete(assembleServiceDecodedProvidedPageBlock)
+  typeof prepareServiceDecodedProvidedPageBlock
+> = Block.assemble(prepareServiceDecodedProvidedPageBlock)
 
 const ManagedDecoderProgramNamespace = Block.makeNamespace(
   'ManagedDecoderProgram',
@@ -366,8 +366,8 @@ const managedDecoders = ManagedDecoderProgramDefinition.makeManagedResources(
 )
 const ManagedDecoderProgramComposition =
   ManagedDecoderProgramDefinition.makeComposition()
-const assembleManagedDecodedBlock = () =>
-  ManagedDecoderProgramComposition.assembleBlock({
+const prepareManagedDecodedBlock = () =>
+  ManagedDecoderProgramComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
     update: ManagedDecoderProgramComposition.makeUpdate((model, message) =>
       ManagedDecodedMessage.match(message, {
@@ -384,8 +384,8 @@ const assembleManagedDecodedBlock = () =>
   })
 const ManagedDecodedBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleManagedDecodedBlock
-> = Block.complete(assembleManagedDecodedBlock)
+  typeof prepareManagedDecodedBlock
+> = Block.assemble(prepareManagedDecodedBlock)
 export const RunnableManagedServiceDecodedElement = Program.makeElement({
   block: ManagedDecodedBlock,
   container: null,
@@ -469,8 +469,8 @@ const RunWork = DeclarationServiceProgramDefinition.makeCommand('RunWork', {
 })
 const DeclarationServiceProgramComposition =
   DeclarationServiceProgramDefinition.makeComposition()
-const assembleServiceBlock = () =>
-  DeclarationServiceProgramComposition.assembleBlock({
+const prepareServiceBlock = () =>
+  DeclarationServiceProgramComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
     update: DeclarationServiceProgramComposition.makeUpdate((model, message) =>
       ServiceMessage.match(message, {
@@ -485,8 +485,8 @@ const assembleServiceBlock = () =>
   })
 const ServiceBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleServiceBlock
-> = Block.complete(assembleServiceBlock)
+  typeof prepareServiceBlock
+> = Block.assemble(prepareServiceBlock)
 export const PendingServiceElement = Program.makeElement({
   block: ServiceBlock,
   container: null,
@@ -524,8 +524,8 @@ const DeclarationRawCommandProgramDefinition = Block.makeDefinition(
 )
 const DeclarationRawCommandProgramComposition =
   DeclarationRawCommandProgramDefinition.makeComposition()
-const assembleRawCommandBlock = () =>
-  DeclarationRawCommandProgramComposition.assembleBlock({
+const prepareRawCommandBlock = () =>
+  DeclarationRawCommandProgramComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'ready' }) }),
     update: DeclarationRawCommandProgramComposition.makeUpdate(
       (model, message) =>
@@ -542,8 +542,8 @@ const assembleRawCommandBlock = () =>
   })
 const RawCommandBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assembleRawCommandBlock
-> = Block.complete(assembleRawCommandBlock)
+  typeof prepareRawCommandBlock
+> = Block.assemble(prepareRawCommandBlock)
 export const PendingRawCommandElement = Program.makeElement({
   block: RawCommandBlock,
   container: null,

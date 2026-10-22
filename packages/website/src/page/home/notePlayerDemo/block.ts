@@ -10,8 +10,8 @@ import {
   view,
 } from './notePlayerDemo'
 
-const assemble = () =>
-  NotePlayerDemoComposition.assembleBlock({
+const prepare = () =>
+  NotePlayerDemoComposition.prepareBlock({
     init,
     update,
     view,
@@ -20,5 +20,5 @@ const assemble = () =>
   })
 export const NotePlayerDemoBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

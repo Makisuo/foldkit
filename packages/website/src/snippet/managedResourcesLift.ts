@@ -38,8 +38,8 @@ export const managedResources = CallDefinition.makeManagedResources(entry => ({
   }),
 }))
 
-const assemble = () =>
-  CallComposition.assembleBlock({
+const prepare = () =>
+  CallComposition.prepareBlock({
     init,
     update,
     managedResources,
@@ -47,5 +47,5 @@ const assemble = () =>
   })
 export const CallBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

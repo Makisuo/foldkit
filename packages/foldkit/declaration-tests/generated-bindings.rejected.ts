@@ -117,8 +117,8 @@ const GeneratedBindingSilentDefinition = Block.makeDefinition(
 )
 const GeneratedBindingSilentComposition =
   GeneratedBindingSilentDefinition.makeComposition()
-const assembleSilentBlock = () =>
-  GeneratedBindingSilentComposition.assembleBlock({
+const prepareSilentBlock = () =>
+  GeneratedBindingSilentComposition.prepareBlock({
     init: GeneratedBindingSilentComposition.makeInit(() => ({
       model: { value: 0 },
     })),
@@ -126,8 +126,8 @@ const assembleSilentBlock = () =>
   })
 const SilentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof SilentModel,
-  typeof assembleSilentBlock
-> = Block.complete(assembleSilentBlock)
+  typeof prepareSilentBlock
+> = Block.assemble(prepareSilentBlock)
 const GeneratedBindingSilentParentDefinition = Block.makeDefinition(
   'GeneratedBindingSilentParent',
   {

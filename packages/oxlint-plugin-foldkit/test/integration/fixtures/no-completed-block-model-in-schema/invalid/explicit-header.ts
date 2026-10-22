@@ -6,30 +6,30 @@ import { PublicInferred } from '../shared/header-barrel'
 
 const Model = Schema.Struct({ count: Schema.Number })
 const Composition = Block.makeDefinition('Child', { Model }).makeComposition()
-const assemble = () => Composition.assembleBlock({})
-const assembleOther = () => Composition.assembleBlock({})
-const FakeComposition = { assembleBlock: () => Composition.assembleBlock({}) }
-const assembleFake = () => FakeComposition.assembleBlock()
-const Unified: FailedUnified<typeof Model, typeof assemble> = Block.complete(assemble)
-const NonQuery: RealHeader<typeof Model, ReturnType<typeof assemble>> = Block.complete(assemble)
-const CallTypes: RealHeader<typeof Model, typeof assemble> = Block.complete<unknown>(assemble)
-const Inferred = Block.complete(assemble)
-const Fake: FakeHeader<typeof Model, typeof assemble> = Block.complete(assemble)
-const FakeProducer: RealHeader<typeof Model, typeof assembleFake> = Block.complete(assembleFake)
-const WrongProducer: RealHeader<typeof Model, typeof assembleOther> = Block.complete(assemble)
-const WrongArity: RealHeader<typeof Model> = Block.complete(assemble)
-const ExtraArity: RealHeader<typeof Model, typeof assemble, typeof assembleOther> = Block.complete(assemble)
-const WrongInit: RealHeader<typeof Model, typeof assemble> = Block.complete(assembleOther)
-const Satisfies = Block.complete(assemble) satisfies RealHeader<typeof Model, typeof assemble>
-const Cast = Block.complete(assemble) as RealHeader<typeof Model, typeof assemble>
-const assembleWrapped = () => Composition.assembleBlock({}) as unknown
-const WrappedProducer: RealHeader<typeof Model, typeof assembleWrapped> = Block.complete(assembleWrapped)
+const prepare = () => Composition.prepareBlock({})
+const prepareOther = () => Composition.prepareBlock({})
+const FakeComposition = { prepareBlock: () => Composition.prepareBlock({}) }
+const prepareFake = () => FakeComposition.prepareBlock()
+const Unified: FailedUnified<typeof Model, typeof prepare> = Block.assemble(prepare)
+const NonQuery: RealHeader<typeof Model, ReturnType<typeof prepare>> = Block.assemble(prepare)
+const CallTypes: RealHeader<typeof Model, typeof prepare> = Block.assemble<unknown>(prepare)
+const Inferred = Block.assemble(prepare)
+const Fake: FakeHeader<typeof Model, typeof prepare> = Block.assemble(prepare)
+const FakeProducer: RealHeader<typeof Model, typeof prepareFake> = Block.assemble(prepareFake)
+const WrongProducer: RealHeader<typeof Model, typeof prepareOther> = Block.assemble(prepare)
+const WrongArity: RealHeader<typeof Model> = Block.assemble(prepare)
+const ExtraArity: RealHeader<typeof Model, typeof prepare, typeof prepareOther> = Block.assemble(prepare)
+const WrongInit: RealHeader<typeof Model, typeof prepare> = Block.assemble(prepareOther)
+const Satisfies = Block.assemble(prepare) satisfies RealHeader<typeof Model, typeof prepare>
+const Cast = Block.assemble(prepare) as RealHeader<typeof Model, typeof prepare>
+const prepareWrapped = () => Composition.prepareBlock({}) as unknown
+const WrappedProducer: RealHeader<typeof Model, typeof prepareWrapped> = Block.assemble(prepareWrapped)
 type RealHeaderAlias = unknown
-const UnknownAlias: RealHeaderAlias = Block.complete(assemble)
+const UnknownAlias: RealHeaderAlias = Block.assemble(prepare)
 namespace FakeBlock {
   export type FromAssemblyWithView<Model, Producer> = Model & Producer
 }
-const QualifiedFake: FakeBlock.FromAssemblyWithView<typeof Model, typeof assemble> = Block.complete(assemble)
+const QualifiedFake: FakeBlock.FromAssemblyWithView<typeof Model, typeof prepare> = Block.assemble(prepare)
 export const Parent = Schema.Struct({
   unified: Unified.Model,
   nonQuery: NonQuery.Model,
@@ -49,6 +49,6 @@ export const Parent = Schema.Struct({
   imported: Schema.Option(Schema.Array(PublicInferred.Model)),
 })
 export const shadowed = <RealHeader>() => {
-  const Child: RealHeader<typeof Model, typeof assemble> = Block.complete(assemble)
+  const Child: RealHeader<typeof Model, typeof prepare> = Block.assemble(prepare)
   return Schema.Struct({ child: Child.Model })
 }

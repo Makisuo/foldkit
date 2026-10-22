@@ -81,12 +81,12 @@ const earlyReturnUpdate = CounterComposition.makeUpdate((model, message) => {
 })
 const rejectMissingBranchHandlers = () => {
   // @ts-expect-error A Command in one ternary branch still requires its handler.
-  CounterComposition.assembleBlock({
+  CounterComposition.prepareBlock({
     init: () => ({ model: Model.make({ count: 0 }) }),
     update: ternaryUpdate,
   })
   // @ts-expect-error A Command before an early return still requires its handler.
-  CounterComposition.assembleBlock({
+  CounterComposition.prepareBlock({
     init: () => ({ model: Model.make({ count: 0 }) }),
     update: earlyReturnUpdate,
   })
@@ -168,8 +168,8 @@ const fullChannelUpdate = CounterComposition.makeUpdate(
     }
   },
 )
-const assembleFullChannelBlock = () =>
-  CounterComposition.assembleBlock({
+const prepareFullChannelBlock = () =>
+  CounterComposition.prepareBlock({
     view: CounterComposition.makeView((_model, h) => h.empty),
     init: () => ({ model: Model.make({ count: 0 }) }),
     update: fullChannelUpdate,
@@ -178,8 +178,8 @@ const assembleFullChannelBlock = () =>
   })
 const FullChannelBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assembleFullChannelBlock
-> = Block.complete(assembleFullChannelBlock)
+  typeof prepareFullChannelBlock
+> = Block.assemble(prepareFullChannelBlock)
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 const ChildMessage = defineMessageUnion({
@@ -190,8 +190,8 @@ const ChildComposition = makeDefinition('DualUpdateRuntimeChild', {
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const assembleChildBlock = () =>
-  ChildComposition.assembleBlock({
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
     init: () => ({ model: ChildModel.make({ count: 0 }) }),
     update: ChildComposition.makeUpdate((model, { amount }) => ({
       model: modifyFields(model, { count: count => count + amount }),
@@ -199,8 +199,8 @@ const assembleChildBlock = () =>
   })
 const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ChildModel,
-  typeof assembleChildBlock
-> = Block.complete(assembleChildBlock)
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 const ParentModel = Schema.Struct({ child: ChildModel, updates: Schema.Number })
 type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
@@ -229,15 +229,15 @@ const parentModel = ParentModel.make({
   child: ChildModel.make({ count: 0 }),
   updates: 0,
 })
-const assembleParentBlock = () =>
-  ParentComposition.assembleBlock({
+const prepareParentBlock = () =>
+  ParentComposition.prepareBlock({
     init: () => ({ model: parentModel }),
     update: parentUpdate,
   })
 const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentModel,
-  typeof assembleParentBlock
-> = Block.complete(assembleParentBlock)
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 
 it('runs direct and Message-first curried updates identically', () => {
   const model = Model.make({ count: 1 })

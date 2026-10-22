@@ -225,7 +225,7 @@ const UnregisteredComposition = ParentDefinition.makeComposition({
     CustomIgnoredMessageBinding,
   ],
 })
-UnregisteredComposition.assembleBlock({
+UnregisteredComposition.prepareBlock({
   // @ts-expect-error An initializer retains registration evidence for its initialized child graph.
   init: initialize,
   update: UnregisteredComposition.makeUpdate(model => ({ model })),

@@ -714,8 +714,8 @@ describe('Query Block binding', () => {
       ClickedLoad: () => NotesChildBinding.requestRevalidationOrLoad()(model),
     }),
   )
-  const assembleParent = () =>
-    Composition.assembleBlock({
+  const prepareParent = () =>
+    Composition.prepareBlock({
       init: Composition.makeInit(() => ({
         model: Model.make({ notes: notes.init().model }),
       })),
@@ -724,8 +724,8 @@ describe('Query Block binding', () => {
     })
   const Parent: Block.FromAssemblyWithoutViewOrOutMessage<
     typeof Model,
-    typeof assembleParent
-  > = Block.complete(assembleParent)
+    typeof prepareParent
+  > = Block.assemble(prepareParent)
 
   it('registers the Query and routes loading and completion through its parent', () => {
     Story.story(

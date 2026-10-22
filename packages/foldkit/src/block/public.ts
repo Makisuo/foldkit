@@ -77,7 +77,7 @@ export type {
   InvalidViewInputs,
   ViewBuilderFor,
   OwnedAuthoredView,
-  AssembleBlock,
+  PrepareBlock,
   AuthoredViewInputs,
   OwnedManagedResourceEntryBuilder,
   OwnedSubscriptionEntryBuilder,
@@ -133,4 +133,4 @@ export type {
   FromAssemblyWithViewAndOutMessage,
   FromAssemblyWithoutViewOrOutMessage,
 } from './fromAssembly.js'
-export { complete } from './fromAssembly.js'
+export { assemble } from './fromAssembly.js'

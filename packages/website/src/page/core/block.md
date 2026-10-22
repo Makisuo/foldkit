@@ -17,7 +17,7 @@ Four values make those responsibilities visible:
 
 The Settings example on this page grows through that sequence. Settings first defines and completes its own state machine. Profile then creates `SettingsBinding`, registers it in `ApplicationComposition`, handles the `ChangedTheme` fact, and embeds the Settings view.
 
-The sequence is Definition → Composition → assembly → completion. A Definition establishes the contracts and authoring methods. A Composition fixes the child Binding and Mount graph. `assembleBlock` checks and packages the authored implementation as an opaque unfinished assembly. `Block.complete` finishes that assembly as the branded Block accepted by Bindings, Programs, and Server rendering. The root follows the same sequence before `Program.make` or `Program.makeElement` adds host behavior.
+The sequence is Definition → Composition → preparation → assembly. A Definition establishes the contracts and authoring methods. A Composition fixes the child Binding and Mount graph. `prepareBlock` checks and packages the authored implementation as an opaque draft. `Block.assemble` finishes that draft as the branded Block accepted by Bindings, Programs, and Server rendering. The root follows the same sequence before `Program.make` or `Program.makeElement` adds host behavior.
 
 Definitions, Compositions, Bindings, Blocks, and Programs are passive. `makeInit`, `makeUpdate`, and `makeView` return functions for the Runtime to call later. At the root, `program.provide(ApplicationLayer)` supplies ordinary Effect Services without building them. `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` builds the selected handler graph, resolves Flags when required, calls init, and begins performing effects.
 
@@ -65,11 +65,11 @@ Features without children or Mounts still call `makeComposition()`. Creating a C
 
 ### Produce the completed Block
 
-Call `assembleBlock` after the feature's pieces exist, then pass its zero-argument producer to `Block.complete`. The producer packages the Definition, fixed graph, implementation, and local handler recipe as an opaque unfinished assembly with no Model or runtime methods. `Block.complete` creates the Block a parent can bind. Neither step builds a Layer, calls init, or starts lifecycle work.
+Call `prepareBlock` after the feature's pieces exist, then pass its zero-argument producer to `Block.assemble`. The producer packages the Definition, fixed graph, implementation, and local handler recipe as an opaque draft with no Model or runtime methods. `Block.assemble` creates the Block a parent can bind. Neither step builds a Layer, calls init, or starts lifecycle work.
 
 ::Snippet{name="blockSettings" label="Producing a completed Block"}
 
-Wrap the unchanged assembly call in one private zero-argument producer named `assemble`, then put the checked export immediately after it with no blank line. Annotate the exported value with `Block.FromAssemblyWithViewAndOutMessage<typeof Model, typeof assemble>` and initialize it with `Block.complete(assemble)`. Use a descriptive producer name only when one file genuinely contains multiple assembly producers. This feature declares an OutMessage and assembles a view. Use the [matching helper for the other three shapes](/patterns/project-organization#keep-model-schema-dependencies-small). Parents import the completed `SettingsBlock` and bind it through their own Definition. The completed value carries the Model, complete Message Schema, declared OutMessage contract, and embedding inputs.
+Wrap the unchanged preparation call in one private zero-argument producer named `prepare`, then put the checked export immediately after it with no blank line. Annotate the exported value with `Block.FromAssemblyWithViewAndOutMessage<typeof Model, typeof prepare>` and initialize it with `Block.assemble(prepare)`. Use a descriptive producer name only when one file genuinely contains multiple preparation producers. This feature declares an OutMessage and includes a view. Use the [matching helper for the other three shapes](/patterns/project-organization#keep-model-schema-dependencies-small). Parents import the completed `SettingsBlock` and bind it through their own Definition. The completed value carries the Model, complete Message Schema, declared OutMessage contract, and embedding inputs.
 
 `EffectsLayer` contains only the feature's local Foldkit handler recipes. Omit it when the feature has no local handlers; Foldkit uses an empty recipe and still checks completeness. Registered child Bindings contribute their recipes automatically. A handler recipe may require an ordinary HTTP, storage, RPC, clock, or browser Service. Those Service requirements continue through composition until the application root supplies them.
 
@@ -125,12 +125,12 @@ The operation below produces `InformedOfRouteChange`; update owns the resulting 
 
 ::Snippet{name="updateCurriedStep" label="Declaring an informRouteChanged operation"}
 
-Use a tuple producer under `operations` when the public inputs need mapping, refinement, defaults, or an exact context tuple. It returns `[Message, ...context]`; inline array literals receive tuple context from `assembleBlock`, and an extracted producer uses `Tuple.make`. Message constructors and tuple producers complete through the same update path. Keep pure helpers for selectors and derived view inputs. Use standalone or Definition-owned Steps for internal composition, and omit `operations` when the Block declares no named operations. See [Calling update as a Step](/core/update#calling-update-as-a-step) for internal curried update composition and the required-context adapter.
+Use a tuple producer under `operations` when the public inputs need mapping, refinement, defaults, or an exact context tuple. It returns `[Message, ...context]`; inline array literals receive tuple context from `prepareBlock`, and an extracted producer uses `Tuple.make`. Message constructors and tuple producers complete through the same update path. Keep pure helpers for selectors and derived view inputs. Use standalone or Definition-owned Steps for internal composition, and omit `operations` when the Block declares no named operations. See [Calling update as a Step](/core/update#calling-update-as-a-step) for internal curried update composition and the required-context adapter.
 
 Binding operations retain the exact argument types, Command requirements, Binding requirement, and OutMessage behavior of the child operation.
 
 :::Info{label="Completion inference"}
-Author `update` as a named value with `Composition.makeUpdate`, then pass it to `assembleBlock`. With a view, operations, Subscriptions, and ManagedResources in one completion record, nesting `makeUpdate` directly in that record can make the current overloads infer an incomplete handler Layer. Naming the authored update first retains its full inferred type without annotations.
+Author `update` as a named value with `Composition.makeUpdate`, then pass it to `prepareBlock`. With a view, operations, Subscriptions, and ManagedResources in one completion record, nesting `makeUpdate` directly in that record can make the current overloads infer an incomplete handler Layer. Naming the authored update first retains its full inferred type without annotations.
 :::
 
 ### Initialize the child
@@ -143,7 +143,7 @@ Use `init: { contextToArgs }` when another child needs inputs, or `init: false` 
 
 The parent init callback returns only parent-owned fields. Composition calls the selected child initializer, stores its Model, and retains its Commands. See [Init & Flags](/core/init-and-flags#child-initialization) for optional children, keyed occurrences, custom storage, Command batching, and initial Steps.
 
-Block init cannot emit an OutMessage. Author it through the Block Composition, then pass that same `init` function to `FeatureComposition.assembleBlock`. An optional `boot` helper is an ordinary initial Step listed in the parent's init plan after the child Model exists; Foldkit has no special Runtime boot phase. When an existing domain operation such as `requestRestore` or `requestOpen` already describes the transition, declare that Message-producing operation and call it through the Binding. The same operation may run later from update. Do not create a separate startup-only Message when an existing Message already records the transition.
+Block init cannot emit an OutMessage. Author it through the Block Composition, then pass that same `init` function to `FeatureComposition.prepareBlock`. An optional `boot` helper is an ordinary initial Step listed in the parent's init plan after the child Model exists; Foldkit has no special Runtime boot phase. When an existing domain operation such as `requestRestore` or `requestOpen` already describes the transition, declare that Message-producing operation and call it through the Binding. The same operation may run later from update. Do not create a separate startup-only Message when an existing Message already records the transition.
 
 The Binding's selected `fold` policy can handle a fact from that initial Step against the complete parent Model. Parent init cannot forward an OutMessage, so a startup Step used there must finish with a plain update result.
 
@@ -234,7 +234,7 @@ The entry gives the completed `ApplicationBlock` to `Program.make` and starts th
 
 The Application Composition carries the child graph. Its completion config supplies root-local handler recipes and lifecycle definitions. Registered child Blocks contribute their own handlers through that graph. `ApplicationLayer` supplies ordinary application Services such as storage or an HTTP client. It does not re-merge each feature's `EffectsLayer`.
 
-`ApplicationComposition.assembleBlock` validates the concrete composition and returns an unfinished assembly. `Block.complete(assemble)` produces the passive root Block before `Program.make` accepts it. `Program.make` returns another passive value, and `program.provide(ApplicationLayer)` records ordinary Service providers. The Runtime builds those Layers and the selected handler graph when the Program starts. Missing handlers, incompatible child Bindings, unavailable Mount requirements, and an unhandled root OutMessage fail before a user interaction.
+`ApplicationComposition.prepareBlock` validates the concrete composition and returns an opaque draft. `Block.assemble(prepare)` produces the passive root Block before `Program.make` accepts it. `Program.make` returns another passive value, and `program.provide(ApplicationLayer)` records ordinary Service providers. The Runtime builds those Layers and the selected handler graph when the Program starts. Missing handlers, incompatible child Bindings, unavailable Mount requirements, and an unhandled root OutMessage fail before a user interaction.
 
 Server rendering uses the same root:
 
@@ -464,13 +464,13 @@ For a generic factory that shares definitions, `Block.makeNamespace(id)` supplie
 
 `FeatureDefinition.makeComposition({ bindings?, mounts? })` checks the composition graph and returns `FeatureComposition`. Omitted child Bindings and Mounts default to empty collections without granting their capabilities.
 
-### FeatureComposition.assembleBlock
+### FeatureComposition.prepareBlock
 
-`FeatureComposition.assembleBlock({ init, update, view?, operations?, subscriptions?, managedResources?, EffectsLayer?, hostHandlers? })` checks and returns an opaque unfinished assembly. It exposes no Model or Block methods. Pass its zero-argument producer to `Block.complete`, which returns the branded passive Block accepted by Bindings, Programs, and Server rendering. `EffectsLayer` may require ordinary Services supplied by `program.provide(ApplicationLayer)`. `hostHandlers` explicitly declares contracts left to the host. Complete those Blocks with their own `provideHandlers(...)` before binding them into `ApplicationBlock`; Program construction rejects unresolved handlers.
+`FeatureComposition.prepareBlock({ init, update, view?, operations?, subscriptions?, managedResources?, EffectsLayer?, hostHandlers? })` checks and returns an opaque draft. It exposes no Model or Block methods. Pass its zero-argument producer to `Block.assemble`, which returns the branded passive Block accepted by Bindings, Programs, and Server rendering. `EffectsLayer` may require ordinary Services supplied by `program.provide(ApplicationLayer)`. `hostHandlers` explicitly declares contracts left to the host. Complete those Blocks with their own `provideHandlers(...)` before binding them into `ApplicationBlock`; Program construction rejects unresolved handlers.
 
-### Block.complete
+### Block.assemble
 
-`Block.complete(assemble)` invokes the zero-argument assembly producer once and returns its branded completed Block. Bindings, Programs, and Server rendering accept this completed value. Ordinary source exports pair the call with the matching `Block.FromAssemblyWith*<typeof Model, typeof assemble>` annotation on the adjacent declaration. Calling `assemble()` directly yields only the unfinished assembly. `replaceEffectsLayer` and `provideHandlers` preserve the completion brand, metadata, and passive runtime behavior.
+`Block.assemble(prepare)` invokes the zero-argument preparation producer once and returns its branded completed Block. Bindings, Programs, and Server rendering accept this completed value. Ordinary source exports pair the call with the matching `Block.FromAssemblyWith*<typeof Model, typeof prepare>` annotation on the adjacent declaration. Calling `prepare()` directly yields only the opaque draft. `replaceEffectsLayer` and `provideHandlers` preserve the completion brand, metadata, and passive runtime behavior.
 
 ### ParentDefinition.makeBinding
 
@@ -502,7 +502,7 @@ For a generic factory that shares definitions, `Block.makeNamespace(id)` supplie
 
 ### Declaring operations
 
-Put a local Message constructor directly in `assembleBlock({ operations })`, using the operation name as its key. TypeScript checks its Message shape, and completion verifies that the constructor is an actual member of this Block's declared Message Schema. A same-shaped constructor from another union is rejected at runtime. Routed `Got*` wrappers remain Binding delivery and cannot become local operations.
+Put a local Message constructor directly in `prepareBlock({ operations })`, using the operation name as its key. TypeScript checks its Message shape, and completion verifies that the constructor is an actual member of this Block's declared Message Schema. A same-shaped constructor from another union is rejected at runtime. Routed `Got*` wrappers remain Binding delivery and cannot become local operations.
 
 Completion combines each constructor with the Block's update. A constructor with fields becomes `(model, payload, ...context)` on `block.operations`; a constructor with no fields becomes `(model, ...context)`. The Binding method omits the child Model, and a keyed Binding prepends its key. All operations retain update's complete Command requirements and OutMessage contract.
 

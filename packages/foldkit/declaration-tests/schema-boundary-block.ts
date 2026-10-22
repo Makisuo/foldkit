@@ -29,8 +29,8 @@ export const update = ChildComposition.makeUpdate((model, message) =>
     CompletedLoad: ({ count }) => ({ model: Model.make({ count }) }),
   }),
 )
-const assemble = () =>
-  ChildComposition.assembleBlock({
+const prepare = () =>
+  ChildComposition.prepareBlock({
     init,
     update,
     operations: {
@@ -41,5 +41,5 @@ const assemble = () =>
   })
 export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

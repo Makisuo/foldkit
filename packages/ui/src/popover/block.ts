@@ -741,9 +741,9 @@ const implementation = {
   EffectsLayer,
 }
 
-const assemble = () => PopoverComposition.assembleBlock(implementation)
+const prepare = () => PopoverComposition.prepareBlock(implementation)
 /** Complete Popover Block definition. */
 export const PopoverBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

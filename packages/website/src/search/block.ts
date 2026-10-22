@@ -8,8 +8,8 @@ import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-const assemble = () =>
-  SearchComposition.assembleBlock({
+const prepare = () =>
+  SearchComposition.prepareBlock({
     init,
     update,
     view,
@@ -21,5 +21,5 @@ const assemble = () =>
   })
 export const SearchBlock: Block.FromAssemblyWithView<
   typeof Model,
-  typeof assemble
-> = Block.complete(assemble)
+  typeof prepare
+> = Block.assemble(prepare)

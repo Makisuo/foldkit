@@ -87,7 +87,7 @@ const nextStage = (
   if (stage === 'Definition' && method === 'makeComposition') {
     return 'Composition'
   }
-  if (stage === 'Composition' && method === 'assembleBlock') {
+  if (stage === 'Composition' && method === 'prepareBlock') {
     return 'Assembly'
   }
   return undefined
@@ -167,7 +167,7 @@ const isPlainProducer = (node: unknown): boolean => {
     isCallExpression(body) &&
     isMemberExpression(body.callee) &&
     unwrapSchemaExpression(body.callee.object) === body.callee.object &&
-    Option.contains(staticMemberName(body.callee), 'assembleBlock')
+    Option.contains(staticMemberName(body.callee), 'prepareBlock')
   )
 }
 
@@ -182,7 +182,7 @@ const boundaryAnnotation = (
     identifier.type !== 'Identifier' ||
     !isCallExpression(init) ||
     !isMemberExpression(init.callee) ||
-    !Option.contains(staticMemberName(init.callee), 'complete') ||
+    !Option.contains(staticMemberName(init.callee), 'assemble') ||
     init.arguments.length !== 1 ||
     (init.typeArguments !== undefined && init.typeArguments !== null)
   ) {
@@ -239,7 +239,7 @@ const sourceExpression = (input: unknown): SourceExpression | undefined => {
   if (
     isCallExpression(body) &&
     isMemberExpression(body.callee) &&
-    Option.contains(staticMemberName(body.callee), 'assembleBlock')
+    Option.contains(staticMemberName(body.callee), 'prepareBlock')
   ) {
     const expression = sourceExpression(body)
     return expression === undefined
@@ -259,7 +259,7 @@ const sourceExpression = (input: unknown): SourceExpression | undefined => {
     const method = Option.getOrUndefined(staticMemberName(node.callee))
     const producer = Option.getOrUndefined(Array.head(node.arguments))
     if (
-      method === 'complete' &&
+      method === 'assemble' &&
       node.arguments.length === 1 &&
       receiver !== undefined
     ) {
@@ -778,7 +778,7 @@ export const makeCompletedBlockProvenance = (
       if (
         isCallExpression(body) &&
         isMemberExpression(body.callee) &&
-        Option.contains(staticMemberName(body.callee), 'assembleBlock')
+        Option.contains(staticMemberName(body.callee), 'prepareBlock')
       ) {
         return localStage(body, visited) === 'Assembly' ? 'Producer' : undefined
       }
@@ -794,7 +794,7 @@ export const makeCompletedBlockProvenance = (
       isMemberExpression(node.callee)
     ) {
       const method = Option.getOrUndefined(staticMemberName(node.callee))
-      if (method === 'complete' && node.arguments.length === 1) {
+      if (method === 'assemble' && node.arguments.length === 1) {
         return localStage(node.callee.object, visited) === 'Block'
           ? 'Completed'
           : undefined

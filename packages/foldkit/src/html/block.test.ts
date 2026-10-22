@@ -42,6 +42,14 @@ const asVNode = (child: VNode | string | undefined): VNode => {
   return child
 }
 
+const destroyVNode = (vnode: VNode | null): void => {
+  if (vnode === null) {
+    throw new Error('expected a VNode')
+  }
+  vnode.data?.hook?.destroy?.(vnode)
+  vnode.data?.hook?.postdestroy?.(vnode)
+}
+
 const setUpRuntime = (
   registry: BoundaryRegistry,
   dispatched: Array<unknown>,
@@ -362,7 +370,7 @@ describe('h.block', () => {
       expect(first).not.toBeNull()
 
       beginRender(registry)
-      first?.data?.hook?.destroy?.(first)
+      destroyVNode(first)
       expect(registry.wraps.has('cached-row')).toBe(false)
 
       beginRender(registry)
@@ -409,7 +417,7 @@ describe('h.block', () => {
     const cachedOnClick = cached?.data?.on?.click as () => void
 
     beginRender(registry)
-    cached?.data?.hook?.destroy?.(cached)
+    destroyVNode(cached)
 
     beginRender(registry)
     const live = block({
@@ -425,7 +433,7 @@ describe('h.block', () => {
     beginRender(registry)
     const restored = lazy(renderCached, [])
     expect(restored).toBe(cached)
-    live?.data?.hook?.destroy?.(live)
+    destroyVNode(live)
 
     liveOnClick()
     cachedOnClick()
@@ -495,7 +503,7 @@ describe('h.block', () => {
     nestedKind = 'Hidden'
     const hidden = renderOuter()
     expect(hidden).not.toBeNull()
-    first?.data?.hook?.destroy?.(first)
+    destroyVNode(first)
     expect(registry.wraps.has('outer')).toBe(true)
     expect(registry.wraps.has('outer|nested')).toBe(false)
 
@@ -503,7 +511,7 @@ describe('h.block', () => {
     nestedKind = 'Live'
     const live = renderOuter()
     expect(live).not.toBeNull()
-    hidden?.data?.hook?.destroy?.(hidden)
+    destroyVNode(hidden)
     /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
     const liveOnClick = live?.data?.on?.click as () => void
 
@@ -529,7 +537,7 @@ describe('h.block', () => {
     nestedKind = 'Hidden'
     isOuterViewFailing = false
     expect(renderOuter()).not.toBeNull()
-    live?.data?.hook?.destroy?.(live)
+    destroyVNode(live)
 
     expect(() => liveOnClick()).not.toThrow()
     cachedOnClick()
@@ -572,13 +580,8 @@ describe('h.block', () => {
 
     expect(registry.wraps.has('destroyable')).toBe(true)
 
-    // A genuine unmount: a later render does not re-register the boundary,
-    // so `beginRender` clears it from `seenThisRender` before snabbdom
-    // removes the vnode and fires destroy.
     beginRender(registry)
-    const destroyHook = result?.data?.hook?.destroy
-    expect(destroyHook).toBeDefined()
-    destroyHook!(result!)
+    destroyVNode(result)
 
     expect(registry.wraps.has('destroyable')).toBe(false)
   })
@@ -592,25 +595,17 @@ describe('h.block', () => {
         toParentMessage: message => GotChild({ entryId: 'remounted', message }),
       })
 
-    // Render N: the keyed root is registered and produces a vnode whose
-    // destroy hook fires when snabbdom swaps the root on the next render.
     const first = render()
-    const firstDestroy = first?.data?.hook?.destroy
-    expect(firstDestroy).toBeDefined()
 
-    // Render N+1: the keyed root's key changed, so the parent re-renders the
-    // same boundary, re-registering it before snabbdom patches.
     beginRender(registry)
     render()
     expect(registry.wraps.has('remounted')).toBe(true)
 
-    // Patch N+1: snabbdom removes the OLD root vnode and fires its destroy
-    // hook. The wrap from the re-render must survive.
-    firstDestroy!(first!)
+    destroyVNode(first)
     expect(registry.wraps.has('remounted')).toBe(true)
   })
 
-  it('composes the user-supplied destroy hook with the boundary cleanup hook', () => {
+  it('preserves the user-supplied destroy hook when adding boundary cleanup', () => {
     let userDestroyCalled = false
     const viewWithDestroy = defineView<{ value: number }, ChildMessage>(_ => {
       const dispatch = requireDispatch()
@@ -638,10 +633,8 @@ describe('h.block', () => {
         GotChild({ entryId: 'with-user-destroy', message }),
     })
 
-    // Genuine unmount: the boundary is not re-registered this render.
     beginRender(registry)
-    const destroyHook = result?.data?.hook?.destroy
-    destroyHook!(result!)
+    destroyVNode(result)
 
     expect(userDestroyCalled).toBe(true)
     expect(registry.wraps.has('with-user-destroy')).toBe(false)
@@ -807,8 +800,6 @@ describe('h.block', () => {
     })
 
     expect(result).toBeNull()
-    // No vnode means no destroy hook will ever fire, so the wrap must be
-    // deregistered eagerly to avoid a leak.
     expect(registry.wraps.has('null-view')).toBe(false)
   })
 

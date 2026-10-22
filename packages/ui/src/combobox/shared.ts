@@ -556,8 +556,14 @@ export const makeUpdate = <
       }
     }
 
-    const openWithActiveItem = (maybeActiveItemIndex: Option.Option<number>) =>
-      openCombobox(
+    const openWithActiveItem = (
+      maybeActiveItemIndex: Option.Option<number>,
+    ) => {
+      if (model.isOpen) {
+        return { model }
+      }
+
+      return openCombobox(
         modifyBaseFields(model, {
           maybeActiveItemIndex: () => maybeActiveItemIndex,
           activationTrigger: () =>
@@ -568,6 +574,7 @@ export const makeUpdate = <
           maybeLastPointerPosition: () => Option.none(),
         }),
       )
+    }
 
     const closeIfOpen = (
       commands: typeof closeWithFocusCommands,

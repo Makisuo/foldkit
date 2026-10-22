@@ -130,6 +130,7 @@ it('drops cleanup blur from an unmounted view while its Model occurrence remains
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   const blurOld = oldVNode.data?.on?.blur as (event: FocusEvent) => void
   oldVNode.data?.hook?.destroy?.(oldVNode)
+  oldVNode.data?.hook?.postdestroy?.(oldVNode)
 
   expect(child.isActive).toBe(true)
   expect(() => blurOld(new FocusEvent('blur'))).not.toThrow()

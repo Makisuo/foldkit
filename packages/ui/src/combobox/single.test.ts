@@ -1349,6 +1349,61 @@ describe('Combobox', () => {
       )
     })
 
+    it('emits no Commands when requestOpen receives an open modal Model', () => {
+      const openModal = modifyFields(
+        init({ id: 'test', isModal: true }).model,
+        {
+          isOpen: () => true,
+          maybeActiveItemIndex: () => Option.some(1),
+          activationTrigger: () => 'Keyboard',
+          inputValue: () => 'Ap',
+        },
+      )
+
+      for (const reopened of [
+        TestCombobox.operations.requestOpen(openModal),
+        update(
+          openModal,
+          Message.Opened({ maybeActiveItemIndex: Option.none() }),
+        ),
+      ]) {
+        expect(reopened.commands ?? []).toEqual([])
+        expect(reopened.outMessage).toBeUndefined()
+        expect(reopened.model.isOpen).toBe(true)
+        expect(reopened.model.maybeActiveItemIndex).toStrictEqual(
+          Option.some(1),
+        )
+        expect(reopened.model.activationTrigger).toBe('Keyboard')
+        expect(reopened.model.inputValue).toBe('Ap')
+      }
+    })
+
+    it('emits no Commands when focus opens a modal combobox the toggle already opened', () => {
+      Story.story(
+        update,
+        givenClosedModal,
+        Story.message(
+          Message.PressedToggleButton({
+            restingInputValue: '',
+            isClearable: true,
+          }),
+        ),
+        Story.Command.resolveAllExact(
+          [FocusInput, Message.CompletedFocusInput()],
+          [LockScroll, Message.CompletedLockScroll()],
+          [InertOthers, Message.CompletedInertOthers()],
+        ),
+        Story.message(Message.Opened({ maybeActiveItemIndex: Option.some(0) })),
+        Story.expectNoOutMessage(),
+        Story.Command.expectNone(),
+        Story.model(model => {
+          expect(model.isOpen).toBe(true)
+          expect(model.maybeActiveItemIndex).toStrictEqual(Option.none())
+          expect(model.activationTrigger).toBe('Pointer')
+        }),
+      )
+    })
+
     it('emits unlockScroll and restoreInert commands on Closed when isModal is true', () => {
       Story.story(
         update,

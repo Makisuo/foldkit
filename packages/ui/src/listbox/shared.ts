@@ -126,6 +126,7 @@ export const Message = defineMessageUnion({
   CompletedFocusListboxItems: {},
   CompletedScrollListboxItemIntoView: {},
   CompletedClickListboxItem: {},
+  ClickedButton: {},
   IgnoredMouseClick: {},
   SuppressedSpaceScroll: {},
   SuppressedItemCommit: {},
@@ -152,6 +153,8 @@ export type RequestedItemClick = typeof Message.RequestedItemClick.Type
 export type Searched = typeof Message.Searched.Type
 export type CompletedDelayClearListboxSearch =
   typeof Message.CompletedDelayClearListboxSearch.Type
+/** A click on the Listbox trigger button. */
+export type ClickedButton = typeof Message.ClickedButton.Type
 export type IgnoredMouseClick = typeof Message.IgnoredMouseClick.Type
 export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 export type SuppressedItemCommit = typeof Message.SuppressedItemCommit.Type
@@ -482,8 +485,14 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
       return Update.withOutMessage({ model: closed, commands }, outMessage)
     }
 
-    const openWithActiveItem = (maybeActiveItemIndex: Option.Option<number>) =>
-      openListbox(
+    const openWithActiveItem = (
+      maybeActiveItemIndex: Option.Option<number>,
+    ) => {
+      if (model.isOpen) {
+        return { model }
+      }
+
+      return openListbox(
         modifyBaseFields(model, {
           maybeActiveItemIndex: () => maybeActiveItemIndex,
           activationTrigger: () =>
@@ -496,6 +505,7 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
           maybeLastPointerPosition: () => Option.none(),
         }),
       )
+    }
 
     const selectItem = (item: string) => {
       const selection = handleSelectedItem(model, item)
@@ -662,6 +672,23 @@ export const makeUpdate = <ParentOutMessageSchema extends Schema.Top>(
           maybeLastButtonPointerType: () => Option.none(),
         }),
       }),
+      ClickedButton: () => {
+        if (
+          Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
+        ) {
+          return {
+            model: modifyBaseFields(model, {
+              maybeLastButtonPointerType: () => Option.none(),
+            }),
+          }
+        }
+
+        if (model.isOpen) {
+          return closeListbox(model, closeWithFocusCommands)
+        }
+
+        return openWithActiveItem(Option.none())
+      },
     })
   }
 
@@ -868,7 +895,6 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
       animation: { transitionState },
       maybeActiveItemIndex,
       searchQuery,
-      maybeLastButtonPointerType,
     } = model
 
     const {
@@ -1020,21 +1046,6 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
     ): Option.Option<Message> =>
       Option.some(Message.PressedPointerOnButton({ pointerType, button }))
 
-    const handleButtonClick = (): Message => {
-      const isMouse = Option.exists(
-        maybeLastButtonPointerType,
-        type => type === 'mouse',
-      )
-
-      if (isMouse) {
-        return Message.IgnoredMouseClick()
-      } else if (isOpen) {
-        return Message.Closed()
-      } else {
-        return Message.Opened({ maybeActiveItemIndex: Option.none() })
-      }
-    }
-
     const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
       OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
 
@@ -1129,7 +1140,7 @@ export const makeView = <Model extends BaseModel>(behavior: ViewBehavior) => {
             h.OnPointerDown(handleButtonPointerDown),
             h.OnKeyDownPreventDefault(handleButtonKeyDown),
             h.OnKeyUpPreventDefault(handleSpaceKeyUp),
-            h.OnClick(handleButtonClick()),
+            h.OnClick(Message.ClickedButton()),
           ]),
       ...(isVisible
         ? [

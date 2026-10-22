@@ -611,6 +611,12 @@ const checks: ReadonlyArray<
     consumers: ['strict-routing.consume.ts'],
   },
   {
+    name: 'route-step-program',
+    accepted: ['route-step-program.accepted.ts'],
+    rejected: ['route-step-program.rejected.ts'],
+    consumers: ['route-step-program.consume.ts'],
+  },
+  {
     name: 'message-free-keyed',
     accepted: ['message-free-keyed.accepted.ts'],
     rejected: ['message-free-keyed.rejected.ts'],

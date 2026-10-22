@@ -199,7 +199,8 @@ export const update = block.update
 type UpdateReturn = ReturnType<typeof update>
 
 /** Programmatically opens the Listbox, updating the Model and returning focus
- *  and modal Commands. Use this in domain-event handlers. */
+ *  and modal Commands. When it is already open, returns the Model unchanged
+ *  with no Commands. Use this in domain-event handlers. */
 export const open = (model: Model): UpdateReturn =>
   block.operations.requestOpen(model)
 

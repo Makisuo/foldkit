@@ -54,6 +54,7 @@ export const Message = defineMessageUnion({
   CompletedUnlockPopoverScroll: {},
   CompletedInertPopoverOthers: {},
   CompletedRestorePopoverInert: {},
+  ClickedButton: {},
   IgnoredMouseClick: {},
   SuppressedSpaceScroll: {},
   CompletedAnchorPopover: {},
@@ -65,6 +66,8 @@ export type RequestedOpen = typeof Message.RequestedOpen.Type
 export type RequestedClose = typeof Message.RequestedClose.Type
 export type BlurredPanel = typeof Message.BlurredPanel.Type
 export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
+/** A click on the Popover trigger button. */
+export type ClickedButton = typeof Message.ClickedButton.Type
 export type IgnoredMouseClick = typeof Message.IgnoredMouseClick.Type
 export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 
@@ -92,7 +95,15 @@ const PopoverDefinition = Block.makeDefinition('Popover', {
 
 const LEFT_MOUSE_BUTTON = 0
 
-/** Configuration for creating a popover model with `init`. `isAnimated` enables animation coordination (default `false`). `isModal` locks page scroll and inerts other elements when open (default `false`). `contentFocus` hands focus ownership to the consumer. The panel is not focusable and does not close on blur, so the consumer must focus a descendant on open and close the popover on its own blur rules (default `false`). */
+/** Configuration for creating a Popover Model with `init`.
+ *
+ *  `isAnimated` enables animation coordination. `isModal` locks page scroll
+ *  and marks other elements inert while the Popover is open. Both default to
+ *  `false`.
+ *
+ *  With `contentFocus: true`, the panel has no tab stop and focus leaving
+ *  it does not close the Popover. Focus a descendant when opening and
+ *  handle focus leaving the content in the application. Defaults to `false`. */
 export type InitConfig = Readonly<{
   id: string
   isAnimated?: boolean
@@ -356,6 +367,10 @@ const internalUpdate = (model: Model, message: AuthoredMessage) => {
   const closeWithFocusCommands = [focusButton, ...closeWithoutFocusCommands]
 
   const openPopover = (baseModel: Model) => {
+    if (baseModel.isOpen) {
+      return { model: baseModel }
+    }
+
     if (model.isAnimated) {
       return PopoverDefinition.makeStep(() =>
         Function.compose(
@@ -468,6 +483,23 @@ const internalUpdate = (model: Model, message: AuthoredMessage) => {
       CompletedUnlockPopoverScroll: () => ({ model }),
       CompletedInertPopoverOthers: () => ({ model }),
       CompletedRestorePopoverInert: () => ({ model }),
+      ClickedButton: () => {
+        if (
+          Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
+        ) {
+          return {
+            model: modifyFields(model, {
+              maybeLastButtonPointerType: () => Option.none(),
+            }),
+          }
+        }
+
+        if (model.isOpen) {
+          return closePopover(model, closeWithFocusCommands)
+        }
+
+        return openPopover(model)
+      },
       IgnoredMouseClick: () => ({
         model: modifyFields(model, {
           maybeLastButtonPointerType: () => Option.none(),
@@ -511,9 +543,9 @@ const EffectsLayer = Layer.mergeAll(
  *  - `button`: attribute bundle for the trigger button.
  *  - `panel`: attribute bundle for the floating panel. Includes the
  *    anchor Mount that positions the panel via Floating UI, ARIA
- *    linkage to the button, and panel keydown/blur handlers.
+ *    linkage to the button, and panel keydown and focus-leave handlers.
  *  - `backdrop`: attribute bundle for the modal backdrop. Includes the
- *    portal Mount that moves the backdrop to document.body. Inside a
+ *    portal Mount that moves the backdrop to its containing root. Inside a
  *    `<dialog>`, it moves the backdrop to directly before the element it
  *    is rendered in, so render it inside the positioned wrapper that holds
  *    the button. The backdrop's OnClick closes the Popover.
@@ -556,7 +588,6 @@ export const view = PopoverComposition.makeView.withInputs<ViewInputs>(
       isOpen,
       contentFocus,
       animation: { transitionState },
-      maybeLastButtonPointerType,
     } = model
     const {
       anchor,
@@ -615,24 +646,6 @@ export const view = PopoverComposition.makeView.withInputs<ViewInputs>(
     ): Option.Option<PressedPointerOnButton> =>
       Option.some(Message.PressedPointerOnButton({ pointerType, button }))
 
-    const handleButtonClick = ():
-      | RequestedOpen
-      | RequestedClose
-      | IgnoredMouseClick => {
-      const isMouse = Option.exists(
-        maybeLastButtonPointerType,
-        type => type === 'mouse',
-      )
-
-      if (isMouse) {
-        return Message.IgnoredMouseClick()
-      } else if (isOpen) {
-        return Message.RequestedClose()
-      } else {
-        return Message.RequestedOpen()
-      }
-    }
-
     const handleSpaceKeyUp = (
       key: string,
     ): Option.Option<SuppressedSpaceScroll> =>
@@ -668,7 +681,7 @@ export const view = PopoverComposition.makeView.withInputs<ViewInputs>(
             h.OnPointerDown(handleButtonPointerDown),
             h.OnKeyDownPreventDefault(handleButtonKeyDown),
             h.OnKeyUpPreventDefault(handleSpaceKeyUp),
-            h.OnClick(handleButtonClick()),
+            h.OnClick(Message.ClickedButton()),
           ]),
       ...(isVisible
         ? [
@@ -696,7 +709,7 @@ export const view = PopoverComposition.makeView.withInputs<ViewInputs>(
         ? []
         : [
             h.OnKeyDownPreventDefault(handlePanelKeyDown),
-            ...(contentFocus ? [] : [h.OnBlur(Message.BlurredPanel())]),
+            ...(contentFocus ? [] : [h.OnFocusLeave(Message.BlurredPanel())]),
           ]),
     ]
 

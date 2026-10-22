@@ -97,6 +97,7 @@ export const Message = defineMessageUnion({
   CompletedRestoreMenuInert: {},
   CompletedScrollMenuItemIntoView: {},
   CompletedClickMenuItem: {},
+  ClickedButton: {},
   IgnoredMouseClick: {},
   SuppressedSpaceScroll: {},
   CompletedAnchorMenu: {},
@@ -168,6 +169,8 @@ export type RequestedItemClick = typeof Message.RequestedItemClick.Type
 export type Searched = typeof Message.Searched.Type
 export type CompletedDelayClearMenuSearch =
   typeof Message.CompletedDelayClearMenuSearch.Type
+/** A click on the Menu trigger button. */
+export type ClickedButton = typeof Message.ClickedButton.Type
 export type IgnoredMouseClick = typeof Message.IgnoredMouseClick.Type
 export type SuppressedSpaceScroll = typeof Message.SuppressedSpaceScroll.Type
 export type PressedPointerOnButton = typeof Message.PressedPointerOnButton.Type
@@ -445,8 +448,14 @@ const internalUpdate =
       return Update.withOutMessage({ model: closed, commands }, closeOutMessage)
     }
 
-    const openWithActiveItem = (maybeActiveItemIndex: Option.Option<number>) =>
-      openMenu(
+    const openWithActiveItem = (
+      maybeActiveItemIndex: Option.Option<number>,
+    ) => {
+      if (model.isOpen) {
+        return { model }
+      }
+
+      return openMenu(
         modifyFields(model, {
           maybeActiveItemIndex: () => maybeActiveItemIndex,
           activationTrigger: () =>
@@ -459,6 +468,7 @@ const internalUpdate =
           maybeLastPointerPosition: () => Option.none(),
         }),
       )
+    }
 
     const selectItem = (index: number, item: string) =>
       closeMenu(
@@ -674,6 +684,23 @@ const internalUpdate =
           maybeLastButtonPointerType: () => Option.none(),
         }),
       }),
+      ClickedButton: () => {
+        if (
+          Option.exists(model.maybeLastButtonPointerType, Equal.equals('mouse'))
+        ) {
+          return {
+            model: modifyFields(model, {
+              maybeLastButtonPointerType: () => Option.none(),
+            }),
+          }
+        }
+
+        if (model.isOpen) {
+          return closeMenu(model, closeWithFocusCommands)
+        }
+
+        return openWithActiveItem(Option.none())
+      },
     })
   }
 
@@ -859,7 +886,6 @@ const menuViewImpl = (
     animation: { transitionState },
     maybeActiveItemIndex,
     searchQuery,
-    maybeLastButtonPointerType,
   } = model
 
   const {
@@ -981,21 +1007,6 @@ const menuViewImpl = (
       }),
     )
 
-  const handleButtonClick = (): Message => {
-    const isMouse = Option.exists(
-      maybeLastButtonPointerType,
-      type => type === 'mouse',
-    )
-
-    if (isMouse) {
-      return Message.IgnoredMouseClick()
-    } else if (isOpen) {
-      return Message.Closed()
-    } else {
-      return Message.Opened({ maybeActiveItemIndex: Option.none() })
-    }
-  }
-
   const handleSpaceKeyUp = (key: string): Option.Option<Message> =>
     OptionExt.when(key === ' ', Message.SuppressedSpaceScroll())
 
@@ -1090,7 +1101,7 @@ const menuViewImpl = (
           h.OnPointerDown(handleButtonPointerDown),
           h.OnKeyDownPreventDefault(handleButtonKeyDown),
           h.OnKeyUpPreventDefault(handleSpaceKeyUp),
-          h.OnClick(handleButtonClick()),
+          h.OnClick(Message.ClickedButton()),
         ]),
     ...(isVisible
       ? [

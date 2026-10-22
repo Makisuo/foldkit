@@ -77,11 +77,12 @@ export const assembleChildBlock = () =>
     hostHandlers: [RecordValue],
   })
 
-export const RawChildBlock = assembleChildBlock()
+export const RawChildBlock: CompletedAssembly<typeof assembleChildBlock> =
+  Block.complete(assembleChildBlock)
 export const ChildBlock: Block.FromAssemblyWithOutMessage<
   typeof ChildComposition.Model,
   typeof assembleChildBlock
-> = assembleChildBlock()
+> = Block.complete(assembleChildBlock)
 
 export const ContextModel = Schema.Struct({ value: Schema.String })
 export const ContextMessage = defineMessageUnion({
@@ -138,11 +139,12 @@ export const assembleContextBlock = () =>
     },
   })
 
-export const RawContextBlock = assembleContextBlock()
+export const RawContextBlock: CompletedAssembly<typeof assembleContextBlock> =
+  Block.complete(assembleContextBlock)
 export const ContextBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ContextComposition.Model,
   typeof assembleContextBlock
-> = assembleContextBlock()
+> = Block.complete(assembleContextBlock)
 
 export const ParentModel = Schema.Struct({
   child: ChildModel,
@@ -212,11 +214,12 @@ export const assembleParentBlock = () =>
     EffectsLayer: Layer.empty,
   })
 
-export const RawParentBlock = assembleParentBlock()
+export const RawParentBlock: CompletedAssembly<typeof assembleParentBlock> =
+  Block.complete(assembleParentBlock)
 export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ParentComposition.Model,
   typeof assembleParentBlock
-> = assembleParentBlock()
+> = Block.complete(assembleParentBlock)
 
 export function makeChoice<
   const Values extends readonly [string, ...Array<string>],
@@ -268,11 +271,12 @@ export function makeChoice<
       hostHandlers: [Observe],
     })
 
-  const rawBlock = assembleBlock()
+  const rawBlock: CompletedAssembly<typeof assembleBlock> =
+    Block.complete(assembleBlock)
   const block: Block.FromAssemblyWithView<
     typeof Composition.Model,
     typeof assembleBlock
-  > = assembleBlock()
+  > = Block.complete(assembleBlock)
   const provided = block.provideHandlers(
     Observe.toLayer(
       Effect.succeed(() => Effect.succeed(Message.CompletedObserve())),
@@ -334,11 +338,13 @@ export const assembleMountedChoiceBlock = () =>
     EffectsLayer: ObserveSelection.layer,
   })
 
-export const RawMountedChoiceBlock = assembleMountedChoiceBlock()
+export const RawMountedChoiceBlock: CompletedAssembly<
+  typeof assembleMountedChoiceBlock
+> = Block.complete(assembleMountedChoiceBlock)
 export const MountedChoiceBlock: Block.FromAssemblyWithView<
   typeof MountedChoiceComposition.Model,
   typeof assembleMountedChoiceBlock
-> = assembleMountedChoiceBlock()
+> = Block.complete(assembleMountedChoiceBlock)
 export const assembleManagedMountedChoiceBlock = () =>
   MountedChoiceComposition.assembleBlock({
     init: (selected: string) => ({
@@ -354,11 +360,13 @@ export const assembleManagedMountedChoiceBlock = () =>
     EffectsLayer: ObserveSelection.layer,
   })
 
-export const RawManagedMountedChoiceBlock = assembleManagedMountedChoiceBlock()
+export const RawManagedMountedChoiceBlock: CompletedAssembly<
+  typeof assembleManagedMountedChoiceBlock
+> = Block.complete(assembleManagedMountedChoiceBlock)
 export const ManagedMountedChoiceBlock: Block.FromAssemblyWithView<
   typeof MountedChoiceComposition.Model,
   typeof assembleManagedMountedChoiceBlock
-> = assembleManagedMountedChoiceBlock()
+> = Block.complete(assembleManagedMountedChoiceBlock)
 
 export const ExactModel = Schema.Struct({ value: Schema.String })
 export const ExactMessage = defineMessageUnion({ RequestedPing: {} })
@@ -389,11 +397,12 @@ export const assembleExactBlock = () =>
     EffectsLayer: Layer.empty,
   })
 
-export const RawExactBlock = assembleExactBlock()
+export const RawExactBlock: CompletedAssembly<typeof assembleExactBlock> =
+  Block.complete(assembleExactBlock)
 export const ExactBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ExactComposition.Model,
   typeof assembleExactBlock
-> = assembleExactBlock()
+> = Block.complete(assembleExactBlock)
 
 type SetValueArguments = Expect<
   Equal<Parameters<typeof ChildBinding.setValue>, [value: string]>
@@ -504,3 +513,8 @@ export type TupleMetadataAssertions = [
   TupleMetadataStillReceivesModel,
   TupleMetadataPreservesReturn,
 ]
+
+type CompletedAssembly<Producer extends () => Block.AssemblyDraft<object>> =
+  ReturnType<Producer> extends Block.AssemblyDraft<infer Completed>
+    ? Completed
+    : never

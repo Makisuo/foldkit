@@ -1552,7 +1552,7 @@ const assembleVirtualListBlock = () =>
 export const block: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assembleVirtualListBlock
-> = assembleVirtualListBlock()
+> = Block.complete(assembleVirtualListBlock)
 
 /** Programmatically scrolls to a logical target. */
 export const scrollTo = block.operations.requestScrollTo
@@ -1598,5 +1598,11 @@ export interface Completed<Item> extends Block.CompletedWithViewAndOutMessage<
 export const create = <Item>(): Completed<Item> => {
   const { composition, implementation } = makeBlockParts<Item>()
 
-  return composition.assembleBlock(implementation)
+  const assemble = () => composition.assembleBlock(implementation)
+  const completedBlock: Block.FromAssemblyWithViewAndOutMessage<
+    typeof Model,
+    typeof assemble
+  > = Block.complete(assemble)
+
+  return completedBlock
 }

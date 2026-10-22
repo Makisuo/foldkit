@@ -852,7 +852,7 @@ const assembleSliderBlock = () =>
 export const SliderBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assembleSliderBlock
-> = assembleSliderBlock()
+> = Block.complete(assembleSliderBlock)
 
 /**
  * Builds a complete Slider Block whose drag Subscriptions resolve tracks from
@@ -892,7 +892,7 @@ export const forRoot = (getTrackRoot: () => Document | ShadowRoot) => {
   const sliderBlock: Block.FromAssemblyWithViewAndOutMessage<
     typeof Model,
     typeof assembleSliderBlock
-  > = assembleSliderBlock()
+  > = Block.complete(assembleSliderBlock)
 
   return sliderBlock
 }

@@ -33,7 +33,7 @@ If the project enforces pnpm's `minimumReleaseAge`, a newly uploaded preview may
 
 ## Upgrade from 1fbeaffe6563
 
-The verified source is `1fbeaffe656303b44d8fd20c18d598f08014a5c9`. Its root already completes through `assembleBlock` and uses `Program.make` or `Program.makeElement`. Keep its existing wiring:
+The verified source is `1fbeaffe656303b44d8fd20c18d598f08014a5c9`. Its root already uses `assembleBlock` and `Program.make` or `Program.makeElement`. Add the required `Block.complete` finisher while keeping the existing graph and host wiring:
 
 - Child policies use `withOutMessagePolicy`.
 - Animation content uses `toView`.
@@ -48,7 +48,7 @@ After installing one coherent target, make the changes used by your application:
 4. Apply the [Vite security patches](#vite-security-patches) to affected installed development tooling.
 5. Run [the upgrade checks](#verify-the-upgrade). Assembly now rejects incompatible same-named Command handler contracts inside generic Block factories. Correct the owning definitions or handler Layers when this exposes invalid wiring.
 
-The compiler-work reductions also apply without changing Block authoring. [Native TypeScript tooling](#native-typescript-tooling), [explicit assembly boundaries](#keep-source-model-schemas-independent-of-completion), and [Command-only Steps](#optional-convenience) are separate setup or organization choices.
+The checked assembly completion below is required for every source Block. [Native TypeScript tooling](#native-typescript-tooling) and [Command-only Steps](#optional-convenience) remain separate setup or organization choices. The explicit producer/header shape also keeps parent Model Schema access independent of the completed implementation graph.
 
 ### Update UI trigger and focus tests
 
@@ -62,7 +62,7 @@ This section applies to `c701daa80af1`, `396b19976386`, and `bfd880b1e6ca`.
 
 ### Complete an ordinary root Block
 
-The root now follows the same Definition to Composition to completed Block path as every feature. Replace `makeApplicationDefinition` with `Block.makeDefinition('Application', ...)`. Assemble the authored init, update, view, lifecycle declarations, and local `EffectsLayer` into `ApplicationBlock` with `ApplicationComposition.assembleBlock`.
+The root now follows the same Definition, Composition, and checked assembly stages as every feature. Replace `makeApplicationDefinition` with `Block.makeDefinition('Application', ...)`. Return the authored init, update, view, lifecycle declarations, and local `EffectsLayer` from an `ApplicationComposition.assembleBlock(...)` producer, then finish `ApplicationBlock` with `Block.complete(assemble)`.
 
 The old `ApplicationComposition.assembleApplication` and `ApplicationComposition.assembleElement` methods have been removed. Browser host fields do not belong in `assembleBlock`.
 
@@ -187,7 +187,7 @@ See the [official editor setup](https://github.com/oxc-project/tsrs/blob/467182f
 
 ## Keep Source Model Schemas Independent of Completion
 
-Give an ordinary completed Block an explicit producer/header boundary. Move its existing `assembleBlock` call into one private zero-argument function named `assemble`, then place the `SettingsBlock` export immediately after it with no blank line. Apply the matching `Block.FromAssemblyWith*` annotation and initialize the export by calling that producer once. Use a descriptive producer name only when one file genuinely contains multiple assembly producers. Keep the payload, local effects and graph unchanged.
+Give an ordinary completed Block an explicit producer/header boundary. Move its existing `assembleBlock` call into one private zero-argument function named `assemble`, then place the `SettingsBlock` export immediately after it with no blank line. Apply the matching `Block.FromAssemblyWith*` annotation and initialize the export with `Block.complete(assemble)`. A direct `assemble()` call now returns only the opaque unfinished assembly and has no Model or Block methods. Use a descriptive producer name only when one file genuinely contains multiple assembly producers. Keep the payload, local effects and graph unchanged.
 
 ::Snippet{name="blockFeatureExports" label="An explicit completed Block boundary"}
 
@@ -200,7 +200,7 @@ Choose the helper from the Definition's declared OutMessage and the assembled vi
 | No             | Yes                 | `Block.FromAssemblyWithOutMessage`          |
 | No             | No                  | `Block.FromAssemblyWithoutViewOrOutMessage` |
 
-Each helper takes `typeof Model` and `typeof assemble`. The four names keep the view and OutMessage shapes explicit; there is no unified `FromAssembly` helper. The longer annotation gives TypeScript a direct Model member without making a parent infer the whole source implementation merely to read its Schema. The producer still infers the assembled implementation, and the helper checks its exact completed contract and Model Schema. Do not replace this with a cast, a broad Block annotation, or `satisfies`.
+Each helper takes `typeof Model` and `typeof assemble`. The four names keep the view and OutMessage shapes explicit; there is no unified `FromAssembly` helper. The longer annotation gives TypeScript a direct Model member without making a parent infer the whole source implementation merely to read its Schema. The producer infers the unfinished assembly, and the helper checks its exact completed contract and Model Schema through `Block.complete`. Do not replace this with a cast, a broad Block annotation, `satisfies`, a raw producer call, or an annotation without the matching finisher.
 
 The feature barrel exports its completed Block. Keep the Model Schema internal to the feature and compose parent state with `SettingsBlock.Model`. An application that adopted a separate canonical Model reexport for compiler performance can remove that reexport after adding the checked header and updating its parent imports. Preserve independently public domain Schemas and generic component contracts.
 

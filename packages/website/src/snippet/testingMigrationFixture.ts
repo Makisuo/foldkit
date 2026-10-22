@@ -58,7 +58,7 @@ const assemble = () =>
 export const PinsBlock: Block.FromAssemblyWithView<
   typeof PinsModel,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)
 
 const Model = Schema.Struct({ pins: PinsBlock.Model })
 export const Message = defineMessageUnion({ RequestedRefreshPins: {} })

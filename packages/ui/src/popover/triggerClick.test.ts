@@ -68,9 +68,9 @@ const view = PopoverTriggerClickTestComposition.makeView((model, h) =>
   ),
 )
 
-const makeProgram = (container: HTMLElement, isModal: boolean) =>
-  Program.makeElement({
-    block: PopoverTriggerClickTestComposition.assembleBlock({
+const makeProgram = (container: HTMLElement, isModal: boolean) => {
+  const assemble = () =>
+    PopoverTriggerClickTestComposition.assembleBlock({
       init: PopoverTriggerClickTestComposition.makeInit(() =>
         PopoverBinding.init({
           args: [{ id: 'sort', isModal }],
@@ -79,9 +79,15 @@ const makeProgram = (container: HTMLElement, isModal: boolean) =>
       ),
       update: PopoverTriggerClickTestComposition.makeUpdate(),
       view,
-    }),
+    })
+  const block: Block.FromAssemblyWithView<typeof Model, typeof assemble> =
+    Block.complete(assemble)
+
+  return Program.makeElement({
+    block,
     container,
   })
+}
 
 const requireElement = (id: string): HTMLElement => {
   const element = document.getElementById(id)

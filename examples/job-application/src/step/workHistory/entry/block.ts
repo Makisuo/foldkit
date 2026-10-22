@@ -1,4 +1,4 @@
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 
 import { WorkHistoryEntryComposition } from './composition'
 import type { Model } from './definition'
@@ -17,4 +17,4 @@ const assemble = () =>
 export const WorkHistoryEntryBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

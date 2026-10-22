@@ -447,6 +447,12 @@ const checks: ReadonlyArray<
   }>
 > = [
   {
+    name: 'mandatory-completion',
+    accepted: ['mandatory-completion.accepted.ts'],
+    rejected: ['mandatory-completion.rejected.ts'],
+    consumers: ['mandatory-completion.consume.ts'],
+  },
+  {
     name: 'from-assembly',
     accepted: [
       'from-assembly.accepted.ts',

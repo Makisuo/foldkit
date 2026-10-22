@@ -1,6 +1,11 @@
 import { Context, Effect, Layer, Schema } from 'effect'
 import { Block, Message as MessageModule, Struct } from 'foldkit'
 
+export type Assembled<Producer extends () => Block.AssemblyDraft<object>> =
+  ReturnType<Producer> extends Block.AssemblyDraft<infer Completed>
+    ? Completed
+    : never
+
 export class Store extends Context.Service<
   Store,
   Readonly<{ saveCount: (count: number) => Effect.Effect<void> }>
@@ -127,34 +132,40 @@ export const assembleReportingHeadless = () =>
 
 export declare const assembleErased: () => never
 
-export const OriginalViewed = assembleViewed()
+export const OriginalViewed: Assembled<typeof assembleViewed> =
+  Block.complete(assembleViewed)
 export const Viewed: Block.FromAssemblyWithView<
   typeof Model,
   typeof assembleViewed
-> = assembleViewed()
+> = Block.complete(assembleViewed)
 
 export const replaceOriginalViewed: typeof OriginalViewed.replaceEffectsLayer =
   OriginalViewed.replaceEffectsLayer
 export const replaceViewed: typeof Viewed.replaceEffectsLayer =
   Viewed.replaceEffectsLayer
 
-export const OriginalHeadless = assembleHeadless()
+export const OriginalHeadless: Assembled<typeof assembleHeadless> =
+  Block.complete(assembleHeadless)
 export const Headless: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
   typeof assembleHeadless
-> = assembleHeadless()
+> = Block.complete(assembleHeadless)
 
-export const OriginalReportingViewed = assembleReportingViewed()
+export const OriginalReportingViewed: Assembled<
+  typeof assembleReportingViewed
+> = Block.complete(assembleReportingViewed)
 export const ReportingViewed: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assembleReportingViewed
-> = assembleReportingViewed()
+> = Block.complete(assembleReportingViewed)
 
-export const OriginalReportingHeadless = assembleReportingHeadless()
+export const OriginalReportingHeadless: Assembled<
+  typeof assembleReportingHeadless
+> = Block.complete(assembleReportingHeadless)
 export const ReportingHeadless: Block.FromAssemblyWithOutMessage<
   typeof Model,
   typeof assembleReportingHeadless
-> = assembleReportingHeadless()
+> = Block.complete(assembleReportingHeadless)
 
 export const RawParentDefinition = Block.makeDefinition(
   'FromAssemblyRawParent',
@@ -188,7 +199,8 @@ const assembleRawParent = () =>
     ),
   })
 
-export const RawParent = assembleRawParent()
+export const RawParent: Assembled<typeof assembleRawParent> =
+  Block.complete(assembleRawParent)
 
 export const ParentDefinition = Block.makeDefinition('FromAssemblyParent', {
   Model: Schema.Struct({ child: Viewed.Model }),
@@ -219,11 +231,12 @@ const assembleParent = () =>
     ),
   })
 
-export const OriginalParent = assembleParent()
+export const OriginalParent: Assembled<typeof assembleParent> =
+  Block.complete(assembleParent)
 export const Parent: Block.FromAssemblyWithView<
   typeof ParentDefinition.Model,
   typeof assembleParent
-> = assembleParent()
+> = Block.complete(assembleParent)
 
 export const OriginalErased = assembleErased()
 export const ErasedAnnotation: Block.FromAssemblyWithView<

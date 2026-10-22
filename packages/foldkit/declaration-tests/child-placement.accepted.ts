@@ -12,13 +12,17 @@ const DeclarationChildPlacementChildComposition = Block.makeDefinition(
   },
 ).makeComposition()
 
-export const ChildBlock =
+const assembleChildBlock = () =>
   DeclarationChildPlacementChildComposition.assembleBlock({
     init: DeclarationChildPlacementChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: '' }),
     })),
     update: DeclarationChildPlacementChildComposition.makeUpdate(),
   })
+export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 const Entry = Schema.Struct({
   id: Schema.String,

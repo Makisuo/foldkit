@@ -18,17 +18,22 @@ const DeclaredDirectFieldChildComposition = ChildDefinition.makeComposition()
 const childUpdate = DeclaredDirectFieldChildComposition.makeUpdate(
   (model, { count }) => setCount(model, count),
 )
-export const childBlock = DeclaredDirectFieldChildComposition.assembleBlock({
-  init: DeclaredDirectFieldChildComposition.makeInit(() => ({
-    model: ChildModel.make({ count: 0 }),
-  })),
-  update: childUpdate,
-  operations: {
-    setCount: (count: number) => [ChildMessage.UpdatedCount({ count })],
-  },
-  EffectsLayer: Layer.empty,
-})
-export const argumentChildBlock =
+const assembleChildBlock = () =>
+  DeclaredDirectFieldChildComposition.assembleBlock({
+    init: DeclaredDirectFieldChildComposition.makeInit(() => ({
+      model: ChildModel.make({ count: 0 }),
+    })),
+    update: childUpdate,
+    operations: {
+      setCount: (count: number) => [ChildMessage.UpdatedCount({ count })],
+    },
+    EffectsLayer: Layer.empty,
+  })
+export const childBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
+const assembleArgumentChildBlock = () =>
   DeclaredDirectFieldChildComposition.assembleBlock({
     init: DeclaredDirectFieldChildComposition.makeInit((count: number) => ({
       model: ChildModel.make({ count }),
@@ -39,6 +44,10 @@ export const argumentChildBlock =
     },
     EffectsLayer: Layer.empty,
   })
+export const argumentChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleArgumentChildBlock
+> = Block.complete(assembleArgumentChildBlock)
 export const NestedOptionChildModel = Schema.Option(ChildModel)
 // eslint-disable-next-line foldkit/block-name-matches-variable
 
@@ -49,7 +58,7 @@ const DeclaredNestedOptionChildComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-export const nestedOptionChildBlock =
+const assembleNestedOptionChildBlock = () =>
   DeclaredNestedOptionChildComposition.assembleBlock({
     init: DeclaredNestedOptionChildComposition.makeInit(() => ({
       model: Option.none(),
@@ -59,6 +68,10 @@ export const nestedOptionChildBlock =
     })),
     EffectsLayer: Layer.empty,
   })
+export const nestedOptionChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof NestedOptionChildModel,
+  typeof assembleNestedOptionChildBlock
+> = Block.complete(assembleNestedOptionChildBlock)
 export const ArrayChildModel = Schema.Array(Schema.String)
 // eslint-disable-next-line foldkit/block-name-matches-variable
 
@@ -69,13 +82,18 @@ const DeclaredArrayChildComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-export const arrayChildBlock = DeclaredArrayChildComposition.assembleBlock({
-  init: DeclaredArrayChildComposition.makeInit(() => ({
-    model: ArrayChildModel.make([]),
-  })),
-  update: DeclaredArrayChildComposition.makeUpdate(model => ({ model })),
-  EffectsLayer: Layer.empty,
-})
+const assembleArrayChildBlock = () =>
+  DeclaredArrayChildComposition.assembleBlock({
+    init: DeclaredArrayChildComposition.makeInit(() => ({
+      model: ArrayChildModel.make([]),
+    })),
+    update: DeclaredArrayChildComposition.makeUpdate(model => ({ model })),
+    EffectsLayer: Layer.empty,
+  })
+export const arrayChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ArrayChildModel,
+  typeof assembleArrayChildBlock
+> = Block.complete(assembleArrayChildBlock)
 export const Model = Schema.Struct({
   child: ChildModel,
   argumentChild: ChildModel,
@@ -215,11 +233,16 @@ export const initialize = initialComposition.makeInit(
     },
   }),
 )
-export const initializedBlock = initialComposition.assembleBlock({
-  init: initialize,
-  update: initialComposition.makeUpdate(model => ({ model })),
-  EffectsLayer: Layer.empty,
-})
+const assembleInitializedBlock = () =>
+  initialComposition.assembleBlock({
+    init: initialize,
+    update: initialComposition.makeUpdate(model => ({ model })),
+    EffectsLayer: Layer.empty,
+  })
+export const initializedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof assembleInitializedBlock
+> = Block.complete(assembleInitializedBlock)
 // eslint-disable-next-line foldkit/block-name-matches-variable
 export const composition = ParentDefinition.makeComposition({
   bindings: [

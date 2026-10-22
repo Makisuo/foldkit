@@ -25,13 +25,18 @@ const FeatureBinding = RootDefinition.makeBinding(CityFeature.block, {
 const RootComposition = RootDefinition.makeComposition({
   bindings: [FeatureBinding],
 })
-export const RootBlock = RootComposition.assembleBlock({
-  init: RootComposition.makeInit(() => ({ model: {} })),
-  update: RootComposition.makeUpdate(),
-  view: RootComposition.makeView((model, h) =>
-    h.div([], [globalThis.String(model.feature.history.recordedSelections)]),
-  ),
-})
+const assembleRootBlock = () =>
+  RootComposition.assembleBlock({
+    init: RootComposition.makeInit(() => ({ model: {} })),
+    update: RootComposition.makeUpdate(),
+    view: RootComposition.makeView((model, h) =>
+      h.div([], [globalThis.String(model.feature.history.recordedSelections)]),
+    ),
+  })
+export const RootBlock: Block.FromAssemblyWithView<
+  typeof RootComposition.Model,
+  typeof assembleRootBlock
+> = Block.complete(assembleRootBlock)
 export const pendingProgram = Program.makeElement({
   block: RootBlock,
   container: null,

@@ -11,7 +11,7 @@ const DeclarationCanonicalConstructorChildComposition = Block.makeDefinition(
   'DeclarationCanonicalConstructorChild',
   { Model: ChildModel, Message: ChildMessage },
 ).makeComposition()
-export const ChildBlock =
+const assembleChildBlock = () =>
   DeclarationCanonicalConstructorChildComposition.assembleBlock({
     init: DeclarationCanonicalConstructorChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: 0 }),
@@ -22,6 +22,10 @@ export const ChildBlock =
       }),
     ),
   })
+export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 const ParentModel = Schema.Struct({ child: ChildModel })
 declare const PayloadWithUnknownDecodingServices: Schema.Codec<
   string,

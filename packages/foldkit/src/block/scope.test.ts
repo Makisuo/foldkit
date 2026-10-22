@@ -5,6 +5,7 @@ import { defineMessageUnion } from '../message/index.js'
 import { inspectBinding } from './binding.js'
 import { makeDefinition, makeNamespace } from './define.js'
 import { identityOf } from './identity.js'
+import * as Block from './public.js'
 import {
   invocationContext,
   qualifyCommand,
@@ -50,11 +51,16 @@ const makeFeature = (id: string, onConstruct: () => void = () => {}) => {
     model,
     commands: [ReadValue()],
   }))
-  const block = composition.assembleBlock({
-    init: () => ({ model: {} }),
-    update,
-    EffectsLayer: ReadValue.layer,
-  })
+  const assembleBlock = () =>
+    composition.assembleBlock({
+      init: () => ({ model: {} }),
+      update,
+      EffectsLayer: ReadValue.layer,
+    })
+  const block: Block.FromAssemblyWithoutViewOrOutMessage<
+    typeof composition.Model,
+    typeof assembleBlock
+  > = Block.complete(assembleBlock)
   const bind = (placement: string) =>
     ScopeParent.makeBinding(block, {
       placement,

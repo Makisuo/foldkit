@@ -56,7 +56,7 @@ export const view = ApplicationComposition.makeView((model, h) => ({
 }))
 
 // block.ts
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 
 import { ApplicationComposition } from './composition'
 import { init } from './init'
@@ -73,7 +73,7 @@ const assemble = () =>
 export const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)
 
 // entry.ts
 import { Program, Runtime } from 'foldkit'

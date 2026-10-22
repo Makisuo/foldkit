@@ -1,7 +1,7 @@
 import { Context, Effect, Layer, Schema } from 'effect'
 import { Block, Message as MessageModule, Struct } from 'foldkit'
 
-import { Store } from './from-assembly.accepted.js'
+import { type Assembled, Store } from './from-assembly.accepted.js'
 import type { Assert, Equal, SameMembers } from './from-assembly.assertions.js'
 
 export const createPicker = <Item, Encoded, DecodingServices, EncodingServices>(
@@ -75,11 +75,12 @@ export const createPicker = <Item, Encoded, DecodingServices, EncodingServices>(
       operations: { select: Message.RequestedSelect },
     })
 
-  const OriginalPickerBlock = assemblePickerBlock()
+  const OriginalPickerBlock: Assembled<typeof assemblePickerBlock> =
+    Block.complete(assemblePickerBlock)
   const PickerBlock: Block.FromAssemblyWithViewAndOutMessage<
     typeof Model,
     typeof assemblePickerBlock
-  > = assemblePickerBlock()
+  > = Block.complete(assemblePickerBlock)
   const originalToAnnotated: typeof PickerBlock = OriginalPickerBlock
   const annotatedToOriginal: typeof OriginalPickerBlock = PickerBlock
 

@@ -42,15 +42,20 @@ export const update = CommandsComposition.makeUpdate((model, message) =>
     CompletedSave: () => ({ model }),
   }),
 )
-export const CommandsBlock = CommandsComposition.assembleBlock({
-  init,
-  update,
-  view: CommandsComposition.makeView((_model, h) => ({
-    title: 'Commands',
-    body: h.div([]),
-  })),
-  EffectsLayer: Save.layer,
-})
+const assembleCommandsBlock = () =>
+  CommandsComposition.assembleBlock({
+    init,
+    update,
+    view: CommandsComposition.makeView((_model, h) => ({
+      title: 'Commands',
+      body: h.div([]),
+    })),
+    EffectsLayer: Save.layer,
+  })
+export const CommandsBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assembleCommandsBlock
+> = Block.complete(assembleCommandsBlock)
 export const program = Program.make({
   block: CommandsBlock,
   container: document.createElement('div'),
@@ -86,10 +91,15 @@ export const ChildComposition = Block.makeDefinition('CommandsStepChild', {
   Model,
   Message: Schema.Never,
 }).makeComposition()
-export const ChildBlock = ChildComposition.assembleBlock({
-  init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
-  update: ChildComposition.makeUpdate(),
-})
+const assembleChildBlock = () =>
+  ChildComposition.assembleBlock({
+    init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
+    update: ChildComposition.makeUpdate(),
+  })
+export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 export const ParentModel = Schema.Struct({ child: Model })
 export const ParentDefinition = Block.makeDefinition('CommandsStepParent', {
   Model: ParentModel,

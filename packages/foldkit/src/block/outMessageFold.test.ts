@@ -32,24 +32,29 @@ const ObserveSelection = FoldChildDefinition.makeCommand('ObserveSelection', {
   },
 })
 const FoldChildComposition = FoldChildDefinition.makeComposition()
-const ChildBlock = FoldChildComposition.assembleBlock({
-  init: () => ({ model: ChildModel.make({ count: 0 }) }),
-  update: FoldChildComposition.makeUpdate((model, message) =>
-    ChildMessage.match(message, {
-      RequestedSelect: ({ value }) => ({
-        model: modifyFields(model, { count: Number.increment }),
-        outMessage: ChildOutMessage.Selected({ value }),
+const assembleChildBlock = () =>
+  FoldChildComposition.assembleBlock({
+    init: () => ({ model: ChildModel.make({ count: 0 }) }),
+    update: FoldChildComposition.makeUpdate((model, message) =>
+      ChildMessage.match(message, {
+        RequestedSelect: ({ value }) => ({
+          model: modifyFields(model, { count: Number.increment }),
+          outMessage: ChildOutMessage.Selected({ value }),
+        }),
+        RequestedClose: () => ({ model, outMessage: ChildOutMessage.Closed() }),
+        CompletedObserveSelection: () => ({ model }),
       }),
-      RequestedClose: () => ({ model, outMessage: ChildOutMessage.Closed() }),
-      CompletedObserveSelection: () => ({ model }),
-    }),
-  ),
-  operations: {
-    requestSelect: ChildMessage.RequestedSelect,
-    requestClose: ChildMessage.RequestedClose,
-  },
-  EffectsLayer: ObserveSelection.layer,
-})
+    ),
+    operations: {
+      requestSelect: ChildMessage.RequestedSelect,
+      requestClose: ChildMessage.RequestedClose,
+    },
+    EffectsLayer: ObserveSelection.layer,
+  })
+const ChildBlock: Block.FromAssemblyWithOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 const Model = Schema.Struct({
   child: ChildBlock.Model,
@@ -191,12 +196,17 @@ it('retains Command requirements and derived parent OutMessages beside pure bran
       CompletedRecordChoice: () => ({ model }),
     }),
   )
-  const ParentBlock = FoldParentComposition.assembleBlock({
-    init: () => ({ model: initialModel }),
-    update,
-    operations: { requestSelect: Message.RequestedSelect },
-    EffectsLayer: RecordChoice.layer,
-  })
+  const assembleParentBlock = () =>
+    FoldParentComposition.assembleBlock({
+      init: () => ({ model: initialModel }),
+      update,
+      operations: { requestSelect: Message.RequestedSelect },
+      EffectsLayer: RecordChoice.layer,
+    })
+  const ParentBlock: Block.FromAssemblyWithOutMessage<
+    typeof Model,
+    typeof assembleParentBlock
+  > = Block.complete(assembleParentBlock)
   const selected = ParentBlock.operations.requestSelect(initialModel, {
     value: 'Pear',
   })
@@ -355,17 +365,22 @@ it('keeps sibling registration obligations when an exhaustive fold returns conne
   const FoldSiblingComposition = FoldParentDefinition.makeComposition({
     bindings: [ChildBinding, SiblingBinding],
   })
-  const ParentBlock = FoldSiblingComposition.assembleBlock({
-    init: () => ({ model: initialModel }),
-    update: FoldSiblingComposition.makeUpdate((model, message) =>
-      Message.match(message, {
-        RequestedSelect: ({ value }) =>
-          ChildBinding.requestSelect({ value })(model),
-        CompletedRecordChoice: () => ({ model }),
-      }),
-    ),
-    operations: { requestSelect: Message.RequestedSelect },
-  })
+  const assembleParentBlock = () =>
+    FoldSiblingComposition.assembleBlock({
+      init: () => ({ model: initialModel }),
+      update: FoldSiblingComposition.makeUpdate((model, message) =>
+        Message.match(message, {
+          RequestedSelect: ({ value }) =>
+            ChildBinding.requestSelect({ value })(model),
+          CompletedRecordChoice: () => ({ model }),
+        }),
+      ),
+      operations: { requestSelect: Message.RequestedSelect },
+    })
+  const ParentBlock: Block.FromAssemblyWithOutMessage<
+    typeof Model,
+    typeof assembleParentBlock
+  > = Block.complete(assembleParentBlock)
   const selected = ParentBlock.operations.requestSelect(initialModel, {
     value: 'Pear',
   })
@@ -452,17 +467,22 @@ it('executes an initialized sibling through an owned Step and retains its graph 
     FoldParentDefinition.makeComposition({
       bindings: [ChildBinding, SiblingBinding],
     })
-  const ParentBlock = FoldInitializedSiblingComposition.assembleBlock({
-    init: () => ({ model: initialModel }),
-    update: FoldInitializedSiblingComposition.makeUpdate((model, message) =>
-      Message.match(message, {
-        RequestedSelect: ({ value }) =>
-          ChildBinding.requestSelect({ value })(model),
-        CompletedRecordChoice: () => ({ model }),
-      }),
-    ),
-    operations: { requestSelect: Message.RequestedSelect },
-  })
+  const assembleParentBlock = () =>
+    FoldInitializedSiblingComposition.assembleBlock({
+      init: () => ({ model: initialModel }),
+      update: FoldInitializedSiblingComposition.makeUpdate((model, message) =>
+        Message.match(message, {
+          RequestedSelect: ({ value }) =>
+            ChildBinding.requestSelect({ value })(model),
+          CompletedRecordChoice: () => ({ model }),
+        }),
+      ),
+      operations: { requestSelect: Message.RequestedSelect },
+    })
+  const ParentBlock: Block.FromAssemblyWithOutMessage<
+    typeof Model,
+    typeof assembleParentBlock
+  > = Block.complete(assembleParentBlock)
   const selected = ParentBlock.operations.requestSelect(
     modifyFields(initialModel, {
       sibling: () => ChildModel.make({ count: 5 }),
@@ -574,20 +594,25 @@ it('keeps keyed parent policy explicit and ignores operations on removed instanc
     ],
     choice: 'Apple',
   })
-  const ParentBlock = FoldKeyedComposition.assembleBlock({
-    init: () => ({ model }),
-    update: FoldKeyedComposition.makeUpdate((model, message) =>
-      KeyedMessage.match(message, {
-        RequestedSelect: ({ id, value }) =>
-          InstancesBinding.requestSelect(id, { value })(model),
-        RequestedRemove: ({ id }) => InstancesBinding.requestClose(id)(model),
-      }),
-    ),
-    operations: {
-      requestSelect: KeyedMessage.RequestedSelect,
-      requestRemove: KeyedMessage.RequestedRemove,
-    },
-  })
+  const assembleParentBlock = () =>
+    FoldKeyedComposition.assembleBlock({
+      init: () => ({ model }),
+      update: FoldKeyedComposition.makeUpdate((model, message) =>
+        KeyedMessage.match(message, {
+          RequestedSelect: ({ id, value }) =>
+            InstancesBinding.requestSelect(id, { value })(model),
+          RequestedRemove: ({ id }) => InstancesBinding.requestClose(id)(model),
+        }),
+      ),
+      operations: {
+        requestSelect: KeyedMessage.RequestedSelect,
+        requestRemove: KeyedMessage.RequestedRemove,
+      },
+    })
+  const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+    typeof KeyedModel,
+    typeof assembleParentBlock
+  > = Block.complete(assembleParentBlock)
   const selected = ParentBlock.operations.requestSelect(model, {
     id: 'First',
     value: 'Pear',
@@ -736,10 +761,15 @@ it('selects immutable policies per Composition without changing the original Bin
     }),
   )
 
-  const AppleBlock = AppleComposition.assembleBlock({
-    init: () => ({ model: initialModel }),
-    update: appleUpdate,
-  })
+  const assembleAppleBlock = () =>
+    AppleComposition.assembleBlock({
+      init: () => ({ model: initialModel }),
+      update: appleUpdate,
+    })
+  const AppleBlock: Block.FromAssemblyWithOutMessage<
+    typeof Model,
+    typeof assembleAppleBlock
+  > = Block.complete(assembleAppleBlock)
   const ReusedComposition = FoldParentDefinition.makeComposition({
     bindings: AppleComposition.bindings,
   })
@@ -1028,12 +1058,17 @@ it('rejects helper authoring on a child without a tagged-union contract', () => 
     Message: ChildMessage,
     OutMessage: Schema.TaggedStruct('Closed', {}),
   }).makeComposition()
-  const PlainChildBlock = PlainChildComposition.assembleBlock({
-    init: PlainChildComposition.makeInit(() => ({
-      model: ChildModel.make({ count: 0 }),
-    })),
-    update: PlainChildComposition.makeUpdate(model => ({ model })),
-  })
+  const assemblePlainChildBlock = () =>
+    PlainChildComposition.assembleBlock({
+      init: PlainChildComposition.makeInit(() => ({
+        model: ChildModel.make({ count: 0 }),
+      })),
+      update: PlainChildComposition.makeUpdate(model => ({ model })),
+    })
+  const PlainChildBlock: Block.FromAssemblyWithOutMessage<
+    typeof ChildModel,
+    typeof assemblePlainChildBlock
+  > = Block.complete(assemblePlainChildBlock)
   const PlainChildBinding = FoldParentDefinition.makeBinding(PlainChildBlock, {
     field: 'child',
     init: false,

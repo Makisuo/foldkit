@@ -29,11 +29,13 @@ const themePickerUpdate = ThemePickerComposition.makeUpdate((model, message) =>
 const themePickerView = ThemePickerComposition.makeView((model, h) =>
   h.p([], [`Theme: ${model.theme}`]),
 )
-const ThemePickerBlock = ThemePickerComposition.assembleBlock({
-  init: themePickerInit,
-  update: themePickerUpdate,
-  view: themePickerView,
-})
+const assembleThemePicker = () =>
+  ThemePickerComposition.assembleBlock({
+    init: themePickerInit,
+    update: themePickerUpdate,
+    view: themePickerView,
+  })
+const ThemePickerBlock = Block.complete(assembleThemePicker)
 
 const ProfileModel = Schema.Struct({
   username: Schema.String,

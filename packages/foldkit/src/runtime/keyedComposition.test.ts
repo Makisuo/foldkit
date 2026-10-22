@@ -202,7 +202,11 @@ const itemImplementation = {
   managedResources,
   EffectsLayer: ItemEffectsLayer,
 }
-const itemBlock = item.assembleBlock(itemImplementation)
+const assembleItemBlock = () => item.assembleBlock(itemImplementation)
+const itemBlock: Block.FromAssemblyWithView<
+  typeof ItemModel,
+  typeof assembleItemBlock
+> = Block.complete(assembleItemBlock)
 
 const RootModel = Schema.Struct({ entries: Schema.Array(ItemModel) })
 const RootMessage = defineMessageUnion({
@@ -334,13 +338,20 @@ describe('keyed Block occurrences', () => {
     const container = document.createElement('div')
     container.id = 'memoized-keyed-composition'
     document.body.append(container)
-    const element = Program.makeElement({
-      block: root.assembleBlock({
+
+    const assemble = () =>
+      root.assembleBlock({
         init: rootInit,
         update: rootUpdate,
         view: rootView,
         EffectsLayer: Layer.empty,
-      }),
+      })
+    const completedBlock: Block.FromAssemblyWithView<
+      typeof RootModel,
+      typeof assemble
+    > = Block.complete(assemble)
+    const element = Program.makeElement({
+      block: completedBlock,
       container,
     })
     const provideControls = element.provide
@@ -433,13 +444,20 @@ describe('keyed Block occurrences', () => {
     const container = document.createElement('div')
     container.id = 'keyed-composition'
     document.body.append(container)
-    const application = Program.makeElement({
-      block: root.assembleBlock({
+
+    const assemble = () =>
+      root.assembleBlock({
         init: rootInit,
         update: rootUpdate,
         view: rootView,
         EffectsLayer: Layer.empty,
-      }),
+      })
+    const completedBlock: Block.FromAssemblyWithView<
+      typeof RootModel,
+      typeof assemble
+    > = Block.complete(assemble)
+    const application = Program.makeElement({
+      block: completedBlock,
       container,
     }).provide(Layer.succeed(TestControls, controls))
     const handle = embed(application)
@@ -536,13 +554,20 @@ describe('keyed Block occurrences', () => {
     const container = document.createElement('div')
     container.id = 'keyed-mount-barrier'
     document.body.append(container)
-    const application = Program.makeElement({
-      block: root.assembleBlock({
+
+    const assemble = () =>
+      root.assembleBlock({
         init: rootInit,
         update: rootUpdate,
         view: rootView,
         EffectsLayer: Layer.empty,
-      }),
+      })
+    const completedBlock: Block.FromAssemblyWithView<
+      typeof RootModel,
+      typeof assemble
+    > = Block.complete(assemble)
+    const application = Program.makeElement({
+      block: completedBlock,
       container,
     }).provide(Layer.succeed(TestControls, controls))
     const handle = embed(application)

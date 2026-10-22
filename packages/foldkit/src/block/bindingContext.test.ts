@@ -8,6 +8,7 @@ import type { RequirementOfBinding } from './binding.js'
 import { makeDefinition } from './define.js'
 import type { OutgoingMessageOfBinding } from './delivery.js'
 import type { BindingInitRecipe } from './initRecipe.js'
+import * as Block from './public.js'
 
 const CounterModel = Schema.Struct({ count: Schema.Number })
 const CounterMessage = defineMessageUnion({ ClickedReset: {} })
@@ -22,12 +23,19 @@ const reset = ResetCounter.makeStep(model => ({
   outMessage: CounterOutMessage.Reset(),
 }))
 const ResetCounterComposition = ResetCounter.makeComposition()
-const block = ResetCounterComposition.assembleBlock({
-  init: (count: number) => ({ model: CounterModel.make({ count }) }),
-  update: ResetCounterComposition.makeUpdate((model, _message) => reset(model)),
-  operations: { reset: () => Tuple.make(CounterMessage.ClickedReset()) },
-  EffectsLayer: Layer.empty,
-})
+const assembleBlock = () =>
+  ResetCounterComposition.assembleBlock({
+    init: (count: number) => ({ model: CounterModel.make({ count }) }),
+    update: ResetCounterComposition.makeUpdate((model, _message) =>
+      reset(model),
+    ),
+    operations: { reset: () => Tuple.make(CounterMessage.ClickedReset()) },
+    EffectsLayer: Layer.empty,
+  })
+const block: Block.FromAssemblyWithOutMessage<
+  typeof CounterModel,
+  typeof assembleBlock
+> = Block.complete(assembleBlock)
 const Model = Schema.Struct({
   counter: CounterModel,
   entries: Schema.Array(
@@ -149,26 +157,31 @@ const multiply = SequencedCounter.makeStep((model, factor: number) => ({
   model: modifyFields(model, { count: count => count * factor }),
 }))
 const SequencedCounterComposition = SequencedCounter.makeComposition()
-const sequencedCounterBlock = SequencedCounterComposition.assembleBlock({
-  init: (count: number) => ({ model: { count } }),
-  update: SequencedCounterComposition.makeUpdate((model, message) =>
-    SequencedCounterMessage.match(message, {
-      RequestedAdd: ({ amount }) => add(model, amount),
-      RequestedRecord: () => record(model),
-      RequestedMultiply: ({ factor }) => multiply(model, factor),
-      CompletedRecordCount: () => ({ model }),
-    }),
-  ),
-  operations: {
-    add: (amount: number) =>
-      Tuple.make(SequencedCounterMessage.RequestedAdd({ amount })),
-    record: () => Tuple.make(SequencedCounterMessage.RequestedRecord()),
-    multiply: (factor: number) =>
-      Tuple.make(SequencedCounterMessage.RequestedMultiply({ factor })),
-  },
-  EffectsLayer: Layer.empty,
-  hostHandlers: [RecordCount],
-})
+const assembleSequencedCounterBlock = () =>
+  SequencedCounterComposition.assembleBlock({
+    init: (count: number) => ({ model: { count } }),
+    update: SequencedCounterComposition.makeUpdate((model, message) =>
+      SequencedCounterMessage.match(message, {
+        RequestedAdd: ({ amount }) => add(model, amount),
+        RequestedRecord: () => record(model),
+        RequestedMultiply: ({ factor }) => multiply(model, factor),
+        CompletedRecordCount: () => ({ model }),
+      }),
+    ),
+    operations: {
+      add: (amount: number) =>
+        Tuple.make(SequencedCounterMessage.RequestedAdd({ amount })),
+      record: () => Tuple.make(SequencedCounterMessage.RequestedRecord()),
+      multiply: (factor: number) =>
+        Tuple.make(SequencedCounterMessage.RequestedMultiply({ factor })),
+    },
+    EffectsLayer: Layer.empty,
+    hostHandlers: [RecordCount],
+  })
+const sequencedCounterBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof SequencedCounterModel,
+  typeof assembleSequencedCounterBlock
+> = Block.complete(assembleSequencedCounterBlock)
 const SequencedParentModel = Schema.Struct({ child: SequencedCounterModel })
 const SequencedParentMessage = defineMessageUnion({
   RequestedSequence: {},
@@ -314,31 +327,41 @@ if (false) {
 const StaticComposition = Parent.makeComposition({
   bindings: [BoundCounterBinding, EntriesBinding],
 })
-const staticParent = StaticComposition.assembleBlock({
-  init: () => ({ model: initialModel }),
-  update: StaticComposition.makeUpdate((model, message) =>
-    Message.match(message, {
-      RequestedResetCounter: () => BoundCounterBinding.reset()(model),
-      RequestedResetEntry: () => ({ model }),
-    }),
-  ),
-  operations: { reset: () => Tuple.make(Message.RequestedResetCounter()) },
-})
+const assembleStaticParent = () =>
+  StaticComposition.assembleBlock({
+    init: () => ({ model: initialModel }),
+    update: StaticComposition.makeUpdate((model, message) =>
+      Message.match(message, {
+        RequestedResetCounter: () => BoundCounterBinding.reset()(model),
+        RequestedResetEntry: () => ({ model }),
+      }),
+    ),
+    operations: { reset: () => Tuple.make(Message.RequestedResetCounter()) },
+  })
+const staticParent: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof assembleStaticParent
+> = Block.complete(assembleStaticParent)
 const KeyedComposition = Parent.makeComposition({
   bindings: [BoundCounterBinding, EntriesBinding],
 })
-const keyedParent = KeyedComposition.assembleBlock({
-  init: () => ({ model: initialModel }),
-  update: KeyedComposition.makeUpdate((model, message) =>
-    Message.match(message, {
-      RequestedResetCounter: () => ({ model }),
-      RequestedResetEntry: ({ id }) => EntriesBinding.reset(id)(model),
-    }),
-  ),
-  operations: {
-    reset: (id: number) => Tuple.make(Message.RequestedResetEntry({ id })),
-  },
-})
+const assembleKeyedParent = () =>
+  KeyedComposition.assembleBlock({
+    init: () => ({ model: initialModel }),
+    update: KeyedComposition.makeUpdate((model, message) =>
+      Message.match(message, {
+        RequestedResetCounter: () => ({ model }),
+        RequestedResetEntry: ({ id }) => EntriesBinding.reset(id)(model),
+      }),
+    ),
+    operations: {
+      reset: (id: number) => Tuple.make(Message.RequestedResetEntry({ id })),
+    },
+  })
+const keyedParent: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof assembleKeyedParent
+> = Block.complete(assembleKeyedParent)
 
 describe('bound OutMessage context', () => {
   it('preserves the previous parent Model for static folds and exposed operations', () => {

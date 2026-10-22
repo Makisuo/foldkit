@@ -86,16 +86,21 @@ const view = PopoverSiblingRuntimeTestComposition.makeView((model, h) =>
   ),
 )
 
-const ApplicationBlock = PopoverSiblingRuntimeTestComposition.assembleBlock({
-  init: PopoverSiblingRuntimeTestComposition.makeInit(() =>
-    PopoverBinding.init({
-      args: [{ id: popoverId }],
-      toParentModel: popover => ({ popover, isBadgeShown: false }),
-    }),
-  ),
-  update,
-  view,
-})
+const assemble = () =>
+  PopoverSiblingRuntimeTestComposition.assembleBlock({
+    init: PopoverSiblingRuntimeTestComposition.makeInit(() =>
+      PopoverBinding.init({
+        args: [{ id: popoverId }],
+        toParentModel: popover => ({ popover, isBadgeShown: false }),
+      }),
+    ),
+    update,
+    view,
+  })
+const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assemble
+> = Block.complete(assemble)
 
 describe('Popover with a portaled panel', () => {
   afterEach(() => {

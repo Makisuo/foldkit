@@ -6,6 +6,7 @@ import { modifyFields } from '../struct/index.js'
 import { runtimeBindingOf } from './composition.js'
 import { makeDefinition } from './define.js'
 import type { InitialEvidenceOfBinding } from './initialization.js'
+import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 type ChildModel = typeof ChildModel.Type
@@ -18,18 +19,23 @@ const ChildComposition = makeDefinition('BindingInitChild', {
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const ChildBlock = ChildComposition.assembleBlock({
-  init: ChildComposition.makeInit((config: Readonly<{ count: number }>) => ({
-    model: ChildModel.make({ count: config.count }),
-  })),
-  update: ChildComposition.makeUpdate((model, message) =>
-    ChildMessage.match(message, {
-      UpdatedCount: ({ count }) => ({
-        model: modifyFields(model, { count: () => count }),
+const assembleChildBlock = () =>
+  ChildComposition.assembleBlock({
+    init: ChildComposition.makeInit((config: Readonly<{ count: number }>) => ({
+      model: ChildModel.make({ count: config.count }),
+    })),
+    update: ChildComposition.makeUpdate((model, message) =>
+      ChildMessage.match(message, {
+        UpdatedCount: ({ count }) => ({
+          model: modifyFields(model, { count: () => count }),
+        }),
       }),
-    }),
-  ),
-})
+    ),
+  })
+const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 const ParentModel = Schema.Struct({
   first: ChildModel,

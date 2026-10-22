@@ -4,6 +4,7 @@ import { expect, it, vi } from 'vitest'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import { makeDefinition } from './define.js'
+import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 const ChildMessage = defineMessageUnion({
@@ -21,16 +22,21 @@ const Read = Child.makeCommand('Read', {
 })
 const initialized = vi.fn()
 const ChildComposition = Child.makeComposition()
-const child = ChildComposition.assembleBlock({
-  init: ChildComposition.makeInit(() => {
-    initialized()
-    return { model: { count: 0 }, commands: [Read()] }
-  }),
-  update: ChildComposition.makeUpdate((model, { value }) => ({
-    model: modifyFields(model, { count: () => value }),
-  })),
-  EffectsLayer: Read.layer,
-})
+const assembleChild = () =>
+  ChildComposition.assembleBlock({
+    init: ChildComposition.makeInit(() => {
+      initialized()
+      return { model: { count: 0 }, commands: [Read()] }
+    }),
+    update: ChildComposition.makeUpdate((model, { value }) => ({
+      model: modifyFields(model, { count: () => value }),
+    })),
+    EffectsLayer: Read.layer,
+  })
+const child: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChild
+> = Block.complete(assembleChild)
 const Model = Schema.Struct({
   entries: Schema.Array(
     Schema.Struct({ id: Schema.Number, child: ChildModel }),
@@ -57,10 +63,15 @@ it('uses one zero identity for connected initialization and later dispatch', asy
       toParentModel: child => Model.make({ entries: [{ id: 0, child }] }),
     }),
   )
-  const parent = ParentComposition.assembleBlock({
-    init,
-    update: ParentComposition.makeUpdate(),
-  })
+  const assembleParent = () =>
+    ParentComposition.assembleBlock({
+      init,
+      update: ParentComposition.makeUpdate(),
+    })
+  const parent: Block.FromAssemblyWithoutViewOrOutMessage<
+    typeof Model,
+    typeof assembleParent
+  > = Block.complete(assembleParent)
   const parentInit = init()
   const command = Option.getOrThrow(Array.head(parentInit.commands ?? []))
   const completed = await Effect.runPromise(

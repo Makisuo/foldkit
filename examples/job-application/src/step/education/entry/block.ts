@@ -1,4 +1,4 @@
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 
 import { EducationEntryComposition } from './composition'
 import type { Model } from './definition'
@@ -17,4 +17,4 @@ const assemble = () =>
 export const EducationEntryBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

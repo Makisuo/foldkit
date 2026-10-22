@@ -102,4 +102,4 @@ const assemble = () =>
 export const CoverLetterBlock: Block.FromAssemblyWithView<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

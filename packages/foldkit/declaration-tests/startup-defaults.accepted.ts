@@ -40,7 +40,7 @@ const FailChildConstructionLayer = FailConstruction.toLayer<
 >(Effect.fail<'StartupUnavailable'>('StartupUnavailable'))
 const DeclarationStartupDefaultChildComposition =
   DeclarationStartupDefaultChildDefinition.makeComposition()
-export const ChildBlock =
+const assembleChildBlock = () =>
   DeclarationStartupDefaultChildComposition.assembleBlock({
     init: DeclarationStartupDefaultChildComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
@@ -56,6 +56,10 @@ export const ChildBlock =
       FailChildConstructionLayer,
     ),
   })
+export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 const DeclarationStartupDefaultArgumentChildComposition = Block.makeDefinition(
   'DeclarationStartupDefaultArgumentChild',
@@ -64,7 +68,7 @@ const DeclarationStartupDefaultArgumentChildComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-export const DefaultChildBlock =
+const assembleDefaultChildBlock = () =>
   DeclarationStartupDefaultArgumentChildComposition.assembleBlock({
     init: DeclarationStartupDefaultArgumentChildComposition.makeInit(
       (count = 1) => ({
@@ -77,6 +81,10 @@ export const DefaultChildBlock =
       }),
     ),
   })
+export const DefaultChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleDefaultChildBlock
+> = Block.complete(assembleDefaultChildBlock)
 
 const DeclarationStartupOptionalArgumentChildComposition = Block.makeDefinition(
   'DeclarationStartupOptionalArgumentChild',
@@ -85,7 +93,7 @@ const DeclarationStartupOptionalArgumentChildComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-export const OptionalChildBlock =
+const assembleOptionalChildBlock = () =>
   DeclarationStartupOptionalArgumentChildComposition.assembleBlock({
     init: DeclarationStartupOptionalArgumentChildComposition.makeInit(
       (count?: number) => ({
@@ -96,6 +104,10 @@ export const OptionalChildBlock =
       model => ({ model }),
     ),
   })
+export const OptionalChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleOptionalChildBlock
+> = Block.complete(assembleOptionalChildBlock)
 
 const DeclarationStartupRequiredRestChildComposition = Block.makeDefinition(
   'DeclarationStartupRequiredRestChild',
@@ -104,7 +116,7 @@ const DeclarationStartupRequiredRestChildComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-export const RestChildBlock =
+const assembleRestChildBlock = () =>
   DeclarationStartupRequiredRestChildComposition.assembleBlock({
     init: DeclarationStartupRequiredRestChildComposition.makeInit(
       (first: number, ...rest: Array<number>) => ({
@@ -117,6 +129,10 @@ export const RestChildBlock =
       }),
     ),
   })
+export const RestChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleRestChildBlock
+> = Block.complete(assembleRestChildBlock)
 
 const DeclarationStartupRequiredChildComposition = Block.makeDefinition(
   'DeclarationStartupRequiredChild',
@@ -125,7 +141,7 @@ const DeclarationStartupRequiredChildComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-export const RequiredChildBlock =
+const assembleRequiredChildBlock = () =>
   DeclarationStartupRequiredChildComposition.assembleBlock({
     init: DeclarationStartupRequiredChildComposition.makeInit(
       (count: number) => ({
@@ -136,6 +152,10 @@ export const RequiredChildBlock =
       model,
     })),
   })
+export const RequiredChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleRequiredChildBlock
+> = Block.complete(assembleRequiredChildBlock)
 
 export const Entry = Schema.Struct({ id: Schema.String, child: ChildModel })
 export const ChildInitContext = Schema.Struct({
@@ -258,7 +278,7 @@ export const initialize = DeclarationStartupDefaultsParentComposition.makeInit(
     steps: [applyParentStep],
   }),
 )
-export const ParentBlock =
+const assembleParentBlock = () =>
   DeclarationStartupDefaultsParentComposition.assembleBlock({
     init: initialize,
     update: DeclarationStartupDefaultsParentComposition.makeUpdate(model => ({
@@ -269,6 +289,10 @@ export const ParentBlock =
       FinishStep.layer,
     ),
   })
+export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ParentModel,
+  typeof assembleParentBlock
+> = Block.complete(assembleParentBlock)
 
 const SingleChildParentMessage = Schema.Never
 

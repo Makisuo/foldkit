@@ -15,7 +15,7 @@ const BindingMessagePolicyContextChildComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-export const ContextChildBlock =
+const assembleContextChildBlock = () =>
   BindingMessagePolicyContextChildComposition.assembleBlock({
     init: BindingMessagePolicyContextChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: '' }),
@@ -24,6 +24,10 @@ export const ContextChildBlock =
       (model, _message, _context: DispatchContext) => ({ model }),
     ),
   })
+export const ContextChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleContextChildBlock
+> = Block.complete(assembleContextChildBlock)
 
 const BindingMessagePolicySilentChildComposition = Block.makeDefinition(
   'BindingMessagePolicySilentChild',
@@ -32,13 +36,17 @@ const BindingMessagePolicySilentChildComposition = Block.makeDefinition(
     Message: Schema.Never,
   },
 ).makeComposition()
-export const SilentChildBlock =
+const assembleSilentChildBlock = () =>
   BindingMessagePolicySilentChildComposition.assembleBlock({
     init: BindingMessagePolicySilentChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: '' }),
     })),
     update: BindingMessagePolicySilentChildComposition.makeUpdate(),
   })
+export const SilentChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleSilentChildBlock
+> = Block.complete(assembleSilentChildBlock)
 
 export const Entry = Schema.Struct({
   id: Schema.String,

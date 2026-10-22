@@ -8,6 +8,7 @@ import {
 import { runtimeBindingOf } from '../block/composition.js'
 import { makeNamespace } from '../block/define.js'
 import { CurrentInstance } from '../block/instanceContext.js'
+import * as Block from '../block/public.js'
 import {
   invocationContext,
   qualifyCommand,
@@ -85,16 +86,21 @@ const childManagedResources = ChildDefinition.makeManagedResources(entry => ({
   }),
 }))
 const childComposition = ChildDefinition.makeComposition()
-const childBlock = childComposition.assembleBlock({
-  init: (id: number) => ({ model: { id } }),
-  update: childComposition.makeUpdate(model => ({ model })),
-  subscriptions,
-  managedResources: childManagedResources,
-  EffectsLayer: Layer.merge(
-    subscriptions.pulses.layer,
-    childManagedResources.value.layer,
-  ),
-})
+const assembleChildBlock = () =>
+  childComposition.assembleBlock({
+    init: (id: number) => ({ model: { id } }),
+    update: childComposition.makeUpdate(model => ({ model })),
+    subscriptions,
+    managedResources: childManagedResources,
+    EffectsLayer: Layer.merge(
+      subscriptions.pulses.layer,
+      childManagedResources.value.layer,
+    ),
+  })
+const childBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 const RootNamespace = makeNamespace('LifecycleApp')
 const RootValue = RootNamespace.makeResource<string>()('Value')
 const RootModel = Schema.Struct({
@@ -151,12 +157,17 @@ const initialModel = RootModel.make({
   entries: [],
   subscriptionState: 'Active',
 })
-const block = root.assembleBlock({
-  init: () => ({ model: initialModel }),
-  update: root.makeUpdate(model => ({ model })),
-  managedResources: rootManagedResources,
-  EffectsLayer: rootManagedResources.value.layer,
-})
+const assembleBlock = () =>
+  root.assembleBlock({
+    init: () => ({ model: initialModel }),
+    update: root.makeUpdate(model => ({ model })),
+    managedResources: rootManagedResources,
+    EffectsLayer: rootManagedResources.value.layer,
+  })
+const block: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof RootModel,
+  typeof assembleBlock
+> = Block.complete(assembleBlock)
 
 const NestedParentNamespace = makeNamespace('NestedLifecycleParent')
 const NestedParentModel = Schema.Struct({
@@ -186,13 +197,18 @@ const NestedEntriesBinding = NestedParentBaseDefinition.makeBinding(
 const nestedParent = NestedParentBaseDefinition.makeComposition({
   bindings: [NestedEntriesBinding],
 })
-const nestedParentBlock = nestedParent.assembleBlock({
-  init: (id: number, entries: ReadonlyArray<typeof ChildModel.Type>) => ({
-    model: { id, entries },
-  }),
-  update: nestedParent.makeUpdate(),
-  EffectsLayer: Layer.empty,
-})
+const assembleNestedParentBlock = () =>
+  nestedParent.assembleBlock({
+    init: (id: number, entries: ReadonlyArray<typeof ChildModel.Type>) => ({
+      model: { id, entries },
+    }),
+    update: nestedParent.makeUpdate(),
+    EffectsLayer: Layer.empty,
+  })
+const nestedParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof NestedParentModel,
+  typeof assembleNestedParentBlock
+> = Block.complete(assembleNestedParentBlock)
 const NestedRootNamespace = makeNamespace('NestedLifecycleApp')
 const NestedRootModel = Schema.Struct({
   parents: Schema.Array(NestedParentModel),
@@ -223,11 +239,16 @@ const nestedRoot = NestedRootBaseDefinition.makeComposition({
 const nestedInitialModel = NestedRootModel.make({
   parents: [{ id: 1, entries: [{ id: 10 }] }],
 })
-const nestedBlock = nestedRoot.assembleBlock({
-  init: () => ({ model: nestedInitialModel }),
-  update: nestedRoot.makeUpdate(),
-  EffectsLayer: Layer.empty,
-})
+const assembleNestedBlock = () =>
+  nestedRoot.assembleBlock({
+    init: () => ({ model: nestedInitialModel }),
+    update: nestedRoot.makeUpdate(),
+    EffectsLayer: Layer.empty,
+  })
+const nestedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof NestedRootModel,
+  typeof assembleNestedBlock
+> = Block.complete(assembleNestedBlock)
 
 registerGeneratedDelivery(
   OptionalChildBinding,

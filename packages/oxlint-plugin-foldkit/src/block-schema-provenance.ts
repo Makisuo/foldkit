@@ -21,6 +21,7 @@ type Stage =
   | 'Namespace'
   | 'Definition'
   | 'Composition'
+  | 'Assembly'
   | 'Completed'
   | 'Producer'
   | 'CheckedCompleted'
@@ -30,6 +31,11 @@ type SourceExpression =
   | Readonly<{ kind: 'Widened'; value: SourceExpression }>
   | Readonly<{ kind: 'Producer'; body: SourceExpression; plain: boolean }>
   | Readonly<{ kind: 'Invoke'; producer: SourceExpression }>
+  | Readonly<{
+      kind: 'Complete'
+      receiver: SourceExpression
+      producer: SourceExpression
+    }>
   | Readonly<{
       kind: 'Boundary'
       value: SourceExpression
@@ -82,7 +88,7 @@ const nextStage = (
     return 'Composition'
   }
   if (stage === 'Composition' && method === 'assembleBlock') {
-    return 'Completed'
+    return 'Assembly'
   }
   return undefined
 }
@@ -168,15 +174,22 @@ const isPlainProducer = (node: unknown): boolean => {
 const boundaryAnnotation = (
   identifier: unknown,
   init: unknown,
-): Readonly<{ helper: unknown; model: unknown }> | undefined => {
+):
+  | Readonly<{ helper: unknown; model: unknown; producer: unknown }>
+  | undefined => {
   if (
     !isSyntaxNode(identifier) ||
     identifier.type !== 'Identifier' ||
     !isCallExpression(init) ||
-    !isIdentifierReference(init.callee) ||
-    init.arguments.length !== 0 ||
+    !isMemberExpression(init.callee) ||
+    !Option.contains(staticMemberName(init.callee), 'complete') ||
+    init.arguments.length !== 1 ||
     (init.typeArguments !== undefined && init.typeArguments !== null)
   ) {
+    return undefined
+  }
+  const completionProducer = Option.getOrUndefined(Array.head(init.arguments))
+  if (!isIdentifierReference(completionProducer)) {
     return undefined
   }
   const annotation = identifier.typeAnnotation?.typeAnnotation
@@ -193,8 +206,12 @@ const boundaryAnnotation = (
     (model.typeArguments === undefined || model.typeArguments === null) &&
     (producer.typeArguments === undefined || producer.typeArguments === null) &&
     isIdentifierReference(producer.exprName) &&
-    producer.exprName.name === init.callee.name
-    ? { helper: annotation.typeName, model: model.exprName }
+    producer.exprName.name === completionProducer.name
+    ? {
+        helper: annotation.typeName,
+        model: model.exprName,
+        producer: completionProducer,
+      }
     : undefined
 }
 
@@ -240,6 +257,17 @@ const sourceExpression = (input: unknown): SourceExpression | undefined => {
   if (isCallExpression(node) && isMemberExpression(node.callee)) {
     const receiver = sourceExpression(node.callee.object)
     const method = Option.getOrUndefined(staticMemberName(node.callee))
+    const producer = Option.getOrUndefined(Array.head(node.arguments))
+    if (
+      method === 'complete' &&
+      node.arguments.length === 1 &&
+      receiver !== undefined
+    ) {
+      const producerExpression = sourceExpression(producer)
+      return producerExpression === undefined
+        ? undefined
+        : { kind: 'Complete', receiver, producer: producerExpression }
+    }
     return receiver === undefined || method === undefined
       ? undefined
       : { kind: 'Call', receiver, method }
@@ -485,12 +513,17 @@ export const makeCompletedBlockProvenance = (
       return stage === 'CheckedCompleted' ? 'Completed' : stage
     }
     if (expression.kind === 'Producer') {
-      return sourceStage(file, expression.body, visited) === 'Completed'
+      return sourceStage(file, expression.body, visited) === 'Assembly'
         ? 'Producer'
         : undefined
     }
     if (expression.kind === 'Invoke') {
       return sourceStage(file, expression.producer, visited) === 'Producer'
+        ? 'Assembly'
+        : undefined
+    }
+    if (expression.kind === 'Complete') {
+      return sourceStage(file, expression.receiver, visited) === 'Block'
         ? 'Completed'
         : undefined
     }
@@ -499,19 +532,21 @@ export const makeCompletedBlockProvenance = (
       const [name, ...members] = expression.helper
       const imported =
         name === undefined ? undefined : moduleAt(file).imports.get(name)
+      const completion =
+        expression.value.kind === 'Complete' ? expression.value : undefined
+      const completionProducer = completion?.producer
       const producer =
-        expression.value.kind === 'Invoke' &&
-        expression.value.producer.kind === 'Path' &&
-        expression.value.producer.names.length === 1
+        completionProducer?.kind === 'Path' &&
+        completionProducer.names.length === 1
           ? moduleAt(file).values.get(
-              Option.getOrUndefined(
-                Array.head(expression.value.producer.names),
-              ) ?? '',
+              Option.getOrUndefined(Array.head(completionProducer.names)) ?? '',
             )
           : undefined
       return stage === 'Completed' &&
+        completionProducer !== undefined &&
         producer?.kind === 'Producer' &&
         producer.plain &&
+        sourceStage(file, completionProducer, visited) === 'Producer' &&
         !sourceModelDependency(file, expression.model, visited) &&
         imported !== undefined &&
         isBoundaryHelper(imported.source, [...imported.names, ...members])
@@ -745,13 +780,11 @@ export const makeCompletedBlockProvenance = (
         isMemberExpression(body.callee) &&
         Option.contains(staticMemberName(body.callee), 'assembleBlock')
       ) {
-        return localStage(body, visited) === 'Completed'
-          ? 'Producer'
-          : undefined
+        return localStage(body, visited) === 'Assembly' ? 'Producer' : undefined
       }
       if (isCallExpression(node) && isIdentifierReference(node.callee)) {
         return localStage(node.callee, visited) === 'Producer'
-          ? 'Completed'
+          ? 'Assembly'
           : undefined
       }
     }
@@ -761,6 +794,11 @@ export const makeCompletedBlockProvenance = (
       isMemberExpression(node.callee)
     ) {
       const method = Option.getOrUndefined(staticMemberName(node.callee))
+      if (method === 'complete' && node.arguments.length === 1) {
+        return localStage(node.callee.object, visited) === 'Block'
+          ? 'Completed'
+          : undefined
+      }
       return method === undefined
         ? undefined
         : nextStage(localStage(node.callee.object, visited), method)
@@ -804,11 +842,9 @@ export const makeCompletedBlockProvenance = (
           definition.node.init,
         )
         const importedHelper = resolveImportedPath(references, helper?.helper)
-        const init = definition.node.init
-        const producerVariable =
-          isCallExpression(init) && isIdentifierReference(init.callee)
-            ? resolvedVariable(references, init.callee)
-            : Option.none<Variable>()
+        const producerVariable = isIdentifierReference(helper?.producer)
+          ? resolvedVariable(references, helper.producer)
+          : Option.none<Variable>()
         const plainProducer = Option.exists(producerVariable, producer =>
           producer.defs.some(definition => {
             if (
@@ -822,12 +858,14 @@ export const makeCompletedBlockProvenance = (
             return isPlainProducer(definition.node.init)
           }),
         )
+        const actualProducer = localStage(helper?.producer) === 'Producer'
         const preservedStage =
           stage === 'CheckedCompleted' && hasAnnotation(definition.node.id)
             ? 'Completed'
             : stage
         return stage === 'Completed' &&
           plainProducer &&
+          actualProducer &&
           !localModelDependency(helper?.model) &&
           Array.isReadonlyArrayEmpty(members) &&
           Option.exists(importedHelper, path =>

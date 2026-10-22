@@ -19,6 +19,7 @@ import type {
 import { modifyFields } from '../struct/index.js'
 import { inspectBinding } from './binding.js'
 import { makeDefinition } from './define.js'
+import * as Block from './public.js'
 
 const CounterModel = Schema.Struct({ count: Schema.Number })
 const StoredCounterModel = Schema.Struct({ count: Schema.Number })
@@ -43,24 +44,29 @@ const setCount = Counter.makeStep((model, count: number) => ({
   model: modifyFields(model, { count: () => count }),
 }))
 const CounterComposition = Counter.makeComposition()
-const counterBlock = CounterComposition.assembleBlock({
-  init: CounterComposition.makeInit((count: number) => ({
-    model: CounterModel.make({ count }),
-    commands: [FinishInitialization({ count })],
-  })),
-  update: CounterComposition.makeUpdate((model, message) =>
-    CounterMessage.match(message, {
-      RequestedSetCount: ({ count }) => setCount(model, count),
-      UpdatedCount: ({ count }) => setCount(model, count),
-      CompletedFinishInitialization: ({ count }) => setCount(model, count),
-    }),
-  ),
-  operations: {
-    setCount: (count: number) =>
-      Tuple.make(CounterMessage.RequestedSetCount({ count })),
-  },
-  EffectsLayer: FinishInitialization.layer,
-})
+const assembleCounterBlock = () =>
+  CounterComposition.assembleBlock({
+    init: CounterComposition.makeInit((count: number) => ({
+      model: CounterModel.make({ count }),
+      commands: [FinishInitialization({ count })],
+    })),
+    update: CounterComposition.makeUpdate((model, message) =>
+      CounterMessage.match(message, {
+        RequestedSetCount: ({ count }) => setCount(model, count),
+        UpdatedCount: ({ count }) => setCount(model, count),
+        CompletedFinishInitialization: ({ count }) => setCount(model, count),
+      }),
+    ),
+    operations: {
+      setCount: (count: number) =>
+        Tuple.make(CounterMessage.RequestedSetCount({ count })),
+    },
+    EffectsLayer: FinishInitialization.layer,
+  })
+const counterBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof CounterModel,
+  typeof assembleCounterBlock
+> = Block.complete(assembleCounterBlock)
 
 const CounterEntry = Schema.Struct({
   id: Schema.String,
@@ -76,10 +82,17 @@ const TextComposition = makeDefinition('WrappedKeyedFieldText', {
   Model: Schema.String,
   Message: TextMessage,
 }).makeComposition()
-const textBlock = TextComposition.assembleBlock({
-  init: TextComposition.makeInit((value: string) => ({ model: value })),
-  update: TextComposition.makeUpdate((_model, { value }) => ({ model: value })),
-})
+const assembleTextBlock = () =>
+  TextComposition.assembleBlock({
+    init: TextComposition.makeInit((value: string) => ({ model: value })),
+    update: TextComposition.makeUpdate((_model, { value }) => ({
+      model: value,
+    })),
+  })
+const textBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Schema.String,
+  typeof assembleTextBlock
+> = Block.complete(assembleTextBlock)
 const TextEntry = Schema.Struct({
   id: Schema.String,
   text: Schema.String,
@@ -116,21 +129,26 @@ const TextEntriesBinding = Parent.makeBinding(textBlock, {
 const ParentComposition = Parent.makeComposition({
   bindings: [CountersBinding, TextEntriesBinding],
 })
-const ParentBlock = ParentComposition.assembleBlock({
-  init: ParentComposition.makeInit(() => ({
-    model: ParentModel.make({ counters: [], textEntries: [] }),
-  })),
-  update: ParentComposition.makeUpdate((model, message) =>
-    ParentMessage.match(message, {
-      RequestedSetCount: ({ id, count }) =>
-        CountersBinding.setCount(id, count)(model),
-    }),
-  ),
-  operations: {
-    setCount: (id: string, count: number) =>
-      Tuple.make(ParentMessage.RequestedSetCount({ id, count })),
-  },
-})
+const assembleParentBlock = () =>
+  ParentComposition.assembleBlock({
+    init: ParentComposition.makeInit(() => ({
+      model: ParentModel.make({ counters: [], textEntries: [] }),
+    })),
+    update: ParentComposition.makeUpdate((model, message) =>
+      ParentMessage.match(message, {
+        RequestedSetCount: ({ id, count }) =>
+          CountersBinding.setCount(id, count)(model),
+      }),
+    ),
+    operations: {
+      setCount: (id: string, count: number) =>
+        Tuple.make(ParentMessage.RequestedSetCount({ id, count })),
+    },
+  })
+const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ParentModel,
+  typeof assembleParentBlock
+> = Block.complete(assembleParentBlock)
 const noSlowSubscriptionDependencies: Option.Option<
   ResolvedSlowPhaseConfig<SlowSubscriptionDependenciesContext<ParentModel>>
 > = Option.none()

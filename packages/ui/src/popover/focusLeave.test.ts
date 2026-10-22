@@ -68,9 +68,9 @@ const view = PopoverFocusLeaveTestComposition.makeView((model, h) =>
   ),
 )
 
-const makeProgram = (container: HTMLElement) =>
-  Program.makeElement({
-    block: PopoverFocusLeaveTestComposition.assembleBlock({
+const makeProgram = (container: HTMLElement) => {
+  const assemble = () =>
+    PopoverFocusLeaveTestComposition.assembleBlock({
       init: PopoverFocusLeaveTestComposition.makeInit(() =>
         PopoverBinding.init({
           args: [{ id: 'sort' }],
@@ -79,9 +79,15 @@ const makeProgram = (container: HTMLElement) =>
       ),
       update: PopoverFocusLeaveTestComposition.makeUpdate(),
       view,
-    }),
+    })
+  const block: Block.FromAssemblyWithView<typeof Model, typeof assemble> =
+    Block.complete(assemble)
+
+  return Program.makeElement({
+    block,
     container,
   })
+}
 
 const requireElement = (id: string): HTMLElement => {
   const element = document.getElementById(id)

@@ -383,4 +383,4 @@ const assemble = () =>
 export const TooltipBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

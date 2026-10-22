@@ -50,16 +50,21 @@ const view = MenuTriggerClickTestComposition.makeView((model, h) =>
     ],
   ),
 )
-const ApplicationBlock = MenuTriggerClickTestComposition.assembleBlock({
-  init: MenuTriggerClickTestComposition.makeInit(() =>
-    MenuBinding.init({
-      args: [{ id: 'actions', isModal: true }],
-      toParentModel: menu => ({ menu }),
-    }),
-  ),
-  update: MenuTriggerClickTestComposition.makeUpdate(),
-  view,
-})
+const assemble = () =>
+  MenuTriggerClickTestComposition.assembleBlock({
+    init: MenuTriggerClickTestComposition.makeInit(() =>
+      MenuBinding.init({
+        args: [{ id: 'actions', isModal: true }],
+        toParentModel: menu => ({ menu }),
+      }),
+    ),
+    update: MenuTriggerClickTestComposition.makeUpdate(),
+    view,
+  })
+const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assemble
+> = Block.complete(assemble)
 
 const requireElement = (id: string): HTMLElement => {
   const element = document.getElementById(id)

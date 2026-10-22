@@ -48,4 +48,4 @@ const assemble = () =>
 export const CallBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

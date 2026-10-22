@@ -3,6 +3,7 @@ import { expectTypeOf, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
 import { makeDefinition, makeNamespace } from './define.js'
+import * as Block from './public.js'
 
 const Message = defineMessageUnion({
   RequestedWork: {},
@@ -23,17 +24,23 @@ const makeGenericComplete = <const Id extends string>(id: Id) => {
     Message,
   }).makeComposition()
 
-  return composition.assembleBlock({
-    init: () => ({ model: Model.make({ value: '' }) }),
-    update: composition.makeUpdate((model, message) =>
-      Message.match(message, {
-        RequestedWork: () => ({ model, commands: [Work()] }),
-        CompletedWork: () => ({ model }),
-      }),
-    ),
-    view: composition.makeView((model, h) => h.div([], [model.value])),
-    EffectsLayer: Work.layer,
-  })
+  const assemble = () =>
+    composition.assembleBlock({
+      init: () => ({ model: Model.make({ value: '' }) }),
+      update: composition.makeUpdate((model, message) =>
+        Message.match(message, {
+          RequestedWork: () => ({ model, commands: [Work()] }),
+          CompletedWork: () => ({ model }),
+        }),
+      ),
+      view: composition.makeView((model, h) => h.div([], [model.value])),
+      EffectsLayer: Work.layer,
+    })
+  const completedBlock: Block.FromAssemblyWithView<
+    typeof Model,
+    typeof assemble
+  > = Block.complete(assemble)
+  return completedBlock
 }
 
 const makeGenericMissing = <const Id extends string>(id: Id) => {
@@ -48,17 +55,23 @@ const makeGenericMissing = <const Id extends string>(id: Id) => {
     Message,
   }).makeComposition()
 
-  return composition.assembleBlock({
-    init: () => ({ model: Model.make({ value: '' }) }),
-    update: composition.makeUpdate((model, message) =>
-      Message.match(message, {
-        RequestedWork: () => ({ model, commands: [Work()] }),
-        CompletedWork: () => ({ model }),
-      }),
-    ),
-    view: composition.makeView((model, h) => h.div([], [model.value])),
-    EffectsLayer: Layer.empty,
-  })
+  const assemble = () =>
+    composition.assembleBlock({
+      init: () => ({ model: Model.make({ value: '' }) }),
+      update: composition.makeUpdate((model, message) =>
+        Message.match(message, {
+          RequestedWork: () => ({ model, commands: [Work()] }),
+          CompletedWork: () => ({ model }),
+        }),
+      ),
+      view: composition.makeView((model, h) => h.div([], [model.value])),
+      EffectsLayer: Layer.empty,
+    })
+  const completedBlock: Block.FromAssemblyWithView<
+    typeof Model,
+    typeof assemble
+  > = Block.complete(assemble)
+  return completedBlock
 }
 
 const complete = makeGenericComplete('GenericComplete')

@@ -10,6 +10,7 @@ import {
   trackParentMessageMapper,
 } from './delivery.js'
 import { assertRegisteredBinding } from './operationGraph.js'
+import * as Block from './public.js'
 
 const ChildMessage = defineMessageUnion({
   ChangedCount: { amount: Schema.Number },
@@ -37,16 +38,21 @@ describe('Composition update delivery', () => {
       Model: ContextualChildModel,
       Message: ContextualChildMessage,
     }).makeComposition()
-    const contextualBlock = contextualComposition.assembleBlock({
-      init: contextualComposition.makeInit(() => ({
-        model: ContextualChildModel.make({ count: 0 }),
-      })),
-      update: contextualComposition.makeUpdate(
-        (model, _message, _context: Readonly<{ source: 'Required' }>) => ({
-          model,
-        }),
-      ),
-    })
+    const assembleContextualBlock = () =>
+      contextualComposition.assembleBlock({
+        init: contextualComposition.makeInit(() => ({
+          model: ContextualChildModel.make({ count: 0 }),
+        })),
+        update: contextualComposition.makeUpdate(
+          (model, _message, _context: Readonly<{ source: 'Required' }>) => ({
+            model,
+          }),
+        ),
+      })
+    const contextualBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+      typeof ContextualChildModel,
+      typeof assembleContextualBlock
+    > = Block.complete(assembleContextualBlock)
     const ContextualParentModel = Schema.Struct({
       child: ContextualChildModel,
     })
@@ -103,18 +109,23 @@ describe('Composition update delivery', () => {
       Model: CounterModel,
       Message: ChildMessage,
     }).makeComposition()
-    const counterBlock = CounterComposition.assembleBlock({
-      init: CounterComposition.makeInit(() => ({
-        model: CounterModel.make({ count: 0 }),
-      })),
-      update: CounterComposition.makeUpdate(
-        (model, message, context: Readonly<{ multiplier: number }>) => ({
-          model: modifyFields(model, {
-            count: count => count + message.amount * context.multiplier,
+    const assembleCounterBlock = () =>
+      CounterComposition.assembleBlock({
+        init: CounterComposition.makeInit(() => ({
+          model: CounterModel.make({ count: 0 }),
+        })),
+        update: CounterComposition.makeUpdate(
+          (model, message, context: Readonly<{ multiplier: number }>) => ({
+            model: modifyFields(model, {
+              count: count => count + message.amount * context.multiplier,
+            }),
           }),
-        }),
-      ),
-    })
+        ),
+      })
+    const counterBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+      typeof CounterModel,
+      typeof assembleCounterBlock
+    > = Block.complete(assembleCounterBlock)
     const CounterInstance = Schema.Struct({
       id: Schema.String,
       counter: CounterModel,

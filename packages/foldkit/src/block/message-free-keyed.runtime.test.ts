@@ -5,6 +5,7 @@ import * as Command from '../command/index.js'
 import { modifyFields } from '../struct/index.js'
 import * as Update from '../update/index.js'
 import { makeDefinition } from './define.js'
+import * as Block from './public.js'
 import type { Scoped } from './scope.js'
 
 const SilentModel = Schema.Struct({ ready: Schema.Boolean })
@@ -26,16 +27,21 @@ const markReady = Silent.makeStep(model => ({
 }))
 const SilentComposition = Silent.makeComposition()
 const silentUpdate = SilentComposition.makeUpdate()
-const SilentBlock = SilentComposition.assembleBlock({
-  view: SilentComposition.makeView((_model, h) => h.empty),
-  init: () => ({
-    model: SilentModel.make({ ready: false }),
-    commands: [WaitForever()],
-  }),
-  update: silentUpdate,
-  operations: {},
-  EffectsLayer: WaitForever.layer,
-})
+const assembleSilentBlock = () =>
+  SilentComposition.assembleBlock({
+    view: SilentComposition.makeView((_model, h) => h.empty),
+    init: () => ({
+      model: SilentModel.make({ ready: false }),
+      commands: [WaitForever()],
+    }),
+    update: silentUpdate,
+    operations: {},
+    EffectsLayer: WaitForever.layer,
+  })
+const SilentBlock: Block.FromAssemblyWithView<
+  typeof SilentModel,
+  typeof assembleSilentBlock
+> = Block.complete(assembleSilentBlock)
 
 if (false) {
   const mutatingExposeConfig = {
@@ -76,22 +82,27 @@ const SilentBinding = Parent.makeBinding(SilentBlock, {
 const ParentComposition = Parent.makeComposition({
   bindings: [SilentBinding],
 })
-const ParentBlock = ParentComposition.assembleBlock({
-  view: ParentComposition.makeView((_model, h) => h.empty),
-  init: ParentComposition.makeInit(() =>
-    SilentBinding.init({
-      key: 'active',
-      args: [],
-      toParentModel: child =>
-        ParentModel.make({
-          entries: [Entry.make({ id: 'active', child })],
-        }),
-    }),
-  ),
-  update: ParentComposition.makeUpdate(),
-  operations: {},
-  EffectsLayer: Layer.empty,
-})
+const assembleParentBlock = () =>
+  ParentComposition.assembleBlock({
+    view: ParentComposition.makeView((_model, h) => h.empty),
+    init: ParentComposition.makeInit(() =>
+      SilentBinding.init({
+        key: 'active',
+        args: [],
+        toParentModel: child =>
+          ParentModel.make({
+            entries: [Entry.make({ id: 'active', child })],
+          }),
+      }),
+    ),
+    update: ParentComposition.makeUpdate(),
+    operations: {},
+    EffectsLayer: Layer.empty,
+  })
+const ParentBlock: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof assembleParentBlock
+> = Block.complete(assembleParentBlock)
 
 it('keeps a Message-free general keyed child routeless across every channel', () => {
   const initial = ParentBlock.init().model

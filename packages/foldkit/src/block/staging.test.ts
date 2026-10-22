@@ -4,6 +4,7 @@ import { expect, expectTypeOf, it } from 'vitest'
 import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import { makeDefinition, makeNamespace } from './define.js'
+import * as Block from './public.js'
 
 class ObserveDependency extends Context.Service<ObserveDependency, object>()(
   'BlockStaging/ObserveDependency',
@@ -57,12 +58,17 @@ const defaultView = observeComposition.makeView.withInputs<
   h.div([h.OnMount(Observe())], [`${label}: ${model.value}`]),
 )
 
-const Child = observeComposition.assembleBlock({
-  init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
-  update: observeComposition.makeUpdate(model => ({ model })),
-  view: defaultView,
-  EffectsLayer: Observe.layer,
-})
+const assembleChild = () =>
+  observeComposition.assembleBlock({
+    init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
+    update: observeComposition.makeUpdate(model => ({ model })),
+    view: defaultView,
+    EffectsLayer: Observe.layer,
+  })
+const Child: Block.FromAssemblyWithView<
+  typeof ChildModel,
+  typeof assembleChild
+> = Block.complete(assembleChild)
 
 const ParentModel = Schema.Struct({ child: ChildModel })
 const Parent = makeDefinition('StagedParent', {

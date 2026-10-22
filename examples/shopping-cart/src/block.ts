@@ -1,4 +1,4 @@
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 
 import { EffectsLayer } from './command'
 import { ApplicationComposition } from './composition'
@@ -17,4 +17,4 @@ const assemble = () =>
 export const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

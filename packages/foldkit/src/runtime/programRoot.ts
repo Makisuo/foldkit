@@ -1,5 +1,6 @@
 import { Array, Effect, Predicate, Schema } from 'effect'
 
+import { assertCompletedBlock } from '../block/assemblyState.js'
 import { type DefaultViewOf, defaultViewOf } from '../block/defaultView.js'
 import type { AnyBlock } from '../block/definition.js'
 import type { ValidateConcreteComposition } from '../block/requirements.js'
@@ -218,7 +219,7 @@ export function assertProgramConfig(
   for (const field of blockImplementationFields) {
     if (field in config) {
       throw new Error(
-        `[foldkit] Program configuration cannot supply Block implementation field "${field}". Complete it with Composition.assembleBlock first and pass the result as block.`,
+        `[foldkit] Program configuration cannot supply Block implementation field "${field}". Assemble it with Composition.assembleBlock and Block.complete first, then pass the completed result as block.`,
       )
     }
   }
@@ -306,9 +307,11 @@ export function assertProgramConfig(
     !Array.isArray(Reflect.get(block, 'hostHandlers'))
   ) {
     throw new Error(
-      '[foldkit] Program block must be a completed Block returned by Composition.assembleBlock.',
+      '[foldkit] Program block must be completed with Block.complete(assemble) under its FromAssembly export annotation.',
     )
   }
+
+  assertCompletedBlock(block)
 
   if (Reflect.get(block, 'OutMessage') !== undefined) {
     throw new Error('[foldkit] A Program root Block cannot declare OutMessage.')

@@ -47,19 +47,33 @@ export const contextualView = ApplicationComposition.makeView((model, h) => {
   h.OnClick(ForeignMessage.ClickedForeign())
   return h.main([], [globalThis.String(model.count)])
 })
-export const application = Program.make({
-  block: ApplicationComposition.assembleBlock({
+
+const assemble = () =>
+  ApplicationComposition.assembleBlock({
     init,
     update,
     view: documentView,
-  }),
+  })
+const completedBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assemble
+> = Block.complete(assemble)
+export const application = Program.make({
+  block: completedBlock,
   container: null,
 })
-export const element = Program.makeElement({
-  block: ApplicationComposition.assembleBlock({
+
+const assemble2 = () =>
+  ApplicationComposition.assembleBlock({
     init,
     update,
     view: elementView,
-  }),
+  })
+const completedBlock2: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assemble2
+> = Block.complete(assemble2)
+export const element = Program.makeElement({
+  block: completedBlock2,
   container: null,
 })

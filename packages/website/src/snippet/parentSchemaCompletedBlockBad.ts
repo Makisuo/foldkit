@@ -11,6 +11,6 @@ const assembleSettingsBlock = () =>
     init: SettingsComposition.makeInit(() => ({ model: '' })),
     update: SettingsComposition.makeUpdate(),
   })
-const SettingsBlock = assembleSettingsBlock()
+const SettingsBlock = Block.complete(assembleSettingsBlock)
 
 export const Model = Schema.Struct({ settings: SettingsBlock.Model })

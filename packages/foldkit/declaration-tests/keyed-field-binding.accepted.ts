@@ -22,24 +22,29 @@ const DeclarationKeyedFieldChildComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-export const ChildBlock = DeclarationKeyedFieldChildComposition.assembleBlock({
-  init: DeclarationKeyedFieldChildComposition.makeInit(() => ({
-    model: ChildModel.make({ id: 'initial', count: 0 }),
-  })),
-  update: DeclarationKeyedFieldChildComposition.makeUpdate((model, message) =>
-    ChildMessage.match(message, {
-      UpdatedCount: ({ count }) => ({
-        model: Struct.modifyFields(model, { count: () => count }),
+const assembleChildBlock = () =>
+  DeclarationKeyedFieldChildComposition.assembleBlock({
+    init: DeclarationKeyedFieldChildComposition.makeInit(() => ({
+      model: ChildModel.make({ id: 'initial', count: 0 }),
+    })),
+    update: DeclarationKeyedFieldChildComposition.makeUpdate((model, message) =>
+      ChildMessage.match(message, {
+        UpdatedCount: ({ count }) => ({
+          model: Struct.modifyFields(model, { count: () => count }),
+        }),
+        RequestedRefresh: () => ({ model }),
+        RequestedSelect: () => ({ model }),
+        CompletedReadCount: ({ count }) => ({
+          model: Struct.modifyFields(model, { count: () => count }),
+        }),
       }),
-      RequestedRefresh: () => ({ model }),
-      RequestedSelect: () => ({ model }),
-      CompletedReadCount: ({ count }) => ({
-        model: Struct.modifyFields(model, { count: () => count }),
-      }),
-    }),
-  ),
-  EffectsLayer: Layer.empty,
-})
+    ),
+    EffectsLayer: Layer.empty,
+  })
+export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 export const CallableChildModel = FoldkitSchema.taggedStruct(
   'DeclarationCallableKeyedFieldChild',
@@ -53,7 +58,7 @@ const DeclarationCallableKeyedFieldChildComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-export const CallableChildBlock =
+const assembleCallableChildBlock = () =>
   DeclarationCallableKeyedFieldChildComposition.assembleBlock({
     init: DeclarationCallableKeyedFieldChildComposition.makeInit(() => ({
       model: CallableChildModel({ id: 'initial', count: 0 }),
@@ -73,6 +78,10 @@ export const CallableChildBlock =
     ),
     EffectsLayer: Layer.empty,
   })
+export const CallableChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof CallableChildModel,
+  typeof assembleCallableChildBlock
+> = Block.complete(assembleCallableChildBlock)
 
 export const RefinedId = Schema.String.pipe(
   Schema.brand('DeclarationKeyedFieldRefinedId'),
@@ -91,7 +100,7 @@ const DeclarationRefinedKeyChildComposition = Block.makeDefinition(
     Message: RefinedKeyMessage,
   },
 ).makeComposition()
-export const RefinedKeyBlock =
+const assembleRefinedKeyBlock = () =>
   DeclarationRefinedKeyChildComposition.assembleBlock({
     init: DeclarationRefinedKeyChildComposition.makeInit(() => ({
       model: RefinedKeyModel.make({
@@ -105,6 +114,10 @@ export const RefinedKeyBlock =
     })),
     EffectsLayer: Layer.empty,
   })
+export const RefinedKeyBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof RefinedKeyModel,
+  typeof assembleRefinedKeyBlock
+> = Block.complete(assembleRefinedKeyBlock)
 
 const ArrayChildModel = Schema.Array(Schema.String)
 const ArrayChildMessage = Message.defineMessageUnion({ IgnoredValue: {} })
@@ -116,7 +129,7 @@ const DeclarationArrayModelChildComposition = Block.makeDefinition(
     Message: ArrayChildMessage,
   },
 ).makeComposition()
-export const ArrayChildBlock =
+const assembleArrayChildBlock = () =>
   DeclarationArrayModelChildComposition.assembleBlock({
     init: DeclarationArrayModelChildComposition.makeInit(() => ({
       model: ArrayChildModel.make(['initial']),
@@ -126,6 +139,10 @@ export const ArrayChildBlock =
     })),
     EffectsLayer: Layer.empty,
   })
+export const ArrayChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ArrayChildModel,
+  typeof assembleArrayChildBlock
+> = Block.complete(assembleArrayChildBlock)
 
 export class ChildCounter extends Context.Service<
   ChildCounter,
@@ -156,7 +173,7 @@ export const ReadChildCount =
   })
 const DeclarationKeyedFieldOutChildComposition =
   DeclarationKeyedFieldOutChildDefinition.makeComposition()
-export const OutChildBlock =
+const assembleOutChildBlock = () =>
   DeclarationKeyedFieldOutChildComposition.assembleBlock({
     init: DeclarationKeyedFieldOutChildComposition.makeInit(() => ({
       model: ChildModel.make({ id: 'initial', count: 0 }),
@@ -183,6 +200,10 @@ export const OutChildBlock =
     },
     EffectsLayer: ReadChildCount.layer,
   })
+export const OutChildBlock: Block.FromAssemblyWithOutMessage<
+  typeof ChildModel,
+  typeof assembleOutChildBlock
+> = Block.complete(assembleOutChildBlock)
 
 const WrappedRow = Schema.Struct({
   rowId: Schema.String,

@@ -21,16 +21,21 @@ export const childViewHelper = (
 const childView = DeclarationViewHelperChildComposition.makeView((model, h) =>
   childViewHelper(model, h),
 )
-export const ChildBlock = DeclarationViewHelperChildComposition.assembleBlock({
-  init: DeclarationViewHelperChildComposition.makeInit(() => ({
-    model: ChildModel.make({ value: 'initial' }),
-  })),
-  update: DeclarationViewHelperChildComposition.makeUpdate(model => ({
-    model,
-  })),
-  view: childView,
-  EffectsLayer: Layer.empty,
-})
+const assembleChildBlock = () =>
+  DeclarationViewHelperChildComposition.assembleBlock({
+    init: DeclarationViewHelperChildComposition.makeInit(() => ({
+      model: ChildModel.make({ value: 'initial' }),
+    })),
+    update: DeclarationViewHelperChildComposition.makeUpdate(model => ({
+      model,
+    })),
+    view: childView,
+    EffectsLayer: Layer.empty,
+  })
+export const ChildBlock: Block.FromAssemblyWithView<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 export const ParentModel = Schema.Struct({ child: ChildModel })
 export const ParentMessage = Message.defineMessageUnion({

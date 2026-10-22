@@ -17,7 +17,7 @@ Four values make those responsibilities visible:
 
 The Settings example on this page grows through that sequence. Settings first defines and completes its own state machine. Profile then creates `SettingsBinding`, registers it in `ApplicationComposition`, handles the `ChangedTheme` fact, and embeds the Settings view.
 
-The sequence is Definition → Composition → assembly. A Definition establishes the contracts and authoring methods. A Composition fixes the child Binding and Mount graph. `assembleBlock` checks and packages the authored implementation with that graph. The root follows the same sequence before `Program.make` or `Program.makeElement` adds host behavior.
+The sequence is Definition → Composition → assembly → completion. A Definition establishes the contracts and authoring methods. A Composition fixes the child Binding and Mount graph. `assembleBlock` checks and packages the authored implementation as an opaque unfinished assembly. `Block.complete` finishes that assembly as the branded Block accepted by Bindings, Programs, and Server rendering. The root follows the same sequence before `Program.make` or `Program.makeElement` adds host behavior.
 
 Definitions, Compositions, Bindings, Blocks, and Programs are passive. `makeInit`, `makeUpdate`, and `makeView` return functions for the Runtime to call later. At the root, `program.provide(ApplicationLayer)` supplies ordinary Effect Services without building them. `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` builds the selected handler graph, resolves Flags when required, calls init, and begins performing effects.
 
@@ -65,11 +65,11 @@ Features without children or Mounts still call `makeComposition()`. Creating a C
 
 ### Produce the completed Block
 
-Call `assembleBlock` after the feature's pieces exist. Completion packages the Definition, fixed graph, implementation, and local handler recipe into the value a parent can bind. It does not build a Layer, call init, or start lifecycle work.
+Call `assembleBlock` after the feature's pieces exist, then pass its zero-argument producer to `Block.complete`. The producer packages the Definition, fixed graph, implementation, and local handler recipe as an opaque unfinished assembly with no Model or runtime methods. `Block.complete` creates the Block a parent can bind. Neither step builds a Layer, calls init, or starts lifecycle work.
 
 ::Snippet{name="blockSettings" label="Producing a completed Block"}
 
-Wrap the unchanged assembly call in one private zero-argument producer named `assemble`, then put the checked export immediately after it with no blank line. Annotate the exported value with `Block.FromAssemblyWithViewAndOutMessage<typeof Model, typeof assemble>`. Use a descriptive producer name only when one file genuinely contains multiple assembly producers. This feature declares an OutMessage and assembles a view. Use the [matching helper for the other three shapes](/patterns/project-organization#keep-model-schema-dependencies-small). Parents import the completed `SettingsBlock` and bind it through their own Definition. The completed value carries the Model, complete Message Schema, declared OutMessage contract, and embedding inputs.
+Wrap the unchanged assembly call in one private zero-argument producer named `assemble`, then put the checked export immediately after it with no blank line. Annotate the exported value with `Block.FromAssemblyWithViewAndOutMessage<typeof Model, typeof assemble>` and initialize it with `Block.complete(assemble)`. Use a descriptive producer name only when one file genuinely contains multiple assembly producers. This feature declares an OutMessage and assembles a view. Use the [matching helper for the other three shapes](/patterns/project-organization#keep-model-schema-dependencies-small). Parents import the completed `SettingsBlock` and bind it through their own Definition. The completed value carries the Model, complete Message Schema, declared OutMessage contract, and embedding inputs.
 
 `EffectsLayer` contains only the feature's local Foldkit handler recipes. Omit it when the feature has no local handlers; Foldkit uses an empty recipe and still checks completeness. Registered child Bindings contribute their recipes automatically. A handler recipe may require an ordinary HTTP, storage, RPC, clock, or browser Service. Those Service requirements continue through composition until the application root supplies them.
 
@@ -234,7 +234,7 @@ The entry gives the completed `ApplicationBlock` to `Program.make` and starts th
 
 The Application Composition carries the child graph. Its completion config supplies root-local handler recipes and lifecycle definitions. Registered child Blocks contribute their own handlers through that graph. `ApplicationLayer` supplies ordinary application Services such as storage or an HTTP client. It does not re-merge each feature's `EffectsLayer`.
 
-`ApplicationComposition.assembleBlock` validates the concrete composition before the Runtime starts. `Program.make` returns another passive value, and `program.provide(ApplicationLayer)` records ordinary Service providers. The Runtime builds those Layers and the selected handler graph when the Program starts. Missing handlers, incompatible child Bindings, unavailable Mount requirements, and an unhandled root OutMessage fail before a user interaction.
+`ApplicationComposition.assembleBlock` validates the concrete composition and returns an unfinished assembly. `Block.complete(assemble)` produces the passive root Block before `Program.make` accepts it. `Program.make` returns another passive value, and `program.provide(ApplicationLayer)` records ordinary Service providers. The Runtime builds those Layers and the selected handler graph when the Program starts. Missing handlers, incompatible child Bindings, unavailable Mount requirements, and an unhandled root OutMessage fail before a user interaction.
 
 Server rendering uses the same root:
 
@@ -466,7 +466,11 @@ For a generic factory that shares definitions, `Block.makeNamespace(id)` supplie
 
 ### FeatureComposition.assembleBlock
 
-`FeatureComposition.assembleBlock({ init, update, view?, operations?, subscriptions?, managedResources?, EffectsLayer?, hostHandlers? })` checks and returns the passive completed Block. `EffectsLayer` may require ordinary Services supplied by `program.provide(ApplicationLayer)`. `hostHandlers` explicitly declares contracts left to the host. Complete those Blocks with their own `provideHandlers(...)` before binding them into `ApplicationBlock`; Program construction rejects unresolved handlers.
+`FeatureComposition.assembleBlock({ init, update, view?, operations?, subscriptions?, managedResources?, EffectsLayer?, hostHandlers? })` checks and returns an opaque unfinished assembly. It exposes no Model or Block methods. Pass its zero-argument producer to `Block.complete`, which returns the branded passive Block accepted by Bindings, Programs, and Server rendering. `EffectsLayer` may require ordinary Services supplied by `program.provide(ApplicationLayer)`. `hostHandlers` explicitly declares contracts left to the host. Complete those Blocks with their own `provideHandlers(...)` before binding them into `ApplicationBlock`; Program construction rejects unresolved handlers.
+
+### Block.complete
+
+`Block.complete(assemble)` invokes the zero-argument assembly producer once and returns its branded completed Block. Bindings, Programs, and Server rendering accept this completed value. Ordinary source exports pair the call with the matching `Block.FromAssemblyWith*<typeof Model, typeof assemble>` annotation on the adjacent declaration. Calling `assemble()` directly yields only the unfinished assembly. `replaceEffectsLayer` and `provideHandlers` preserve the completion brand, metadata, and passive runtime behavior.
 
 ### ParentDefinition.makeBinding
 
@@ -520,7 +524,7 @@ A declared operation such as `requestClearSelection` becomes `binding.requestCle
 
 ### block.replaceEffectsLayer
 
-`block.replaceEffectsLayer(recipe)` selects another complete local handler recipe and returns a completed Block with the same state, lifecycle, children, and public operations.
+`block.replaceEffectsLayer(recipe)` selects another complete local handler recipe and returns a completed Block with the same completion brand, object metadata, state, lifecycle, children, public operations, and passive runtime behavior. `block.provideHandlers(layer)` preserves the same properties while satisfying declared host handlers.
 
 ### block.provideHandlers
 

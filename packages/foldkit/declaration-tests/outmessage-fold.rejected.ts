@@ -268,14 +268,19 @@ const DeclarationNoFoldDefinition = Block.makeDefinition('DeclarationNoFold', {
 })
 const DeclarationNoFoldComposition =
   DeclarationNoFoldDefinition.makeComposition()
-const NoOutMessageBlock = DeclarationNoFoldComposition.assembleBlock({
-  init: () => ({ model: { count: 0 } }),
-  update: DeclarationNoFoldComposition.makeUpdate((model, message) =>
-    DeclarationNoFoldDefinition.Message.match(message, {
-      CompletedWork: () => ({ model }),
-    }),
-  ),
-})
+const assembleNoOutMessageBlock = () =>
+  DeclarationNoFoldComposition.assembleBlock({
+    init: () => ({ model: { count: 0 } }),
+    update: DeclarationNoFoldComposition.makeUpdate((model, message) =>
+      DeclarationNoFoldDefinition.Message.match(message, {
+        CompletedWork: () => ({ model }),
+      }),
+    ),
+  })
+const NoOutMessageBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof DeclarationNoFoldComposition.Model,
+  typeof assembleNoOutMessageBlock
+> = Block.complete(assembleNoOutMessageBlock)
 // @ts-expect-error A fold source must declare a tagged OutMessage contract.
 DeclarationFoldParentDefinition.makeOutMessageFold(NoOutMessageBlock, {})
 
@@ -289,12 +294,17 @@ const DeclarationTaggedFoldDefinition = Block.makeDefinition(
 )
 const DeclarationTaggedFoldComposition =
   DeclarationTaggedFoldDefinition.makeComposition()
-const TaggedOutMessageBlock = DeclarationTaggedFoldComposition.assembleBlock({
-  init: () => ({
-    model: RootModel.make({ child: { count: 0 }, choice: 'Apple' }),
-  }),
-  update: DeclarationTaggedFoldComposition.makeUpdate(),
-})
+const assembleTaggedOutMessageBlock = () =>
+  DeclarationTaggedFoldComposition.assembleBlock({
+    init: () => ({
+      model: RootModel.make({ child: { count: 0 }, choice: 'Apple' }),
+    }),
+    update: DeclarationTaggedFoldComposition.makeUpdate(),
+  })
+const TaggedOutMessageBlock: Block.FromAssemblyWithOutMessage<
+  typeof RootModel,
+  typeof assembleTaggedOutMessageBlock
+> = Block.complete(assembleTaggedOutMessageBlock)
 // @ts-expect-error Named folds require an exhaustive union matcher, including for a single variant.
 DeclarationFoldParentDefinition.makeOutMessageFold(TaggedOutMessageBlock, {
   Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),

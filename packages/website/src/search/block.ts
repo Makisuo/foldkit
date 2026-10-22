@@ -1,4 +1,4 @@
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 
 import { SearchComposition } from './composition'
 import { init } from './init'
@@ -22,4 +22,4 @@ const assemble = () =>
 export const SearchBlock: Block.FromAssemblyWithView<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

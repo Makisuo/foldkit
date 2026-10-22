@@ -66,17 +66,17 @@ type AcceptsExactly<
   ? true
   : false
 
-type BlocksRejectingInit<
-  BlockValue extends AnyBlock,
+type InitializersRejectingArguments<
+  Init extends (...args: ReadonlyArray<any>) => any,
   Args,
-> = BlockValue extends unknown
-  ? AcceptsExactly<BlockInit<BlockValue>, Args> extends true
+> = Init extends unknown
+  ? AcceptsExactly<Init, Args> extends true
     ? never
-    : BlockValue
+    : Init
   : never
 
 type EveryBlockAcceptsExactly<BlockValue extends AnyBlock, Args> = [
-  BlocksRejectingInit<BlockValue, Args>,
+  InitializersRejectingArguments<BlockInit<BlockValue>, Args>,
 ] extends [never]
   ? true
   : false

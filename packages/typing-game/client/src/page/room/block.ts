@@ -1,4 +1,4 @@
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 
 import { RoomComposition } from './composition'
 import { init } from './init'
@@ -21,4 +21,4 @@ const assemble = () =>
 export const RoomBlock: Block.FromAssemblyWithView<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

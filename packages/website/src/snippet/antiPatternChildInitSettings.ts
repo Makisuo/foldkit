@@ -22,7 +22,7 @@ export const SettingsDefinition = Block.makeDefinition('Settings', {
 })
 
 // settings.ts
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { EffectsLayer, RefreshAvailableThemes } from './command'
@@ -56,4 +56,4 @@ const assemble = () =>
 export const block: Block.FromAssemblyWithOutMessage<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

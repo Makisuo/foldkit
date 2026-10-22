@@ -5,6 +5,7 @@ import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import type * as Update from '../update/index.js'
 import { makeDefinition } from './define.js'
+import * as Block from './public.js'
 
 const Model = Schema.Struct({ count: Schema.Number })
 type Model = typeof Model.Type
@@ -23,13 +24,16 @@ const view = ConnectionViewsChildComposition.makeView.withInputs<ViewInputs>(
       [inputs.label, globalThis.String(model.count)],
     ),
 )
-const block = ConnectionViewsChildComposition.assembleBlock({
-  init: () => ({ model: Model.make({ count: 0 }) }),
-  update: ConnectionViewsChildComposition.makeUpdate(model => ({
-    model: modifyFields(model, { count: count => count + 1 }),
-  })),
-  view,
-})
+const assembleBlock = () =>
+  ConnectionViewsChildComposition.assembleBlock({
+    init: () => ({ model: Model.make({ count: 0 }) }),
+    update: ConnectionViewsChildComposition.makeUpdate(model => ({
+      model: modifyFields(model, { count: count => count + 1 }),
+    })),
+    view,
+  })
+const block: Block.FromAssemblyWithView<typeof Model, typeof assembleBlock> =
+  Block.complete(assembleBlock)
 
 const Entry = Schema.Struct({ id: Schema.String, child: Model })
 const ParentModel = Schema.Struct({

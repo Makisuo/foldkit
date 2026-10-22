@@ -1,4 +1,4 @@
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import {
@@ -60,4 +60,4 @@ const assemble = () =>
 export const SettingsBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

@@ -40,4 +40,4 @@ const assemble = () =>
 export const RouteAwareBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

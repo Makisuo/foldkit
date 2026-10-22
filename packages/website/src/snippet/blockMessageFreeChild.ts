@@ -10,10 +10,12 @@ const PreviewComposition = Block.makeDefinition('Preview', {
 const previewInit = PreviewComposition.makeInit(() => ({
   model: PreviewModel.make({ content: '' }),
 }))
-const PreviewBlock = PreviewComposition.assembleBlock({
-  init: previewInit,
-  update: PreviewComposition.makeUpdate(),
-})
+const assemblePreview = () =>
+  PreviewComposition.assembleBlock({
+    init: previewInit,
+    update: PreviewComposition.makeUpdate(),
+  })
+const PreviewBlock = Block.complete(assemblePreview)
 
 const PageModel = Schema.Struct({ preview: PreviewModel })
 const PageMessage = defineMessageUnion({ ClickedPublish: {} })

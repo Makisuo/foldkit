@@ -3,6 +3,7 @@ import { expect, it, vi } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
 import { makeDefinition } from './define.js'
+import * as Block from './public.js'
 
 const Config = Schema.Struct({ count: Schema.Number })
 const ChildModel = Schema.Struct({ count: Schema.Number })
@@ -19,14 +20,19 @@ const CompleteChildInit = Child.makeCommand('CompleteChildInit', {
     return () => Effect.succeed(ChildMessage.CompletedChildInit())
   },
 })
-const childBlock = ChildComposition.assembleBlock({
-  init: ChildComposition.makeInit((config: typeof Config.Type) => ({
-    model: ChildModel.make({ count: childInitialized(config) }),
-    commands: [CompleteChildInit()],
-  })),
-  update: ChildComposition.makeUpdate(model => ({ model })),
-  EffectsLayer: CompleteChildInit.layer,
-})
+const assembleChildBlock = () =>
+  ChildComposition.assembleBlock({
+    init: ChildComposition.makeInit((config: typeof Config.Type) => ({
+      model: ChildModel.make({ count: childInitialized(config) }),
+      commands: [CompleteChildInit()],
+    })),
+    update: ChildComposition.makeUpdate(model => ({ model })),
+    EffectsLayer: CompleteChildInit.layer,
+  })
+const childBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 const ParentModel = Schema.Struct({ child: Schema.Option(ChildModel) })
 const ParentMessage = defineMessageUnion({

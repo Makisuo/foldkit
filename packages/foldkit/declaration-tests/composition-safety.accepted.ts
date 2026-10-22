@@ -74,14 +74,19 @@ const CompositionSafetyPlainComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-export const PlainBlock = CompositionSafetyPlainComposition.assembleBlock({
-  init: CompositionSafetyPlainComposition.makeInit(() => ({
-    model: ChildModel.make({ count: 0 }),
-  })),
-  update: plainUpdate,
-  operations: { increment: ChildMessage.Incremented },
-  EffectsLayer: Layer.empty,
-})
+const assemblePlainBlock = () =>
+  CompositionSafetyPlainComposition.assembleBlock({
+    init: CompositionSafetyPlainComposition.makeInit(() => ({
+      model: ChildModel.make({ count: 0 }),
+    })),
+    update: plainUpdate,
+    operations: { increment: ChildMessage.Incremented },
+    EffectsLayer: Layer.empty,
+  })
+export const PlainBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assemblePlainBlock
+> = Block.complete(assemblePlainBlock)
 
 const CompositionSafetyOptionalContextComposition = Block.makeDefinition(
   'CompositionSafetyOptionalContext',
@@ -90,7 +95,7 @@ const CompositionSafetyOptionalContextComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-export const OptionalContextBlock =
+const assembleOptionalContextBlock = () =>
   CompositionSafetyOptionalContextComposition.assembleBlock({
     init: CompositionSafetyOptionalContextComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
@@ -98,6 +103,10 @@ export const OptionalContextBlock =
     update: optionalContextUpdate,
     EffectsLayer: Layer.empty,
   })
+export const OptionalContextBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleOptionalContextBlock
+> = Block.complete(assembleOptionalContextBlock)
 
 const CompositionSafetyRestContextComposition = Block.makeDefinition(
   'CompositionSafetyRestContext',
@@ -106,7 +115,7 @@ const CompositionSafetyRestContextComposition = Block.makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-export const RestContextBlock =
+const assembleRestContextBlock = () =>
   CompositionSafetyRestContextComposition.assembleBlock({
     init: CompositionSafetyRestContextComposition.makeInit(() => ({
       model: ChildModel.make({ count: 0 }),
@@ -114,6 +123,10 @@ export const RestContextBlock =
     update: restContextUpdate,
     EffectsLayer: Layer.empty,
   })
+export const RestContextBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleRestContextBlock
+> = Block.complete(assembleRestContextBlock)
 
 export const ParameterizedChildModel = Schema.Struct({ count: Schema.Number })
 export const ParameterizedChildMessage = Message.defineMessageUnion({
@@ -138,7 +151,7 @@ export const LoadParameterizedChild =
   )
 const CompositionSafetyParameterizedComposition =
   CompositionSafetyParameterizedDefinition.makeComposition()
-export const ParameterizedBlock =
+const assembleParameterizedBlock = () =>
   CompositionSafetyParameterizedComposition.assembleBlock({
     init: CompositionSafetyParameterizedComposition.makeInit(
       (count: number) => ({
@@ -151,6 +164,10 @@ export const ParameterizedBlock =
     })),
     EffectsLayer: LoadParameterizedChild.layer,
   })
+export const ParameterizedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ParameterizedChildModel,
+  typeof assembleParameterizedBlock
+> = Block.complete(assembleParameterizedBlock)
 
 export const Entry = Schema.Struct({
   id: Schema.String,
@@ -530,39 +547,44 @@ export const initializeDerivedModel =
       initializePlainWithOwningParentCommand,
     ])
   })
-export const StrictBlock = CompositionSafetyParentComposition.assembleBlock({
-  init: CompositionSafetyParentComposition.makeInit(() => ({
-    model: initialParentModel,
-  })),
-  update: CompositionSafetyParentComposition.makeUpdate((model, message) =>
-    ParentMessage.match(message, {
-      RequestedInitializeEntry: ({ id, count }) =>
-        initializeEntry(model, id, count),
-      RequestedInitializePlain: () => initializePlain(model),
-      RequestedInitializePlainWithOwningParentCommand: () =>
-        initializePlainWithOwningParentCommand(model),
-      RequestedInitializePlainWithParentCommands: () =>
-        initializePlainWithParentCommands(model),
-      CompletedParentInitialization: () => ({ model }),
-    }),
-  ),
-  operations: {
-    initializeEntry: (id: string, count: number) => [
-      ParentMessage.RequestedInitializeEntry({ id, count }),
-    ],
-    initializePlain: () => [ParentMessage.RequestedInitializePlain()],
-    initializePlainWithOwningParentCommand: () => [
-      ParentMessage.RequestedInitializePlainWithOwningParentCommand(),
-    ],
-    initializePlainWithParentCommands: () => [
-      ParentMessage.RequestedInitializePlainWithParentCommands(),
-    ],
-  },
-  EffectsLayer: Layer.merge(
-    LoadParameterizedChild.layer,
-    CompleteParentInitialization.layer,
-  ),
-})
+const assembleStrictBlock = () =>
+  CompositionSafetyParentComposition.assembleBlock({
+    init: CompositionSafetyParentComposition.makeInit(() => ({
+      model: initialParentModel,
+    })),
+    update: CompositionSafetyParentComposition.makeUpdate((model, message) =>
+      ParentMessage.match(message, {
+        RequestedInitializeEntry: ({ id, count }) =>
+          initializeEntry(model, id, count),
+        RequestedInitializePlain: () => initializePlain(model),
+        RequestedInitializePlainWithOwningParentCommand: () =>
+          initializePlainWithOwningParentCommand(model),
+        RequestedInitializePlainWithParentCommands: () =>
+          initializePlainWithParentCommands(model),
+        CompletedParentInitialization: () => ({ model }),
+      }),
+    ),
+    operations: {
+      initializeEntry: (id: string, count: number) => [
+        ParentMessage.RequestedInitializeEntry({ id, count }),
+      ],
+      initializePlain: () => [ParentMessage.RequestedInitializePlain()],
+      initializePlainWithOwningParentCommand: () => [
+        ParentMessage.RequestedInitializePlainWithOwningParentCommand(),
+      ],
+      initializePlainWithParentCommands: () => [
+        ParentMessage.RequestedInitializePlainWithParentCommands(),
+      ],
+    },
+    EffectsLayer: Layer.merge(
+      LoadParameterizedChild.layer,
+      CompleteParentInitialization.layer,
+    ),
+  })
+export const StrictBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ParentModel,
+  typeof assembleStrictBlock
+> = Block.complete(assembleStrictBlock)
 
 type EntryInitRequirementsAreExact = Expect<
   Equal<

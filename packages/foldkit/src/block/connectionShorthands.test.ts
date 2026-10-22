@@ -18,6 +18,7 @@ import { aggregateChildren, inspectBinding } from './binding.js'
 import { makeDefinition } from './define.js'
 import { normalizeConnectionConfig } from './directConnection.js'
 import { ViewScopeTypeId } from './identity.js'
+import * as Block from './public.js'
 import type { Qualify } from './scope.js'
 
 class ValueSource extends Context.Service<
@@ -98,22 +99,27 @@ const childUpdate = registered.makeUpdate((model, message) =>
     FailedAcquireSession: () => ({ model }),
   }),
 )
-const block = registered.assembleBlock({
-  init: () => ({ model: Model.make({ count: 0 }) }),
-  update: childUpdate,
-  view,
-  subscriptions,
-  managedResources,
-  EffectsLayer: Layer.mergeAll(
-    Read.layer,
-    Observe.layer,
-    subscriptions.ticks.layer,
-    managedResources.session.layer,
-  ),
-  operations: {
-    read: () => Tuple.make(Message.RequestedReadOperation()),
-  },
-})
+const assembleBlock = () =>
+  registered.assembleBlock({
+    init: () => ({ model: Model.make({ count: 0 }) }),
+    update: childUpdate,
+    view,
+    subscriptions,
+    managedResources,
+    EffectsLayer: Layer.mergeAll(
+      Read.layer,
+      Observe.layer,
+      subscriptions.ticks.layer,
+      managedResources.session.layer,
+    ),
+    operations: {
+      read: () => Tuple.make(Message.RequestedReadOperation()),
+    },
+  })
+const block: Block.FromAssemblyWithViewAndOutMessage<
+  typeof Model,
+  typeof assembleBlock
+> = Block.complete(assembleBlock)
 const Entry = Schema.Struct({ id: Schema.String, child: Model })
 const ParentModel = Schema.Struct({
   primary: Model,

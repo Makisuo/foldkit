@@ -12,18 +12,23 @@ const HistoryDefinition = Block.makeDefinition('GenericPolicyHistory', {
 const HistoryComposition = HistoryDefinition.makeComposition()
 
 /** Sibling whose operation must remain registered when invoked by a policy. */
-export const HistoryBlock = HistoryComposition.assembleBlock({
-  init: HistoryComposition.makeInit(() => ({
-    model: Model.make({ recordedSelections: 0 }),
-  })),
-  update: HistoryComposition.makeUpdate((model, message) =>
-    HistoryMessage.match(message, {
-      RequestedRecordSelection: () => ({
-        model: Struct.modifyFields(model, {
-          recordedSelections: Number.increment,
+const assembleHistoryBlock = () =>
+  HistoryComposition.assembleBlock({
+    init: HistoryComposition.makeInit(() => ({
+      model: Model.make({ recordedSelections: 0 }),
+    })),
+    update: HistoryComposition.makeUpdate((model, message) =>
+      HistoryMessage.match(message, {
+        RequestedRecordSelection: () => ({
+          model: Struct.modifyFields(model, {
+            recordedSelections: Number.increment,
+          }),
         }),
       }),
-    }),
-  ),
-  operations: { recordSelection: HistoryMessage.RequestedRecordSelection },
-})
+    ),
+    operations: { recordSelection: HistoryMessage.RequestedRecordSelection },
+  })
+export const HistoryBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof assembleHistoryBlock
+> = Block.complete(assembleHistoryBlock)

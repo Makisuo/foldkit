@@ -225,14 +225,20 @@ const flagsRoutingInit = InvalidApplicationComposition.makeInit(
     model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   }),
 )
-
-// @ts-expect-error Completion requires the Flags and routing inputs declared by init.
-Program.make({
-  block: InvalidApplicationComposition.assembleBlock({
+const assemble = () =>
+  InvalidApplicationComposition.assembleBlock({
     init: flagsRoutingInit,
     update: invalidApplicationImplementation.update,
     view: invalidDocumentView,
-  }),
+  })
+const completedBlock: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof assemble
+> = Block.complete(assemble)
+
+// @ts-expect-error Completion requires the Flags and routing inputs declared by init.
+Program.make({
+  block: completedBlock,
   container: null,
 })
 
@@ -334,10 +340,15 @@ const applicationInputView = InvalidApplicationComposition.makeView.withInputs<
   Readonly<{ label: string }>
 >((_model, { label }, h) => h.main([], [label]))
 
-const applicationInputBlock = InvalidApplicationComposition.assembleBlock({
-  ...invalidApplicationImplementation,
-  view: applicationInputView,
-})
+const assembleApplicationInputBlock = () =>
+  InvalidApplicationComposition.assembleBlock({
+    ...invalidApplicationImplementation,
+    view: applicationInputView,
+  })
+const applicationInputBlock: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof assembleApplicationInputBlock
+> = Block.complete(assembleApplicationInputBlock)
 // @ts-expect-error A Program root view cannot require parent-supplied inputs.
 Program.makeElement({
   block: applicationInputBlock,
@@ -404,11 +415,17 @@ const RequiresConflictingProvisionContract = Layer.effect(
   }),
 )
 
-const provisionContractProgram = Program.makeElement({
-  block: InvalidApplicationComposition.assembleBlock({
+const assemble2 = () =>
+  InvalidApplicationComposition.assembleBlock({
     ...invalidApplicationImplementation,
     view: invalidElementView,
-  }),
+  })
+const completedBlock2: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof assemble2
+> = Block.complete(assemble2)
+const provisionContractProgram = Program.makeElement({
+  block: completedBlock2,
   container: null,
 })
 const programWithProvisionContract = provisionContractProgram.provide(
@@ -421,20 +438,30 @@ programWithProvisionContract.provide(ConflictingProvisionContract.layer)
 // @ts-expect-error A later provider cannot require a conflicting handler contract.
 programWithProvisionContract.provide(RequiresConflictingProvisionContract)
 
-const invalidElementBlock = InvalidApplicationComposition.assembleBlock({
-  ...invalidApplicationImplementation,
-  view: invalidElementView,
-})
+const assembleInvalidElementBlock = () =>
+  InvalidApplicationComposition.assembleBlock({
+    ...invalidApplicationImplementation,
+    view: invalidElementView,
+  })
+const invalidElementBlock: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof assembleInvalidElementBlock
+> = Block.complete(assembleInvalidElementBlock)
 // @ts-expect-error Program.make requires a Document view.
 Program.make({
   block: invalidElementBlock,
   container: null,
 })
 
-const invalidDocumentBlock = InvalidApplicationComposition.assembleBlock({
-  ...invalidApplicationImplementation,
-  view: invalidDocumentView,
-})
+const assembleInvalidDocumentBlock = () =>
+  InvalidApplicationComposition.assembleBlock({
+    ...invalidApplicationImplementation,
+    view: invalidDocumentView,
+  })
+const invalidDocumentBlock: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof assembleInvalidDocumentBlock
+> = Block.complete(assembleInvalidDocumentBlock)
 // @ts-expect-error Program.makeElement requires an Html view.
 Program.makeElement({
   block: invalidDocumentBlock,
@@ -448,11 +475,16 @@ const requiredContextUpdate = InvalidApplicationComposition.makeUpdate(
   },
 )
 
-const requiredContextBlock = InvalidApplicationComposition.assembleBlock({
-  ...invalidApplicationImplementation,
-  update: requiredContextUpdate,
-  view: invalidElementView,
-})
+const assembleRequiredContextBlock = () =>
+  InvalidApplicationComposition.assembleBlock({
+    ...invalidApplicationImplementation,
+    update: requiredContextUpdate,
+    view: invalidElementView,
+  })
+const requiredContextBlock: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof assembleRequiredContextBlock
+> = Block.complete(assembleRequiredContextBlock)
 // @ts-expect-error A Program root update cannot require dispatch context.
 Program.makeElement({
   block: requiredContextBlock,
@@ -509,10 +541,15 @@ InvalidApplicationComposition.assembleBlock({
   view: invalidElementView,
 })
 
-const invalidServerBlock = InvalidApplicationComposition.assembleBlock({
-  ...invalidApplicationImplementation,
-  view: invalidElementView,
-})
+const assembleInvalidServerBlock = () =>
+  InvalidApplicationComposition.assembleBlock({
+    ...invalidApplicationImplementation,
+    view: invalidElementView,
+  })
+const invalidServerBlock: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof assembleInvalidServerBlock
+> = Block.complete(assembleInvalidServerBlock)
 // oxlint-disable-next-line effecttsgo/floating-effect
 Server.renderToString(
   // @ts-expect-error Server rendering requires a page-owning Document view.

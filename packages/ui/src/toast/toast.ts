@@ -1,4 +1,5 @@
 import { Match, Option, Schema } from 'effect'
+import * as Block from 'foldkit/block'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 
 import { Position, SwipeState, Variant } from './schema.js'
@@ -319,14 +320,19 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     },
   )
 
-  const block = ToastComposition.assembleBlock({
-    init: toastRuntime.init,
-    update: toastRuntime.update,
-    view,
-    operations: toastRuntime.operations,
-    subscriptions: toastRuntime.subscriptions,
-    EffectsLayer: toastRuntime.EffectsLayer,
-  })
+  const assemble = () =>
+    ToastComposition.assembleBlock({
+      init: toastRuntime.init,
+      update: toastRuntime.update,
+      view,
+      operations: toastRuntime.operations,
+      subscriptions: toastRuntime.subscriptions,
+      EffectsLayer: toastRuntime.EffectsLayer,
+    })
+  const block: Block.FromAssemblyWithViewAndOutMessage<
+    typeof toastRuntime.Model,
+    typeof assemble
+  > = Block.complete(assemble)
   const test = makeTest({
     block,
     entryAnimationBinding: EntryAnimationBinding,

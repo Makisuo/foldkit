@@ -7,26 +7,26 @@ const assembleChild = () => Composition.assembleBlock({})
 export const HeaderChild: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
   typeof assembleChild
-> = assembleChild()
+> = Block.complete(assembleChild)
 
 const assembleInferred = () => Composition.assembleBlock({})
-export const InferredChild = assembleInferred()
+export const InferredChild = Block.complete(assembleInferred)
 
-export const WidenedHeader: ReturnType<typeof assembleChild> = HeaderChild
-export const CastHeader = HeaderChild as ReturnType<typeof assembleChild>
+export const WidenedHeader: typeof HeaderChild = HeaderChild
+export const CastHeader = HeaderChild as typeof HeaderChild
 export const InferredModel = InferredChild.Model
 const assembleBad = () => Composition.assembleBlock({})
 export const InferredModelHeader: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof InferredModel,
   typeof assembleBad
-> = assembleBad()
+> = Block.complete(assembleBad)
 
-const WidenedModel = (HeaderChild as ReturnType<typeof assembleChild>).Model
+const WidenedModel = (HeaderChild as typeof HeaderChild).Model
 const assembleWidenedModel = () => Composition.assembleBlock({})
 export const WidenedModelHeader: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof WidenedModel,
   typeof assembleWidenedModel
-> = assembleWidenedModel()
+> = Block.complete(assembleWidenedModel)
 
 export const ProvidedHeader = HeaderChild.provideHandlers(Layer.empty)
 export const ReplacedHeader = HeaderChild.replaceEffectsLayer(Layer.empty)

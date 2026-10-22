@@ -164,24 +164,29 @@ const buildGraph = (
   const childView = childComposition.makeView((model, h) =>
     h.div([h.OnMount(ObservePanel())], [`child:${model.id}`]),
   )
-  const Child = childComposition.assembleBlock({
-    view: childView,
-    init: () => ({ model: ChildModel.make({ id: 'one' }) }),
-    update: (model, message) =>
-      ChildMessage.match(message, {
-        AcquiredSession: () => ({ model }),
-        CompletedObservePanel: () => ({ model }),
-        FailedAcquireSession: () => ({ model }),
-        ReleasedSession: () => ({ model }),
-      }),
-    subscriptions,
-    managedResources,
-    EffectsLayer: Layer.mergeAll(
-      subscriptions.activity.layer,
-      managedResources.session.layer,
-      ObservePanel.layer,
-    ),
-  })
+  const assembleChild = () =>
+    childComposition.assembleBlock({
+      view: childView,
+      init: () => ({ model: ChildModel.make({ id: 'one' }) }),
+      update: (model, message) =>
+        ChildMessage.match(message, {
+          AcquiredSession: () => ({ model }),
+          CompletedObservePanel: () => ({ model }),
+          FailedAcquireSession: () => ({ model }),
+          ReleasedSession: () => ({ model }),
+        }),
+      subscriptions,
+      managedResources,
+      EffectsLayer: Layer.mergeAll(
+        subscriptions.activity.layer,
+        managedResources.session.layer,
+        ObservePanel.layer,
+      ),
+    })
+  const Child: Block.FromAssemblyWithView<
+    typeof ChildModel,
+    typeof assembleChild
+  > = Block.complete(assembleChild)
 
   const ParentModel = Schema.Struct({
     maybeChild: Schema.Option(ChildModel),
@@ -273,13 +278,20 @@ it.each(['Option', 'Route'] as const)(
     container.id = 'block-lifecycle-test'
     document.body.appendChild(container)
 
-    const provided = Program.makeElement({
-      block: composition.assembleBlock({
+    const assemble = () =>
+      composition.assembleBlock({
         init,
         update,
         view,
         EffectsLayer: Layer.empty,
-      }),
+      })
+    const completedBlock: Block.FromAssemblyWithView<
+      typeof composition.Model,
+      typeof assemble
+    > = Block.complete(assemble)
+
+    const provided = Program.makeElement({
+      block: completedBlock,
       container,
     })
 
@@ -353,12 +365,19 @@ it('gates only Subscription Streams while the direct-field child remains present
   const container = document.createElement('div')
   container.id = 'block-subscription-only-lifecycle-test'
   document.body.appendChild(container)
-  const application = Program.makeElement({
-    block: composition.assembleBlock({
+  const assemble = () =>
+    composition.assembleBlock({
       init,
       update,
       view,
-    }),
+    })
+  const completedBlock: Block.FromAssemblyWithView<
+    typeof composition.Model,
+    typeof assemble
+  > = Block.complete(assemble)
+
+  const application = Program.makeElement({
+    block: completedBlock,
     container,
   })
   const fiber = Effect.runFork(__startProgram(application, undefined, 'Fresh'))

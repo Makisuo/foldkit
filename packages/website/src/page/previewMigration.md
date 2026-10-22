@@ -233,7 +233,7 @@ Make the root an ordinary completed Block named `Application`:
 2. Rename a root route union named `AppRoute` to `ApplicationRoute`, including its imports and type queries.
 3. Build `ApplicationComposition` through `makeComposition({ bindings, mounts })` as needed.
 4. Author root init, update, and view through that Composition.
-5. Complete `ApplicationBlock` with `ApplicationComposition.assembleBlock(...)`.
+5. Return `ApplicationComposition.assembleBlock(...)` from the private `assemble` producer, then complete `ApplicationBlock` with `Block.complete(assemble)`.
 6. Move container, Flags, routing, Ports, DevTools, and other browser host fields into `Program.make`.
 7. Supply ordinary application Services with `program.provide(ApplicationLayer)` before starting the Runtime.
 

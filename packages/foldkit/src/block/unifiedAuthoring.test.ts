@@ -81,12 +81,17 @@ const update = search.makeUpdate((model, message) =>
     }),
   }),
 )
-const block = search.assembleBlock({
-  init: () => ({ model: Model.make({ value: '' }) }),
-  update,
-  operations: { clear: () => Tuple.make(Message.RequestedClear()) },
-  EffectsLayer: Save.layer,
-})
+const assembleBlock = () =>
+  search.assembleBlock({
+    init: () => ({ model: Model.make({ value: '' }) }),
+    update,
+    operations: { clear: () => Tuple.make(Message.RequestedClear()) },
+    EffectsLayer: Save.layer,
+  })
+const block: Block.FromAssemblyWithOutMessage<
+  typeof Model,
+  typeof assembleBlock
+> = Block.complete(assembleBlock)
 expectTypeOf<Update.RequirementsOf<typeof update>>().toEqualTypeOf<
   Command.HandlerOf<typeof Save>
 >()
@@ -118,22 +123,32 @@ const secondComposition = EarlyNamespace.makeDefinition({
   Model,
   Message,
 }).makeComposition()
-const firstBlock = firstComposition.assembleBlock({
-  init: () => ({ model: Model.make({ value: '' }) }),
-  update: firstComposition.makeUpdate(model => ({
-    model,
-    commands: [Shared()],
-  })),
-  EffectsLayer: Shared.layer,
-})
-const secondBlock = secondComposition.assembleBlock({
-  init: () => ({ model: Model.make({ value: '' }) }),
-  update: secondComposition.makeUpdate(model => ({
-    model,
-    commands: [Shared()],
-  })),
-  EffectsLayer: Shared.layer,
-})
+const assembleFirstBlock = () =>
+  firstComposition.assembleBlock({
+    init: () => ({ model: Model.make({ value: '' }) }),
+    update: firstComposition.makeUpdate(model => ({
+      model,
+      commands: [Shared()],
+    })),
+    EffectsLayer: Shared.layer,
+  })
+const firstBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof assembleFirstBlock
+> = Block.complete(assembleFirstBlock)
+const assembleSecondBlock = () =>
+  secondComposition.assembleBlock({
+    init: () => ({ model: Model.make({ value: '' }) }),
+    update: secondComposition.makeUpdate(model => ({
+      model,
+      commands: [Shared()],
+    })),
+    EffectsLayer: Shared.layer,
+  })
+const secondBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof assembleSecondBlock
+> = Block.complete(assembleSecondBlock)
 it('requires Model and Message Schemas for a typed Definition', () => {
   expect(() =>
     Reflect.apply(Block.makeDefinition, undefined, ['MissingContracts']),

@@ -47,4 +47,4 @@ const assemble = () =>
 export const PanelBlock: Block.FromAssemblyWithView<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

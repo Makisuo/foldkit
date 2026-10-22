@@ -26,7 +26,7 @@ const update = FunctionReferenceChildComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const FunctionReferenceChildBlock =
+const assemble = () =>
   FunctionReferenceChildComposition.assembleBlock({
     init,
     update,
@@ -35,3 +35,7 @@ export const FunctionReferenceChildBlock =
     },
     EffectsLayer: Layer.empty,
   })
+export const FunctionReferenceChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof assemble
+> = Block.complete(assemble)

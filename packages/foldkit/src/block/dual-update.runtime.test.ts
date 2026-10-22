@@ -7,6 +7,7 @@ import { modifyFields } from '../struct/index.js'
 import * as Update from '../update/index.js'
 import type { RequirementOfBinding } from './binding.js'
 import { makeDefinition } from './define.js'
+import * as Block from './public.js'
 
 const Model = Schema.Struct({ count: Schema.Number })
 type Model = typeof Model.Type
@@ -167,13 +168,18 @@ const fullChannelUpdate = CounterComposition.makeUpdate(
     }
   },
 )
-const FullChannelBlock = CounterComposition.assembleBlock({
-  view: CounterComposition.makeView((_model, h) => h.empty),
-  init: () => ({ model: Model.make({ count: 0 }) }),
-  update: fullChannelUpdate,
-  operations: {},
-  EffectsLayer: Save.layer,
-})
+const assembleFullChannelBlock = () =>
+  CounterComposition.assembleBlock({
+    view: CounterComposition.makeView((_model, h) => h.empty),
+    init: () => ({ model: Model.make({ count: 0 }) }),
+    update: fullChannelUpdate,
+    operations: {},
+    EffectsLayer: Save.layer,
+  })
+const FullChannelBlock: Block.FromAssemblyWithViewAndOutMessage<
+  typeof Model,
+  typeof assembleFullChannelBlock
+> = Block.complete(assembleFullChannelBlock)
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 const ChildMessage = defineMessageUnion({
@@ -184,12 +190,17 @@ const ChildComposition = makeDefinition('DualUpdateRuntimeChild', {
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const ChildBlock = ChildComposition.assembleBlock({
-  init: () => ({ model: ChildModel.make({ count: 0 }) }),
-  update: ChildComposition.makeUpdate((model, { amount }) => ({
-    model: modifyFields(model, { count: count => count + amount }),
-  })),
-})
+const assembleChildBlock = () =>
+  ChildComposition.assembleBlock({
+    init: () => ({ model: ChildModel.make({ count: 0 }) }),
+    update: ChildComposition.makeUpdate((model, { amount }) => ({
+      model: modifyFields(model, { count: count => count + amount }),
+    })),
+  })
+const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 const ParentModel = Schema.Struct({ child: ChildModel, updates: Schema.Number })
 type ParentModel = typeof ParentModel.Type
 const ParentMessage = defineMessageUnion({
@@ -218,10 +229,15 @@ const parentModel = ParentModel.make({
   child: ChildModel.make({ count: 0 }),
   updates: 0,
 })
-const ParentBlock = ParentComposition.assembleBlock({
-  init: () => ({ model: parentModel }),
-  update: parentUpdate,
-})
+const assembleParentBlock = () =>
+  ParentComposition.assembleBlock({
+    init: () => ({ model: parentModel }),
+    update: parentUpdate,
+  })
+const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ParentModel,
+  typeof assembleParentBlock
+> = Block.complete(assembleParentBlock)
 
 it('runs direct and Message-first curried updates identically', () => {
   const model = Model.make({ count: 1 })

@@ -7,6 +7,7 @@ import {
   type ActiveInstance,
   CurrentInstance,
 } from '../block/instanceContext.js'
+import * as Block from '../block/public.js'
 import { defineMessageUnion } from '../message/index.js'
 import { beginRender, createBoundaryRegistry } from './boundary.js'
 import { __htmlBuilder } from './index.js'
@@ -22,17 +23,22 @@ const ChildDefinition = makeDefinition('OriginViewChild', {
   Message: ChildMessage,
 })
 const ChildComposition = ChildDefinition.makeComposition()
-const ChildBlock = ChildComposition.assembleBlock({
-  init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
-  update: ChildComposition.makeUpdate(model => ({ model })),
-  view: ChildComposition.makeView((_model, h) =>
-    h.button([
-      h.OnClick(ChildMessage.ClickedIncrement()),
-      h.OnBlur(ChildMessage.BlurredButton()),
-    ]),
-  ),
-  EffectsLayer: Layer.empty,
-})
+const assembleChildBlock = () =>
+  ChildComposition.assembleBlock({
+    init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
+    update: ChildComposition.makeUpdate(model => ({ model })),
+    view: ChildComposition.makeView((_model, h) =>
+      h.button([
+        h.OnClick(ChildMessage.ClickedIncrement()),
+        h.OnBlur(ChildMessage.BlurredButton()),
+      ]),
+    ),
+    EffectsLayer: Layer.empty,
+  })
+const ChildBlock: Block.FromAssemblyWithView<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 const ParentModel = Schema.Struct({ child: ChildModel })
 const ParentMessage = defineMessageUnion({ ClickedParent: {} })

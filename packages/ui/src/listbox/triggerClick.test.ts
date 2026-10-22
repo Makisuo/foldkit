@@ -51,16 +51,21 @@ const view = ListboxTriggerClickTestComposition.makeView((model, h) =>
     ],
   ),
 )
-const ApplicationBlock = ListboxTriggerClickTestComposition.assembleBlock({
-  init: ListboxTriggerClickTestComposition.makeInit(() =>
-    ListboxBinding.init({
-      args: [{ id: 'sort', isModal: true }],
-      toParentModel: listbox => ({ listbox }),
-    }),
-  ),
-  update: ListboxTriggerClickTestComposition.makeUpdate(),
-  view,
-})
+const assemble = () =>
+  ListboxTriggerClickTestComposition.assembleBlock({
+    init: ListboxTriggerClickTestComposition.makeInit(() =>
+      ListboxBinding.init({
+        args: [{ id: 'sort', isModal: true }],
+        toParentModel: listbox => ({ listbox }),
+      }),
+    ),
+    update: ListboxTriggerClickTestComposition.makeUpdate(),
+    view,
+  })
+const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assemble
+> = Block.complete(assemble)
 
 const requireElement = (id: string): HTMLElement => {
   const element = document.getElementById(id)

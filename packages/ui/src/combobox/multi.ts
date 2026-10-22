@@ -1,5 +1,5 @@
 import { Schema, Tuple } from 'effect'
-import type * as Block from 'foldkit/block'
+import * as Block from 'foldkit/block'
 import { modifyFields } from 'foldkit/struct'
 
 import {
@@ -211,7 +211,13 @@ const makeBlock = <Item extends string, ItemEncoded>(
 ): Completed<Item, ItemEncoded> => {
   const { composition, implementation } = makeBlockParts(Item)
 
-  return composition.assembleBlock(implementation)
+  const assemble = () => composition.assembleBlock(implementation)
+  const completedBlock: Block.FromAssemblyWithViewAndOutMessage<
+    typeof Model,
+    typeof assemble
+  > = Block.complete(assemble)
+
+  return completedBlock
 }
 
 /** Creates a checked multi-select Combobox Block. Pass an Item Schema to

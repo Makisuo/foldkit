@@ -1141,13 +1141,18 @@ const makeView = (
 
 const view = ApplicationComposition.makeView(makeView(bindings))
 
-const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-  subscriptions,
-  EffectsLayer,
-})
+const assemble = () =>
+  ApplicationComposition.assembleBlock({
+    init,
+    update,
+    view,
+    subscriptions,
+    EffectsLayer,
+  })
+const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assemble
+> = Block.complete(assemble)
 
 const buildOverlayView = (
   position: DevToolsPosition,

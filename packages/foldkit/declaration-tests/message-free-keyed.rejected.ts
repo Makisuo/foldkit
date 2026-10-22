@@ -31,10 +31,15 @@ const MessagefulComposition = Block.makeDefinition(
     Message: MessagefulMessage,
   },
 ).makeComposition()
-const MessagefulBlock = MessagefulComposition.assembleBlock({
-  init: MessagefulComposition.makeInit(() => ({ model: { ready: false } })),
-  update: MessagefulComposition.makeUpdate(model => ({ model })),
-})
+const assembleMessagefulBlock = () =>
+  MessagefulComposition.assembleBlock({
+    init: MessagefulComposition.makeInit(() => ({ model: { ready: false } })),
+    update: MessagefulComposition.makeUpdate(model => ({ model })),
+  })
+const MessagefulBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof MessagefulComposition.Model,
+  typeof assembleMessagefulBlock
+> = Block.complete(assembleMessagefulBlock)
 
 // @ts-expect-error A messageful general keyed Binding requires an exact key Schema for generated delivery.
 ParentDefinition.makeBinding(MessagefulBlock, {

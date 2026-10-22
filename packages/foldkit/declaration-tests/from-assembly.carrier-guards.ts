@@ -9,7 +9,7 @@ import {
   assembleReportingViewed,
   assembleViewed,
 } from './from-assembly.accepted.js'
-import { ParentDefinition } from './from-assembly.accepted.js'
+import { OriginalViewed, ParentDefinition } from './from-assembly.accepted.js'
 
 declare const anyProducer: any
 export const AnyViewed: Block.AssemblyWithView<
@@ -74,17 +74,17 @@ export const BroadCarrier: Block.AssemblyWithView<
   typeof BroadModel,
   // @ts-expect-error The public carrier preserves exact Model agreement.
   typeof assembleViewed
-> = assembleViewed()
+> = OriginalViewed
 export const MutableCarrier: Block.AssemblyWithView<
   typeof MutableModel,
   // @ts-expect-error A structurally assignable mutable header still fails exact Schema agreement.
   typeof assembleViewed
-> = assembleViewed()
+> = OriginalViewed
 export const AnyModelCarrier: Block.AssemblyWithView<
   any,
   // @ts-expect-error Any Model cannot disable the carrier's header validation.
   typeof assembleViewed
-> = assembleViewed()
+> = OriginalViewed
 
 declare function twoOverloads(): any
 declare function twoOverloads(

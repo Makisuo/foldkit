@@ -2,6 +2,7 @@ import { Context, Schema } from 'effect'
 import { describe, expect, test } from 'vitest'
 
 import { makeDefinition } from '../block/define.js'
+import * as Block from '../block/public.js'
 import { block } from '../html/block.js'
 import {
   type Html,
@@ -83,11 +84,16 @@ describe('Lazy.expectAllReused', () => {
     const childView = ChildComposition.makeView((model, h) =>
       h.div([], [lazyTitle(titleView, [model.title])]),
     )
-    const child = ChildComposition.assembleBlock({
-      init: ChildComposition.makeInit(() => ({ model })),
-      update: ChildComposition.makeUpdate(),
-      view: childView,
-    })
+    const assembleChild = () =>
+      ChildComposition.assembleBlock({
+        init: ChildComposition.makeInit(() => ({ model })),
+        update: ChildComposition.makeUpdate(),
+        view: childView,
+      })
+    const child: Block.FromAssemblyWithView<
+      typeof Model,
+      typeof assembleChild
+    > = Block.complete(assembleChild)
     const ParentModel = Schema.Struct({ child: Model })
     const ParentDefinition = makeDefinition('LazyAssertionParent', {
       Model: ParentModel,

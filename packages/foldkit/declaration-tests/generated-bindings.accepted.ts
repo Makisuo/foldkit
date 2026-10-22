@@ -17,17 +17,22 @@ export const GeneratedBindingCounterDefinition = Block.makeDefinition(
 )
 export const GeneratedBindingCounterComposition =
   GeneratedBindingCounterDefinition.makeComposition()
-export const CounterBlock = GeneratedBindingCounterComposition.assembleBlock({
-  init: GeneratedBindingCounterComposition.makeInit((id: string) => ({
-    model: { id, count: 0 },
-  })),
-  update: GeneratedBindingCounterComposition.makeUpdate(
-    (model, _message, amount: number) => ({
-      model: modifyFields(model, { count: count => count + amount }),
-    }),
-  ),
-  view: GeneratedBindingCounterComposition.makeView((_model, h) => h.empty),
-})
+const assembleCounterBlock = () =>
+  GeneratedBindingCounterComposition.assembleBlock({
+    init: GeneratedBindingCounterComposition.makeInit((id: string) => ({
+      model: { id, count: 0 },
+    })),
+    update: GeneratedBindingCounterComposition.makeUpdate(
+      (model, _message, amount: number) => ({
+        model: modifyFields(model, { count: count => count + amount }),
+      }),
+    ),
+    view: GeneratedBindingCounterComposition.makeView((_model, h) => h.empty),
+  })
+export const CounterBlock: Block.FromAssemblyWithView<
+  typeof CounterModel,
+  typeof assembleCounterBlock
+> = Block.complete(assembleCounterBlock)
 
 export const StatusModel = Schema.Struct({ isReady: Schema.Boolean })
 export const StatusMessage = defineMessageUnion({ ToggledReady: {} })
@@ -40,14 +45,19 @@ export const GeneratedBindingStatusDefinition = Block.makeDefinition(
 )
 export const GeneratedBindingStatusComposition =
   GeneratedBindingStatusDefinition.makeComposition()
-export const StatusBlock = GeneratedBindingStatusComposition.assembleBlock({
-  init: GeneratedBindingStatusComposition.makeInit(() => ({
-    model: { isReady: false },
-  })),
-  update: GeneratedBindingStatusComposition.makeUpdate(model => ({ model })),
-  view: GeneratedBindingStatusComposition.makeView((_model, h) => h.empty),
-  operations: { requestToggle: StatusMessage.ToggledReady },
-})
+const assembleStatusBlock = () =>
+  GeneratedBindingStatusComposition.assembleBlock({
+    init: GeneratedBindingStatusComposition.makeInit(() => ({
+      model: { isReady: false },
+    })),
+    update: GeneratedBindingStatusComposition.makeUpdate(model => ({ model })),
+    view: GeneratedBindingStatusComposition.makeView((_model, h) => h.empty),
+    operations: { requestToggle: StatusMessage.ToggledReady },
+  })
+export const StatusBlock: Block.FromAssemblyWithView<
+  typeof StatusModel,
+  typeof assembleStatusBlock
+> = Block.complete(assembleStatusBlock)
 
 export const Room = Schema.Struct({
   roomId: Schema.String,

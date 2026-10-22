@@ -12,20 +12,20 @@ import {
 const Model = Schema.Struct({ count: Schema.Number })
 const Composition = Block.makeDefinition('Child', { Model }).makeComposition()
 const assemble = () => Composition.assembleBlock({})
-const Safe: Block.FromAssemblyWithoutViewOrOutMessage<typeof Model, typeof assemble> = assemble()
-const Reannotated: ReturnType<typeof assemble> = Safe
-const Cast = Safe as ReturnType<typeof assemble>
-const AngleCast = <ReturnType<typeof assemble>>Safe
-const ImportedReannotated: ReturnType<typeof assemble> = PublicHeader
-const ImportedCast = PublicHeader as ReturnType<typeof assemble>
+const Safe: Block.FromAssemblyWithoutViewOrOutMessage<typeof Model, typeof assemble> = Block.complete(assemble)
+const Reannotated: typeof Safe = Safe
+const Cast = Safe as typeof Safe
+const AngleCast = <typeof Safe>Safe
+const ImportedReannotated: typeof Safe = PublicHeader
+const ImportedCast = PublicHeader as typeof Safe
 const SameAnnotation: typeof Safe = Safe
-const WidenedModel = (Safe as ReturnType<typeof assemble>).Model
-const ViaWidenedModel: Block.FromAssemblyWithoutViewOrOutMessage<typeof WidenedModel, typeof assemble> = assemble()
-const Inferred = Composition.assembleBlock({})
+const WidenedModel = (Safe as typeof Safe).Model
+const ViaWidenedModel: Block.FromAssemblyWithoutViewOrOutMessage<typeof WidenedModel, typeof assemble> = Block.complete(assemble)
+const Inferred = Block.complete(assemble)
 const ModelAlias = Inferred.Model
-const ViaInferredModel: Block.FromAssemblyWithoutViewOrOutMessage<typeof Inferred.Model, typeof assemble> = assemble()
-const ViaModelAlias: Block.FromAssemblyWithoutViewOrOutMessage<typeof ModelAlias, typeof assemble> = assemble()
-const ViaImportedModel: Block.FromAssemblyWithoutViewOrOutMessage<typeof InferredModel, typeof assemble> = assemble()
+const ViaInferredModel: Block.FromAssemblyWithoutViewOrOutMessage<typeof Inferred.Model, typeof assemble> = Block.complete(assemble)
+const ViaModelAlias: Block.FromAssemblyWithoutViewOrOutMessage<typeof ModelAlias, typeof assemble> = Block.complete(assemble)
+const ViaImportedModel: Block.FromAssemblyWithoutViewOrOutMessage<typeof InferredModel, typeof assemble> = Block.complete(assemble)
 export const Parent = Schema.Struct({
   reannotated: Reannotated.Model,
   cast: Schema.Option(Schema.Array(Cast.Model)),

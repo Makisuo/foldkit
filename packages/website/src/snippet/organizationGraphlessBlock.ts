@@ -37,4 +37,4 @@ const assemble = () =>
 export const CounterBlock: Block.FromAssemblyWithView<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

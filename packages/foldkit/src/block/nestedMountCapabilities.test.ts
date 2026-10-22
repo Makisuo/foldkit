@@ -3,6 +3,7 @@ import { expect, it } from 'vitest'
 
 import { defineMessageUnion } from '../message/index.js'
 import { makeDefinition } from './define.js'
+import * as Block from './public.js'
 
 const LeafModel = Schema.Struct({ count: Schema.Number })
 const LeafMessage = defineMessageUnion({ CompletedObserveLeaf: {} })
@@ -22,12 +23,17 @@ const leafRegistered = MountCapabilityLeaf.makeComposition({
 const leafView = leafRegistered.makeView((model, h) =>
   h.div([h.OnMount(ObserveLeaf())], [globalThis.String(model.count)]),
 )
-const leafBlock = leafRegistered.assembleBlock({
-  init: () => ({ model: LeafModel.make({ count: 0 }) }),
-  update: leafRegistered.makeUpdate(model => ({ model })),
-  view: leafView,
-  EffectsLayer: ObserveLeaf.layer,
-})
+const assembleLeafBlock = () =>
+  leafRegistered.assembleBlock({
+    init: () => ({ model: LeafModel.make({ count: 0 }) }),
+    update: leafRegistered.makeUpdate(model => ({ model })),
+    view: leafView,
+    EffectsLayer: ObserveLeaf.layer,
+  })
+const leafBlock: Block.FromAssemblyWithView<
+  typeof LeafModel,
+  typeof assembleLeafBlock
+> = Block.complete(assembleLeafBlock)
 
 const MiddleModel = Schema.Struct({ leaf: LeafModel })
 const MountCapabilityMiddle = makeDefinition('MountCapabilityMiddle', {
@@ -53,16 +59,21 @@ const middleView = middleRegistered.makeView((model, h) =>
     }),
   ),
 )
-const middleBlock = middleRegistered.assembleBlock({
-  init: middleRegistered.makeInit(() =>
-    LeafBinding.init({
-      args: [],
-      toParentModel: leaf => MiddleModel.make({ leaf }),
-    }),
-  ),
-  update: middleRegistered.makeUpdate(),
-  view: middleView,
-})
+const assembleMiddleBlock = () =>
+  middleRegistered.assembleBlock({
+    init: middleRegistered.makeInit(() =>
+      LeafBinding.init({
+        args: [],
+        toParentModel: leaf => MiddleModel.make({ leaf }),
+      }),
+    ),
+    update: middleRegistered.makeUpdate(),
+    view: middleView,
+  })
+const middleBlock: Block.FromAssemblyWithView<
+  typeof MiddleModel,
+  typeof assembleMiddleBlock
+> = Block.complete(assembleMiddleBlock)
 
 const RootModel = Schema.Struct({ middle: MiddleModel })
 const MountCapabilityRoot = makeDefinition('MountCapabilityRoot', {
@@ -88,16 +99,21 @@ const rootView = rootRegistered.makeView((model, h) =>
     }),
   ),
 )
-const rootBlock = rootRegistered.assembleBlock({
-  init: rootRegistered.makeInit(() =>
-    MiddleBinding.init({
-      args: [],
-      toParentModel: middle => RootModel.make({ middle }),
-    }),
-  ),
-  update: rootRegistered.makeUpdate(),
-  view: rootView,
-})
+const assembleRootBlock = () =>
+  rootRegistered.assembleBlock({
+    init: rootRegistered.makeInit(() =>
+      MiddleBinding.init({
+        args: [],
+        toParentModel: middle => RootModel.make({ middle }),
+      }),
+    ),
+    update: rootRegistered.makeUpdate(),
+    view: rootView,
+  })
+const rootBlock: Block.FromAssemblyWithView<
+  typeof RootModel,
+  typeof assembleRootBlock
+> = Block.complete(assembleRootBlock)
 
 const SiblingMessage = defineMessageUnion({ CompletedObserveSibling: {} })
 const MountCapabilitySibling = makeDefinition('MountCapabilitySibling', {

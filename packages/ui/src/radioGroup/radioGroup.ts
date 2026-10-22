@@ -469,7 +469,7 @@ const assembleRadioGroupBlock = () =>
 export const block: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assembleRadioGroupBlock
-> = assembleRadioGroupBlock()
+> = Block.complete(assembleRadioGroupBlock)
 
 const makeBlockParts = <Value extends string>() => {
   type GenericReturn = Update.ReturnWithOutMessage<
@@ -531,7 +531,13 @@ export interface Completed<
 const makeBlock = <Value extends string>(): Completed<Value> => {
   const { composition, implementation } = makeBlockParts<Value>()
 
-  return composition.assembleBlock(implementation)
+  const assemble = () => composition.assembleBlock(implementation)
+  const completedBlock: Block.FromAssemblyWithViewAndOutMessage<
+    typeof Model,
+    typeof assemble
+  > = Block.complete(assemble)
+
+  return completedBlock
 }
 
 /**

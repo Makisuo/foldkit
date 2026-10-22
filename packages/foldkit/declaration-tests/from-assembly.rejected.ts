@@ -66,7 +66,7 @@ const originalParentProgram = Program.makeElement({
   container: null,
 })
 
-// @ts-expect-error Store remains required for the unannotated root with an annotated child.
+// @ts-expect-error Store remains required for the full-contract root with a carrier child.
 Runtime.run(originalParentProgram)
 
 const rawParentProgram = Program.makeElement({
@@ -74,7 +74,7 @@ const rawParentProgram = Program.makeElement({
   container: null,
 })
 
-// @ts-expect-error Store remains required when the root and child are both unannotated.
+// @ts-expect-error Store remains required when the root and child both retain their full contracts.
 Runtime.run(rawParentProgram)
 
 export const assembleWithUnknownLayer = () =>
@@ -144,7 +144,7 @@ export const CovariantAnnotation: Block.FromAssemblyWithView<
   typeof MutableBroadHeader,
   // @ts-expect-error A broader mutable decoded/encoded Model cannot replace the assembly's exact Schema.
   typeof assembleViewed
-> = assembleViewed()
+> = OriginalViewed
 export const MutableExactHeader: Schema.Codec<
   { count: number },
   { count: number }
@@ -155,35 +155,37 @@ export const MutableAnnotation: Block.FromAssemblyWithView<
   typeof MutableExactHeader,
   // @ts-expect-error A structurally assignable but different mutable Schema header cannot replace the assembly Schema.
   typeof assembleViewed
-> = assembleViewed()
+> = OriginalViewed
 export const AnyModelAnnotation: Block.FromAssemblyWithView<
   any,
   // @ts-expect-error A completely any Model Schema cannot disable header agreement.
   typeof assembleViewed
-> = assembleViewed()
+> = OriginalViewed
 
 // @ts-expect-error Headless assembly cannot acquire a default view through an annotation.
 export const InventedView: Block.FromAssemblyWithView<
   typeof Model,
   typeof assembleHeadless
-> = assembleHeadless()
+> = Headless
 // @ts-expect-error A view-capable assembly cannot claim no default view.
 export const ErasedView: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
   typeof assembleViewed
-> = assembleViewed()
+> = OriginalViewed
 // @ts-expect-error A reporting assembly cannot erase its OutMessage Schema.
 export const ErasedOutMessage: Block.FromAssemblyWithView<
   typeof Model,
   typeof assembleReportingViewed
-> = assembleReportingViewed()
+> = Block.complete(assembleReportingViewed)
 // @ts-expect-error A plain assembly cannot invent an OutMessage Schema.
 export const InventedOutMessage: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assembleViewed
-> = assembleViewed()
+> = OriginalViewed
 
-declare const unionProducer: () => typeof OriginalViewed | typeof Headless
+declare const unionProducer: () =>
+  | ReturnType<typeof assembleViewed>
+  | ReturnType<typeof assembleHeadless>
 export type UnionAnnotation = Block.FromAssemblyWithView<
   typeof Model,
   // @ts-expect-error A union producer is rejected instead of losing cross-member capability correlations.
@@ -191,13 +193,13 @@ export type UnionAnnotation = Block.FromAssemblyWithView<
 >
 
 const assembleExtended = () => Object.assign(assembleViewed(), { test: true })
-export const ExtendedAnnotation: Block.FromAssemblyWithView<
+export type ExtendedAnnotation = Block.FromAssemblyWithView<
   typeof Model,
   // @ts-expect-error Extra fields must be added after the checked plain assembly annotation.
   typeof assembleExtended
-> = assembleExtended()
-export const ExtendedCarrier: Block.AssemblyWithView<
+>
+export type ExtendedCarrier = Block.AssemblyWithView<
   typeof Model,
   // @ts-expect-error Public declaration support retains the same exact completed-key requirement.
   typeof assembleExtended
-> = assembleExtended()
+>

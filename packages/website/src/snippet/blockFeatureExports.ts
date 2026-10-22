@@ -1,5 +1,5 @@
 // page/settings/block.ts
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 
 import type { Model } from './model'
 
@@ -15,7 +15,7 @@ const assemble = () =>
 export const SettingsBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)
 
 // page/settings/index.ts
 export { SettingsBlock } from './block'

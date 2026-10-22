@@ -91,15 +91,21 @@ const preservedModel = (dialogModel: Dialog.Model): Model => ({
 const preservedOpenModel = (config: Dialog.InitConfig): Dialog.Model =>
   Dialog.update(Dialog.init(config).model, Dialog.Message.RequestedOpen()).model
 
-const makeDialogProgram = (container: HTMLElement) =>
-  Program.makeElement({
-    block: ApplicationComposition.assembleBlock({
+const makeDialogProgram = (container: HTMLElement) => {
+  const assemble = () =>
+    ApplicationComposition.assembleBlock({
       init,
       update,
       view,
-    }),
+    })
+  const block: Block.FromAssemblyWithView<typeof Model, typeof assemble> =
+    Block.complete(assemble)
+
+  return Program.makeElement({
+    block,
     container,
   })
+}
 
 describe('Dialog runtime lifecycle', () => {
   beforeEach(() => {

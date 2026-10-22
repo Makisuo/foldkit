@@ -1,4 +1,5 @@
 import { Context, Effect, Tuple } from 'effect'
+import { Block } from 'foldkit'
 
 import { ChildDefinition } from './schema-boundary-definition.js'
 import { Message } from './schema-boundary-message.js'
@@ -28,12 +29,17 @@ export const update = ChildComposition.makeUpdate((model, message) =>
     CompletedLoad: ({ count }) => ({ model: Model.make({ count }) }),
   }),
 )
-export const ChildBlock = ChildComposition.assembleBlock({
-  init,
-  update,
-  operations: {
-    load: (key: 'Primary' | 'Secondary') =>
-      Tuple.make(Message.RequestedLoad({ key })),
-  },
-  EffectsLayer: Load.layer,
-})
+const assemble = () =>
+  ChildComposition.assembleBlock({
+    init,
+    update,
+    operations: {
+      load: (key: 'Primary' | 'Secondary') =>
+        Tuple.make(Message.RequestedLoad({ key })),
+    },
+    EffectsLayer: Load.layer,
+  })
+export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof assemble
+> = Block.complete(assemble)

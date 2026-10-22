@@ -11,6 +11,7 @@ import {
   type RequiredKeyedField,
   normalizeKeyedFieldConfig,
 } from './keyedFieldConnection.js'
+import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ id: Schema.String, count: Schema.Number })
 const EquivalentChildModel = Schema.Struct({
@@ -54,35 +55,45 @@ const ChildComposition = makeDefinition('KeyedFieldConnectionChild', {
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const childBlock = ChildComposition.assembleBlock({
-  init: ChildComposition.makeInit(() => ({
-    model: ChildModel.make({ id: 'initial', count: 0 }),
-  })),
-  update: ChildComposition.makeUpdate((model, message) =>
-    ChildMessage.match(message, {
-      UpdatedCount: ({ count }) => ({
-        model: modifyFields(model, { count: () => count }),
+const assembleChildBlock = () =>
+  ChildComposition.assembleBlock({
+    init: ChildComposition.makeInit(() => ({
+      model: ChildModel.make({ id: 'initial', count: 0 }),
+    })),
+    update: ChildComposition.makeUpdate((model, message) =>
+      ChildMessage.match(message, {
+        UpdatedCount: ({ count }) => ({
+          model: modifyFields(model, { count: () => count }),
+        }),
+        UpdatedId: ({ id }) => ({
+          model: modifyFields(model, { id: () => id }),
+        }),
       }),
-      UpdatedId: ({ id }) => ({
-        model: modifyFields(model, { id: () => id }),
-      }),
-    }),
-  ),
-  EffectsLayer: Layer.empty,
-})
+    ),
+    EffectsLayer: Layer.empty,
+  })
+const childBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 const ArrayChildMessage = defineMessageUnion({ IgnoredValue: {} })
 
 const ArrayChildComposition = makeDefinition('KeyedFieldConnectionArrayChild', {
   Model: ArrayChildModel,
   Message: ArrayChildMessage,
 }).makeComposition()
-const arrayChildBlock = ArrayChildComposition.assembleBlock({
-  init: ArrayChildComposition.makeInit(() => ({
-    model: ArrayChildModel.make(['initial']),
-  })),
-  update: ArrayChildComposition.makeUpdate(model => ({ model })),
-  EffectsLayer: Layer.empty,
-})
+const assembleArrayChildBlock = () =>
+  ArrayChildComposition.assembleBlock({
+    init: ArrayChildComposition.makeInit(() => ({
+      model: ArrayChildModel.make(['initial']),
+    })),
+    update: ArrayChildComposition.makeUpdate(model => ({ model })),
+    EffectsLayer: Layer.empty,
+  })
+const arrayChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ArrayChildModel,
+  typeof assembleArrayChildBlock
+> = Block.complete(assembleArrayChildBlock)
 const keyedFieldCandidate: RequiredKeyedField<
   typeof ParentModel.Type,
   typeof childBlock.Model.Type
@@ -120,22 +131,27 @@ const CallableChildComposition = makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const callableChildBlock = CallableChildComposition.assembleBlock({
-  init: CallableChildComposition.makeInit(() => ({
-    model: CallableChildModel({ id: 'initial', count: 0 }),
-  })),
-  update: CallableChildComposition.makeUpdate((model, message) =>
-    ChildMessage.match(message, {
-      UpdatedCount: ({ count }) => ({
-        model: modifyFields(model, { count: () => count }),
+const assembleCallableChildBlock = () =>
+  CallableChildComposition.assembleBlock({
+    init: CallableChildComposition.makeInit(() => ({
+      model: CallableChildModel({ id: 'initial', count: 0 }),
+    })),
+    update: CallableChildComposition.makeUpdate((model, message) =>
+      ChildMessage.match(message, {
+        UpdatedCount: ({ count }) => ({
+          model: modifyFields(model, { count: () => count }),
+        }),
+        UpdatedId: ({ id }) => ({
+          model: modifyFields(model, { id: () => id }),
+        }),
       }),
-      UpdatedId: ({ id }) => ({
-        model: modifyFields(model, { id: () => id }),
-      }),
-    }),
-  ),
-  EffectsLayer: Layer.empty,
-})
+    ),
+    EffectsLayer: Layer.empty,
+  })
+const callableChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof CallableChildModel,
+  typeof assembleCallableChildBlock
+> = Block.complete(assembleCallableChildBlock)
 const CallableParentModel = taggedStruct('CallableParent', {
   entries: Schema.Array(CallableChildModel),
 })

@@ -1,4 +1,4 @@
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 
 import { LoggedOutComposition } from './composition'
 import { init } from './init'
@@ -15,4 +15,4 @@ const assemble = () =>
 export const LoggedOutBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

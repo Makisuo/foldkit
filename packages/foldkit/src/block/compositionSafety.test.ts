@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { defineMessageUnion } from '../schema/index.js'
 import { modifyFields } from '../struct/index.js'
 import { makeDefinition } from './define.js'
+import { complete } from './fromAssembly.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 const ChildMessage = defineMessageUnion({ Incremented: {} })
@@ -12,19 +13,20 @@ const PlainComposition = makeDefinition('CompositionSafetyRuntimePlain', {
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const PlainBlock = Reflect.apply(PlainComposition.assembleBlock, undefined, [
-  {
-    init: PlainComposition.makeInit(() => ({
-      model: ChildModel.make({ count: 0 }),
-    })),
-    update: Reflect.apply(PlainComposition.makeUpdate, undefined, [
-      (model: typeof ChildModel.Type) => ({
-        model: modifyFields(model, { count: count => count + 1 }),
-      }),
-    ]),
-    EffectsLayer: Layer.empty,
-  },
-])
+const assemblePlain = () =>
+  Reflect.apply(PlainComposition.assembleBlock, undefined, [
+    {
+      init: PlainComposition.makeInit(() => ({
+        model: ChildModel.make({ count: 0 }),
+      })),
+      update: Reflect.apply(PlainComposition.makeUpdate, undefined, [
+        (model: typeof ChildModel.Type) => ({
+          model: modifyFields(model, { count: count => count + 1 }),
+        }),
+      ]),
+      EffectsLayer: Layer.empty,
+    },
+  ])
 
 const OptionalContextComposition = makeDefinition(
   'CompositionSafetyRuntimeOptionalContext',
@@ -33,10 +35,8 @@ const OptionalContextComposition = makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const OptionalContextBlock = Reflect.apply(
-  OptionalContextComposition.assembleBlock,
-  undefined,
-  [
+const assembleOptionalContext = () =>
+  Reflect.apply(OptionalContextComposition.assembleBlock, undefined, [
     {
       init: OptionalContextComposition.makeInit(() => ({
         model: ChildModel.make({ count: 0 }),
@@ -54,8 +54,12 @@ const OptionalContextBlock = Reflect.apply(
       ]),
       EffectsLayer: Layer.empty,
     },
-  ],
-)
+  ])
+
+const PlainBlock = Reflect.apply(complete, undefined, [assemblePlain])
+const OptionalContextBlock = Reflect.apply(complete, undefined, [
+  assembleOptionalContext,
+])
 
 const ParentModel = Schema.Struct({ child: ChildModel })
 const ParentMessage = Schema.Never

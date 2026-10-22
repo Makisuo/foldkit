@@ -4,7 +4,7 @@ import { expect, expectTypeOf, it } from 'vitest'
 import { defineMessageUnion } from '../message/index.js'
 import * as Update from '../update/index.js'
 import { makeDefinition } from './define.js'
-import type * as Block from './public.js'
+import * as Block from './public.js'
 
 const Model = Schema.Struct({ count: Schema.Number })
 const Message = defineMessageUnion({ RequestedSave: {}, CompletedSave: {} })
@@ -86,11 +86,16 @@ it('retains handler completeness and ordinary Service requirements', () => {
     CommandsComposition.assembleBlock({ init, update })
   }
 
-  const block = CommandsComposition.assembleBlock({
-    init,
-    update,
-    EffectsLayer: Save.layer,
-  })
+  const assembleBlock = () =>
+    CommandsComposition.assembleBlock({
+      init,
+      update,
+      EffectsLayer: Save.layer,
+    })
+  const block: Block.FromAssemblyWithoutViewOrOutMessage<
+    typeof Model,
+    typeof assembleBlock
+  > = Block.complete(assembleBlock)
   expectTypeOf<
     Layer.Services<typeof block.EffectsLayer>
   >().toEqualTypeOf<Store>()
@@ -104,10 +109,15 @@ it('retains registration obligations carried by a Command collection', () => {
     Model,
     Message: Schema.Never,
   }).makeComposition()
-  const ChildBlock = ChildComposition.assembleBlock({
-    init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
-    update: ChildComposition.makeUpdate(),
-  })
+  const assembleChildBlock = () =>
+    ChildComposition.assembleBlock({
+      init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
+      update: ChildComposition.makeUpdate(),
+    })
+  const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+    typeof Model,
+    typeof assembleChildBlock
+  > = Block.complete(assembleChildBlock)
   const ParentModel = Schema.Struct({ child: Model })
   const ParentDefinition = makeDefinition('CommandsStepIdentityParent', {
     Model: ParentModel,

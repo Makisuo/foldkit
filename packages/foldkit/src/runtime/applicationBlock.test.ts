@@ -42,14 +42,19 @@ const childComposition = ChildOwnerNamespace.makeDefinition({
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const childBlock = childComposition.assembleBlock({
-  init: (label: string) => ({ model: { label }, commands: [ReadValue()] }),
-  update: childComposition.makeUpdate((model, { value }) => ({
-    model: modifyFields(model, { label: () => value }),
-  })),
-  view: childComposition.makeView((model, h) => h.span([], [model.label])),
-  EffectsLayer: ReadValue.layer,
-})
+const assembleChildBlock = () =>
+  childComposition.assembleBlock({
+    init: (label: string) => ({ model: { label }, commands: [ReadValue()] }),
+    update: childComposition.makeUpdate((model, { value }) => ({
+      model: modifyFields(model, { label: () => value }),
+    })),
+    view: childComposition.makeView((model, h) => h.span([], [model.label])),
+    EffectsLayer: ReadValue.layer,
+  })
+const childBlock: Block.FromAssemblyWithView<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 const Model = Schema.Struct({ left: ChildModel, right: ChildModel })
 const ApplicationDefinition = Block.makeDefinition('Application', {
@@ -99,15 +104,22 @@ const hostChildComposition = HostChildOwnerNamespace.makeDefinition({
   Model: HostChildModel,
   Message: HostChildMessage,
 }).makeComposition()
-const unresolvedHostChild = hostChildComposition.assembleBlock({
-  init: () => ({ model: { value: '' }, commands: [ReadHostValue()] }),
-  update: hostChildComposition.makeUpdate((model, { value }) => ({
-    model: modifyFields(model, { value: () => value }),
-  })),
-  view: hostChildComposition.makeView((model, h) => h.span([], [model.value])),
-  EffectsLayer: Layer.empty,
-  hostHandlers: [ReadHostValue],
-})
+const assembleUnresolvedHostChild = () =>
+  hostChildComposition.assembleBlock({
+    init: () => ({ model: { value: '' }, commands: [ReadHostValue()] }),
+    update: hostChildComposition.makeUpdate((model, { value }) => ({
+      model: modifyFields(model, { value: () => value }),
+    })),
+    view: hostChildComposition.makeView((model, h) =>
+      h.span([], [model.value]),
+    ),
+    EffectsLayer: Layer.empty,
+    hostHandlers: [ReadHostValue],
+  })
+const unresolvedHostChild: Block.FromAssemblyWithView<
+  typeof HostChildModel,
+  typeof assembleUnresolvedHostChild
+> = Block.complete(assembleUnresolvedHostChild)
 const resolvedHostChild = unresolvedHostChild.provideHandlers(
   ReadHostValue.toLayer(
     Effect.gen(function* () {
@@ -213,13 +225,20 @@ describe('completed root Block hosting', () => {
           }),
       ),
     )
-    const application = Program.makeElement({
-      block: composition.assembleBlock({
+
+    const assemble = () =>
+      composition.assembleBlock({
         init,
         update,
         view,
         EffectsLayer: Layer.empty,
-      }),
+      })
+    const completedBlock: Block.FromAssemblyWithView<
+      typeof Model,
+      typeof assemble
+    > = Block.complete(assemble)
+    const application = Program.makeElement({
+      block: completedBlock,
       container,
     })
     expect(init().model).toEqual({
@@ -287,41 +306,46 @@ describe('completed root Block hosting', () => {
       }),
     }))
     const leafComposition = LeafDefinition.makeComposition()
-    const leafBlock = leafComposition.assembleBlock({
-      init: () => ({ model: { value: 'pending' } }),
-      update: leafComposition.makeUpdate((model, message) =>
-        LeafMessage.match(message, {
-          ClickedReadValue: () => ({ model, commands: [ReadLeafValue()] }),
-          CompletedReadValue: ({ value }) => ({
-            model: modifyFields(model, { value: () => value }),
+    const assembleLeafBlock = () =>
+      leafComposition.assembleBlock({
+        init: () => ({ model: { value: 'pending' } }),
+        update: leafComposition.makeUpdate((model, message) =>
+          LeafMessage.match(message, {
+            ClickedReadValue: () => ({ model, commands: [ReadLeafValue()] }),
+            CompletedReadValue: ({ value }) => ({
+              model: modifyFields(model, { value: () => value }),
+            }),
+            FailedReadValue: () => ({ model }),
+            AcquiredValue: () => ({ model }),
+            ReleasedValue: () => ({ model }),
+            FailedAcquireValue: () => ({ model }),
           }),
-          FailedReadValue: () => ({ model }),
-          AcquiredValue: () => ({ model }),
-          ReleasedValue: () => ({ model }),
-          FailedAcquireValue: () => ({ model }),
-        }),
-      ),
-      view: leafComposition.makeView((model, h) =>
-        h.div(
-          [],
-          [
-            h.button(
-              [
-                h.Id('read-nested-leaf'),
-                h.OnClick(LeafMessage.ClickedReadValue()),
-              ],
-              ['Read leaf'],
-            ),
-            h.span([h.Id('nested-leaf-value')], [model.value]),
-          ],
         ),
-      ),
-      managedResources: leafManagedResources,
-      EffectsLayer: Layer.merge(
-        ReadLeafValue.layer,
-        leafManagedResources.value.layer,
-      ),
-    })
+        view: leafComposition.makeView((model, h) =>
+          h.div(
+            [],
+            [
+              h.button(
+                [
+                  h.Id('read-nested-leaf'),
+                  h.OnClick(LeafMessage.ClickedReadValue()),
+                ],
+                ['Read leaf'],
+              ),
+              h.span([h.Id('nested-leaf-value')], [model.value]),
+            ],
+          ),
+        ),
+        managedResources: leafManagedResources,
+        EffectsLayer: Layer.merge(
+          ReadLeafValue.layer,
+          leafManagedResources.value.layer,
+        ),
+      })
+    const leafBlock: Block.FromAssemblyWithView<
+      typeof LeafModel,
+      typeof assembleLeafBlock
+    > = Block.complete(assembleLeafBlock)
 
     const MiddleOwnerNamespace = makeNamespace('NestedCommandMiddle')
     const MiddleModel = Schema.Struct({ leaf: LeafModel })
@@ -336,21 +360,26 @@ describe('completed root Block hosting', () => {
     const middleComposition = MiddleDefinition.makeComposition({
       bindings: [LeafBinding],
     })
-    const middleBlock = middleComposition.assembleBlock({
-      init: middleComposition.makeInit(() =>
-        LeafBinding.init({ args: [], toParentModel: leaf => ({ leaf }) }),
-      ),
-      update: middleComposition.makeUpdate(),
-      view: middleComposition.makeView((model, h) =>
-        h.block(
-          LeafBinding.embedView({
-            slotId: 'nested-leaf',
-            model: model.leaf,
-          }),
+    const assembleMiddleBlock = () =>
+      middleComposition.assembleBlock({
+        init: middleComposition.makeInit(() =>
+          LeafBinding.init({ args: [], toParentModel: leaf => ({ leaf }) }),
         ),
-      ),
-      EffectsLayer: Layer.empty,
-    })
+        update: middleComposition.makeUpdate(),
+        view: middleComposition.makeView((model, h) =>
+          h.block(
+            LeafBinding.embedView({
+              slotId: 'nested-leaf',
+              model: model.leaf,
+            }),
+          ),
+        ),
+        EffectsLayer: Layer.empty,
+      })
+    const middleBlock: Block.FromAssemblyWithView<
+      typeof MiddleModel,
+      typeof assembleMiddleBlock
+    > = Block.complete(assembleMiddleBlock)
 
     const RootModel = Schema.Struct({ middle: MiddleModel })
     const RootDefinition = Block.makeDefinition('Application', {
@@ -380,14 +409,21 @@ describe('completed root Block hosting', () => {
     const container = document.createElement('div')
     container.id = 'nested-command-root'
     document.body.append(container)
+
+    const assemble = () =>
+      nestedComposition.assembleBlock({
+        init: nestedInit,
+        update: nestedUpdate,
+        view: nestedView,
+        EffectsLayer: Layer.empty,
+      })
+    const completedBlock: Block.FromAssemblyWithView<
+      typeof RootModel,
+      typeof assemble
+    > = Block.complete(assemble)
     const handle = embed(
       Program.makeElement({
-        block: nestedComposition.assembleBlock({
-          init: nestedInit,
-          update: nestedUpdate,
-          view: nestedView,
-          EffectsLayer: Layer.empty,
-        }),
+        block: completedBlock,
         container,
       }),
     )
@@ -452,19 +488,24 @@ describe('completed root Block hosting', () => {
       Model: ServiceChildModel,
       Message: ServiceChildMessage,
     }).makeComposition()
-    const serviceChildBlock = serviceChildComposition.assembleBlock({
-      init: () => ({
-        model: { value: 'pending' },
-        commands: [ReadSharedValue()],
-      }),
-      update: serviceChildComposition.makeUpdate((model, { value }) => ({
-        model: modifyFields(model, { value: () => value }),
-      })),
-      view: serviceChildComposition.makeView((model, h) =>
-        h.span([h.Id('service-child-value')], [model.value]),
-      ),
-      EffectsLayer: ReadSharedValue.layer,
-    })
+    const assembleServiceChildBlock = () =>
+      serviceChildComposition.assembleBlock({
+        init: () => ({
+          model: { value: 'pending' },
+          commands: [ReadSharedValue()],
+        }),
+        update: serviceChildComposition.makeUpdate((model, { value }) => ({
+          model: modifyFields(model, { value: () => value }),
+        })),
+        view: serviceChildComposition.makeView((model, h) =>
+          h.span([h.Id('service-child-value')], [model.value]),
+        ),
+        EffectsLayer: ReadSharedValue.layer,
+      })
+    const serviceChildBlock: Block.FromAssemblyWithView<
+      typeof ServiceChildModel,
+      typeof assembleServiceChildBlock
+    > = Block.complete(assembleServiceChildBlock)
     const ServiceRootModel = Schema.Struct({
       maybeChild: Schema.Option(ServiceChildModel),
     })
@@ -544,14 +585,21 @@ describe('completed root Block hosting', () => {
     const container = document.createElement('div')
     container.id = 'service-lifetime-root'
     document.body.append(container)
+
+    const assemble = () =>
+      serviceComposition.assembleBlock({
+        init: serviceInit,
+        update: serviceUpdate,
+        view: serviceView,
+        EffectsLayer: Layer.empty,
+      })
+    const completedBlock: Block.FromAssemblyWithView<
+      typeof ServiceRootModel,
+      typeof assemble
+    > = Block.complete(assemble)
     const handle = embed(
       Program.makeElement({
-        block: serviceComposition.assembleBlock({
-          init: serviceInit,
-          update: serviceUpdate,
-          view: serviceView,
-          EffectsLayer: Layer.empty,
-        }),
+        block: completedBlock,
         container,
       }).provide(SharedValueLayer),
     )
@@ -652,32 +700,37 @@ describe('completed root Block hosting', () => {
         },
       ),
     }))
-    const featureBlock = featureComposition.assembleBlock({
-      init: (label: string) => ({ model: { label } }),
-      update: featureComposition.makeUpdate((model, message) =>
-        FeatureMessage.match(message, {
-          AcquiredValue: () => ({
-            model,
-            outMessage: FeatureOutMessage.AcquiredValue(),
+    const assembleFeatureBlock = () =>
+      featureComposition.assembleBlock({
+        init: (label: string) => ({ model: { label } }),
+        update: featureComposition.makeUpdate((model, message) =>
+          FeatureMessage.match(message, {
+            AcquiredValue: () => ({
+              model,
+              outMessage: FeatureOutMessage.AcquiredValue(),
+            }),
+            ReleasedValue: () => ({ model }),
+            FailedAcquireValue: () => ({ model }),
+            CompletedObserveValue: ({ value }) => ({
+              model,
+              outMessage: FeatureOutMessage.ObservedValue({ value }),
+            }),
+            FailedObserveValue: () => ({ model }),
           }),
-          ReleasedValue: () => ({ model }),
-          FailedAcquireValue: () => ({ model }),
-          CompletedObserveValue: ({ value }) => ({
-            model,
-            outMessage: FeatureOutMessage.ObservedValue({ value }),
-          }),
-          FailedObserveValue: () => ({ model }),
-        }),
-      ),
-      view: featureComposition.makeView((model, h) =>
-        h.div([h.OnMount(ObserveValue())], [model.label]),
-      ),
-      managedResources,
-      EffectsLayer: Layer.merge(
-        ObserveValue.layer,
-        managedResources.value.layer,
-      ),
-    })
+        ),
+        view: featureComposition.makeView((model, h) =>
+          h.div([h.OnMount(ObserveValue())], [model.label]),
+        ),
+        managedResources,
+        EffectsLayer: Layer.merge(
+          ObserveValue.layer,
+          managedResources.value.layer,
+        ),
+      })
+    const featureBlock: Block.FromAssemblyWithViewAndOutMessage<
+      typeof FeatureModel,
+      typeof assembleFeatureBlock
+    > = Block.complete(assembleFeatureBlock)
     const RootModel = Schema.Struct({ left: FeatureModel, right: FeatureModel })
     const RootDefinition = Block.makeDefinition('Application', {
       Model: RootModel,
@@ -736,14 +789,21 @@ describe('completed root Block hosting', () => {
     const container = document.createElement('div')
     container.id = 'mounted-root'
     document.body.append(container)
+
+    const assemble = () =>
+      rootComposition.assembleBlock({
+        init: rootInit,
+        update: rootUpdate,
+        view: rootView,
+        EffectsLayer: Layer.empty,
+      })
+    const completedBlock: Block.FromAssemblyWithView<
+      typeof RootModel,
+      typeof assemble
+    > = Block.complete(assemble)
     const handle = embed(
       Program.makeElement({
-        block: rootComposition.assembleBlock({
-          init: rootInit,
-          update: rootUpdate,
-          view: rootView,
-          EffectsLayer: Layer.empty,
-        }),
+        block: completedBlock,
         container,
       }),
     )
@@ -761,12 +821,15 @@ describe('completed root Block hosting', () => {
 })
 
 const checkAssemblyTypes = (container: HTMLElement) => {
-  const block = composition.assembleBlock({
-    init,
-    update,
-    view,
-    EffectsLayer: Layer.empty,
-  })
+  const assembleBlock = () =>
+    composition.assembleBlock({
+      init,
+      update,
+      view,
+      EffectsLayer: Layer.empty,
+    })
+  const block: Block.FromAssemblyWithView<typeof Model, typeof assembleBlock> =
+    Block.complete(assembleBlock)
   const application = Program.makeElement({
     block,
     container,
@@ -778,24 +841,37 @@ const checkAssemblyTypes = (container: HTMLElement) => {
     block,
     container,
   })
-
-  // @ts-expect-error Root completion requires inherited host handlers to be supplied first.
-  Program.makeElement({
-    block: unresolvedHostComposition.assembleBlock({
+  const assemble = () =>
+    unresolvedHostComposition.assembleBlock({
       init: unresolvedHostInit,
       update: unresolvedHostUpdate,
       view: unresolvedHostView,
       EffectsLayer: Layer.empty,
-    }),
+    })
+  const completedBlock: Block.FromAssemblyWithView<
+    typeof HostParentModel,
+    typeof assemble
+  > = Block.complete(assemble)
+
+  // @ts-expect-error Root completion requires inherited host handlers to be supplied first.
+  Program.makeElement({
+    block: completedBlock,
     container,
   })
-  const hostApplication = Program.makeElement({
-    block: resolvedHostComposition.assembleBlock({
+
+  const assemble2 = () =>
+    resolvedHostComposition.assembleBlock({
       init: resolvedHostInit,
       update: resolvedHostUpdate,
       view: resolvedHostView,
       EffectsLayer: Layer.empty,
-    }),
+    })
+  const completedBlock2: Block.FromAssemblyWithView<
+    typeof HostParentModel,
+    typeof assemble2
+  > = Block.complete(assemble2)
+  const hostApplication = Program.makeElement({
+    block: completedBlock2,
     container,
   })
   hostApplication.provide(Layer.succeed(HostDependency, { value: 'provided' }))

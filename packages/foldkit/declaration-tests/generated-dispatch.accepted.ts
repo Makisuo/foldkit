@@ -117,12 +117,13 @@ export const assembleGeneratedDispatchChildBlock = () =>
     ),
   })
 
-export const RawGeneratedDispatchChildBlock =
-  assembleGeneratedDispatchChildBlock()
+export const RawGeneratedDispatchChildBlock: CompletedAssembly<
+  typeof assembleGeneratedDispatchChildBlock
+> = Block.complete(assembleGeneratedDispatchChildBlock)
 export const GeneratedDispatchChildBlock: Block.FromAssemblyWithView<
   typeof GeneratedDispatchChildComposition.Model,
   typeof assembleGeneratedDispatchChildBlock
-> = assembleGeneratedDispatchChildBlock()
+> = Block.complete(assembleGeneratedDispatchChildBlock)
 
 export const ParentModel = Schema.Struct({
   child: GeneratedDispatchChildBlock.Model,
@@ -183,12 +184,13 @@ export const assembleGeneratedDispatchParentBlock = () =>
     view: parentView,
   })
 
-export const RawGeneratedDispatchParentBlock =
-  assembleGeneratedDispatchParentBlock()
+export const RawGeneratedDispatchParentBlock: CompletedAssembly<
+  typeof assembleGeneratedDispatchParentBlock
+> = Block.complete(assembleGeneratedDispatchParentBlock)
 export const GeneratedDispatchParentBlock: Block.FromAssemblyWithView<
   typeof GeneratedDispatchParentComposition.Model,
   typeof assembleGeneratedDispatchParentBlock
-> = assembleGeneratedDispatchParentBlock()
+> = Block.complete(assembleGeneratedDispatchParentBlock)
 
 export const simulateChildObservations = () =>
   Scene.scene(
@@ -242,11 +244,13 @@ export const assembleApplicationBlock = () =>
     view,
   })
 
-export const RawApplicationBlock = assembleApplicationBlock()
+export const RawApplicationBlock: CompletedAssembly<
+  typeof assembleApplicationBlock
+> = Block.complete(assembleApplicationBlock)
 export const ApplicationBlock: Block.FromAssemblyWithView<
   typeof ApplicationComposition.Model,
   typeof assembleApplicationBlock
-> = assembleApplicationBlock()
+> = Block.complete(assembleApplicationBlock)
 
 export const element = Program.makeElement({
   block: ApplicationBlock,
@@ -311,3 +315,8 @@ export type OrdinaryServicesRemainExact = Expect<
     CountStore
   >
 >
+
+type CompletedAssembly<Producer extends () => Block.AssemblyDraft<object>> =
+  ReturnType<Producer> extends Block.AssemblyDraft<infer Completed>
+    ? Completed
+    : never

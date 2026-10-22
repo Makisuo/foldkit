@@ -8,6 +8,7 @@ import * as Update from '../update/index.js'
 import type { RequirementOfBinding } from './binding.js'
 import { makeDefinition } from './define.js'
 import type { OperationPayload } from './operation.js'
+import * as BlockApi from './public.js'
 
 const constructorProbe = { defaultRuns: 0 }
 
@@ -82,13 +83,20 @@ const resetValue = Message.ResetValue
 const updateValue = Message.UpdatedValue
 const operations = { resetValue, updateValue }
 
-const makeBlock = (selectedUpdate: typeof update) =>
-  Composition.assembleBlock({
-    init: () => ({ model: Model.make({ value: '' }) }),
-    update: selectedUpdate,
-    operations,
-    EffectsLayer: RecordValue.layer,
-  })
+const makeBlock = (selectedUpdate: typeof update) => {
+  const assemble = () =>
+    Composition.assembleBlock({
+      init: () => ({ model: Model.make({ value: '' }) }),
+      update: selectedUpdate,
+      operations,
+      EffectsLayer: RecordValue.layer,
+    })
+  const completedBlock: BlockApi.FromAssemblyWithOutMessage<
+    typeof Model,
+    typeof assemble
+  > = BlockApi.complete(assemble)
+  return completedBlock
+}
 
 const Block = makeBlock(update)
 
@@ -146,24 +154,29 @@ const EntryBinding = Parent.makeBinding(Block, {
 const ParentComposition = Parent.makeComposition({
   bindings: [ChildBinding, EntryBinding],
 })
-const ParentBlock = ParentComposition.assembleBlock({
-  init: () => ({
-    model: ParentModel.make({ maybeChild: Option.none(), entries: [] }),
-  }),
-  update: ParentComposition.makeUpdate((model, message) =>
-    ParentMessage.match(message, {
-      RequestedUpdateChild: ({ value }) =>
-        ChildBinding.updateValue({ value }, { prefix: 'binding' })(model),
-      RequestedUpdateEntry: ({ id, value }) =>
-        EntryBinding.updateValue(id, { value }, { prefix: 'binding' })(model),
+const assembleParentBlock = () =>
+  ParentComposition.assembleBlock({
+    init: () => ({
+      model: ParentModel.make({ maybeChild: Option.none(), entries: [] }),
     }),
-  ),
-  operations: {
-    updateChild: ParentMessage.RequestedUpdateChild,
-    updateEntry: ParentMessage.RequestedUpdateEntry,
-  },
-  EffectsLayer: Layer.empty,
-})
+    update: ParentComposition.makeUpdate((model, message) =>
+      ParentMessage.match(message, {
+        RequestedUpdateChild: ({ value }) =>
+          ChildBinding.updateValue({ value }, { prefix: 'binding' })(model),
+        RequestedUpdateEntry: ({ id, value }) =>
+          EntryBinding.updateValue(id, { value }, { prefix: 'binding' })(model),
+      }),
+    ),
+    operations: {
+      updateChild: ParentMessage.RequestedUpdateChild,
+      updateEntry: ParentMessage.RequestedUpdateEntry,
+    },
+    EffectsLayer: Layer.empty,
+  })
+const ParentBlock: BlockApi.FromAssemblyWithoutViewOrOutMessage<
+  typeof ParentModel,
+  typeof assembleParentBlock
+> = BlockApi.complete(assembleParentBlock)
 
 const initialModel = Model.make({ value: '' })
 const initialParent = ParentModel.make({
@@ -256,18 +269,23 @@ describe('Message constructor operations', () => {
         Message: SymbolMessage,
       },
     ).makeComposition()
-    const SymbolBlock = SymbolComposition.assembleBlock({
-      init: () => ({ model: SymbolModel.make({ value: '' }) }),
-      update: SymbolComposition.makeUpdate(
-        (model, message, suffix: string) => ({
-          model: modifyFields(model, {
-            value: () => `${message[valueField]}${suffix}`,
+    const assembleSymbolBlock = () =>
+      SymbolComposition.assembleBlock({
+        init: () => ({ model: SymbolModel.make({ value: '' }) }),
+        update: SymbolComposition.makeUpdate(
+          (model, message, suffix: string) => ({
+            model: modifyFields(model, {
+              value: () => `${message[valueField]}${suffix}`,
+            }),
           }),
-        }),
-      ),
-      operations: { updateValue: SymbolMessage.UpdatedValue },
-      EffectsLayer: Layer.empty,
-    })
+        ),
+        operations: { updateValue: SymbolMessage.UpdatedValue },
+        EffectsLayer: Layer.empty,
+      })
+    const SymbolBlock: BlockApi.FromAssemblyWithoutViewOrOutMessage<
+      typeof SymbolModel,
+      typeof assembleSymbolBlock
+    > = BlockApi.complete(assembleSymbolBlock)
 
     const result = SymbolBlock.operations.updateValue(
       SymbolModel.make({ value: '' }),
@@ -366,18 +384,28 @@ describe('Message constructor operations', () => {
         Message,
       },
     ).makeComposition()
-    const FirstBlock = FirstComposition.assembleBlock({
-      init: () => ({ model: initialModel }),
-      update: FirstComposition.makeUpdate(model => ({ model })),
-      operations: { resetValue: Message.ResetValue },
-      EffectsLayer: Layer.empty,
-    })
-    const SecondBlock = SecondComposition.assembleBlock({
-      init: () => ({ model: initialModel }),
-      update: SecondComposition.makeUpdate(model => ({ model })),
-      operations: { resetValue: Message.ResetValue },
-      EffectsLayer: Layer.empty,
-    })
+    const assembleFirstBlock = () =>
+      FirstComposition.assembleBlock({
+        init: () => ({ model: initialModel }),
+        update: FirstComposition.makeUpdate(model => ({ model })),
+        operations: { resetValue: Message.ResetValue },
+        EffectsLayer: Layer.empty,
+      })
+    const FirstBlock: BlockApi.FromAssemblyWithoutViewOrOutMessage<
+      typeof Model,
+      typeof assembleFirstBlock
+    > = BlockApi.complete(assembleFirstBlock)
+    const assembleSecondBlock = () =>
+      SecondComposition.assembleBlock({
+        init: () => ({ model: initialModel }),
+        update: SecondComposition.makeUpdate(model => ({ model })),
+        operations: { resetValue: Message.ResetValue },
+        EffectsLayer: Layer.empty,
+      })
+    const SecondBlock: BlockApi.FromAssemblyWithoutViewOrOutMessage<
+      typeof Model,
+      typeof assembleSecondBlock
+    > = BlockApi.complete(assembleSecondBlock)
 
     expect(FirstBlock.operations.resetValue(initialModel).model).toBe(
       initialModel,
@@ -420,10 +448,8 @@ describe('Message constructor operations', () => {
       ]),
     ).toThrow(/same-shaped|declared Message Schema/)
 
-    const PlainSchemaBlock = Reflect.apply(
-      Composition.assembleBlock,
-      undefined,
-      [
+    const assemblePlainSchemaBlock = () =>
+      Reflect.apply(Composition.assembleBlock, undefined, [
         {
           init: () => ({ model: initialModel }),
           update,
@@ -434,8 +460,11 @@ describe('Message constructor operations', () => {
           },
           EffectsLayer: RecordValue.layer,
         },
-      ],
-    )
+      ])
+
+    const PlainSchemaBlock = Reflect.apply(BlockApi.complete, undefined, [
+      assemblePlainSchemaBlock,
+    ])
 
     expect(() =>
       PlainSchemaBlock.operations.plainSchema(initialModel, {
@@ -475,27 +504,26 @@ describe('Message constructor operations', () => {
 
     expect(Reflect.get(Composition, 'makeOperation')).toBeUndefined()
 
-    const InvalidTupleBlock = Reflect.apply(
-      Composition.assembleBlock,
-      undefined,
-      [
+    const assembleInvalidTupleBlock = () =>
+      Reflect.apply(Composition.assembleBlock, undefined, [
         {
           init: () => ({ model: initialModel }),
           update,
           operations: { invalidTuple: () => ({}) },
           EffectsLayer: RecordValue.layer,
         },
-      ],
-    )
+      ])
+
+    const InvalidTupleBlock = Reflect.apply(BlockApi.complete, undefined, [
+      assembleInvalidTupleBlock,
+    ])
 
     expect(() =>
       InvalidTupleBlock.operations.invalidTuple(initialModel),
     ).toThrow(/nonempty \[Message, \.\.\.context\] tuple/)
 
-    const BypassBlock = Reflect.apply(
-      ParentComposition.assembleBlock,
-      undefined,
-      [
+    const assembleBypassBlock = () =>
+      Reflect.apply(ParentComposition.assembleBlock, undefined, [
         {
           init: ParentBlock.init,
           update: ParentBlock.update,
@@ -511,8 +539,11 @@ describe('Message constructor operations', () => {
           },
           EffectsLayer: Layer.empty,
         },
-      ],
-    )
+      ])
+
+    const BypassBlock = Reflect.apply(BlockApi.complete, undefined, [
+      assembleBypassBlock,
+    ])
 
     expect(() => BypassBlock.operations.bypass(initialParent)).toThrow(
       /outside this Block's Message Schema/,

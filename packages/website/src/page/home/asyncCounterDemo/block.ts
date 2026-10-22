@@ -1,4 +1,4 @@
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 
 import {
   AsyncCounterDemoComposition,
@@ -19,4 +19,4 @@ const assemble = () =>
 export const AsyncCounterDemoBlock: Block.FromAssemblyWithView<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

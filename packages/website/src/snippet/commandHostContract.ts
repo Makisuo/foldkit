@@ -55,4 +55,4 @@ const assemble = () =>
 export const EditorBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

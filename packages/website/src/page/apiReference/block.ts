@@ -1,4 +1,4 @@
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 
 import { ApiReferenceComposition } from './composition'
 import { init } from './init'
@@ -20,4 +20,4 @@ const assemble = () =>
 export const ApiReferenceBlock: Block.FromAssemblyWithView<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

@@ -170,4 +170,4 @@ const assemble = () =>
 export const FileDropBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

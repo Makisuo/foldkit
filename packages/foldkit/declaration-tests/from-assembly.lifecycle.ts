@@ -1,6 +1,8 @@
 import { Effect, Layer, Option, Schema, Stream } from 'effect'
 import { Block, Message, Program, Struct } from 'foldkit'
 
+import type { Assembled } from './from-assembly.accepted.js'
+
 const Model = Schema.Struct({ status: Schema.String })
 const RootMessage = Message.defineMessageUnion({
   CompletedWork: { value: Schema.String },
@@ -70,11 +72,12 @@ export const assembleRootBlock = () =>
     ),
   })
 
-export const RawRootBlock = assembleRootBlock()
+export const RawRootBlock: Assembled<typeof assembleRootBlock> =
+  Block.complete(assembleRootBlock)
 export const RootBlock: Block.FromAssemblyWithView<
   typeof Composition.Model,
   typeof assembleRootBlock
-> = assembleRootBlock()
+> = Block.complete(assembleRootBlock)
 
 export const inferredPortableProgram = Program.makeElement({
   block: RootBlock,

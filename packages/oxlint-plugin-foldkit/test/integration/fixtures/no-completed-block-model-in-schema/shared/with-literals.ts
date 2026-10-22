@@ -8,4 +8,5 @@ const ChildComposition = Block.makeDefinition('Child', {
   Model: Schema.Struct({ count: Schema.Number }),
   Message: defineMessageUnion({ ClickedIncrement: {} }),
 }).makeComposition()
-export const ChildBlock = ChildComposition.assembleBlock({})
+const assemble = () => ChildComposition.assembleBlock({})
+export const ChildBlock = Block.complete(assemble)

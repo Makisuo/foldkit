@@ -1343,7 +1343,7 @@ const assembleMenuBlock = () =>
 export const block: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assembleMenuBlock
-> = assembleMenuBlock()
+> = Block.complete(assembleMenuBlock)
 
 /** Programmatically opens the Menu through Menu update. */
 export const open = block.operations.requestOpen
@@ -1440,7 +1440,13 @@ export interface Completed<
 const makeBlock = <Item extends string>(): Completed<Item> => {
   const { composition, implementation } = makeBlockParts<Item>()
 
-  return composition.assembleBlock(implementation)
+  const assemble = () => composition.assembleBlock(implementation)
+  const completedBlock: Block.FromAssemblyWithViewAndOutMessage<
+    typeof Model,
+    typeof assemble
+  > = Block.complete(assemble)
+
+  return completedBlock
 }
 
 /**

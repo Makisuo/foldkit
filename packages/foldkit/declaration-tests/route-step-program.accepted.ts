@@ -207,19 +207,24 @@ export const ReadValue = ChildDefinition.makeCommand('ReadValue', {
   },
 })
 export const ChildComposition = ChildDefinition.makeComposition()
-export const ChildBlock = ChildComposition.assembleBlock({
-  init: ChildComposition.makeInit(() => ({ model: { value: '' } })),
-  update: ChildComposition.makeUpdate((model, message) =>
-    ChildMessage.match(message, {
-      RequestedReadValue: () => ({ model, commands: [ReadValue()] }),
-      CompletedReadValue: ({ value }) => ({ model: { value } }),
-    }),
-  ),
-  operations: {
-    refresh: () => Tuple.make(ChildMessage.RequestedReadValue()),
-  },
-  EffectsLayer: ReadValue.layer,
-})
+const assembleChildBlock = () =>
+  ChildComposition.assembleBlock({
+    init: ChildComposition.makeInit(() => ({ model: { value: '' } })),
+    update: ChildComposition.makeUpdate((model, message) =>
+      ChildMessage.match(message, {
+        RequestedReadValue: () => ({ model, commands: [ReadValue()] }),
+        CompletedReadValue: ({ value }) => ({ model: { value } }),
+      }),
+    ),
+    operations: {
+      refresh: () => Tuple.make(ChildMessage.RequestedReadValue()),
+    },
+    EffectsLayer: ReadValue.layer,
+  })
+export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 export const ParentModel = Schema.Struct({ child: ChildModel })
 export const ParentMessage = Message.defineMessageUnion({
@@ -256,13 +261,18 @@ export const parentUpdate = ParentComposition.makeUpdate((model, message) =>
     RequestedApplyRoutePolicy: () => connectedStep(model),
   }),
 )
-export const ParentBlock = ParentComposition.assembleBlock({
-  init: ParentComposition.makeInit(() => ({
-    model: { child: { value: '' } },
-  })),
-  update: parentUpdate,
-  view: ParentComposition.makeView((_model, h) => h.div([])),
-})
+const assembleParentBlock = () =>
+  ParentComposition.assembleBlock({
+    init: ParentComposition.makeInit(() => ({
+      model: { child: { value: '' } },
+    })),
+    update: parentUpdate,
+    view: ParentComposition.makeView((_model, h) => h.div([])),
+  })
+export const ParentBlock: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof assembleParentBlock
+> = Block.complete(assembleParentBlock)
 export const connectedProgram = Program.makeElement({
   block: ParentBlock,
   container: document.createElement('div'),

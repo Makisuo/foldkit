@@ -5,6 +5,7 @@ import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import { runtimeBindingOf } from './composition.js'
 import { makeDefinition } from './define.js'
+import * as Block from './public.js'
 
 const ChildMessage = defineMessageUnion({ ClickedIncrement: {} })
 
@@ -14,15 +15,20 @@ const AccessorChildDefinition = makeDefinition('GeneratedAccessorChild', {
   Message: ChildMessage,
 })
 const AccessorChildComposition = AccessorChildDefinition.makeComposition()
-const AccessorChildBlock = AccessorChildComposition.assembleBlock({
-  init: AccessorChildComposition.makeInit(() => ({ model: { count: 0 } })),
-  update: AccessorChildComposition.makeUpdate(
-    (model, _message, amount: number) => ({
-      model: modifyFields(model, { count: count => count + amount }),
-    }),
-  ),
-  view: AccessorChildComposition.makeView((_model, h) => h.div([])),
-})
+const assembleAccessorChildBlock = () =>
+  AccessorChildComposition.assembleBlock({
+    init: AccessorChildComposition.makeInit(() => ({ model: { count: 0 } })),
+    update: AccessorChildComposition.makeUpdate(
+      (model, _message, amount: number) => ({
+        model: modifyFields(model, { count: count => count + amount }),
+      }),
+    ),
+    view: AccessorChildComposition.makeView((_model, h) => h.div([])),
+  })
+const AccessorChildBlock: Block.FromAssemblyWithView<
+  typeof AccessorChildModel,
+  typeof assembleAccessorChildBlock
+> = Block.complete(assembleAccessorChildBlock)
 
 const AccessorParentModel = Schema.Struct({
   child: AccessorChildModel,
@@ -65,8 +71,8 @@ const OptionalContextChildDefinition = makeDefinition(
 )
 const OptionalContextChildComposition =
   OptionalContextChildDefinition.makeComposition()
-const OptionalContextChildBlock = OptionalContextChildComposition.assembleBlock(
-  {
+const assembleOptionalContextChildBlock = () =>
+  OptionalContextChildComposition.assembleBlock({
     init: OptionalContextChildComposition.makeInit(() => ({
       model: { count: 0 },
     })),
@@ -78,8 +84,11 @@ const OptionalContextChildBlock = OptionalContextChildComposition.assembleBlock(
       }),
     ),
     view: OptionalContextChildComposition.makeView((_model, h) => h.div([])),
-  },
-)
+  })
+const OptionalContextChildBlock: Block.FromAssemblyWithView<
+  typeof AccessorChildModel,
+  typeof assembleOptionalContextChildBlock
+> = Block.complete(assembleOptionalContextChildBlock)
 
 const DefaultContextChildDefinition = makeDefinition(
   'GeneratedDefaultContextChild',
@@ -90,37 +99,47 @@ const DefaultContextChildDefinition = makeDefinition(
 )
 const DefaultContextChildComposition =
   DefaultContextChildDefinition.makeComposition()
-const DefaultContextChildBlock = DefaultContextChildComposition.assembleBlock({
-  init: DefaultContextChildComposition.makeInit(() => ({
-    model: { count: 0 },
-  })),
-  update: DefaultContextChildComposition.makeUpdate(
-    (model, _message, amount: number = 0) => ({
-      model: modifyFields(model, { count: count => count + amount }),
-    }),
-  ),
-  view: DefaultContextChildComposition.makeView((_model, h) => h.div([])),
-})
+const assembleDefaultContextChildBlock = () =>
+  DefaultContextChildComposition.assembleBlock({
+    init: DefaultContextChildComposition.makeInit(() => ({
+      model: { count: 0 },
+    })),
+    update: DefaultContextChildComposition.makeUpdate(
+      (model, _message, amount: number = 0) => ({
+        model: modifyFields(model, { count: count => count + amount }),
+      }),
+    ),
+    view: DefaultContextChildComposition.makeView((_model, h) => h.div([])),
+  })
+const DefaultContextChildBlock: Block.FromAssemblyWithView<
+  typeof AccessorChildModel,
+  typeof assembleDefaultContextChildBlock
+> = Block.complete(assembleDefaultContextChildBlock)
 
 const RestContextChildDefinition = makeDefinition('GeneratedRestContextChild', {
   Model: AccessorChildModel,
   Message: ChildMessage,
 })
 const RestContextChildComposition = RestContextChildDefinition.makeComposition()
-const RestContextChildBlock = RestContextChildComposition.assembleBlock({
-  init: RestContextChildComposition.makeInit(() => ({
-    model: { count: 0 },
-  })),
-  update: RestContextChildComposition.makeUpdate(
-    (model, _message, ...amounts: ReadonlyArray<number>) => ({
-      model: modifyFields(model, {
-        count: count =>
-          count + Array.reduce(amounts, 0, (sum, amount) => sum + amount),
+const assembleRestContextChildBlock = () =>
+  RestContextChildComposition.assembleBlock({
+    init: RestContextChildComposition.makeInit(() => ({
+      model: { count: 0 },
+    })),
+    update: RestContextChildComposition.makeUpdate(
+      (model, _message, ...amounts: ReadonlyArray<number>) => ({
+        model: modifyFields(model, {
+          count: count =>
+            count + Array.reduce(amounts, 0, (sum, amount) => sum + amount),
+        }),
       }),
-    }),
-  ),
-  view: RestContextChildComposition.makeView((_model, h) => h.div([])),
-})
+    ),
+    view: RestContextChildComposition.makeView((_model, h) => h.div([])),
+  })
+const RestContextChildBlock: Block.FromAssemblyWithView<
+  typeof AccessorChildModel,
+  typeof assembleRestContextChildBlock
+> = Block.complete(assembleRestContextChildBlock)
 
 const optionalContextBinding = AccessorParentDefinition.makeBinding(
   OptionalContextChildBlock,
@@ -176,17 +195,22 @@ const KeyedChildDefinition = makeDefinition('GeneratedKeyedChild', {
   Message: ChildMessage,
 })
 const KeyedChildComposition = KeyedChildDefinition.makeComposition()
-const KeyedChildBlock = KeyedChildComposition.assembleBlock({
-  init: KeyedChildComposition.makeInit((id: string) => ({
-    model: { id, count: 0 },
-  })),
-  update: KeyedChildComposition.makeUpdate(
-    (model, _message, amount: number) => ({
-      model: modifyFields(model, { count: count => count + amount }),
-    }),
-  ),
-  view: KeyedChildComposition.makeView((_model, h) => h.div([])),
-})
+const assembleKeyedChildBlock = () =>
+  KeyedChildComposition.assembleBlock({
+    init: KeyedChildComposition.makeInit((id: string) => ({
+      model: { id, count: 0 },
+    })),
+    update: KeyedChildComposition.makeUpdate(
+      (model, _message, amount: number) => ({
+        model: modifyFields(model, { count: count => count + amount }),
+      }),
+    ),
+    view: KeyedChildComposition.makeView((_model, h) => h.div([])),
+  })
+const KeyedChildBlock: Block.FromAssemblyWithView<
+  typeof KeyedChildModel,
+  typeof assembleKeyedChildBlock
+> = Block.complete(assembleKeyedChildBlock)
 
 const KeyedParentModel = Schema.Struct({
   children: Schema.Array(KeyedChildModel),

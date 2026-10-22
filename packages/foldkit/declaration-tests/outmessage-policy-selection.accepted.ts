@@ -32,17 +32,22 @@ export const ResetChild = ChildDefinition.makeCommand('ResetChild', {
   },
 })
 const ChildComposition = ChildDefinition.makeComposition()
-export const ChildBlock = ChildComposition.assembleBlock({
-  init: ChildComposition.makeInit(() => ({
-    model: ChildModel.make({ value: '' }),
-  })),
-  update: ChildComposition.makeUpdate(model => ({ model })),
-  view: ChildComposition.makeView((_model, h) => h.div([])),
-  operations: {
-    reset: () => Tuple.make(ChildMessage.RequestedReset()),
-  },
-  EffectsLayer: ResetChild.layer,
-})
+const assembleChildBlock = () =>
+  ChildComposition.assembleBlock({
+    init: ChildComposition.makeInit(() => ({
+      model: ChildModel.make({ value: '' }),
+    })),
+    update: ChildComposition.makeUpdate(model => ({ model })),
+    view: ChildComposition.makeView((_model, h) => h.div([])),
+    operations: {
+      reset: () => Tuple.make(ChildMessage.RequestedReset()),
+    },
+    EffectsLayer: ResetChild.layer,
+  })
+export const ChildBlock: Block.FromAssemblyWithViewAndOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 export const makeRefinedChildBlock = <const Value extends string>(
   Value: Schema.Schema<Value>,
@@ -61,15 +66,21 @@ export const makeRefinedChildBlock = <const Value extends string>(
   )
   const RefinedChildComposition = RefinedChildDefinition.makeComposition()
 
-  return RefinedChildComposition.assembleBlock({
-    init: RefinedChildComposition.makeInit(() => ({
-      model: ChildModel.make({ value: '' }),
-    })),
-    update: RefinedChildComposition.makeUpdate(model => ({ model })),
-    operations: {
-      reset: () => Tuple.make(ChildMessage.RequestedReset()),
-    },
-  })
+  const assemble = () =>
+    RefinedChildComposition.assembleBlock({
+      init: RefinedChildComposition.makeInit(() => ({
+        model: ChildModel.make({ value: '' }),
+      })),
+      update: RefinedChildComposition.makeUpdate(model => ({ model })),
+      operations: {
+        reset: () => Tuple.make(ChildMessage.RequestedReset()),
+      },
+    })
+  const completedBlock: Block.FromAssemblyWithOutMessage<
+    typeof ChildModel,
+    typeof assemble
+  > = Block.complete(assemble)
+  return completedBlock
 }
 
 export const RefinedChildBlock = makeRefinedChildBlock(

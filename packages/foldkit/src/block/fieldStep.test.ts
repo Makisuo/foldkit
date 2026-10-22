@@ -108,17 +108,22 @@ it('preserves a child transition when an OutMessage policy has no parent transit
     OutMessage: ChildOutMessage,
   })
   const ChildComposition = ChildDefinition.makeComposition()
-  const ChildBlock = ChildComposition.assembleBlock({
-    init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
-    update: ChildComposition.makeUpdate((model, message) =>
-      ChildMessage.match(message, {
-        ClickedIncrement: () => ({
-          model: modifyFields(model, { count: Number.increment }),
-          outMessage: ChildOutMessage.Incremented(),
+  const assembleChildBlock = () =>
+    ChildComposition.assembleBlock({
+      init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
+      update: ChildComposition.makeUpdate((model, message) =>
+        ChildMessage.match(message, {
+          ClickedIncrement: () => ({
+            model: modifyFields(model, { count: Number.increment }),
+            outMessage: ChildOutMessage.Incremented(),
+          }),
         }),
-      }),
-    ),
-  })
+      ),
+    })
+  const ChildBlock: Block.FromAssemblyWithOutMessage<
+    typeof ChildModel,
+    typeof assembleChildBlock
+  > = Block.complete(assembleChildBlock)
   const ParentModel = Schema.Struct({ child: ChildModel, label: Schema.String })
   type ParentModel = typeof ParentModel.Type
   type ParentMessage = never

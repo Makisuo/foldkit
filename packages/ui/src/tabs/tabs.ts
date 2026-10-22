@@ -398,7 +398,7 @@ const assembleTabsBlock = () =>
 export const block: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assembleTabsBlock
-> = assembleTabsBlock()
+> = Block.complete(assembleTabsBlock)
 
 const makeBlockParts = <Value extends string>() => {
   type GenericReturn = Update.ReturnWithOutMessage<
@@ -459,7 +459,13 @@ export interface Completed<
 const makeBlock = <Value extends string>(): Completed<Value> => {
   const { composition, implementation } = makeBlockParts<Value>()
 
-  return composition.assembleBlock(implementation)
+  const assemble = () => composition.assembleBlock(implementation)
+  const completedBlock: Block.FromAssemblyWithViewAndOutMessage<
+    typeof Model,
+    typeof assemble
+  > = Block.complete(assemble)
+
+  return completedBlock
 }
 
 /**

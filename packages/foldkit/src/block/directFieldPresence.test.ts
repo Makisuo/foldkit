@@ -5,6 +5,7 @@ import { defineMessageUnion } from '../message/index.js'
 import { taggedStruct } from '../schema/index.js'
 import { modifyFields } from '../struct/index.js'
 import { makeDefinition } from './define.js'
+import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 const ChildMessage = defineMessageUnion({
@@ -19,21 +20,26 @@ const setCount = Child.makeStep((model, count: number) => ({
   model: modifyFields(model, { count: () => count }),
 }))
 const ChildComposition = Child.makeComposition()
-const childBlock = ChildComposition.assembleBlock({
-  init: ChildComposition.makeInit(() => ({
-    model: ChildModel.make({ count: 0 }),
-  })),
-  update: ChildComposition.makeUpdate((model, message) =>
-    ChildMessage.match(message, {
-      RequestedSetCount: ({ count }) => setCount(model, count),
-      UpdatedCount: ({ count }) => setCount(model, count),
-    }),
-  ),
-  operations: {
-    setCount: (count: number) =>
-      Tuple.make(ChildMessage.RequestedSetCount({ count })),
-  },
-})
+const assembleChildBlock = () =>
+  ChildComposition.assembleBlock({
+    init: ChildComposition.makeInit(() => ({
+      model: ChildModel.make({ count: 0 }),
+    })),
+    update: ChildComposition.makeUpdate((model, message) =>
+      ChildMessage.match(message, {
+        RequestedSetCount: ({ count }) => setCount(model, count),
+        UpdatedCount: ({ count }) => setCount(model, count),
+      }),
+    ),
+    operations: {
+      setCount: (count: number) =>
+        Tuple.make(ChildMessage.RequestedSetCount({ count })),
+    },
+  })
+const childBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 const Model = Schema.Struct({
   child: ChildModel,
   maybeChild: Schema.Option(ChildModel),
@@ -72,16 +78,21 @@ const initial = Model.make({
 })
 
 const gatedUpdate = update
-const parent = composition.assembleBlock({
-  init: () => ({ model: initial }),
-  update,
-  operations: {
-    setOptionalCount: (count: number) =>
-      Tuple.make(Message.RequestedSetOptionalCount({ count })),
-    setGatedCount: (count: number) =>
-      Tuple.make(Message.RequestedSetGatedCount({ count })),
-  },
-})
+const assembleParent = () =>
+  composition.assembleBlock({
+    init: () => ({ model: initial }),
+    update,
+    operations: {
+      setOptionalCount: (count: number) =>
+        Tuple.make(Message.RequestedSetOptionalCount({ count })),
+      setGatedCount: (count: number) =>
+        Tuple.make(Message.RequestedSetGatedCount({ count })),
+    },
+  })
+const parent: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof assembleParent
+> = Block.complete(assembleParent)
 
 it('folds exact Option fields without creating absent children', () => {
   expectTypeOf(OptionalBinding.placement).toEqualTypeOf<'maybeChild'>()
@@ -137,14 +148,19 @@ it('distinguishes Option child Models from optional storage wrappers', () => {
     Model: OptionModel,
     Message: OptionMessage,
   }).makeComposition()
-  const block = OptionChildComposition.assembleBlock({
-    init: OptionChildComposition.makeInit(() => ({
-      model: Option.none<string>(),
-    })),
-    update: OptionChildComposition.makeUpdate((_model, { text }) => ({
-      model: Option.some(text),
-    })),
-  })
+  const assembleBlock = () =>
+    OptionChildComposition.assembleBlock({
+      init: OptionChildComposition.makeInit(() => ({
+        model: Option.none<string>(),
+      })),
+      update: OptionChildComposition.makeUpdate((_model, { text }) => ({
+        model: Option.some(text),
+      })),
+    })
+  const block: Block.FromAssemblyWithoutViewOrOutMessage<
+    typeof OptionModel,
+    typeof assembleBlock
+  > = Block.complete(assembleBlock)
   const Model = Schema.Struct({
     required: Schema.Option(Schema.String),
     maybe: Schema.Option(OptionModel),

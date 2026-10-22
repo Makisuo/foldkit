@@ -118,4 +118,4 @@ const assemble = () =>
 export const CityPickerBlock: Block.FromAssemblyWithView<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

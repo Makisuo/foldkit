@@ -110,7 +110,7 @@ export const EffectsLayer = Layer.merge(
   ),
 )
 
-export const ChildBlock =
+const assembleChildBlock = () =>
   OperationConstructorProofChildComposition.assembleBlock({
     init: () => ({ model: Model.make({ value: '' }) }),
     update,
@@ -132,6 +132,10 @@ export const ChildBlock =
     EffectsLayer,
     hostHandlers: [RecordValue],
   })
+export const ChildBlock: Block.FromAssemblyWithOutMessage<
+  typeof Model,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 export const ParentModel = Schema.Struct({
   maybeChild: Schema.Option(Model),
@@ -195,7 +199,7 @@ export const OperationConstructorProofParentComposition =
     bindings: [ChildBinding, EntryBinding],
   })
 
-export const ParentBlock =
+const assembleParentBlock = () =>
   OperationConstructorProofParentComposition.assembleBlock({
     init: () => ({
       model: ParentModel.make({ maybeChild: Option.none(), entries: [] }),
@@ -223,6 +227,10 @@ export const ParentBlock =
       ),
     ),
   })
+export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ParentModel,
+  typeof assembleParentBlock
+> = Block.complete(assembleParentBlock)
 
 export function makeChoice<
   const Values extends readonly [string, ...Array<string>],
@@ -240,22 +248,28 @@ export function makeChoice<
   ).makeComposition()
   const select = ChoiceMessage.SelectedValue
 
-  return OperationConstructorProofChoiceComposition.assembleBlock({
-    init: (selected: Values[number]) => ({
-      model: ChoiceModel.make({ selected }),
-    }),
-    update: OperationConstructorProofChoiceComposition.makeUpdate(
-      (model, { value }) => ({
-        model: modifyFields(model, { selected: () => value }),
+  const assemble = () =>
+    OperationConstructorProofChoiceComposition.assembleBlock({
+      init: (selected: Values[number]) => ({
+        model: ChoiceModel.make({ selected }),
       }),
-    ),
-    operations: {
-      select,
-      selectPositionally: (value: Values[number]) =>
-        Tuple.make(ChoiceMessage.SelectedValue({ value })),
-    },
-    EffectsLayer: Layer.empty,
-  })
+      update: OperationConstructorProofChoiceComposition.makeUpdate(
+        (model, { value }) => ({
+          model: modifyFields(model, { selected: () => value }),
+        }),
+      ),
+      operations: {
+        select,
+        selectPositionally: (value: Values[number]) =>
+          Tuple.make(ChoiceMessage.SelectedValue({ value })),
+      },
+      EffectsLayer: Layer.empty,
+    })
+  const completedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+    typeof ChoiceModel,
+    typeof assemble
+  > = Block.complete(assemble)
+  return completedBlock
 }
 
 export const Choice = makeChoice(['First', 'Second'])
@@ -399,11 +413,17 @@ export const makeNamed = <const Name extends string>(name: Name) => {
     Message,
   }).makeComposition()
 
-  return NamedComposition.assembleBlock({
-    init: () => ({ model: Model.make({ value: '' }) }),
-    update: NamedComposition.makeUpdate(model => ({ model })),
-    operations: {
-      reset: Message.ResetValue,
-    },
-  })
+  const assemble = () =>
+    NamedComposition.assembleBlock({
+      init: () => ({ model: Model.make({ value: '' }) }),
+      update: NamedComposition.makeUpdate(model => ({ model })),
+      operations: {
+        reset: Message.ResetValue,
+      },
+    })
+  const completedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+    typeof Model,
+    typeof assemble
+  > = Block.complete(assemble)
+  return completedBlock
 }

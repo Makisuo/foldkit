@@ -65,16 +65,19 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
     model: Model.make({ selected: Option.none() }),
   }))
 
-  return RefinedPickerComposition.assembleBlock({
-    init,
-    update,
-    view,
-    operations: {
-      requestSelectValue: (value: Value) => [
-        Message.RequestedSelectValue({ value }),
-      ],
-    },
-  })
+  const assemble = () =>
+    RefinedPickerComposition.assembleBlock({
+      init,
+      update,
+      view,
+      operations: {
+        requestSelectValue: (value: Value) => [
+          Message.RequestedSelectValue({ value }),
+        ],
+      },
+    })
+
+  return Block.complete(assemble)
 }
 
 const Fruit = Schema.Literals(['Apple', 'Pear'])

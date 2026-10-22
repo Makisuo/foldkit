@@ -29,6 +29,7 @@ export type {
 } from './binding.js'
 export { inspectBinding } from './binding.js'
 export type { BindingInitRecipe } from './initRecipe.js'
+export type { AssemblyDraft } from './assemblyState.js'
 export type {
   BindChild,
   BindingWithoutOutMessagePolicy,
@@ -131,3 +132,4 @@ export type {
   FromAssemblyWithViewAndOutMessage,
   FromAssemblyWithoutViewOrOutMessage,
 } from './fromAssembly.js'
+export { complete } from './fromAssembly.js'

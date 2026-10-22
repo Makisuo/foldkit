@@ -264,12 +264,19 @@ export const emittedApplicationUpdate = applicationUpdate(
   emittedApplicationInit.model,
   ApplicationMessage.Incremented(),
 )
-export const EmittedApplicationElement = Program.makeElement({
-  block: ApplicationComposition.assembleBlock({
+
+const assemble = () =>
+  ApplicationComposition.assembleBlock({
     init: applicationInit,
     update: applicationUpdate,
     view: applicationView,
-  }),
+  })
+const completedBlock: Block.FromAssemblyWithView<
+  typeof ApplicationComposition.Model,
+  typeof assemble
+> = Block.complete(assemble)
+export const EmittedApplicationElement = Program.makeElement({
+  block: completedBlock,
   container: null,
 })
 export const ReprovidedServiceApplicationElement =

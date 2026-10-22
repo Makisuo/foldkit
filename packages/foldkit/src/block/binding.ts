@@ -20,6 +20,7 @@ import {
   makeResultRecipe,
   resolveOperationOutput,
 } from '../update/operationRecipe.js'
+import type { CompletionProof } from './assemblyState.js'
 import {
   assertInitializedParentModel,
   registerBinding,
@@ -336,28 +337,29 @@ export const assertValidBindingOperationNames = (
  * It preserves every channel collected by parents without introducing a
  * recursive complete Block constraint.
  */
-export type BindableBlock = Readonly<{
-  owner: Owner<any>
-  Model: Readonly<{ Type: any }>
-  Message: Readonly<{ Type: any }>
-  OutMessage?: Readonly<{ Type: any }>
-  mounts: ReadonlyArray<LayeredMountDefinition>
-  [LocalMountsTypeId]: ReadonlyArray<LayeredMountDefinition>
-  bindings: ReadonlyArray<AnyBinding>
-  init: AnyFunction
-  update: AnyFunction
-  operations: Readonly<Record<string, AnyFunction>>
-  subscriptions: Subscription.Subscriptions<any, any, any>
-  managedResources: Readonly<
-    Record<
-      string,
-      ManagedResource.Entry<any, any, any, any, any, any, any, any>
+export type BindableBlock = CompletionProof &
+  Readonly<{
+    owner: Owner<any>
+    Model: Readonly<{ Type: any }>
+    Message: Readonly<{ Type: any }>
+    OutMessage?: Readonly<{ Type: any }>
+    mounts: ReadonlyArray<LayeredMountDefinition>
+    [LocalMountsTypeId]: ReadonlyArray<LayeredMountDefinition>
+    bindings: ReadonlyArray<AnyBinding>
+    init: AnyFunction
+    update: AnyFunction
+    operations: Readonly<Record<string, AnyFunction>>
+    subscriptions: Subscription.Subscriptions<any, any, any>
+    managedResources: Readonly<
+      Record<
+        string,
+        ManagedResource.Entry<any, any, any, any, any, any, any, any>
+      >
     >
-  >
-  EffectsLayer: Layer.Any
-  __blockHandlerRequirements?: unknown
-  hostHandlers: ReadonlyArray<unknown>
-}>
+    EffectsLayer: Layer.Any
+    __blockHandlerRequirements?: unknown
+    hostHandlers: ReadonlyArray<unknown>
+  }>
 
 type DefinitionLocalMounts<BlockValue> =
   BlockValue extends Readonly<{ [LocalMountsTypeId]: infer Mounts }>

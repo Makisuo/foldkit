@@ -68,16 +68,21 @@ const view = PopoverModalReopenTestComposition.makeView((model, h) =>
     ],
   ),
 )
-const ApplicationBlock = PopoverModalReopenTestComposition.assembleBlock({
-  init: PopoverModalReopenTestComposition.makeInit(() =>
-    PopoverBinding.init({
-      args: [{ id: POPOVER_ID, isModal: true }],
-      toParentModel: popover => ({ popover }),
-    }),
-  ),
-  update: PopoverModalReopenTestComposition.makeUpdate(),
-  view,
-})
+const assemble = () =>
+  PopoverModalReopenTestComposition.assembleBlock({
+    init: PopoverModalReopenTestComposition.makeInit(() =>
+      PopoverBinding.init({
+        args: [{ id: POPOVER_ID, isModal: true }],
+        toParentModel: popover => ({ popover }),
+      }),
+    ),
+    update: PopoverModalReopenTestComposition.makeUpdate(),
+    view,
+  })
+const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assemble
+> = Block.complete(assemble)
 
 const findInertAncestor = (element: Element | null): Option.Option<Element> => {
   for (

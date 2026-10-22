@@ -16,6 +16,7 @@ import * as Update from '../update/index.js'
 import { makeDefinition } from './define.js'
 import type { InitializationPlan } from './initialization.js'
 import { assertRegisteredBinding } from './operationGraph.js'
+import * as Block from './public.js'
 
 class ChildClient extends Context.Service<
   ChildClient,
@@ -71,31 +72,36 @@ const increment = Child.makeStep(model => {
   }
 })
 const ChildComposition = Child.makeComposition()
-const ChildBlock = ChildComposition.assembleBlock({
-  init: ChildComposition.makeInit((count: number) => {
-    calls.push(`child-init-${count}`)
-    return {
-      model: ChildModel.make({ count }),
-      commands: [FinishChildInitialization({ count })],
-    }
-  }),
-  update: ChildComposition.makeUpdate((model, message) =>
-    ChildMessage.match(message, {
-      RequestedIncrement: () => increment(model),
-      CompletedInitialization: ({ count }) => ({
-        model: modifyFields(model, { count: () => count }),
-      }),
-      CompletedIncrement: () => ({ model }),
+const assembleChildBlock = () =>
+  ChildComposition.assembleBlock({
+    init: ChildComposition.makeInit((count: number) => {
+      calls.push(`child-init-${count}`)
+      return {
+        model: ChildModel.make({ count }),
+        commands: [FinishChildInitialization({ count })],
+      }
     }),
-  ),
-  operations: {
-    increment: () => Tuple.make(ChildMessage.RequestedIncrement()),
-  },
-  EffectsLayer: Layer.merge(
-    FinishChildInitialization.layer,
-    FinishIncrement.layer,
-  ),
-})
+    update: ChildComposition.makeUpdate((model, message) =>
+      ChildMessage.match(message, {
+        RequestedIncrement: () => increment(model),
+        CompletedInitialization: ({ count }) => ({
+          model: modifyFields(model, { count: () => count }),
+        }),
+        CompletedIncrement: () => ({ model }),
+      }),
+    ),
+    operations: {
+      increment: () => Tuple.make(ChildMessage.RequestedIncrement()),
+    },
+    EffectsLayer: Layer.merge(
+      FinishChildInitialization.layer,
+      FinishIncrement.layer,
+    ),
+  })
+const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 const ParentModel = Schema.Struct({
   first: ChildModel,

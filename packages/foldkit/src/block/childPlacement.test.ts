@@ -3,6 +3,7 @@ import { expect, it } from 'vitest'
 
 import { modifyFields } from '../struct/index.js'
 import { makeDefinition } from './define.js'
+import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ value: Schema.String })
 
@@ -10,10 +11,15 @@ const ChildComposition = makeDefinition('ChildPlacementChild', {
   Model: ChildModel,
   Message: Schema.Never,
 }).makeComposition()
-const ChildBlock = ChildComposition.assembleBlock({
-  init: () => ({ model: ChildModel.make({ value: '' }) }),
-  update: ChildComposition.makeUpdate(),
-})
+const assembleChildBlock = () =>
+  ChildComposition.assembleBlock({
+    init: () => ({ model: ChildModel.make({ value: '' }) }),
+    update: ChildComposition.makeUpdate(),
+  })
+const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 const Entry = Schema.Struct({ id: Schema.String, child: ChildModel })
 const ParentModel = Schema.Struct({

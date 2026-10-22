@@ -1,5 +1,5 @@
 import { Effect, Layer } from 'effect'
-import { Program, Runtime } from 'foldkit'
+import { Block, Program, Runtime } from 'foldkit'
 
 import { EffectsLayer, Model, Store } from './from-assembly.accepted.js'
 import { view } from './from-assembly.accepted.js'
@@ -83,7 +83,7 @@ export const OriginalToReportingHeadless: typeof ReportingHeadless =
 export const ReplacedOriginalViewed = replaceOriginalViewed(EffectsLayer)
 export const ReplacedViewed = replaceViewed(EffectsLayer)
 
-// @ts-expect-error The extracted raw callable cannot discard the Command and Mount handlers.
+// @ts-expect-error The extracted checked callable with the full contract cannot discard the Command and Mount handlers.
 replaceOriginalViewed(Layer.empty)
 // @ts-expect-error The extracted checked callable cannot discard the Command and Mount handlers.
 replaceViewed(Layer.empty)
@@ -169,7 +169,7 @@ export const ReplacedViewedBinding = ParentDefinition.makeBinding(
 export const ReplacedViewedParentComposition = ParentDefinition.makeComposition(
   { bindings: [ReplacedViewedBinding] },
 )
-export const ReplacedViewedParent =
+const assemble = () =>
   ReplacedViewedParentComposition.assembleBlock({
     init: ReplacedViewedParentComposition.makeInit(() => ({ model: {} })),
     update: ReplacedViewedParentComposition.makeUpdate(),
@@ -183,6 +183,10 @@ export const ReplacedViewedParent =
       ),
     ),
   })
+export const ReplacedViewedParent: Block.FromAssemblyWithView<
+  typeof ParentDefinition.Model,
+  typeof assemble
+> = Block.complete(assemble)
 
 export const ProgramWithStoreRequirement = Program.makeElement({
   block: Parent,

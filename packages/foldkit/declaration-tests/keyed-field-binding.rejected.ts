@@ -132,15 +132,20 @@ const DeclarationBooleanKeyChildComposition = Block.makeDefinition(
     Message: BooleanKeyMessage,
   },
 ).makeComposition()
-const BooleanKeyBlock = DeclarationBooleanKeyChildComposition.assembleBlock({
-  init: DeclarationBooleanKeyChildComposition.makeInit(() => ({
-    model: BooleanKeyModel.make({ id: false, count: 0 }),
-  })),
-  update: DeclarationBooleanKeyChildComposition.makeUpdate(model => ({
-    model,
-  })),
-  EffectsLayer: Layer.empty,
-})
+const assembleBooleanKeyBlock = () =>
+  DeclarationBooleanKeyChildComposition.assembleBlock({
+    init: DeclarationBooleanKeyChildComposition.makeInit(() => ({
+      model: BooleanKeyModel.make({ id: false, count: 0 }),
+    })),
+    update: DeclarationBooleanKeyChildComposition.makeUpdate(model => ({
+      model,
+    })),
+    EffectsLayer: Layer.empty,
+  })
+const BooleanKeyBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof BooleanKeyModel,
+  typeof assembleBooleanKeyBlock
+> = Block.complete(assembleBooleanKeyBlock)
 const BooleanKeyParentModel = Schema.Struct({
   entries: Schema.Array(BooleanKeyModel),
 })
@@ -174,15 +179,20 @@ const DeclarationOptionalKeyChildComposition = Block.makeDefinition(
     Message: OptionalKeyMessage,
   },
 ).makeComposition()
-const OptionalKeyBlock = DeclarationOptionalKeyChildComposition.assembleBlock({
-  init: DeclarationOptionalKeyChildComposition.makeInit(() => ({
-    model: OptionalKeyModel.make({ count: 0 }),
-  })),
-  update: DeclarationOptionalKeyChildComposition.makeUpdate(model => ({
-    model,
-  })),
-  EffectsLayer: Layer.empty,
-})
+const assembleOptionalKeyBlock = () =>
+  DeclarationOptionalKeyChildComposition.assembleBlock({
+    init: DeclarationOptionalKeyChildComposition.makeInit(() => ({
+      model: OptionalKeyModel.make({ count: 0 }),
+    })),
+    update: DeclarationOptionalKeyChildComposition.makeUpdate(model => ({
+      model,
+    })),
+    EffectsLayer: Layer.empty,
+  })
+const OptionalKeyBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof OptionalKeyModel,
+  typeof assembleOptionalKeyBlock
+> = Block.complete(assembleOptionalKeyBlock)
 const OptionalKeyParentModel = Schema.Struct({
   entries: Schema.Array(OptionalKeyModel),
 })
@@ -237,15 +247,20 @@ const DeclarationPrimitiveKeyChildComposition = Block.makeDefinition(
     Message: PrimitiveMessage,
   },
 ).makeComposition()
-const PrimitiveBlock = DeclarationPrimitiveKeyChildComposition.assembleBlock({
-  init: DeclarationPrimitiveKeyChildComposition.makeInit(() => ({
-    model: 'initial',
-  })),
-  update: DeclarationPrimitiveKeyChildComposition.makeUpdate(model => ({
-    model,
-  })),
-  EffectsLayer: Layer.empty,
-})
+const assemblePrimitiveBlock = () =>
+  DeclarationPrimitiveKeyChildComposition.assembleBlock({
+    init: DeclarationPrimitiveKeyChildComposition.makeInit(() => ({
+      model: 'initial',
+    })),
+    update: DeclarationPrimitiveKeyChildComposition.makeUpdate(model => ({
+      model,
+    })),
+    EffectsLayer: Layer.empty,
+  })
+const PrimitiveBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Schema.String,
+  typeof assemblePrimitiveBlock
+> = Block.complete(assemblePrimitiveBlock)
 const PrimitiveParentModel = Schema.Struct({
   entries: Schema.Array(Schema.String),
 })
@@ -287,17 +302,24 @@ const DeclarationUnionKeyChildComposition = Block.makeDefinition(
     Message: UnionKeyMessage,
   },
 ).makeComposition()
-const UnionKeyBlock = DeclarationUnionKeyChildComposition.assembleBlock({
-  init: DeclarationUnionKeyChildComposition.makeInit(() => ({
-    model: UnionKeyModel.make({
-      _tag: 'Primary',
-      id: 'initial',
-      count: 0,
-    }),
-  })),
-  update: DeclarationUnionKeyChildComposition.makeUpdate(model => ({ model })),
-  EffectsLayer: Layer.empty,
-})
+const assembleUnionKeyBlock = () =>
+  DeclarationUnionKeyChildComposition.assembleBlock({
+    init: DeclarationUnionKeyChildComposition.makeInit(() => ({
+      model: UnionKeyModel.make({
+        _tag: 'Primary',
+        id: 'initial',
+        count: 0,
+      }),
+    })),
+    update: DeclarationUnionKeyChildComposition.makeUpdate(model => ({
+      model,
+    })),
+    EffectsLayer: Layer.empty,
+  })
+const UnionKeyBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof UnionKeyModel,
+  typeof assembleUnionKeyBlock
+> = Block.complete(assembleUnionKeyBlock)
 const UnionKeyParentModel = Schema.Struct({
   entries: Schema.Array(UnionKeyModel),
 })
@@ -350,20 +372,25 @@ const DeclarationInvalidKeyChildComposition = Block.makeDefinition(
     Message: InvalidKeyMessage,
   },
 ).makeComposition()
-const InvalidKeyBlock = DeclarationInvalidKeyChildComposition.assembleBlock({
-  init: DeclarationInvalidKeyChildComposition.makeInit(
-    (): Update.Return<
-      typeof InvalidKeyModel.Type,
-      typeof InvalidKeyMessage.Type
-    > => {
-      throw new Error('Uninhabited declaration fixture')
-    },
-  ),
-  update: DeclarationInvalidKeyChildComposition.makeUpdate(model => ({
-    model,
-  })),
-  EffectsLayer: Layer.empty,
-})
+const assembleInvalidKeyBlock = () =>
+  DeclarationInvalidKeyChildComposition.assembleBlock({
+    init: DeclarationInvalidKeyChildComposition.makeInit(
+      (): Update.Return<
+        typeof InvalidKeyModel.Type,
+        typeof InvalidKeyMessage.Type
+      > => {
+        throw new Error('Uninhabited declaration fixture')
+      },
+    ),
+    update: DeclarationInvalidKeyChildComposition.makeUpdate(model => ({
+      model,
+    })),
+    EffectsLayer: Layer.empty,
+  })
+const InvalidKeyBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof InvalidKeyModel,
+  typeof assembleInvalidKeyBlock
+> = Block.complete(assembleInvalidKeyBlock)
 const InvalidKeyParentModel = Schema.Struct({
   entries: Schema.Array(InvalidKeyModel),
 })

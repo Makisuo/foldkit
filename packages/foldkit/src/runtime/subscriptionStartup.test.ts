@@ -57,8 +57,9 @@ describe('Subscription startup supervision', () => {
       ),
     }))
     const ApplicationComposition = ApplicationDefinition.makeComposition()
-    const application = Program.makeElement({
-      block: ApplicationComposition.assembleBlock({
+
+    const assemble = () =>
+      ApplicationComposition.assembleBlock({
         init: () => ({ model: { count: 0 } }),
         update: ApplicationComposition.makeUpdate(model => ({ model })),
         view: ApplicationComposition.makeView((_model, h) =>
@@ -66,7 +67,13 @@ describe('Subscription startup supervision', () => {
         ),
         subscriptions,
         EffectsLayer: subscriptions.pulses.layer,
-      }),
+      })
+    const completedBlock: Block.FromAssemblyWithView<
+      typeof Model,
+      typeof assemble
+    > = Block.complete(assemble)
+    const application = Program.makeElement({
+      block: completedBlock,
       container,
       crash: {
         view: ({ error }, h) => h.div([], [error.message]),
@@ -117,12 +124,17 @@ describe('Subscription startup supervision', () => {
       ),
     }))
     const ChildComposition = ChildDefinition.makeComposition()
-    const block = ChildComposition.assembleBlock({
-      init: () => ({ model: { count: 0 } }),
-      update: ChildComposition.makeUpdate(model => ({ model })),
-      subscriptions,
-      EffectsLayer: subscriptions.pulses.layer,
-    })
+    const assembleBlock = () =>
+      ChildComposition.assembleBlock({
+        init: () => ({ model: { count: 0 } }),
+        update: ChildComposition.makeUpdate(model => ({ model })),
+        subscriptions,
+        EffectsLayer: subscriptions.pulses.layer,
+      })
+    const block: Block.FromAssemblyWithoutViewOrOutMessage<
+      typeof ChildModel,
+      typeof assembleBlock
+    > = Block.complete(assembleBlock)
     const Model = Schema.Struct({ maybeChild: Schema.Option(ChildModel) })
     const Message = defineMessageUnion({
       ClickedActivateChild: {},
@@ -140,8 +152,9 @@ describe('Subscription startup supervision', () => {
       bindings: [ChildBinding],
     })
     const report = vi.fn()
-    const application = Program.makeElement({
-      block: ApplicationComposition.assembleBlock({
+
+    const assemble = () =>
+      ApplicationComposition.assembleBlock({
         init: () => ({ model: { maybeChild: Option.none() } }),
         update: ApplicationComposition.makeUpdate((model, message) =>
           Message.match(message, {
@@ -161,7 +174,13 @@ describe('Subscription startup supervision', () => {
             ['Activate child'],
           ),
         ),
-      }),
+      })
+    const completedBlock: Block.FromAssemblyWithView<
+      typeof Model,
+      typeof assemble
+    > = Block.complete(assemble)
+    const application = Program.makeElement({
+      block: completedBlock,
       container,
       crash: {
         view: ({ error }, h) => h.div([], [error.message]),

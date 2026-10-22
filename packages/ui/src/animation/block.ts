@@ -1,5 +1,5 @@
 import { Layer, Match, Tuple } from 'effect'
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 import type { ChildAttribute, Html, TagName } from 'foldkit/html'
 import type * as Update from 'foldkit/update'
 
@@ -168,7 +168,7 @@ const assemble = () =>
 export const AnimationBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)
 
 /** Programmatically starts the enter lifecycle through Animation update. */
 export const show = AnimationBlock.operations.requestShow

@@ -5,6 +5,7 @@ import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import * as Update from '../update/index.js'
 import { makeDefinition } from './define.js'
+import * as Block from './public.js'
 
 const SearchModel = Schema.Struct({ count: Schema.Number })
 const SearchMessage = defineMessageUnion({
@@ -21,25 +22,30 @@ const ScheduleIncrement = SearchDefinition.makeCommand('ScheduleIncrement', {
   messages: [SearchMessage.CompletedScheduleIncrement],
 })
 const SearchComposition = SearchDefinition.makeComposition()
-const SearchBlock = SearchComposition.assembleBlock({
-  init: SearchComposition.makeInit(() => ({
-    model: { count: 0 },
-    commands: [ScheduleIncrement()],
-  })),
-  update: SearchComposition.makeUpdate((model, message) =>
-    SearchMessage.match(message, {
-      ClickedIncrement: () => ({
-        model: modifyFields(model, { count: count => count + 1 }),
-        outMessage: SearchOutMessage.Incremented(),
+const assembleSearchBlock = () =>
+  SearchComposition.assembleBlock({
+    init: SearchComposition.makeInit(() => ({
+      model: { count: 0 },
+      commands: [ScheduleIncrement()],
+    })),
+    update: SearchComposition.makeUpdate((model, message) =>
+      SearchMessage.match(message, {
+        ClickedIncrement: () => ({
+          model: modifyFields(model, { count: count => count + 1 }),
+          outMessage: SearchOutMessage.Incremented(),
+        }),
+        CompletedScheduleIncrement: () => ({
+          model: modifyFields(model, { count: count => count + 1 }),
+        }),
       }),
-      CompletedScheduleIncrement: () => ({
-        model: modifyFields(model, { count: count => count + 1 }),
-      }),
-    }),
-  ),
-  view: SearchComposition.makeView((_model, h) => h.div([])),
-  hostHandlers: [ScheduleIncrement],
-})
+    ),
+    view: SearchComposition.makeView((_model, h) => h.div([])),
+    hostHandlers: [ScheduleIncrement],
+  })
+const SearchBlock: Block.FromAssemblyWithViewAndOutMessage<
+  typeof SearchModel,
+  typeof assembleSearchBlock
+> = Block.complete(assembleSearchBlock)
 
 const ParentModel = Schema.Struct({ search: SearchModel, label: Schema.String })
 type ParentModel = typeof ParentModel.Type
@@ -75,17 +81,22 @@ const ContextualSearchDefinition = makeDefinition(
   },
 )
 const ContextualSearchComposition = ContextualSearchDefinition.makeComposition()
-const ContextualSearchBlock = ContextualSearchComposition.assembleBlock({
-  init: ContextualSearchComposition.makeInit(() => ({ model: { count: 0 } })),
-  update: ContextualSearchComposition.makeUpdate(
-    (model, message, _source: string) =>
-      SearchMessage.match(message, {
-        ClickedIncrement: () => ({ model }),
-        CompletedScheduleIncrement: () => ({ model }),
-      }),
-  ),
-  view: ContextualSearchComposition.makeView((_model, h) => h.div([])),
-})
+const assembleContextualSearchBlock = () =>
+  ContextualSearchComposition.assembleBlock({
+    init: ContextualSearchComposition.makeInit(() => ({ model: { count: 0 } })),
+    update: ContextualSearchComposition.makeUpdate(
+      (model, message, _source: string) =>
+        SearchMessage.match(message, {
+          ClickedIncrement: () => ({ model }),
+          CompletedScheduleIncrement: () => ({ model }),
+        }),
+    ),
+    view: ContextualSearchComposition.makeView((_model, h) => h.div([])),
+  })
+const ContextualSearchBlock: Block.FromAssemblyWithView<
+  typeof SearchModel,
+  typeof assembleContextualSearchBlock
+> = Block.complete(assembleContextualSearchBlock)
 
 if (false) {
   ParentDefinition.makeBinding(ContextualSearchBlock, {

@@ -50,11 +50,13 @@ export const assembleComposedInitBlock = () =>
     EffectsLayer: Prepare.layer,
   })
 
-export const RawComposedInitBlock = assembleComposedInitBlock()
+export const RawComposedInitBlock: CompletedAssembly<
+  typeof assembleComposedInitBlock
+> = Block.complete(assembleComposedInitBlock)
 export const ComposedInitBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof ComposedInitComposition.Model,
   typeof assembleComposedInitBlock
-> = assembleComposedInitBlock()
+> = Block.complete(assembleComposedInitBlock)
 
 type Equal<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends <
@@ -80,3 +82,8 @@ export type ExactServices = Expect<
 export type ExactConstructorError = Expect<
   Equal<Layer.Error<typeof ComposedInitBlock.EffectsLayer>, PreparationFailure>
 >
+
+type CompletedAssembly<Producer extends () => Block.AssemblyDraft<object>> =
+  ReturnType<Producer> extends Block.AssemblyDraft<infer Completed>
+    ? Completed
+    : never

@@ -26,7 +26,7 @@ const assemble = () =>
 const RoomBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof RoomModel,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)
 
 const RoomInstance = Schema.Struct({
   roomId: Schema.String,

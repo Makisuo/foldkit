@@ -323,4 +323,4 @@ const assemble = () =>
 export const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

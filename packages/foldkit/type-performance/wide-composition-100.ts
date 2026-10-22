@@ -61,21 +61,26 @@ const runLeaf = TypePerformanceWideLeafDefinition.makeStep(model => ({
 }))
 const TypePerformanceWideLeafComposition =
   TypePerformanceWideLeafDefinition.makeComposition()
-const Leaf = TypePerformanceWideLeafComposition.assembleBlock({
-  init: TypePerformanceWideLeafComposition.makeInit(() => ({
-    model: LeafModel.make({ value: 0 }),
-  })),
-  update: TypePerformanceWideLeafComposition.makeUpdate((model, message) =>
-    LeafMessage.match(message, {
-      RequestedRun: () => runLeaf(model),
-      CompletedRun: () => ({ model }),
-    }),
-  ),
-  operations: {
-    runLeaf: LeafMessage.RequestedRun,
-  },
-  EffectsLayer: RunLeaf.layer,
-})
+const assembleLeaf = () =>
+  TypePerformanceWideLeafComposition.assembleBlock({
+    init: TypePerformanceWideLeafComposition.makeInit(() => ({
+      model: LeafModel.make({ value: 0 }),
+    })),
+    update: TypePerformanceWideLeafComposition.makeUpdate((model, message) =>
+      LeafMessage.match(message, {
+        RequestedRun: () => runLeaf(model),
+        CompletedRun: () => ({ model }),
+      }),
+    ),
+    operations: {
+      runLeaf: LeafMessage.RequestedRun,
+    },
+    EffectsLayer: RunLeaf.layer,
+  })
+const Leaf: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof LeafModel,
+  typeof assembleLeaf
+> = Block.complete(assembleLeaf)
 
 const ApplicationModel = Schema.Struct({ leaf: LeafModel })
 type ApplicationModel = typeof ApplicationModel.Type
@@ -795,14 +800,19 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
 const update = ApplicationComposition.makeUpdate()
 const view = ApplicationComposition.makeView((_model, h) => h.main([]))
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init: ApplicationComposition.makeInit(() => ({
-    model: ApplicationModel.make({ leaf: LeafModel.make({ value: 0 }) }),
-  })),
-  update,
-  view,
-  EffectsLayer: Layer.empty,
-})
+const assembleApplicationBlock = () =>
+  ApplicationComposition.assembleBlock({
+    init: ApplicationComposition.makeInit(() => ({
+      model: ApplicationModel.make({ leaf: LeafModel.make({ value: 0 }) }),
+    })),
+    update,
+    view,
+    EffectsLayer: Layer.empty,
+  })
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof ApplicationModel,
+  typeof assembleApplicationBlock
+> = Block.complete(assembleApplicationBlock)
 
 export const program = Program.makeElement({
   block: ApplicationBlock,

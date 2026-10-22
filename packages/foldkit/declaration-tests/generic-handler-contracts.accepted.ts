@@ -49,7 +49,13 @@ export const makeEchoBlock = <Item extends string, ItemEncoded>(
 ) => {
   const { composition, init, update, Echo } = makeEchoParts(Item)
 
-  return composition.assembleBlock({ init, update, EffectsLayer: Echo.layer })
+  const assemble = () =>
+    composition.assembleBlock({ init, update, EffectsLayer: Echo.layer })
+  const completedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+    typeof composition.Model,
+    typeof assemble
+  > = Block.complete(assemble)
+  return completedBlock
 }
 
 export const City = Schema.Literals(['London', 'Berlin'])
@@ -65,12 +71,16 @@ type OptionalViewImplementation = Readonly<{
   EffectsLayer: typeof optionalShapeParts.Echo.layer
   view?: typeof optionalView
 }>
-export const OptionalViewBlock =
+const assembleOptionalViewBlock = () =>
   optionalShapeParts.composition.assembleBlock<OptionalViewImplementation>({
     init: optionalShapeParts.init,
     update: optionalShapeParts.update,
     EffectsLayer: optionalShapeParts.Echo.layer,
   })
+export const OptionalViewBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof optionalShapeParts.composition.Model,
+  typeof assembleOptionalViewBlock
+> = Block.complete(assembleOptionalViewBlock)
 
 const pureUpdate = optionalShapeParts.composition.makeUpdate(model => ({
   model,
@@ -80,8 +90,12 @@ type OptionalEffectsImplementation = Readonly<{
   update: typeof pureUpdate
   EffectsLayer?: typeof Layer.empty
 }>
-export const OptionalEffectsBlock =
+const assembleOptionalEffectsBlock = () =>
   optionalShapeParts.composition.assembleBlock<OptionalEffectsImplementation>({
     init: optionalShapeParts.init,
     update: pureUpdate,
   })
+export const OptionalEffectsBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof optionalShapeParts.composition.Model,
+  typeof assembleOptionalEffectsBlock
+> = Block.complete(assembleOptionalEffectsBlock)

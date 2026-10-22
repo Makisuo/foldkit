@@ -1,4 +1,4 @@
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 
 import { AttachmentsComposition } from './composition'
 import type { Model } from './definition'
@@ -15,4 +15,4 @@ const assemble = () =>
 export const AttachmentsBlock: Block.FromAssemblyWithView<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

@@ -76,6 +76,6 @@ const assemble = () =>
 export const ApplicationBlock: Block.FromAssemblyWithView<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)
 
 const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'

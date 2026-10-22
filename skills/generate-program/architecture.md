@@ -287,12 +287,12 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings,
 })
 
-const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-  EffectsLayer,
-})
+const assemble = () =>
+  ApplicationComposition.assembleBlock({ init, update, view, EffectsLayer })
+const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assemble
+> = Block.complete(assemble)
 
 const program = Program.make({
   block: ApplicationBlock,
@@ -574,11 +574,12 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
 })
 const ApplicationComposition = ApplicationDefinition.makeComposition()
 
-const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-})
+const assemble = () =>
+  ApplicationComposition.assembleBlock({ init, update, view })
+const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assemble
+> = Block.complete(assemble)
 
 const program = Program.make({
   block: ApplicationBlock,
@@ -601,11 +602,12 @@ const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [HomeBinding],
 })
 
-const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-})
+const assemble = () =>
+  ApplicationComposition.assembleBlock({ init, update, view })
+const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assemble
+> = Block.complete(assemble)
 
 const program = Program.make({
   block: ApplicationBlock,
@@ -622,11 +624,12 @@ const program = Program.make({
 `Program.make` owns the page and requires a root Block whose view returns a Document. `Program.makeElement` creates a container-scoped Program from a root Block whose view returns Html and has no routing config:
 
 ```ts
-const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-})
+const assemble = () =>
+  ApplicationComposition.assembleBlock({ init, update, view })
+const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assemble
+> = Block.complete(assemble)
 
 const program = Program.makeElement({
   block: ApplicationBlock,

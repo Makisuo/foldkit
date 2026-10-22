@@ -18,7 +18,7 @@ const DeclarationOptionalWrappedKeyedRoomDefinition = Block.makeDefinition(
 )
 const DeclarationOptionalWrappedKeyedRoomComposition =
   DeclarationOptionalWrappedKeyedRoomDefinition.makeComposition()
-export const RoomBlock =
+const assembleRoomBlock = () =>
   DeclarationOptionalWrappedKeyedRoomComposition.assembleBlock({
     init: DeclarationOptionalWrappedKeyedRoomComposition.makeInit(
       (count: number) => ({
@@ -39,6 +39,10 @@ export const RoomBlock =
     },
     EffectsLayer: Layer.empty,
   })
+export const RoomBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof RoomModel,
+  typeof assembleRoomBlock
+> = Block.complete(assembleRoomBlock)
 const DeclarationOptionalWrappedKeyedPlainRoomDefinition = Block.makeDefinition(
   'DeclarationOptionalWrappedKeyedPlainRoom',
   {
@@ -48,7 +52,7 @@ const DeclarationOptionalWrappedKeyedPlainRoomDefinition = Block.makeDefinition(
 )
 const DeclarationOptionalWrappedKeyedPlainRoomComposition =
   DeclarationOptionalWrappedKeyedPlainRoomDefinition.makeComposition()
-const PlainRoomBlock =
+const assemblePlainRoomBlock = () =>
   DeclarationOptionalWrappedKeyedPlainRoomComposition.assembleBlock({
     init: DeclarationOptionalWrappedKeyedPlainRoomComposition.makeInit(() => ({
       model: RoomModel.make({ count: 0 }),
@@ -56,6 +60,10 @@ const PlainRoomBlock =
     update: DeclarationOptionalWrappedKeyedPlainRoomComposition.makeUpdate(),
     EffectsLayer: Layer.empty,
   })
+const PlainRoomBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof RoomModel,
+  typeof assemblePlainRoomBlock
+> = Block.complete(assemblePlainRoomBlock)
 
 export const RoomInstance = Schema.Struct({
   roomId: RoomId,

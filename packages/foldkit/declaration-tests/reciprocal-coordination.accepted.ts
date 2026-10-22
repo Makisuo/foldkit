@@ -106,27 +106,33 @@ const requestJoin = DeclarationReciprocalHomeDefinition.makeStep(
     outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
   }),
 )
-export const HomeBlock = DeclarationReciprocalHomeComposition.assembleBlock({
-  init: DeclarationReciprocalHomeComposition.makeInit(() => ({
-    model: HomeModel.make({ username: '', resetCount: 0 }),
-  })),
-  update: DeclarationReciprocalHomeComposition.makeUpdate((model, message) =>
-    HomeMessage.match(message, {
-      SucceededJoinRoom: () => ({ model }),
-      RequestedJoin: ({ roomId, username }) =>
-        requestJoin(model, roomId, username),
-      RequestedResetJoinForm: ({ username }) => resetJoinForm(model, username),
-      CompletedClearJoinDraft: () => ({ model }),
-    }),
-  ),
-  operations: {
-    requestJoin: (roomId: string, username: string) =>
-      Tuple.make(HomeMessage.RequestedJoin({ roomId, username })),
-    resetJoinForm: (username: string) =>
-      Tuple.make(HomeMessage.RequestedResetJoinForm({ username })),
-  },
-  EffectsLayer: ClearJoinDraft.layer,
-})
+const assembleHomeBlock = () =>
+  DeclarationReciprocalHomeComposition.assembleBlock({
+    init: DeclarationReciprocalHomeComposition.makeInit(() => ({
+      model: HomeModel.make({ username: '', resetCount: 0 }),
+    })),
+    update: DeclarationReciprocalHomeComposition.makeUpdate((model, message) =>
+      HomeMessage.match(message, {
+        SucceededJoinRoom: () => ({ model }),
+        RequestedJoin: ({ roomId, username }) =>
+          requestJoin(model, roomId, username),
+        RequestedResetJoinForm: ({ username }) =>
+          resetJoinForm(model, username),
+        CompletedClearJoinDraft: () => ({ model }),
+      }),
+    ),
+    operations: {
+      requestJoin: (roomId: string, username: string) =>
+        Tuple.make(HomeMessage.RequestedJoin({ roomId, username })),
+      resetJoinForm: (username: string) =>
+        Tuple.make(HomeMessage.RequestedResetJoinForm({ username })),
+    },
+    EffectsLayer: ClearJoinDraft.layer,
+  })
+export const HomeBlock: Block.FromAssemblyWithOutMessage<
+  typeof HomeModel,
+  typeof assembleHomeBlock
+> = Block.complete(assembleHomeBlock)
 
 export const RoomModel = Schema.Struct({
   maybeUsername: Schema.Option(Schema.String),
@@ -156,29 +162,34 @@ const informJoined = DeclarationReciprocalRoomDefinition.makeStep(
     }),
   }),
 )
-export const RoomBlock = DeclarationReciprocalRoomComposition.assembleBlock({
-  init: DeclarationReciprocalRoomComposition.makeInit(
-    (maybeUsername: Option.Option<string>) => ({
-      model: RoomModel.make({ maybeUsername }),
-    }),
-  ),
-  update: DeclarationReciprocalRoomComposition.makeUpdate(
-    (model, message, context: typeof RoomContext.Type) =>
-      RoomMessage.match(message, {
-        InformedOfJoin: ({ username }) =>
-          informJoined(model, username, context),
-        CompletedLeaveRoom: () => ({
-          model,
-          outMessage: RoomOutMessage.LeftRoom({ roomId: context.roomId }),
-        }),
+const assembleRoomBlock = () =>
+  DeclarationReciprocalRoomComposition.assembleBlock({
+    init: DeclarationReciprocalRoomComposition.makeInit(
+      (maybeUsername: Option.Option<string>) => ({
+        model: RoomModel.make({ maybeUsername }),
       }),
-  ),
-  operations: {
-    informJoined: (username: string, context: typeof RoomContext.Type) =>
-      Tuple.make(RoomMessage.InformedOfJoin({ username }), context),
-  },
-  EffectsLayer: Layer.empty,
-})
+    ),
+    update: DeclarationReciprocalRoomComposition.makeUpdate(
+      (model, message, context: typeof RoomContext.Type) =>
+        RoomMessage.match(message, {
+          InformedOfJoin: ({ username }) =>
+            informJoined(model, username, context),
+          CompletedLeaveRoom: () => ({
+            model,
+            outMessage: RoomOutMessage.LeftRoom({ roomId: context.roomId }),
+          }),
+        }),
+    ),
+    operations: {
+      informJoined: (username: string, context: typeof RoomContext.Type) =>
+        Tuple.make(RoomMessage.InformedOfJoin({ username }), context),
+    },
+    EffectsLayer: Layer.empty,
+  })
+export const RoomBlock: Block.FromAssemblyWithOutMessage<
+  typeof RoomModel,
+  typeof assembleRoomBlock
+> = Block.complete(assembleRoomBlock)
 
 export const ApplicationRoute = Route.defineRouteUnion({
   Home: {},
@@ -579,20 +590,25 @@ export const NestedPolicy = (() => {
     model,
     outMessage: HomeOutMessage.RequestedRoomWork(),
   }))
-  const HomeBlock = HomeComposition.assembleBlock({
-    init: HomeComposition.makeInit(() => ({
-      model: HomeModel.make({ value: '' }),
-    })),
-    update: HomeComposition.makeUpdate((model, message) =>
-      HomeMessage.match(message, {
-        CompletedHomeWork: () => ({ model }),
-        RequestedRoomWork: () => requestRoomWork(model),
-      }),
-    ),
-    operations: {
-      requestRoomWork: () => Tuple.make(HomeMessage.RequestedRoomWork()),
-    },
-  })
+  const assembleHomeBlock = () =>
+    HomeComposition.assembleBlock({
+      init: HomeComposition.makeInit(() => ({
+        model: HomeModel.make({ value: '' }),
+      })),
+      update: HomeComposition.makeUpdate((model, message) =>
+        HomeMessage.match(message, {
+          CompletedHomeWork: () => ({ model }),
+          RequestedRoomWork: () => requestRoomWork(model),
+        }),
+      ),
+      operations: {
+        requestRoomWork: () => Tuple.make(HomeMessage.RequestedRoomWork()),
+      },
+    })
+  const HomeBlock: Block.FromAssemblyWithOutMessage<
+    typeof HomeModel,
+    typeof assembleHomeBlock
+  > = Block.complete(assembleHomeBlock)
 
   const RoomModel = Schema.Struct({ count: Schema.Number })
   const RoomMessage = Message.defineMessageUnion({
@@ -617,21 +633,26 @@ export const NestedPolicy = (() => {
     commands: [CompleteRoomWork()],
     outMessage: RoomOutMessage.ChangedRoom(),
   }))
-  const RoomBlock = RoomComposition.assembleBlock({
-    init: RoomComposition.makeInit(() => ({
-      model: RoomModel.make({ count: 0 }),
-    })),
-    update: RoomComposition.makeUpdate((model, message) =>
-      RoomMessage.match(message, {
-        CompletedRoomWork: () => ({ model }),
-        RequestedRoomWork: () => runRoomWork(model),
-      }),
-    ),
-    operations: {
-      runRoomWork: () => Tuple.make(RoomMessage.RequestedRoomWork()),
-    },
-    EffectsLayer: CompleteRoomWork.layer,
-  })
+  const assembleRoomBlock = () =>
+    RoomComposition.assembleBlock({
+      init: RoomComposition.makeInit(() => ({
+        model: RoomModel.make({ count: 0 }),
+      })),
+      update: RoomComposition.makeUpdate((model, message) =>
+        RoomMessage.match(message, {
+          CompletedRoomWork: () => ({ model }),
+          RequestedRoomWork: () => runRoomWork(model),
+        }),
+      ),
+      operations: {
+        runRoomWork: () => Tuple.make(RoomMessage.RequestedRoomWork()),
+      },
+      EffectsLayer: CompleteRoomWork.layer,
+    })
+  const RoomBlock: Block.FromAssemblyWithOutMessage<
+    typeof RoomModel,
+    typeof assembleRoomBlock
+  > = Block.complete(assembleRoomBlock)
 
   const ParentModel = Schema.Struct({ home: HomeModel, room: RoomModel })
   const ParentMessage = Schema.Never

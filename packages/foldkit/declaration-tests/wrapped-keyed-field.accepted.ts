@@ -66,29 +66,34 @@ const makeChoice = <const Values extends ReadonlyArray<string>>(
   )
   const DeclarationWrappedKeyedFieldChoiceComposition =
     DeclarationWrappedKeyedFieldChoiceDefinition.makeComposition()
-  const block = DeclarationWrappedKeyedFieldChoiceComposition.assembleBlock({
-    init: DeclarationWrappedKeyedFieldChoiceComposition.makeInit(
-      (value: Value) => ({
-        model: Model.make({ value }),
-        commands: [ReadChoice()],
-      }),
-    ),
-    update: DeclarationWrappedKeyedFieldChoiceComposition.makeUpdate(
-      (model, message) =>
-        ChoiceMessage.match(message, {
-          UpdatedValue: ({ value }) => setValue(model, value),
-          RequestedRefresh: () => refresh(model),
-          RequestedSelect: () => select(model),
-          CompletedRefresh: () => ({ model }),
+  const assembleBlock = () =>
+    DeclarationWrappedKeyedFieldChoiceComposition.assembleBlock({
+      init: DeclarationWrappedKeyedFieldChoiceComposition.makeInit(
+        (value: Value) => ({
+          model: Model.make({ value }),
+          commands: [ReadChoice()],
         }),
-    ),
-    operations: {
-      setValue: (value: Value) => [ChoiceMessage.UpdatedValue({ value })],
-      refresh: () => [ChoiceMessage.RequestedRefresh()],
-      select: () => [ChoiceMessage.RequestedSelect()],
-    },
-    EffectsLayer: ReadChoice.layer,
-  })
+      ),
+      update: DeclarationWrappedKeyedFieldChoiceComposition.makeUpdate(
+        (model, message) =>
+          ChoiceMessage.match(message, {
+            UpdatedValue: ({ value }) => setValue(model, value),
+            RequestedRefresh: () => refresh(model),
+            RequestedSelect: () => select(model),
+            CompletedRefresh: () => ({ model }),
+          }),
+      ),
+      operations: {
+        setValue: (value: Value) => [ChoiceMessage.UpdatedValue({ value })],
+        refresh: () => [ChoiceMessage.RequestedRefresh()],
+        select: () => [ChoiceMessage.RequestedSelect()],
+      },
+      EffectsLayer: ReadChoice.layer,
+    })
+  const block: Block.FromAssemblyWithOutMessage<
+    typeof Model,
+    typeof assembleBlock
+  > = Block.complete(assembleBlock)
 
   return {
     block,
@@ -107,7 +112,7 @@ const DeclarationWrappedKeyedFieldPlainChoiceComposition = Block.makeDefinition(
     Message: Choice.Message,
   },
 ).makeComposition()
-export const PlainChoiceBlock =
+const assemblePlainChoiceBlock = () =>
   DeclarationWrappedKeyedFieldPlainChoiceComposition.assembleBlock({
     init: DeclarationWrappedKeyedFieldPlainChoiceComposition.makeInit(() => ({
       model: Choice.block.Model.make({ value: 'One' }),
@@ -125,6 +130,10 @@ export const PlainChoiceBlock =
     ),
     EffectsLayer: Layer.empty,
   })
+export const PlainChoiceBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Choice.block.Model,
+  typeof assemblePlainChoiceBlock
+> = Block.complete(assemblePlainChoiceBlock)
 
 export const ChoiceId = Schema.String.pipe(
   Schema.brand('DeclarationWrappedKeyedFieldChoiceId'),
@@ -150,7 +159,7 @@ const DeclarationWrappedKeyedFieldTextComposition = Block.makeDefinition(
     Message: TextMessage,
   },
 ).makeComposition()
-export const TextBlock =
+const assembleTextBlock = () =>
   DeclarationWrappedKeyedFieldTextComposition.assembleBlock({
     init: DeclarationWrappedKeyedFieldTextComposition.makeInit(() => ({
       model: '',
@@ -160,6 +169,10 @@ export const TextBlock =
     ),
     EffectsLayer: Layer.empty,
   })
+export const TextBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Schema.String,
+  typeof assembleTextBlock
+> = Block.complete(assembleTextBlock)
 export const TextEntry = Schema.Struct({
   id: Schema.String,
   text: Schema.String,
@@ -474,11 +487,16 @@ export const initialize = initialComposition.makeInit(
   }),
 )
 
-export const initializedBlock = initialComposition.assembleBlock({
-  init: initialize,
-  update: initialComposition.makeUpdate(model => ({ model })),
-  EffectsLayer: Layer.empty,
-})
+const assembleInitializedBlock = () =>
+  initialComposition.assembleBlock({
+    init: initialize,
+    update: initialComposition.makeUpdate(model => ({ model })),
+    EffectsLayer: Layer.empty,
+  })
+export const initializedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ParentModel,
+  typeof assembleInitializedBlock
+> = Block.complete(assembleInitializedBlock)
 
 export const initialParentModel = ParentModel.make({
   choices: [

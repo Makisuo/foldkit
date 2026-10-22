@@ -41,14 +41,19 @@ const WaitForever = SilentDefinition.makeCommand('WaitForever', {
 })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 const SilentComposition = SilentDefinition.makeComposition()
-export const SilentBlock = SilentComposition.assembleBlock({
-  init: SilentComposition.makeInit((id: string) => ({
-    model: SilentModel.make({ id, ready: false }),
-    commands: [WaitForever()],
-  })),
-  update: SilentComposition.makeUpdate(),
-  EffectsLayer: WaitForever.layer,
-})
+const assembleSilentBlock = () =>
+  SilentComposition.assembleBlock({
+    init: SilentComposition.makeInit((id: string) => ({
+      model: SilentModel.make({ id, ready: false }),
+      commands: [WaitForever()],
+    })),
+    update: SilentComposition.makeUpdate(),
+    EffectsLayer: WaitForever.layer,
+  })
+export const SilentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof SilentModel,
+  typeof assembleSilentBlock
+> = Block.complete(assembleSilentBlock)
 
 export const Entry = Schema.Struct({
   key: Schema.String,
@@ -118,10 +123,15 @@ export const initializeGeneral = ParentDefinition.makeStep(
         }),
     }),
 )
-export const ParentBlock = ParentComposition.assembleBlock({
-  init: ParentComposition.makeInit(() => ({ model: { entries: [] } })),
-  update: ParentComposition.makeUpdate(model => ({ model })),
-})
+const assembleParentBlock = () =>
+  ParentComposition.assembleBlock({
+    init: ParentComposition.makeInit(() => ({ model: { entries: [] } })),
+    update: ParentComposition.makeUpdate(model => ({ model })),
+  })
+export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ParentModel,
+  typeof assembleParentBlock
+> = Block.complete(assembleParentBlock)
 
 type InitializationRequirements = Expect<
   Equal<

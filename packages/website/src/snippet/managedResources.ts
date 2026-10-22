@@ -1,5 +1,5 @@
 import { Effect, Layer, Option, Schema, pipe } from 'effect'
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 
 import { TakePhoto } from './command'
 import { init } from './init'
@@ -55,4 +55,4 @@ const assemble = () =>
 export const CameraBlock: Block.FromAssemblyWithView<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

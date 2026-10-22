@@ -55,37 +55,48 @@ const childUpdate = ChildComposition.makeUpdate((model, message) =>
     RequestedReset: () => ({ model: ChildModel.make({ count: 0 }) }),
   }),
 )
-export const ChildBlock = ChildComposition.assembleBlock({
-  init: () => ({ model: ChildModel.make({ count: 0 }) }),
-  update: childUpdate,
-  operations: {
-    defaultIncrement: (amount?: number) =>
-      Tuple.make(
-        ChildMessage.RequestedDefaultIncrement(
-          amount === undefined ? {} : { amount },
+const assembleChildBlock = () =>
+  ChildComposition.assembleBlock({
+    init: () => ({ model: ChildModel.make({ count: 0 }) }),
+    update: childUpdate,
+    operations: {
+      defaultIncrement: (amount?: number) =>
+        Tuple.make(
+          ChildMessage.RequestedDefaultIncrement(
+            amount === undefined ? {} : { amount },
+          ),
         ),
-      ),
-    addMany: (...amounts: ReadonlyArray<number>) =>
-      Tuple.make(ChildMessage.RequestedAddMany({ amounts })),
-    addRequiredPrefix: (
-      ...[first, ...labels]: readonly [first: number, ...labels: Array<string>]
-    ) => Tuple.make(ChildMessage.RequestedRequiredPrefix({ first, labels })),
-    addOptionalPrefix: (
-      ...[first, ...labels]: readonly [first?: number, ...labels: Array<string>]
-    ) =>
-      Tuple.make(
-        ChildMessage.RequestedOptionalPrefix(
-          first === undefined ? { labels } : { first, labels },
+      addMany: (...amounts: ReadonlyArray<number>) =>
+        Tuple.make(ChildMessage.RequestedAddMany({ amounts })),
+      addRequiredPrefix: (
+        ...[first, ...labels]: readonly [
+          first: number,
+          ...labels: Array<string>,
+        ]
+      ) => Tuple.make(ChildMessage.RequestedRequiredPrefix({ first, labels })),
+      addOptionalPrefix: (
+        ...[first, ...labels]: readonly [
+          first?: number,
+          ...labels: Array<string>,
+        ]
+      ) =>
+        Tuple.make(
+          ChildMessage.RequestedOptionalPrefix(
+            first === undefined ? { labels } : { first, labels },
+          ),
         ),
-      ),
-    addMixed: (...values: ReadonlyArray<number | string>) =>
-      Tuple.make(ChildMessage.RequestedMixed({ values })),
-    addRefined: (...amounts: ReadonlyArray<1 | 2>) =>
-      Tuple.make(ChildMessage.RequestedAddMany({ amounts })),
-    reset: () => Tuple.make(ChildMessage.RequestedReset()),
-  },
-  EffectsLayer: Layer.empty,
-})
+      addMixed: (...values: ReadonlyArray<number | string>) =>
+        Tuple.make(ChildMessage.RequestedMixed({ values })),
+      addRefined: (...amounts: ReadonlyArray<1 | 2>) =>
+        Tuple.make(ChildMessage.RequestedAddMany({ amounts })),
+      reset: () => Tuple.make(ChildMessage.RequestedReset()),
+    },
+    EffectsLayer: Layer.empty,
+  })
+export const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 const ParentModel = Schema.Struct({ child: ChildModel })
 const ParentMessage = Message.defineMessageUnion({

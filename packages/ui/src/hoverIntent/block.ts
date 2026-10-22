@@ -374,4 +374,4 @@ const assemble = () =>
 export const HoverIntentBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

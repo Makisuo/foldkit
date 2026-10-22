@@ -17,12 +17,17 @@ const ChildDefinition = Block.makeDefinition('ForwardChild', {
   OutMessage: ChildOutMessage,
 })
 const ChildComposition = ChildDefinition.makeComposition()
-const ChildBlock = ChildComposition.assembleBlock({
-  init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
-  update: ChildComposition.makeUpdate(model => ({ model })),
-  operations: { requestClose: ChildMessage.RequestedClose },
-  EffectsLayer: Layer.empty,
-})
+const assembleChildBlock = () =>
+  ChildComposition.assembleBlock({
+    init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
+    update: ChildComposition.makeUpdate(model => ({ model })),
+    operations: { requestClose: ChildMessage.RequestedClose },
+    EffectsLayer: Layer.empty,
+  })
+const ChildBlock: Block.FromAssemblyWithOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 const ParentModel = Schema.Struct({ choice: Choice })
 const ParentMessage = defineMessageUnion({ RequestedReset: {} })

@@ -1416,7 +1416,7 @@ const assemble = () =>
 export const CalendarBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)
 
 /** Moves the Calendar view and cursor to a date without changing the
  * parent-owned selection. */

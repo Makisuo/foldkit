@@ -1,4 +1,4 @@
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 
 import { UiComposition } from './composition'
 import { init } from './init'
@@ -18,4 +18,4 @@ const assemble = () =>
 export const UiBlock: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

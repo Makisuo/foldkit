@@ -120,11 +120,16 @@ const runProfile = async (
     Model,
     Message,
   }).makeComposition()
-  const ApplicationBlock = ApplicationComposition.assembleBlock({
-    init: ApplicationComposition.makeInit(init_),
-    update: ApplicationComposition.makeUpdate(wrappedUpdate.fn),
-    view: ApplicationComposition.makeView(captureView),
-  })
+  const assemble = () =>
+    ApplicationComposition.assembleBlock({
+      init: ApplicationComposition.makeInit(init_),
+      update: ApplicationComposition.makeUpdate(wrappedUpdate.fn),
+      view: ApplicationComposition.makeView(captureView),
+    })
+  const ApplicationBlock: Block.FromAssemblyWithView<
+    typeof Model,
+    typeof assemble
+  > = Block.complete(assemble)
   const program = Program.make({
     block: ApplicationBlock,
     container,

@@ -44,17 +44,36 @@ export const implementation = {
   view: Composition.makeView(() => null),
   EffectsLayer: ReadSession.layer,
 }
-export const RegisteredBlock = Composition.assembleBlock({
-  ...implementation,
-  managedResources,
-  EffectsLayer: Layer.merge(ReadSession.layer, managedResources.session.layer),
-})
-export const UnregisteredBlock = Composition.assembleBlock(implementation)
-export const RenamedRegistrationBlock = Composition.assembleBlock({
-  ...implementation,
-  managedResources: { alternateSession: managedResources.session },
-  EffectsLayer: Layer.merge(ReadSession.layer, managedResources.session.layer),
-})
+const assembleRegisteredBlock = () =>
+  Composition.assembleBlock({
+    ...implementation,
+    managedResources,
+    EffectsLayer: Layer.merge(
+      ReadSession.layer,
+      managedResources.session.layer,
+    ),
+  })
+export const RegisteredBlock: CompletedAssembly<
+  typeof assembleRegisteredBlock
+> = Block.complete(assembleRegisteredBlock)
+const assembleUnregisteredBlock = () =>
+  Composition.assembleBlock(implementation)
+export const UnregisteredBlock: CompletedAssembly<
+  typeof assembleUnregisteredBlock
+> = Block.complete(assembleUnregisteredBlock)
+const assembleRenamedRegistrationBlock = () =>
+  Composition.assembleBlock({
+    ...implementation,
+    managedResources: { alternateSession: managedResources.session },
+    EffectsLayer: Layer.merge(
+      ReadSession.layer,
+      managedResources.session.layer,
+    ),
+  })
+export const RenamedRegistrationBlock: Block.FromAssemblyWithView<
+  typeof Schema.Null,
+  typeof assembleRenamedRegistrationBlock
+> = Block.complete(assembleRenamedRegistrationBlock)
 export const SessionReaderLayer = Layer.effectDiscard(
   Session.get.pipe(Effect.catch(() => Effect.succeed('idle'))),
 )
@@ -144,29 +163,46 @@ export const OtherPlacementComposition = KeyedDefinition.makeComposition({
 export const RenamedRegisteredComposition = KeyedDefinition.makeComposition({
   bindings: [RenamedRegisteredBinding],
 })
-export const KeyedRegisteredBlock = RegisteredComposition.assembleBlock({
-  init: () => ({ model: KeyedModel.make({ sessions: [] }) }),
-  update: RegisteredComposition.makeUpdate(model => ({ model })),
-  view: RegisteredComposition.makeView(() => null),
-})
-export const KeyedUnregisteredBlock = UnregisteredComposition.assembleBlock({
-  init: () => ({ model: KeyedModel.make({ sessions: [] }) }),
-  update: UnregisteredComposition.makeUpdate(model => ({ model })),
-  view: UnregisteredComposition.makeView(() => null),
-})
-export const KeyedOtherPlacementBlock = OtherPlacementComposition.assembleBlock(
-  {
+const assembleKeyedRegisteredBlock = () =>
+  RegisteredComposition.assembleBlock({
+    init: () => ({ model: KeyedModel.make({ sessions: [] }) }),
+    update: RegisteredComposition.makeUpdate(model => ({ model })),
+    view: RegisteredComposition.makeView(() => null),
+  })
+export const KeyedRegisteredBlock: Block.FromAssemblyWithView<
+  typeof KeyedModel,
+  typeof assembleKeyedRegisteredBlock
+> = Block.complete(assembleKeyedRegisteredBlock)
+const assembleKeyedUnregisteredBlock = () =>
+  UnregisteredComposition.assembleBlock({
+    init: () => ({ model: KeyedModel.make({ sessions: [] }) }),
+    update: UnregisteredComposition.makeUpdate(model => ({ model })),
+    view: UnregisteredComposition.makeView(() => null),
+  })
+export const KeyedUnregisteredBlock: Block.FromAssemblyWithView<
+  typeof KeyedModel,
+  typeof assembleKeyedUnregisteredBlock
+> = Block.complete(assembleKeyedUnregisteredBlock)
+const assembleKeyedOtherPlacementBlock = () =>
+  OtherPlacementComposition.assembleBlock({
     init: () => ({ model: KeyedModel.make({ sessions: [] }) }),
     update: OtherPlacementComposition.makeUpdate(model => ({ model })),
     view: OtherPlacementComposition.makeView(() => null),
-  },
-)
-export const KeyedRenamedRegisteredBlock =
+  })
+export const KeyedOtherPlacementBlock: Block.FromAssemblyWithView<
+  typeof KeyedModel,
+  typeof assembleKeyedOtherPlacementBlock
+> = Block.complete(assembleKeyedOtherPlacementBlock)
+const assembleKeyedRenamedRegisteredBlock = () =>
   RenamedRegisteredComposition.assembleBlock({
     init: () => ({ model: KeyedModel.make({ sessions: [] }) }),
     update: RenamedRegisteredComposition.makeUpdate(model => ({ model })),
     view: RenamedRegisteredComposition.makeView(() => null),
   })
+export const KeyedRenamedRegisteredBlock: Block.FromAssemblyWithView<
+  typeof KeyedModel,
+  typeof assembleKeyedRenamedRegisteredBlock
+> = Block.complete(assembleKeyedRenamedRegisteredBlock)
 export type KeyedSessionService = Block.Qualify<
   typeof RegisteredBinding.placement,
   SessionService
@@ -192,14 +228,24 @@ export const storeImplementation = {
   update: Composition.makeUpdate(model => ({ model })),
   view: Composition.makeView(() => null),
 }
-export const SuppliedStoreBlock = Composition.assembleBlock({
-  ...storeImplementation,
-  EffectsLayer: Layer.merge(ReadStore.layer, StoreLayer),
-})
-export const UnsuppliedStoreBlock = Composition.assembleBlock({
-  ...storeImplementation,
-  EffectsLayer: ReadStore.layer,
-})
+const assembleSuppliedStoreBlock = () =>
+  Composition.assembleBlock({
+    ...storeImplementation,
+    EffectsLayer: Layer.merge(ReadStore.layer, StoreLayer),
+  })
+export const SuppliedStoreBlock: Block.FromAssemblyWithView<
+  typeof Schema.Null,
+  typeof assembleSuppliedStoreBlock
+> = Block.complete(assembleSuppliedStoreBlock)
+const assembleUnsuppliedStoreBlock = () =>
+  Composition.assembleBlock({
+    ...storeImplementation,
+    EffectsLayer: ReadStore.layer,
+  })
+export const UnsuppliedStoreBlock: Block.FromAssemblyWithView<
+  typeof Schema.Null,
+  typeof assembleUnsuppliedStoreBlock
+> = Block.complete(assembleUnsuppliedStoreBlock)
 export const startStoreUnionWithProvider = (
   block: typeof SuppliedStoreBlock | typeof UnsuppliedStoreBlock,
 ) => Program.makeElement({ block, container: null }).provide(StoreLayer).start
@@ -225,13 +271,16 @@ export const makeStoreUnionProgram = (
   block: typeof SuppliedStoreBlock | typeof UnsuppliedStoreBlock,
 ) => Program.makeElement({ block, container: null })
 
-const assembleRegisteredBlock = () => RegisteredBlock
-const assembleUnregisteredBlock = () => UnregisteredBlock
 export const AnnotatedRegisteredBlock: Block.FromAssemblyWithView<
   typeof Schema.Null,
   typeof assembleRegisteredBlock
-> = assembleRegisteredBlock()
+> = Block.complete(assembleRegisteredBlock)
 export const AnnotatedUnregisteredBlock: Block.FromAssemblyWithView<
   typeof Schema.Null,
   typeof assembleUnregisteredBlock
-> = assembleUnregisteredBlock()
+> = Block.complete(assembleUnregisteredBlock)
+
+type CompletedAssembly<Producer extends () => Block.AssemblyDraft<object>> =
+  ReturnType<Producer> extends Block.AssemblyDraft<infer Completed>
+    ? Completed
+    : never

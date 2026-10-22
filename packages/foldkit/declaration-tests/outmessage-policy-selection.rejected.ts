@@ -98,12 +98,17 @@ const WidenedChildDefinition = Block.makeDefinition(
   },
 )
 const WidenedChildComposition = WidenedChildDefinition.makeComposition()
-const WidenedChildBlock = WidenedChildComposition.assembleBlock({
-  init: WidenedChildComposition.makeInit(() => ({
-    model: ChildModel.make({ value: '' }),
-  })),
-  update: WidenedChildComposition.makeUpdate(model => ({ model })),
-})
+const assembleWidenedChildBlock = () =>
+  WidenedChildComposition.assembleBlock({
+    init: WidenedChildComposition.makeInit(() => ({
+      model: ChildModel.make({ value: '' }),
+    })),
+    update: WidenedChildComposition.makeUpdate(model => ({ model })),
+  })
+const WidenedChildBlock: Block.FromAssemblyWithOutMessage<
+  typeof ChildModel,
+  typeof assembleWidenedChildBlock
+> = Block.complete(assembleWidenedChildBlock)
 const widenedContextFold = ParentDefinition.makeOutMessageFold(
   WidenedChildBlock,
   {
@@ -161,12 +166,17 @@ const SingleDefinition = Block.makeDefinition('PolicySelectionSingle', {
   OutMessage: SingleOutMessage,
 })
 const SingleComposition = SingleDefinition.makeComposition()
-const SingleBlock = SingleComposition.assembleBlock({
-  init: SingleComposition.makeInit(() => ({
-    model: ChildModel.make({ value: '' }),
-  })),
-  update: SingleComposition.makeUpdate(model => ({ model })),
-})
+const assembleSingleBlock = () =>
+  SingleComposition.assembleBlock({
+    init: SingleComposition.makeInit(() => ({
+      model: ChildModel.make({ value: '' }),
+    })),
+    update: SingleComposition.makeUpdate(model => ({ model })),
+  })
+const SingleBlock: Block.FromAssemblyWithOutMessage<
+  typeof ChildModel,
+  typeof assembleSingleBlock
+> = Block.complete(assembleSingleBlock)
 // @ts-expect-error Fold helpers require a tagged-union child OutMessage contract.
 ParentDefinition.makeOutMessageFold(SingleBlock, {
   Closed: ParentDefinition.makeNoopStep,
@@ -178,12 +188,17 @@ const NeverDefinition = Block.makeDefinition('PolicySelectionNever', {
   OutMessage: Schema.Never,
 })
 const NeverComposition = NeverDefinition.makeComposition()
-const NeverBlock = NeverComposition.assembleBlock({
-  init: NeverComposition.makeInit(() => ({
-    model: ChildModel.make({ value: '' }),
-  })),
-  update: NeverComposition.makeUpdate(model => ({ model })),
-})
+const assembleNeverBlock = () =>
+  NeverComposition.assembleBlock({
+    init: NeverComposition.makeInit(() => ({
+      model: ChildModel.make({ value: '' }),
+    })),
+    update: NeverComposition.makeUpdate(model => ({ model })),
+  })
+const NeverBlock: Block.FromAssemblyWithOutMessage<
+  typeof ChildModel,
+  typeof assembleNeverBlock
+> = Block.complete(assembleNeverBlock)
 // @ts-expect-error Schema.Never is not a tagged-union child OutMessage contract.
 ParentDefinition.makeOutMessageFold(NeverBlock, {})
 

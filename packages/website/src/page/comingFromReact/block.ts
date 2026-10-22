@@ -1,4 +1,4 @@
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 
 import { ComingFromReactComposition } from './composition'
 import { init } from './init'
@@ -15,4 +15,4 @@ const assemble = () =>
 export const ComingFromReactBlock: Block.FromAssemblyWithView<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

@@ -35,6 +35,13 @@ import {
 } from '../update/operationRecipe.js'
 import type * as PublicUpdate from '../update/public.js'
 import type { VNode } from '../vdom.js'
+import {
+  type AssemblyDraft,
+  type CompletionProof,
+  assertCompletedBlock,
+  completeDerivedBlock,
+  makeAssemblyDraft,
+} from './assemblyState.js'
 import { type BindChild, makeBindChild } from './bindChild.js'
 import {
   type AggregatedChildren,
@@ -2044,6 +2051,7 @@ interface BlockContract<
   }>,
 >
   extends
+    CompletionProof,
     BlockContractFields<
       OwnerValue,
       ModelSchema,
@@ -2383,7 +2391,7 @@ export type CompletedBlock<
         >
 
 /**
- * The completed Block produced by a Composition's `assembleBlock` method.
+ * The completed Block contract retained by a Composition's assembly draft.
  * It derives the exact graph and implementation channels from the Definition
  * and implementation values.
  */
@@ -2455,30 +2463,31 @@ export type CompletedForValidation<DefinitionValue, ImplementationValue> =
     : never
 
 /**
- * Structural bound for any completed Block.
+ * Bound for any Block that has passed checked completion.
  */
-export type AnyBlock = Readonly<{
-  owner: Owner<any>
-  Model: AnySchema
-  Message: AnySchema
-  mounts: ReadonlyArray<Mount.LayeredMountDefinition>
-  [LocalMountsTypeId]: ReadonlyArray<Mount.LayeredMountDefinition>
-  bindings: ReadonlyArray<AnyBinding>
-  init: AnyFunction
-  update: AnyFunction
-  operations: Readonly<Record<string, AnyFunction>>
-  subscriptions: AnySubscriptions
-  managedResources: AnyManagedResources
-  EffectsLayer: AnyLayer
-  [LocalEffectsLayerTypeId]: AnyLayer
-  __blockHandlerRequirements?: unknown
-  hostHandlers: ReadonlyArray<unknown>
-  makeView: AnyFunction
-  [DefaultViewTypeId]?: AnyAuthoredView
-  OutMessage?: AnySchema
-  replaceEffectsLayer: AnyFunction
-  provideHandlers: AnyFunction
-}>
+export type AnyBlock = CompletionProof &
+  Readonly<{
+    owner: Owner<any>
+    Model: AnySchema
+    Message: AnySchema
+    mounts: ReadonlyArray<Mount.LayeredMountDefinition>
+    [LocalMountsTypeId]: ReadonlyArray<Mount.LayeredMountDefinition>
+    bindings: ReadonlyArray<AnyBinding>
+    init: AnyFunction
+    update: AnyFunction
+    operations: Readonly<Record<string, AnyFunction>>
+    subscriptions: AnySubscriptions
+    managedResources: AnyManagedResources
+    EffectsLayer: AnyLayer
+    [LocalEffectsLayerTypeId]: AnyLayer
+    __blockHandlerRequirements?: unknown
+    hostHandlers: ReadonlyArray<unknown>
+    makeView: AnyFunction
+    [DefaultViewTypeId]?: AnyAuthoredView
+    OutMessage?: AnySchema
+    replaceEffectsLayer: AnyFunction
+    provideHandlers: AnyFunction
+  }>
 
 type ManagedExposedOperationsImplementation<
   Init,
@@ -2741,14 +2750,17 @@ type ValidateShapedAssembly<
     >
   : unknown
 
-/** Completes a Composition with its implementation channels and returns a
- * passive Block. `init` and `update` are required. At an inferred concrete
+/** Assembles a Composition's implementation channels into an opaque, passive
+ * draft. Complete its private producer through a matching `FromAssembly`
+ * annotation and `Block.complete(assemble)` before using the Block.
+ *
+ * `init` and `update` are required. At an inferred concrete
  * call, an omitted `EffectsLayer` defaults to `Layer.empty`. Omitted local view,
  * exposed operations, lifecycle registrations, and host handlers become their
  * empty completed forms while registered children still contribute their
  * channels.
  *
- * Completion does not build Layers, run init, call exposed producers, or start
+ * Assembly does not build Layers, run init, call exposed producers, or start
  * lifecycle work. `EffectsLayer` contains the Block's local handler recipes;
  * child Bindings contribute their recipes automatically, and ordinary Service
  * requirements remain for the application root to provide. */
@@ -2780,17 +2792,19 @@ export interface AssembleBlock<
         NoInfer<ImplementationValue>
       >
     >
-  ): CompletedBlock<
-    OwnerValue,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    Children,
-    PublicAssembleBlockImplementation<
+  ): AssemblyDraft<
+    CompletedBlock<
+      OwnerValue,
       ModelSchema,
       MessageSchema,
-      CompletedImplementationValue<ImplementationValue>
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        CompletedImplementationValue<ImplementationValue>
+      >
     >
   >
   <
@@ -2812,17 +2826,19 @@ export interface AssembleBlock<
         Children,
         ImplementationValue
       >,
-  ): CompletedBlock<
-    OwnerValue,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    Children,
-    PublicAssembleBlockImplementation<
+  ): AssemblyDraft<
+    CompletedBlock<
+      OwnerValue,
       ModelSchema,
       MessageSchema,
-      ImplementationValue
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ImplementationValue
+      >
     >
   >
   <
@@ -2876,17 +2892,19 @@ export interface AssembleBlock<
       NoInfer<
         DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>
       >,
-  ): CompletedBlock<
-    OwnerValue,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    Children,
-    PublicAssembleBlockImplementation<
+  ): AssemblyDraft<
+    CompletedBlock<
+      OwnerValue,
       ModelSchema,
       MessageSchema,
-      ViewImplementation<Init, UpdateFunction, View, EffectsLayer>
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ViewImplementation<Init, UpdateFunction, View, EffectsLayer>
+      >
     >
   >
   <
@@ -2953,22 +2971,24 @@ export interface AssembleBlock<
       NoInfer<
         DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>
       >,
-  ): CompletedBlock<
-    OwnerValue,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    Children,
-    PublicAssembleBlockImplementation<
+  ): AssemblyDraft<
+    CompletedBlock<
+      OwnerValue,
       ModelSchema,
       MessageSchema,
-      ViewSubscriptionsImplementation<
-        Init,
-        UpdateFunction,
-        View,
-        Subscriptions,
-        EffectsLayer
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ViewSubscriptionsImplementation<
+          Init,
+          UpdateFunction,
+          View,
+          Subscriptions,
+          EffectsLayer
+        >
       >
     >
   >
@@ -3037,23 +3057,25 @@ export interface AssembleBlock<
       NoInfer<
         DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>
       >,
-  ): CompletedBlock<
-    OwnerValue,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    Children,
-    PublicAssembleBlockImplementation<
+  ): AssemblyDraft<
+    CompletedBlock<
+      OwnerValue,
       ModelSchema,
       MessageSchema,
-      ViewSubscriptionImplementation<
-        Init,
-        UpdateFunction,
-        View,
-        Subscriptions,
-        EffectsLayer,
-        AdditionalImplementation
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ViewSubscriptionImplementation<
+          Init,
+          UpdateFunction,
+          View,
+          Subscriptions,
+          EffectsLayer,
+          AdditionalImplementation
+        >
       >
     >
   >
@@ -3091,9 +3113,11 @@ export interface AssembleBlock<
         Children,
         ImplementationValue
       >,
-  ): CompletedWithView<
-    CompositionValue,
-    DefaultEffectsImplementation<ImplementationValue>
+  ): AssemblyDraft<
+    CompletedWithView<
+      CompositionValue,
+      DefaultEffectsImplementation<ImplementationValue>
+    >
   >
   <const ImplementationValue extends object>(
     implementation: ImplementationValue &
@@ -3118,17 +3142,19 @@ export interface AssembleBlock<
         Children,
         ImplementationValue
       >,
-  ): CompletedBlock<
-    OwnerValue,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    Children,
-    PublicAssembleBlockImplementation<
+  ): AssemblyDraft<
+    CompletedBlock<
+      OwnerValue,
       ModelSchema,
       MessageSchema,
-      DefaultEffectsImplementation<ImplementationValue>
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        DefaultEffectsImplementation<ImplementationValue>
+      >
     >
   >
   <
@@ -3150,7 +3176,7 @@ export interface AssembleBlock<
       > extends ErasedImplementation
         ? unknown
         : never),
-  ): never
+  ): AssemblyDraft<never>
   <const ImplementationValue extends object>(
     implementation: ImplementationValue &
       NoInfer<
@@ -3166,17 +3192,19 @@ export interface AssembleBlock<
         Children,
         ImplementationValue
       >,
-  ): CompletedBlock<
-    OwnerValue,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    Children,
-    PublicAssembleBlockImplementation<
+  ): AssemblyDraft<
+    CompletedBlock<
+      OwnerValue,
       ModelSchema,
       MessageSchema,
-      ImplementationValue
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ImplementationValue
+      >
     >
   >
   <
@@ -3245,23 +3273,25 @@ export interface AssembleBlock<
       NoInfer<
         DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>
       >,
-  ): CompletedBlock<
-    OwnerValue,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    Children,
-    PublicAssembleBlockImplementation<
+  ): AssemblyDraft<
+    CompletedBlock<
+      OwnerValue,
       ModelSchema,
       MessageSchema,
-      ManagedExposedOperationsImplementation<
-        Init,
-        UpdateFunction,
-        View,
-        ManagedResources,
-        ExposedOperations,
-        EffectsLayer
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ManagedExposedOperationsImplementation<
+          Init,
+          UpdateFunction,
+          View,
+          ManagedResources,
+          ExposedOperations,
+          EffectsLayer
+        >
       >
     >
   >
@@ -3326,22 +3356,24 @@ export interface AssembleBlock<
       NoInfer<
         DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>
       >,
-  ): CompletedBlock<
-    OwnerValue,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    Children,
-    PublicAssembleBlockImplementation<
+  ): AssemblyDraft<
+    CompletedBlock<
+      OwnerValue,
       ModelSchema,
       MessageSchema,
-      ManagedImplementation<
-        Init,
-        UpdateFunction,
-        View,
-        ManagedResources,
-        EffectsLayer
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ManagedImplementation<
+          Init,
+          UpdateFunction,
+          View,
+          ManagedResources,
+          EffectsLayer
+        >
       >
     >
   >
@@ -3410,23 +3442,25 @@ export interface AssembleBlock<
       NoInfer<
         DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>
       >,
-  ): CompletedBlock<
-    OwnerValue,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    Children,
-    PublicAssembleBlockImplementation<
+  ): AssemblyDraft<
+    CompletedBlock<
+      OwnerValue,
       ModelSchema,
       MessageSchema,
-      ManagedSubscriptionImplementation<
-        Init,
-        UpdateFunction,
-        View,
-        Subscriptions,
-        ManagedResources,
-        EffectsLayer
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ManagedSubscriptionImplementation<
+          Init,
+          UpdateFunction,
+          View,
+          Subscriptions,
+          ManagedResources,
+          EffectsLayer
+        >
       >
     >
   >
@@ -3492,22 +3526,24 @@ export interface AssembleBlock<
       NoInfer<
         DefinitionImplementation<ModelSchema, MessageSchema, OutMessageSchema>
       >,
-  ): CompletedBlock<
-    OwnerValue,
-    ModelSchema,
-    MessageSchema,
-    OutMessageSchema,
-    Mounts,
-    Children,
-    PublicAssembleBlockImplementation<
+  ): AssemblyDraft<
+    CompletedBlock<
+      OwnerValue,
       ModelSchema,
       MessageSchema,
-      ViewExposedOperationsImplementation<
-        Init,
-        UpdateFunction,
-        View,
-        ExposedOperations,
-        EffectsLayer
+      OutMessageSchema,
+      Mounts,
+      Children,
+      PublicAssembleBlockImplementation<
+        ModelSchema,
+        MessageSchema,
+        ViewExposedOperationsImplementation<
+          Init,
+          UpdateFunction,
+          View,
+          ExposedOperations,
+          EffectsLayer
+        >
       >
     >
   >
@@ -3697,8 +3733,9 @@ export type Composition<
     DispatchSchemaFor<MessageSchema, Children>['Type'],
     DefinitionViewRequirements<Mounts, Children>
   >
-  /** Completes this Composition with its implementation channels and returns
-   * a passive Block. */
+  /** Assembles this Composition's implementation channels into an opaque,
+   * passive draft. Complete its private producer through a matching
+   * `FromAssembly` annotation and `Block.complete(assemble)`. */
   readonly assembleBlock: AssembleBlock<
     OwnerValue,
     ModelSchema,
@@ -4321,7 +4358,7 @@ export const makeDefinition = (
     },
     retainedHostIdentities?: ReadonlyArray<DefinitionIdentity>,
     areHostHandlersProvided = false,
-  ): AnyBlock {
+  ): Omit<AnyBlock, keyof CompletionProof> {
     if (Reflect.has(implementation, 'expose')) {
       throw new Error(
         `[foldkit] Block "${owner.id}" declares the removed "expose" field. Use "operations" for public operations.`,
@@ -4381,22 +4418,30 @@ export const makeDefinition = (
     assertDistinctManagedResourceOwners(managedResources)
 
     function replaceEffectsLayer(EffectsLayer: AnyLayer): AnyBlock {
-      return assembleBlock(
-        { ...implementation, EffectsLayer },
-        hostIdentities,
-        areHostHandlersProvided,
+      assertCompletedBlock(block)
+
+      return completeDerivedBlock(
+        assembleBlock(
+          { ...implementation, EffectsLayer },
+          hostIdentities,
+          areHostHandlersProvided,
+        ),
       )
     }
 
     function provideHandlers(HandlersLayer: AnyLayer): AnyBlock {
-      return assembleBlock(
-        {
-          ...implementation,
-          EffectsLayer: Layer.merge(localEffectsLayer, HandlersLayer),
-          hostHandlers: [],
-        },
-        hostIdentities,
-        true,
+      assertCompletedBlock(block)
+
+      return completeDerivedBlock(
+        assembleBlock(
+          {
+            ...implementation,
+            EffectsLayer: Layer.merge(localEffectsLayer, HandlersLayer),
+            hostHandlers: [],
+          },
+          hostIdentities,
+          true,
+        ),
       )
     }
 
@@ -4557,7 +4602,8 @@ export const makeBaseDefinition = (
       makeInit: composition.makeInit,
       makeUpdate: composition.makeUpdate,
       makeView: composition.makeView,
-      assembleBlock: composition.assembleBlock,
+      assembleBlock: (implementation: unknown) =>
+        makeAssemblyDraft(composition.assembleBlock(implementation)),
     }
 
     compositions.add(publicComposition)

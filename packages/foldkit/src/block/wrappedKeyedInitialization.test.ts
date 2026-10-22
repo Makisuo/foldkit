@@ -5,6 +5,7 @@ import { defineMessageUnion } from '../message/index.js'
 import { modifyFields } from '../struct/index.js'
 import { registerBinding, runtimeBindingOf } from './composition.js'
 import { makeDefinition } from './define.js'
+import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 type ChildModel = typeof ChildModel.Type
@@ -41,28 +42,36 @@ const single = (value: number): [number] => [value]
 
 const initCalls: globalThis.Array<number> = []
 const ChildComposition = Child.makeComposition()
-const ChildBlock = ChildComposition.assembleBlock({
-  init: ChildComposition.makeInit((count: number) => {
-    initCalls.push(count)
-    return {
-      model: ChildModel.make({ count }),
-      commands: [FinishInitialization({ count })],
-    }
-  }),
-  update: ChildComposition.makeUpdate((model, message) =>
-    ChildMessage.match(message, {
-      RequestedIncrement: () => increment(model),
-      CompletedInitialization: ({ count }) => ({
-        model: modifyFields(model, { count: () => count }),
-      }),
-      CompletedIncrement: () => ({ model }),
+const assembleChildBlock = () =>
+  ChildComposition.assembleBlock({
+    init: ChildComposition.makeInit((count: number) => {
+      initCalls.push(count)
+      return {
+        model: ChildModel.make({ count }),
+        commands: [FinishInitialization({ count })],
+      }
     }),
-  ),
-  operations: {
-    increment: () => Tuple.make(ChildMessage.RequestedIncrement()),
-  },
-  EffectsLayer: Layer.merge(FinishInitialization.layer, FinishIncrement.layer),
-})
+    update: ChildComposition.makeUpdate((model, message) =>
+      ChildMessage.match(message, {
+        RequestedIncrement: () => increment(model),
+        CompletedInitialization: ({ count }) => ({
+          model: modifyFields(model, { count: () => count }),
+        }),
+        CompletedIncrement: () => ({ model }),
+      }),
+    ),
+    operations: {
+      increment: () => Tuple.make(ChildMessage.RequestedIncrement()),
+    },
+    EffectsLayer: Layer.merge(
+      FinishInitialization.layer,
+      FinishIncrement.layer,
+    ),
+  })
+const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 const Entry = Schema.Struct({
   id: Schema.String,
@@ -158,12 +167,17 @@ const KeyedChildComposition = makeDefinition('KeyedInitializationChild', {
   Model: KeyedChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const KeyedChildBlock = KeyedChildComposition.assembleBlock({
-  init: KeyedChildComposition.makeInit((id: string, count: number) => ({
-    model: KeyedChildModel.make({ id, count }),
-  })),
-  update: KeyedChildComposition.makeUpdate(model => ({ model })),
-})
+const assembleKeyedChildBlock = () =>
+  KeyedChildComposition.assembleBlock({
+    init: KeyedChildComposition.makeInit((id: string, count: number) => ({
+      model: KeyedChildModel.make({ id, count }),
+    })),
+    update: KeyedChildComposition.makeUpdate(model => ({ model })),
+  })
+const KeyedChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof KeyedChildModel,
+  typeof assembleKeyedChildBlock
+> = Block.complete(assembleKeyedChildBlock)
 const KeyedParentModel = Schema.Struct({
   entries: Schema.Array(KeyedChildModel),
   status: Schema.Literal('Ready'),

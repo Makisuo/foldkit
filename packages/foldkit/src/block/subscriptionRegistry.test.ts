@@ -5,6 +5,7 @@ import { defineMessageUnion } from '../message/index.js'
 import * as Subscription from '../subscription/subscription.js'
 import * as Scene from '../test/scene.js'
 import { makeDefinition } from './define.js'
+import * as Block from './public.js'
 
 class Clock extends Context.Service<Clock, Readonly<{ now: number }>>()(
   'SubscriptionRegistryClock',
@@ -41,14 +42,19 @@ const subscriptions = RegistryDefinition.makeSubscriptions(entry => ({
 }))
 
 const RegistryComposition = RegistryDefinition.makeComposition()
-const block = RegistryComposition.assembleBlock({
-  init: RegistryComposition.makeInit(() => ({
-    model: Model.make({ count: 0 }),
-  })),
-  update: RegistryComposition.makeUpdate(model => ({ model })),
-  subscriptions,
-  EffectsLayer: subscriptions.layer,
-})
+const assembleBlock = () =>
+  RegistryComposition.assembleBlock({
+    init: RegistryComposition.makeInit(() => ({
+      model: Model.make({ count: 0 }),
+    })),
+    update: RegistryComposition.makeUpdate(model => ({ model })),
+    subscriptions,
+    EffectsLayer: subscriptions.layer,
+  })
+const block: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof assembleBlock
+> = Block.complete(assembleBlock)
 
 describe('Definition subscriptions registry', () => {
   it('assembles an exact nonenumerable Layer when every entry is attached', () => {

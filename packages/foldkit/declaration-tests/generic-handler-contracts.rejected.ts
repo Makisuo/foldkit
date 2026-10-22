@@ -1,4 +1,5 @@
 import { Layer } from 'effect'
+import * as Block from 'foldkit/block'
 
 import {
   City,
@@ -24,7 +25,13 @@ export const checkGenericHandlerContracts = <Item extends string, ItemEncoded>(
     EffectsLayer: stringEchoParts.Echo.layer,
   })
 
-  return composition.assembleBlock({ init, update, EffectsLayer: Echo.layer })
+  const assemble = () =>
+    composition.assembleBlock({ init, update, EffectsLayer: Echo.layer })
+  const completedBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+    typeof composition.Model,
+    typeof assemble
+  > = Block.complete(assemble)
+  return completedBlock
 }
 
 const cityParts = makeEchoParts(City)

@@ -137,8 +137,11 @@ export const viewWithDialog = DisabledButtonTestComposition.makeView(
   },
 )
 
-export const block = DisabledButtonTestComposition.assembleBlock({
-  init,
-  update,
-  view: viewWithDialog,
-})
+const assemble = () =>
+  DisabledButtonTestComposition.assembleBlock({
+    init,
+    update,
+    view: viewWithDialog,
+  })
+export const block: Block.FromAssemblyWithView<typeof Model, typeof assemble> =
+  Block.complete(assemble)

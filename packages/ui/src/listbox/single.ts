@@ -1,5 +1,5 @@
 import { Option, Schema, Tuple } from 'effect'
-import type * as Block from 'foldkit/block'
+import * as Block from 'foldkit/block'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import * as Mount from 'foldkit/mount'
 import type * as Update from 'foldkit/update'
@@ -172,7 +172,13 @@ export interface Completed<
 const makeBlock = <Item, Value extends string>(): Completed<Item, Value> => {
   const { composition, implementation } = makeBlockParts<Item, Value>()
 
-  return composition.assembleBlock(implementation)
+  const assemble = () => composition.assembleBlock(implementation)
+  const completedBlock: Block.FromAssemblyWithViewAndOutMessage<
+    typeof Model,
+    typeof assemble
+  > = Block.complete(assemble)
+
+  return completedBlock
 }
 
 /** Creates a complete single-select Listbox Block refined to one Item and

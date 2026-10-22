@@ -22,8 +22,13 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   body: h.main([], [model.count.toString()]),
 }))
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-})
+const assemble = () =>
+  ApplicationComposition.assembleBlock({
+    init,
+    update,
+    view,
+  })
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assemble
+> = Block.complete(assemble)

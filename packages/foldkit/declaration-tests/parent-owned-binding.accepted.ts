@@ -43,32 +43,38 @@ export const ReadChildValue = DeclarationParentOwnedChildDefinition.makeCommand(
 )
 const DeclarationParentOwnedChildComposition =
   DeclarationParentOwnedChildDefinition.makeComposition()
-export const ChildBlock = DeclarationParentOwnedChildComposition.assembleBlock({
-  init: DeclarationParentOwnedChildComposition.makeInit(() => ({
-    model: ChildModel.make({ value: 'initial' }),
-  })),
-  update: DeclarationParentOwnedChildComposition.makeUpdate((model, message) =>
-    ChildMessage.match(message, {
-      UpdatedValue: ({ value }) => ({
-        model: Struct.modifyFields(model, { value: () => value }),
-      }),
-      RequestedSelect: () => ({
-        model,
-        outMessage: ChildOutMessage.SelectedValue({ value: model.value }),
-      }),
-      RequestedReadChildValue: () => ({
-        model,
-        commands: [ReadChildValue()],
-      }),
-      CompletedReadChildValue: () => ({ model }),
-    }),
-  ),
-  operations: {
-    select: () => [ChildMessage.RequestedSelect()],
-    refresh: () => [ChildMessage.RequestedReadChildValue()],
-  },
-  EffectsLayer: ReadChildValue.layer,
-})
+const assembleChildBlock = () =>
+  DeclarationParentOwnedChildComposition.assembleBlock({
+    init: DeclarationParentOwnedChildComposition.makeInit(() => ({
+      model: ChildModel.make({ value: 'initial' }),
+    })),
+    update: DeclarationParentOwnedChildComposition.makeUpdate(
+      (model, message) =>
+        ChildMessage.match(message, {
+          UpdatedValue: ({ value }) => ({
+            model: Struct.modifyFields(model, { value: () => value }),
+          }),
+          RequestedSelect: () => ({
+            model,
+            outMessage: ChildOutMessage.SelectedValue({ value: model.value }),
+          }),
+          RequestedReadChildValue: () => ({
+            model,
+            commands: [ReadChildValue()],
+          }),
+          CompletedReadChildValue: () => ({ model }),
+        }),
+    ),
+    operations: {
+      select: () => [ChildMessage.RequestedSelect()],
+      refresh: () => [ChildMessage.RequestedReadChildValue()],
+    },
+    EffectsLayer: ReadChildValue.layer,
+  })
+export const ChildBlock: Block.FromAssemblyWithOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 const DeclarationParentOwnedPlainChildDefinition = Block.makeDefinition(
   'DeclarationParentOwnedPlainChild',
@@ -88,7 +94,7 @@ const PlainChildSubscriptions =
   }))
 const DeclarationParentOwnedPlainChildComposition =
   DeclarationParentOwnedPlainChildDefinition.makeComposition()
-export const PlainChildBlock =
+const assemblePlainChildBlock = () =>
   DeclarationParentOwnedPlainChildComposition.assembleBlock({
     init: DeclarationParentOwnedPlainChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: 'initial' }),
@@ -99,6 +105,10 @@ export const PlainChildBlock =
     subscriptions: PlainChildSubscriptions,
     EffectsLayer: PlainChildSubscriptions.values.layer,
   })
+export const PlainChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assemblePlainChildBlock
+> = Block.complete(assemblePlainChildBlock)
 
 const Entry = Schema.Struct({ id: Schema.Number, child: ChildModel })
 const NamedEntry = Schema.Struct({ id: Schema.String, child: ChildModel })
@@ -286,7 +296,7 @@ export const DeclarationParentOwnedParentComposition =
       KeyedChildWithoutOutMessageBinding,
     ],
   })
-export const ParentBlock =
+const assembleParentBlock = () =>
   DeclarationParentOwnedParentComposition.assembleBlock({
     init: DeclarationParentOwnedParentComposition.makeInit(() => ({
       model: ParentModel.make({
@@ -302,6 +312,10 @@ export const ParentBlock =
         ParentMessage.match(message, { ClickedParent: () => ({ model }) }),
     ),
   })
+export const ParentBlock: Block.FromAssemblyWithOutMessage<
+  typeof ParentModel,
+  typeof assembleParentBlock
+> = Block.complete(assembleParentBlock)
 
 const ApplicationMessage = Message.defineMessageUnion({
   ClickedApplication: {},
@@ -331,10 +345,17 @@ export const DeclarationPureCompositionComposition = Block.makeDefinition(
     Message: Schema.Never,
   },
 ).makeComposition()
-export const pureBlock = DeclarationPureCompositionComposition.assembleBlock({
-  init: DeclarationPureCompositionComposition.makeInit(() => ({ model: null })),
-  update: DeclarationPureCompositionComposition.makeUpdate(),
-})
+const assemblePureBlock = () =>
+  DeclarationPureCompositionComposition.assembleBlock({
+    init: DeclarationPureCompositionComposition.makeInit(() => ({
+      model: null,
+    })),
+    update: DeclarationPureCompositionComposition.makeUpdate(),
+  })
+export const pureBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Schema.Null,
+  typeof assemblePureBlock
+> = Block.complete(assemblePureBlock)
 
 export const emptyLayer = Layer.empty
 

@@ -2,6 +2,7 @@ import { Layer, Option, type Pipeable, Schema } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import { makeNamespace } from '../block/define.js'
+import * as Block from '../block/public.js'
 import { defineMessageUnion } from '../message/index.js'
 import type * as Mount from '../mount/index.js'
 import type { ChildAttribute, Html, HtmlBuilder } from './index.js'
@@ -213,13 +214,19 @@ const makeGenericView = <Item>() =>
 const makeGenericBlock = <Item>() => {
   const view = makeGenericView<Item>()
 
-  return GenericViewInputsComposition.assembleBlock({
-    init: () => ({ model: ViewInputsModel.make({ id: 'child' }) }),
-    update: GenericViewInputsComposition.makeUpdate(model => ({ model })),
-    view,
-    EffectsLayer: Layer.empty,
-    operations: {},
-  })
+  const assemble = () =>
+    GenericViewInputsComposition.assembleBlock({
+      init: () => ({ model: ViewInputsModel.make({ id: 'child' }) }),
+      update: GenericViewInputsComposition.makeUpdate(model => ({ model })),
+      view,
+      EffectsLayer: Layer.empty,
+      operations: {},
+    })
+  const completedBlock: Block.FromAssemblyWithView<
+    typeof ViewInputsModel,
+    typeof assemble
+  > = Block.complete(assemble)
+  return completedBlock
 }
 
 type CallbackItem = Readonly<{

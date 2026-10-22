@@ -29,12 +29,17 @@ export const applicationIncrement = ApplicationDefinition.makeFieldsStep(
 )
 export const combined = Update.combineSteps([increment, applicationIncrement])
 export const FieldStepsComposition = FieldStepsDefinition.makeComposition()
-export const FieldStepsBlock = FieldStepsComposition.assembleBlock({
-  init: FieldStepsComposition.makeInit(() => ({
-    model: { count: 0, label: '', status: 'Idle' },
-  })),
-  update: FieldStepsComposition.makeUpdate(),
-})
+const assembleFieldStepsBlock = () =>
+  FieldStepsComposition.assembleBlock({
+    init: FieldStepsComposition.makeInit(() => ({
+      model: { count: 0, label: '', status: 'Idle' },
+    })),
+    update: FieldStepsComposition.makeUpdate(),
+  })
+export const FieldStepsBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof assembleFieldStepsBlock
+> = Block.complete(assembleFieldStepsBlock)
 export const VariantModel = Schema.Union([
   Schema.Struct({
     _tag: Schema.Literal('Number'),

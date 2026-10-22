@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import type { Block as Boundary } from 'foldkit'
+import { Block as Boundary } from 'foldkit'
 import * as Feature from 'foldkit/block'
 import type {
   FromAssemblyWithView as ViewHeader,
@@ -8,23 +8,25 @@ import type {
   FromAssemblyWithoutViewOrOutMessage as PlainHeader,
 } from 'foldkit/block'
 
-import { PublicHeader } from '../shared/header-barrel'
+import {
+  PublicHeader,
+} from '../shared/header-barrel'
 import * as HeaderFeature from '../shared/header-barrel'
 
 const Model = Schema.Struct({ count: Schema.Number })
 const Composition = Feature.makeDefinition('Child', { Model }).makeComposition()
 const assembleQualified = () => Composition.assembleBlock({})
-const Qualified: Boundary.FromAssemblyWithoutViewOrOutMessage<typeof Model, typeof assembleQualified> = assembleQualified()
+const Qualified: Boundary.FromAssemblyWithoutViewOrOutMessage<typeof Model, typeof assembleQualified> = Boundary.complete(assembleQualified)
 const assembleView = () => Composition.assembleBlock({})
-const View: ViewHeader<typeof Model, typeof assembleView> = assembleView()
+const View: ViewHeader<typeof Model, typeof assembleView> = Feature.complete(assembleView)
 const assembleViewOut = () => { return Composition.assembleBlock({}) }
-const ViewOut: ViewOutHeader<typeof Model, typeof assembleViewOut> = assembleViewOut()
+const ViewOut: ViewOutHeader<typeof Model, typeof assembleViewOut> = Feature.complete(assembleViewOut)
 const assembleOut = () => Composition.assembleBlock({})
-const Out: OutHeader<typeof Model, typeof assembleOut> = assembleOut()
+const Out: OutHeader<typeof Model, typeof assembleOut> = Feature.complete(assembleOut)
 const assemblePlain = () => Composition.assembleBlock({})
-const Plain: PlainHeader<typeof Model, typeof assemblePlain> = assemblePlain()
+const Plain: PlainHeader<typeof Model, typeof assemblePlain> = Feature.complete(assemblePlain)
 const checkedBoundaryProducer = () => Composition.assembleBlock({})
-const NamedBoundary: PlainHeader<typeof Model, typeof checkedBoundaryProducer> = checkedBoundaryProducer()
+const NamedBoundary: PlainHeader<typeof Model, typeof checkedBoundaryProducer> = Feature.complete(checkedBoundaryProducer)
 const alias = Qualified
 export const Parent = Schema.Struct({
   qualified: Schema.Option(Schema.Array(alias.Model)),

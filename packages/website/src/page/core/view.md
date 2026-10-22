@@ -89,7 +89,7 @@ Every view receives `h`, an `HtmlBuilder` typed to the application's Message uni
 
 The Message type follows the builder. If `h.OnClick` receives a Message outside the application union, TypeScript rejects it. The root Runtime supplies its builder, and each Block Composition's `makeView` supplies one for its child view.
 
-The builder also carries the Mount definitions and child Blocks the view may render. A Composition infers them from its local Mounts and child Bindings, and `ApplicationComposition.assembleBlock` installs the root Composition's complete registry. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
+The builder also carries the Mount definitions and child Blocks the view may render. A Composition infers them from its local Mounts and child Bindings. `ApplicationComposition.assembleBlock` packages the root registry into the unfinished assembly, and `Block.complete` installs it on the completed root Block. See [Mount requirements in reusable views](/core/mount#mount-requirements-in-reusable-views) for child views and attribute slots.
 
 #### Element Builder Arity
 

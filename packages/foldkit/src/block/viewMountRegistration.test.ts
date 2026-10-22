@@ -53,12 +53,17 @@ const firstView = first.makeView((_model, h) =>
 const secondView = second.makeView((_model, h) =>
   h.div([h.OnMount(ObserveSecond())]),
 )
-const firstBlock = first.assembleBlock({
-  init,
-  update,
-  view: firstView,
-  EffectsLayer: ObserveFirst.layer,
-})
+const assembleFirstBlock = () =>
+  first.assembleBlock({
+    init,
+    update,
+    view: firstView,
+    EffectsLayer: ObserveFirst.layer,
+  })
+const firstBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assembleFirstBlock
+> = Block.complete(assembleFirstBlock)
 const render = (view: AnyAuthoredView) => {
   setRuntime(() => {}, Context.empty())
   try {
@@ -106,13 +111,18 @@ describe('captured local Mount registrations', () => {
   })
 
   it('rejects a view completed against a different local Mount set', () => {
-    const block = first.assembleBlock({
-      init,
-      update,
-      // @ts-expect-error The view requires a different local Mount registration.
-      view: secondView,
-      EffectsLayer: ObserveFirst.layer,
-    })
+    const assembleBlock = () =>
+      first.assembleBlock({
+        init,
+        update,
+        // @ts-expect-error The view requires a different local Mount registration.
+        view: secondView,
+        EffectsLayer: ObserveFirst.layer,
+      })
+    const block: Block.FromAssemblyWithView<
+      typeof Model,
+      typeof assembleBlock
+    > = Block.complete(assembleBlock)
 
     expect(() => render(lowerBlock(block).view)).toThrow(
       'This view uses Mounts that are not registered in its selected Block.',
@@ -127,12 +137,17 @@ describe('captured local Mount registrations', () => {
         h.OnMount(ObserveSecond()),
       ]),
     )
-    const block = both.assembleBlock({
-      init,
-      update: bothUpdate,
-      view,
-      EffectsLayer: Layer.merge(ObserveFirst.layer, ObserveSecond.layer),
-    })
+    const assembleBlock = () =>
+      both.assembleBlock({
+        init,
+        update: bothUpdate,
+        view,
+        EffectsLayer: Layer.merge(ObserveFirst.layer, ObserveSecond.layer),
+      })
+    const block: Block.FromAssemblyWithView<
+      typeof Model,
+      typeof assembleBlock
+    > = Block.complete(assembleBlock)
 
     expect(() => render(lowerBlock(block).view)).toThrow(
       'Mount "MountRegistration/ObserveSecond" is not registered in this view\'s Mounts.',
@@ -253,13 +268,18 @@ describe('captured local Mount registrations', () => {
       title: 'Second',
       body: h.main([h.OnMount(FocusSecond())]),
     }))
-    const firstBlock = firstApplication.assembleBlock({
-      init,
-      update: applicationUpdate,
-      // @ts-expect-error A completed Block rejects a view with a different Mount graph.
-      view,
-      EffectsLayer: FocusFirst.layer,
-    })
+    const assembleFirstBlock = () =>
+      firstApplication.assembleBlock({
+        init,
+        update: applicationUpdate,
+        // @ts-expect-error A completed Block rejects a view with a different Mount graph.
+        view,
+        EffectsLayer: FocusFirst.layer,
+      })
+    const firstBlock: Block.FromAssemblyWithView<
+      typeof Model,
+      typeof assembleFirstBlock
+    > = Block.complete(assembleFirstBlock)
 
     await expect(
       Effect.runPromise(

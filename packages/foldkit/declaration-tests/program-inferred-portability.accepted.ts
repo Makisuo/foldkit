@@ -47,27 +47,32 @@ const managedResources = Definition.makeManagedResources(entry => ({
   }),
 }))
 const Composition = Definition.makeComposition({ mounts: [ObserveElement] })
-const RootBlock = Composition.assembleBlock({
-  init: () => ({ model: Model.make({ status: 'ready' }) }),
-  update: Composition.makeUpdate((model, message) =>
-    RootMessage.match(message, {
-      CompletedWork: ({ value }) => ({
-        model: Struct.modifyFields(model, { status: () => value }),
+const assembleRootBlock = () =>
+  Composition.assembleBlock({
+    init: () => ({ model: Model.make({ status: 'ready' }) }),
+    update: Composition.makeUpdate((model, message) =>
+      RootMessage.match(message, {
+        CompletedWork: ({ value }) => ({
+          model: Struct.modifyFields(model, { status: () => value }),
+        }),
       }),
-    }),
-  ),
-  view: Composition.makeView((model, h) =>
-    h.button([h.OnMount(ObserveElement())], [model.status]),
-  ),
-  subscriptions,
-  managedResources,
-  EffectsLayer: Layer.mergeAll(
-    RunWork.layer,
-    ObserveElement.layer,
-    subscriptions.work.layer,
-    managedResources.resource.layer,
-  ),
-})
+    ),
+    view: Composition.makeView((model, h) =>
+      h.button([h.OnMount(ObserveElement())], [model.status]),
+    ),
+    subscriptions,
+    managedResources,
+    EffectsLayer: Layer.mergeAll(
+      RunWork.layer,
+      ObserveElement.layer,
+      subscriptions.work.layer,
+      managedResources.resource.layer,
+    ),
+  })
+const RootBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assembleRootBlock
+> = Block.complete(assembleRootBlock)
 
 export const inferredPortableProgram = Program.makeElement({
   block: RootBlock,

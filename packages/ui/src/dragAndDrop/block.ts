@@ -950,4 +950,4 @@ const assemble = () =>
 export const DragAndDropBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

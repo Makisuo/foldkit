@@ -32,27 +32,32 @@ export const makeSelectionFeature = <Item extends string, ItemEncoded>(
     OutMessage: SelectionOutMessage,
   })
   const SelectionComposition = SelectionDefinition.makeComposition()
-  const SelectionBlock = SelectionComposition.assembleBlock({
-    init: SelectionComposition.makeInit(() => ({
-      model: SelectionModel.make({ selections: 0 }),
-    })),
-    update: SelectionComposition.makeUpdate((model, message) =>
-      SelectionMessage.match(message, {
-        RequestedSelect: ({ value }) => ({
-          model: Struct.modifyFields(model, { selections: Number.increment }),
-          outMessage: SelectionOutMessage.Selected({ value }),
+  const assembleSelectionBlock = () =>
+    SelectionComposition.assembleBlock({
+      init: SelectionComposition.makeInit(() => ({
+        model: SelectionModel.make({ selections: 0 }),
+      })),
+      update: SelectionComposition.makeUpdate((model, message) =>
+        SelectionMessage.match(message, {
+          RequestedSelect: ({ value }) => ({
+            model: Struct.modifyFields(model, { selections: Number.increment }),
+            outMessage: SelectionOutMessage.Selected({ value }),
+          }),
+          RequestedClose: () => ({
+            model,
+            outMessage: SelectionOutMessage.Closed(),
+          }),
         }),
-        RequestedClose: () => ({
-          model,
-          outMessage: SelectionOutMessage.Closed(),
-        }),
-      }),
-    ),
-    operations: {
-      select: SelectionMessage.RequestedSelect,
-      close: SelectionMessage.RequestedClose,
-    },
-  })
+      ),
+      operations: {
+        select: SelectionMessage.RequestedSelect,
+        close: SelectionMessage.RequestedClose,
+      },
+    })
+  const SelectionBlock: Block.FromAssemblyWithOutMessage<
+    typeof SelectionModel,
+    typeof assembleSelectionBlock
+  > = Block.complete(assembleSelectionBlock)
 
   const Model = Schema.Struct({
     selection: SelectionBlock.Model,
@@ -131,15 +136,20 @@ export const makeSelectionFeature = <Item extends string, ItemEncoded>(
       CompletedRecordSelection: () => ({ model }),
     }),
   )
-  const block = Composition.assembleBlock({
-    init,
-    update,
-    operations: {
-      select: ParentMessage.RequestedSelect,
-      close: ParentMessage.RequestedClose,
-    },
-    EffectsLayer: RecordSelection.layer,
-  })
+  const assembleBlock = () =>
+    Composition.assembleBlock({
+      init,
+      update,
+      operations: {
+        select: ParentMessage.RequestedSelect,
+        close: ParentMessage.RequestedClose,
+      },
+      EffectsLayer: RecordSelection.layer,
+    })
+  const block: Block.FromAssemblyWithOutMessage<
+    typeof Model,
+    typeof assembleBlock
+  > = Block.complete(assembleBlock)
 
   return {
     Model,

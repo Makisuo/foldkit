@@ -13,7 +13,7 @@ Its parent owns integration policy: where the child Model is stored, whether an
 occurrence exists, when child delivery is accepted, what OutMessages mean to
 the parent, and where the child renders.
 
-Build that boundary through Definition → Composition → assembly. All three stages are passive:
+Build that boundary through Definition → Composition → assembly → completion. All four stages are passive:
 
 1. `Block.makeDefinition` establishes the contracts and authors Commands, Steps,
    lifecycle entries, and child Bindings.
@@ -21,10 +21,13 @@ Build that boundary through Definition → Composition → assembly. All three s
    Composition authors init, update, and the canonical view against that graph.
 3. `assembleBlock` checks and packages that authored implementation plus local
    operations, Subscriptions, ManagedResources, `EffectsLayer`, and
-   `hostHandlers` as the completed Block. It does not run init, construct Layers,
-   or start effects.
+   `hostHandlers` as an opaque unfinished assembly with no Model or runtime
+   methods.
+4. `Block.complete` invokes the producer once and returns the branded Block
+   accepted by Bindings, Programs, and Server rendering. It does not run init,
+   construct Layers, or start effects.
 
-The root is an ordinary Block built through the same three stages. Name its
+The root is an ordinary Block built through the same four stages. Name its
 completed value `ApplicationBlock`. `Program.make` or `Program.makeElement`
 adds host behavior, and the Runtime constructs the resulting Layer graph and
 starts effects.
@@ -71,7 +74,7 @@ const assemble = () =>
 export const SettingsBlock: Block.FromAssemblyWithViewAndOutMessage<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)
 ```
 
 Ordinary source exports use an explicit zero-argument assembly producer and
@@ -82,12 +85,15 @@ and Definition OutMessage. Name the single private zero-argument producer
 `assemble`, pass `typeof Model` and `typeof assemble`, and put the annotated
 completed export immediately after it with no blank line. Use a descriptive
 producer name only when one file genuinely contains multiple assembly
-producers. Initialize the completed export by calling that producer once. Parent
+producers. Initialize the completed export with `Block.complete(assemble)`. Parent
 Schemas use `ChildBlock.Model`, and the feature barrel exports the completed
 Block while Model remains internal. The explicit four shapes avoid a unified
 conditional boundary that would force parent Schema access back through the
 implementation graph. Helper constraints still check the actual contract.
-Casts, broad Block annotations and `satisfies` do not establish this boundary.
+Casts, broad Block annotations, `satisfies`, raw producer calls, and annotations
+without the matching finisher do not establish this boundary. `replaceEffectsLayer`
+and `provideHandlers` preserve the completion brand, object metadata, and passive
+runtime behavior.
 
 An authored update is dual: the Runtime uses
 `update(model, message, ...context)`, while application composition can use
@@ -438,12 +444,17 @@ List that definition under `hostHandlers` when completing the Block, then call
 `provideHandlers` on that completed Block before binding it:
 
 ```ts
-const EditorBlockWithHostContract = EditorComposition.assembleBlock({
-  init,
-  update,
-  view,
-  hostHandlers: [SaveDocument],
-})
+const assemble = () =>
+  EditorComposition.assembleBlock({
+    init,
+    update,
+    view,
+    hostHandlers: [SaveDocument],
+  })
+const EditorBlockWithHostContract: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assemble
+> = Block.complete(assemble)
 
 const SaveDocumentLayer = SaveDocument.toLayer(saveDocumentHandler)
 
@@ -464,12 +475,17 @@ the ordinary Service providers below them.
 At the root:
 
 ```ts
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-  EffectsLayer,
-})
+const assemble = () =>
+  ApplicationComposition.assembleBlock({
+    init,
+    update,
+    view,
+    EffectsLayer,
+  })
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assemble
+> = Block.complete(assemble)
 
 const program = Program.make({
   block: ApplicationBlock,
@@ -485,7 +501,7 @@ graph once per start and releases its application scope when that run stops.
 
 ## Organize the graph once
 
-A compact feature may keep all three stages together. In a split feature, `definition.ts` owns a Definition that is reused by authoring methods. When the factory's only use is `makeComposition`, `composition.ts` owns the top-level factory chain instead. `composition.ts` owns Bindings, OutMessage
+A compact feature may keep all four stages together. In a split feature, `definition.ts` owns a Definition that is reused by authoring methods. When the factory's only use is `makeComposition`, `composition.ts` owns the top-level factory chain instead. `composition.ts` owns Bindings, OutMessage
 policies, the complete registrations, the named Composition, and any owner
 ViewBuilder alias. When policy needs a `composition/` directory,
 `composition/composition.ts` remains the single assembly point and its barrel

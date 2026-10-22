@@ -448,7 +448,12 @@ export const author = (composition: Composition) => {
   const update = composition.makeUpdate((model, _message) => ({ model }))
   const view = composition.makeView((model, h) => helper(model, h))
 
-  return composition.assembleBlock({ init, update, view })
+  const assemble = () => composition.assembleBlock({ init, update, view })
+  const completedBlock: Block.FromAssemblyWithView<
+    typeof Model,
+    typeof assemble
+  > = Block.complete(assemble)
+  return completedBlock
 }
 
 export const ElementBlock = author(createComposition())
@@ -610,29 +615,45 @@ const withViewAndOutMessageImplementation = {
   view,
   EffectsLayer: Layer.empty,
 }
-export const WithViewAndOutMessage =
+const assembleWithViewAndOutMessage = () =>
   DeclarationWithOutMessageComposition.assembleBlock(
     withViewAndOutMessageImplementation,
   )
-export const WithOutMessageOnly =
+export const WithViewAndOutMessage: Block.FromAssemblyWithViewAndOutMessage<
+  typeof ShapeModel,
+  typeof assembleWithViewAndOutMessage
+> = Block.complete(assembleWithViewAndOutMessage)
+const assembleWithOutMessageOnly = () =>
   DeclarationWithOutMessageComposition.assembleBlock({
     init: withOutMessageInit,
     update,
     EffectsLayer: Layer.empty,
   })
-export const WithViewOnly =
+export const WithOutMessageOnly: Block.FromAssemblyWithOutMessage<
+  typeof ShapeModel,
+  typeof assembleWithOutMessageOnly
+> = Block.complete(assembleWithOutMessageOnly)
+const assembleWithViewOnly = () =>
   DeclarationWithoutOutMessageComposition.assembleBlock({
     init: withoutOutMessageInit,
     update,
     view: plainView,
     EffectsLayer: Layer.empty,
   })
-export const WithoutViewOrOutMessage =
+export const WithViewOnly: Block.FromAssemblyWithView<
+  typeof ShapeModel,
+  typeof assembleWithViewOnly
+> = Block.complete(assembleWithViewOnly)
+const assembleWithoutViewOrOutMessage = () =>
   DeclarationWithoutOutMessageComposition.assembleBlock({
     init: withoutOutMessageInit,
     update,
     EffectsLayer: Layer.empty,
   })
+export const WithoutViewOrOutMessage: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ShapeModel,
+  typeof assembleWithoutViewOrOutMessage
+> = Block.complete(assembleWithoutViewOrOutMessage)
 
 type BroadOutMessageBlock = Block.Block<
   typeof DeclarationWithOutMessageDefinition.owner,

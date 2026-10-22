@@ -53,33 +53,43 @@ const FailChildConstructionLayer = FailChildConstruction.toLayer<
 )
 const childInitCalls: globalThis.Array<number> = []
 const ChildComposition = Child.makeComposition()
-const ChildBlock = ChildComposition.assembleBlock({
-  init: ChildComposition.makeInit(() => {
-    childInitCalls.push(0)
-    return {
-      model: ChildModel.make({ count: 0 }),
-      commands: [FinishChildInitialization({ count: 0 })],
-    }
-  }),
-  update: ChildComposition.makeUpdate((model, { count }) => ({
-    model: modifyFields(model, { count: () => count }),
-  })),
-  EffectsLayer: Layer.merge(
-    FinishChildInitialization.layer,
-    FailChildConstructionLayer,
-  ),
-})
+const assembleChildBlock = () =>
+  ChildComposition.assembleBlock({
+    init: ChildComposition.makeInit(() => {
+      childInitCalls.push(0)
+      return {
+        model: ChildModel.make({ count: 0 }),
+        commands: [FinishChildInitialization({ count: 0 })],
+      }
+    }),
+    update: ChildComposition.makeUpdate((model, { count }) => ({
+      model: modifyFields(model, { count: () => count }),
+    })),
+    EffectsLayer: Layer.merge(
+      FinishChildInitialization.layer,
+      FailChildConstructionLayer,
+    ),
+  })
+const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 const DefaultChildComposition = makeDefinition('StartupDefaultsDefaultChild', {
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const DefaultChildBlock = DefaultChildComposition.assembleBlock({
-  init: DefaultChildComposition.makeInit((count = 1) => ({
-    model: ChildModel.make({ count }),
-  })),
-  update: DefaultChildComposition.makeUpdate(model => ({ model })),
-})
+const assembleDefaultChildBlock = () =>
+  DefaultChildComposition.assembleBlock({
+    init: DefaultChildComposition.makeInit((count = 1) => ({
+      model: ChildModel.make({ count }),
+    })),
+    update: DefaultChildComposition.makeUpdate(model => ({ model })),
+  })
+const DefaultChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleDefaultChildBlock
+> = Block.complete(assembleDefaultChildBlock)
 
 const OptionalArgumentChildComposition = makeDefinition(
   'StartupDefaultsOptionalArgumentChild',
@@ -88,13 +98,17 @@ const OptionalArgumentChildComposition = makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const OptionalArgumentChildBlock =
+const assembleOptionalArgumentChildBlock = () =>
   OptionalArgumentChildComposition.assembleBlock({
     init: OptionalArgumentChildComposition.makeInit((count?: number) => ({
       model: ChildModel.make({ count: count ?? 2 }),
     })),
     update: OptionalArgumentChildComposition.makeUpdate(model => ({ model })),
   })
+const OptionalArgumentChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleOptionalArgumentChildBlock
+> = Block.complete(assembleOptionalArgumentChildBlock)
 
 const RequiredRestChildComposition = makeDefinition(
   'StartupDefaultsRequiredRestChild',
@@ -103,16 +117,21 @@ const RequiredRestChildComposition = makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const RequiredRestChildBlock = RequiredRestChildComposition.assembleBlock({
-  init: RequiredRestChildComposition.makeInit(
-    (...counts: [first: number, ...rest: Array<number>]) => ({
-      model: ChildModel.make({
-        count: counts.reduce((total, count) => total + count, 0),
+const assembleRequiredRestChildBlock = () =>
+  RequiredRestChildComposition.assembleBlock({
+    init: RequiredRestChildComposition.makeInit(
+      (...counts: [first: number, ...rest: Array<number>]) => ({
+        model: ChildModel.make({
+          count: counts.reduce((total, count) => total + count, 0),
+        }),
       }),
-    }),
-  ),
-  update: RequiredRestChildComposition.makeUpdate(model => ({ model })),
-})
+    ),
+    update: RequiredRestChildComposition.makeUpdate(model => ({ model })),
+  })
+const RequiredRestChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleRequiredRestChildBlock
+> = Block.complete(assembleRequiredRestChildBlock)
 
 const RequiredChildComposition = makeDefinition(
   'StartupDefaultsRequiredChild',
@@ -121,12 +140,17 @@ const RequiredChildComposition = makeDefinition(
     Message: ChildMessage,
   },
 ).makeComposition()
-const RequiredChildBlock = RequiredChildComposition.assembleBlock({
-  init: RequiredChildComposition.makeInit((count: number) => ({
-    model: ChildModel.make({ count }),
-  })),
-  update: RequiredChildComposition.makeUpdate(model => ({ model })),
-})
+const assembleRequiredChildBlock = () =>
+  RequiredChildComposition.assembleBlock({
+    init: RequiredChildComposition.makeInit((count: number) => ({
+      model: ChildModel.make({ count }),
+    })),
+    update: RequiredChildComposition.makeUpdate(model => ({ model })),
+  })
+const RequiredChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof assembleRequiredChildBlock
+> = Block.complete(assembleRequiredChildBlock)
 
 const Entry = Schema.Struct({ id: Schema.String, child: ChildModel })
 const ChildInitContext = Schema.Struct({
@@ -257,14 +281,19 @@ const initialize = ParentComposition.makeInit(
     steps: [applyParentStep],
   }),
 )
-const ParentBlock = ParentComposition.assembleBlock({
-  init: initialize,
-  update: ParentComposition.makeUpdate(model => ({ model })),
-  EffectsLayer: Layer.merge(
-    FinishParentInitialization.layer,
-    FinishParentStep.layer,
-  ),
-})
+const assembleParentBlock = () =>
+  ParentComposition.assembleBlock({
+    init: initialize,
+    update: ParentComposition.makeUpdate(model => ({ model })),
+    EffectsLayer: Layer.merge(
+      FinishParentInitialization.layer,
+      FinishParentStep.layer,
+    ),
+  })
+const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ParentModel,
+  typeof assembleParentBlock
+> = Block.complete(assembleParentBlock)
 
 // @ts-expect-error An opted-out required child remains a mandatory parent-owned field.
 ParentComposition.makeInit((childInitContext: ChildInitContext) => ({

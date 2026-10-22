@@ -1,5 +1,11 @@
-import type { Schema } from 'effect'
+import { Predicate, type Schema } from 'effect'
 
+import {
+  type AssemblyDraft,
+  type AssemblyDraftTypeId,
+  type CompletionProof,
+  completeAssemblyDraft,
+} from './assemblyState.js'
 import type { DefaultViewTypeId } from './defaultView.js'
 import type {
   AnyBlock,
@@ -46,7 +52,7 @@ type FixedKeys = Exclude<
 >
 type FixedContract = Required<Pick<AnyBlock, FixedKeys>>
 
-type CheckedProduced<ModelSchema extends AnySchema, Completed> =
+type CheckedCompleted<ModelSchema extends AnySchema, Completed> =
   IsAny<ModelSchema> extends true
     ? never
     : IsAny<Completed> extends true
@@ -65,6 +71,26 @@ type CheckedProduced<ModelSchema extends AnySchema, Completed> =
               : never
             : never
 
+type CheckedProduced<ModelSchema extends AnySchema, Draft> =
+  IsAny<Draft> extends true
+    ? never
+    : [Draft] extends [never]
+      ? never
+      : true extends IsUnion<Draft>
+        ? never
+        : [Draft] extends [AssemblyDraft<object>]
+          ? Equal<keyof Draft, keyof AssemblyDraft<object>> extends true
+            ? Equal<Draft, Readonly<Draft>> extends true
+              ? AssemblyDraft<
+                  CheckedCompleted<
+                    ModelSchema,
+                    Draft[typeof AssemblyDraftTypeId]
+                  >
+                >
+              : never
+            : never
+          : never
+
 type AssemblyProducer<
   ModelSchema extends AnySchema,
   Producer extends AnyProducer,
@@ -73,8 +99,36 @@ type AssemblyProducer<
 ) => CheckedProduced<ModelSchema, ReturnType<Producer>>) &
   PlainProducerConstraint<Producer>
 
+type ProducedBlock<Producer extends AnyProducer> =
+  ReturnType<Producer> extends AssemblyDraft<object>
+    ? ReturnType<Producer>[typeof AssemblyDraftTypeId]
+    : never
+
+type MissingAssemblyAnnotation = Readonly<{
+  'Block.complete requires a FromAssembly annotation with typeof Model and typeof assemble': never
+}>
+
+type CompleteAssemblyArguments<
+  ModelSchema extends AnySchema,
+  Producer extends AnyProducer,
+  Capabilities,
+> =
+  IsAny<ModelSchema> extends true
+    ? readonly [error: never]
+    : [ModelSchema] extends [never]
+      ? readonly [missingFromAssemblyAnnotation: MissingAssemblyAnnotation]
+      : IsAny<Producer> extends true
+        ? readonly [error: never]
+        : [Producer] extends [never]
+          ? readonly [error: never]
+          : [ProducedBlock<Producer>] extends [never]
+            ? readonly [error: never]
+            : [ProducedBlock<Producer>] extends [Capabilities]
+              ? readonly []
+              : readonly [error: never]
+
 type InvalidBlockProducer = Readonly<{
-  'Block producer must return one exact completed Block with the supplied Model Schema': never
+  'Block producer must return one original assembly draft with the supplied exact Model Schema': never
 }>
 
 type ProducedMember<Producer, Key extends PropertyKey> =
@@ -85,14 +139,17 @@ type ProducedMember<Producer, Key extends PropertyKey> =
       : Producer extends AnyProducer
         ? IsAny<ReturnType<Producer>> extends true
           ? InvalidBlockProducer
-          : [ReturnType<Producer>] extends [never]
+          : [ProducedBlock<Producer>] extends [never]
             ? InvalidBlockProducer
-            : Key extends keyof ReturnType<Producer>
-              ? ReturnType<Producer>[Key]
+            : Key extends keyof ProducedBlock<Producer>
+              ? ProducedBlock<Producer>[Key]
               : InvalidBlockProducer
         : InvalidBlockProducer
 
-interface AssemblyFields<ModelSchema extends AnySchema, Producer> {
+interface AssemblyFields<
+  ModelSchema extends AnySchema,
+  Producer,
+> extends CompletionProof {
   readonly Model: ModelSchema
   readonly owner: ProducedMember<Producer, 'owner'>
   readonly Message: ProducedMember<Producer, 'Message'>
@@ -132,8 +189,9 @@ interface AssemblyFields<ModelSchema extends AnySchema, Producer> {
  * @typeParam ModelSchema - `typeof Model` for the canonical Schema used by the
  * producer's Definition, with its exact decoded, encoded, and service types.
  * @typeParam Producer - A plain zero-argument function with no overloads or added
- * properties, returning one completed Block with readonly members and no extra
- * fields. Its Model Schema type must exactly match `ModelSchema`.
+ * properties, returning one assembly draft from `Composition.assembleBlock`.
+ * Its completed contract must have readonly members, no extra fields, and a
+ * Model Schema type exactly matching `ModelSchema`.
  */
 export interface AssemblyWithViewAndOutMessage<
   ModelSchema extends AnySchema,
@@ -156,8 +214,9 @@ export interface AssemblyWithViewAndOutMessage<
  * @typeParam ModelSchema - `typeof Model` for the canonical Schema used by the
  * producer's Definition, with its exact decoded, encoded, and service types.
  * @typeParam Producer - A plain zero-argument function with no overloads or added
- * properties, returning one completed Block with readonly members and no extra
- * fields. Its Model Schema type must exactly match `ModelSchema`.
+ * properties, returning one assembly draft from `Composition.assembleBlock`.
+ * Its completed contract must have readonly members, no extra fields, and a
+ * Model Schema type exactly matching `ModelSchema`.
  */
 export interface AssemblyWithView<
   ModelSchema extends AnySchema,
@@ -180,8 +239,9 @@ export interface AssemblyWithView<
  * @typeParam ModelSchema - `typeof Model` for the canonical Schema used by the
  * producer's Definition, with its exact decoded, encoded, and service types.
  * @typeParam Producer - A plain zero-argument function with no overloads or added
- * properties, returning one completed Block with readonly members and no extra
- * fields. Its Model Schema type must exactly match `ModelSchema`.
+ * properties, returning one assembly draft from `Composition.assembleBlock`.
+ * Its completed contract must have readonly members, no extra fields, and a
+ * Model Schema type exactly matching `ModelSchema`.
  */
 export interface AssemblyWithOutMessage<
   ModelSchema extends AnySchema,
@@ -201,8 +261,9 @@ export interface AssemblyWithOutMessage<
  * @typeParam ModelSchema - `typeof Model` for the canonical Schema used by the
  * producer's Definition, with its exact decoded, encoded, and service types.
  * @typeParam Producer - A plain zero-argument function with no overloads or added
- * properties, returning one completed Block with readonly members and no extra
- * fields. Its Model Schema type must exactly match `ModelSchema`.
+ * properties, returning one assembly draft from `Composition.assembleBlock`.
+ * Its completed contract must have readonly members, no extra fields, and a
+ * Model Schema type exactly matching `ModelSchema`.
  */
 export interface AssemblyWithoutViewOrOutMessage<
   ModelSchema extends AnySchema,
@@ -213,12 +274,82 @@ export interface AssemblyWithoutViewOrOutMessage<
 }
 
 /**
+ * Completes an assembly through its explicit Model and producer annotation.
+ *
+ * Initialize a {@link FromAssemblyWithView} annotation, or its matching
+ * headless or OutMessage variant, with `Block.complete(assemble)`. The producer
+ * must be a plain zero-argument function returning the original opaque draft
+ * from `Composition.assembleBlock`. Its Model Schema must exactly match the
+ * annotation's canonical `typeof Model`.
+ *
+ * Calls the producer once and returns the original Block behind its draft.
+ * Completion builds no Layers and starts no lifecycle work. A copied draft,
+ * a completed Block, or a structurally similar object is rejected at runtime.
+ *
+ * @see FromAssemblyWithView for a complete assembly example.
+ */
+export function complete<
+  const ModelSchema extends AnySchema = never,
+  Producer extends AssemblyProducer<ModelSchema, Producer> = never,
+>(
+  producer: Producer,
+  ...validation: CompleteAssemblyArguments<
+    ModelSchema,
+    Producer,
+    Readonly<{ OutMessage: AnySchema; [DefaultViewTypeId]: unknown }>
+  >
+): AssemblyWithViewAndOutMessage<ModelSchema, Producer>
+export function complete<
+  const ModelSchema extends AnySchema = never,
+  Producer extends AssemblyProducer<ModelSchema, Producer> = never,
+>(
+  producer: Producer,
+  ...validation: CompleteAssemblyArguments<
+    ModelSchema,
+    Producer,
+    Readonly<{ OutMessage?: never; [DefaultViewTypeId]: unknown }>
+  >
+): AssemblyWithView<ModelSchema, Producer>
+export function complete<
+  const ModelSchema extends AnySchema = never,
+  Producer extends AssemblyProducer<ModelSchema, Producer> = never,
+>(
+  producer: Producer,
+  ...validation: CompleteAssemblyArguments<
+    ModelSchema,
+    Producer,
+    Readonly<{ OutMessage: AnySchema; [DefaultViewTypeId]?: never }>
+  >
+): AssemblyWithOutMessage<ModelSchema, Producer>
+export function complete<
+  const ModelSchema extends AnySchema = never,
+  Producer extends AssemblyProducer<ModelSchema, Producer> = never,
+>(
+  producer: Producer,
+  ...validation: CompleteAssemblyArguments<
+    ModelSchema,
+    Producer,
+    Readonly<{ OutMessage?: never; [DefaultViewTypeId]?: never }>
+  >
+): AssemblyWithoutViewOrOutMessage<ModelSchema, Producer>
+export function complete(producer: AnyProducer): unknown {
+  if (!Predicate.isFunction(producer)) {
+    throw new Error(
+      '[foldkit] Block.complete requires a plain assembly producer.',
+    )
+  }
+
+  return completeAssemblyDraft(producer())
+}
+
+/**
  * Annotates a completed Block with a default view and an OutMessage Schema.
  *
  * Choose this helper when `assembleBlock` receives a view and the Definition
- * declares an OutMessage Schema. Call the producer for the annotated value's
- * initializer. The annotation retains that assembly's original Model Schema
- * object and every other member; it performs no runtime work.
+ * declares an OutMessage Schema. Initialize the annotation with
+ * `Block.complete(assemble)`. Completion preserves the original Model Schema
+ * object and every other member without building Layers or starting lifecycle
+ * work.
  *
  * A producer typed as `any`, or returning `any`, is rejected. A never-returning
  * producer cannot provide a usable Block. Union returns, mutable members, and
@@ -226,8 +357,8 @@ export interface AssemblyWithoutViewOrOutMessage<
  *
  * @typeParam ModelSchema - `typeof Model` for the canonical Schema used by the
  * producer's Definition, with its exact decoded, encoded, and service types.
- * @typeParam Producer - `typeof assembleBlock` for a plain zero-argument function
- * with no overloads or added properties, returning the complete assembly.
+ * @typeParam Producer - `typeof assemble` for a plain zero-argument function
+ * with no overloads or added properties, returning an original assembly draft.
  * @see FromAssemblyWithView for an example keeping Model local to its module.
  */
 export type FromAssemblyWithViewAndOutMessage<
@@ -242,10 +373,10 @@ export type FromAssemblyWithViewAndOutMessage<
  * Annotates a completed Block with a default view and no OutMessage Schema.
  *
  * Choose this helper when `assembleBlock` receives a view and the Definition
- * omits OutMessage. Call the producer for the annotated value's initializer.
- * The annotation retains that assembly's original Model Schema object and every
- * other member; it performs no runtime work. Model can stay local to its module
- * while consumers read the Schema through the completed Block's `Model` member.
+ * omits OutMessage. Initialize the annotation with `Block.complete(assemble)`.
+ * Completion preserves the original Model Schema object and every other member
+ * without building Layers or starting lifecycle work. Model can stay local to
+ * its module while consumers read the completed Block's `Model` member.
  *
  * A producer typed as `any`, or returning `any`, is rejected. A never-returning
  * producer cannot provide a usable Block. Union returns, mutable members, and
@@ -253,8 +384,8 @@ export type FromAssemblyWithViewAndOutMessage<
  *
  * @typeParam ModelSchema - `typeof Model` for the canonical Schema used by the
  * producer's Definition, with its exact decoded, encoded, and service types.
- * @typeParam Producer - `typeof assembleBlock` for a plain zero-argument function
- * with no overloads or added properties, returning the complete assembly.
+ * @typeParam Producer - `typeof assemble` for a plain zero-argument function
+ * with no overloads or added properties, returning an original assembly draft.
  *
  * @example
  * ```ts
@@ -267,7 +398,7 @@ export type FromAssemblyWithViewAndOutMessage<
  *   Message: Schema.Never,
  * })
  * const CounterComposition = CounterDefinition.makeComposition()
- * const assembleCounterBlock = () =>
+ * const assemble = () =>
  *   CounterComposition.assembleBlock({
  *     init: CounterComposition.makeInit(() => ({
  *       model: Model.make({ count: 0 }),
@@ -277,11 +408,10 @@ export type FromAssemblyWithViewAndOutMessage<
  *       h.div([], [globalThis.String(model.count)]),
  *     ),
  *   })
- *
  * export const CounterBlock: Block.FromAssemblyWithView<
  *   typeof Model,
- *   typeof assembleCounterBlock
- * > = assembleCounterBlock()
+ *   typeof assemble
+ * > = Block.complete(assemble)
  * ```
  */
 export type FromAssemblyWithView<
@@ -294,9 +424,10 @@ export type FromAssemblyWithView<
  * Annotates a completed Block with an OutMessage Schema and no default view.
  *
  * Choose this helper when the Definition declares an OutMessage Schema and
- * `assembleBlock` omits the view. Call the producer for the annotated value's
- * initializer. The annotation retains that assembly's original Model Schema
- * object and every other member; it performs no runtime work.
+ * `assembleBlock` omits the view. Initialize the annotation with
+ * `Block.complete(assemble)`. Completion preserves the original Model Schema
+ * object and every other member without building Layers or starting lifecycle
+ * work.
  *
  * A producer typed as `any`, or returning `any`, is rejected. A never-returning
  * producer cannot provide a usable Block. Union returns, mutable members, and
@@ -304,8 +435,8 @@ export type FromAssemblyWithView<
  *
  * @typeParam ModelSchema - `typeof Model` for the canonical Schema used by the
  * producer's Definition, with its exact decoded, encoded, and service types.
- * @typeParam Producer - `typeof assembleBlock` for a plain zero-argument function
- * with no overloads or added properties, returning the complete assembly.
+ * @typeParam Producer - `typeof assemble` for a plain zero-argument function
+ * with no overloads or added properties, returning an original assembly draft.
  * @see FromAssemblyWithView for an example keeping Model local to its module.
  */
 export type FromAssemblyWithOutMessage<
@@ -320,9 +451,9 @@ export type FromAssemblyWithOutMessage<
  * Annotates a completed Block with no default view or OutMessage Schema.
  *
  * Choose this helper when the Definition omits OutMessage and `assembleBlock`
- * omits the view. Call the producer for the annotated value's initializer.
- * The annotation retains that assembly's original Model Schema object and every
- * other member; it performs no runtime work.
+ * omits the view. Initialize the annotation with `Block.complete(assemble)`.
+ * Completion preserves the original Model Schema object and every other member
+ * without building Layers or starting lifecycle work.
  *
  * A producer typed as `any`, or returning `any`, is rejected. A never-returning
  * producer cannot provide a usable Block. Union returns, mutable members, and
@@ -330,8 +461,8 @@ export type FromAssemblyWithOutMessage<
  *
  * @typeParam ModelSchema - `typeof Model` for the canonical Schema used by the
  * producer's Definition, with its exact decoded, encoded, and service types.
- * @typeParam Producer - `typeof assembleBlock` for a plain zero-argument function
- * with no overloads or added properties, returning the complete assembly.
+ * @typeParam Producer - `typeof assemble` for a plain zero-argument function
+ * with no overloads or added properties, returning an original assembly draft.
  * @see FromAssemblyWithView for an example keeping Model local to its module.
  */
 export type FromAssemblyWithoutViewOrOutMessage<

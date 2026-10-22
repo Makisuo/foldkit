@@ -1,5 +1,5 @@
 import { Layer } from 'effect'
-import type { Block } from 'foldkit'
+import { Block } from 'foldkit'
 
 import { FetchPeople, PushSearchUrl } from './command'
 import { PeopleComposition } from './composition'
@@ -21,4 +21,4 @@ const assemble = () =>
 export const PeopleBlock: Block.FromAssemblyWithView<
   typeof Model,
   typeof assemble
-> = assemble()
+> = Block.complete(assemble)

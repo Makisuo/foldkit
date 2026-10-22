@@ -6,6 +6,7 @@ import { modifyFields } from '../struct/index.js'
 import * as Update from '../update/index.js'
 import { makeDefinition, makeNamespace } from './define.js'
 import { lowerBlock } from './lowering.js'
+import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 type ChildModel = typeof ChildModel.Type
@@ -46,26 +47,31 @@ const reset = ChildDefinition.makeStep(_model => {
   return { model: ChildModel.make({ count: 0 }) }
 })
 const ChildComposition = ChildDefinition.makeComposition()
-const ChildBlock = ChildComposition.assembleBlock({
-  view: ChildComposition.makeView((_model, h) => h.div([])),
-  init: () => ({ model: ChildModel.make({ count: 0 }) }),
-  update: ChildComposition.makeUpdate((model, message) =>
-    Message.match(message, {
-      RequestedReset: () => reset(model),
-      Advanced: () => ({
-        model: modifyFields(model, { count: count => count + 1 }),
+const assembleChildBlock = () =>
+  ChildComposition.assembleBlock({
+    view: ChildComposition.makeView((_model, h) => h.div([])),
+    init: () => ({ model: ChildModel.make({ count: 0 }) }),
+    update: ChildComposition.makeUpdate((model, message) =>
+      Message.match(message, {
+        RequestedReset: () => reset(model),
+        Advanced: () => ({
+          model: modifyFields(model, { count: count => count + 1 }),
+        }),
+        CompletedRecordBeforeReplay: () => ({
+          model: modifyFields(model, { count: count => count + 1 }),
+        }),
+        CompletedRecordAfterReplay: () => ({
+          model: modifyFields(model, { count: count => count + 1 }),
+        }),
       }),
-      CompletedRecordBeforeReplay: () => ({
-        model: modifyFields(model, { count: count => count + 1 }),
-      }),
-      CompletedRecordAfterReplay: () => ({
-        model: modifyFields(model, { count: count => count + 1 }),
-      }),
-    }),
-  ),
-  operations: { reset: () => Tuple.make(Message.RequestedReset()) },
-  EffectsLayer: Layer.empty,
-})
+    ),
+    operations: { reset: () => Tuple.make(Message.RequestedReset()) },
+    EffectsLayer: Layer.empty,
+  })
+const ChildBlock: Block.FromAssemblyWithView<
+  typeof ChildModel,
+  typeof assembleChildBlock
+> = Block.complete(assembleChildBlock)
 
 const OmittedParentDefinition = makeNamespace(
   'OperationGraphOmittedParent',
@@ -89,23 +95,28 @@ const initializeOmittedChild = OmittedParentDefinition.makeStep(model =>
 const omittedParentComposition = OmittedParentDefinition.makeComposition({
   bindings: [OmittedChildBinding],
 })
-const OmittedParent = omittedParentComposition.assembleBlock({
-  view: omittedParentComposition.makeView((_model, h) => h.div([])),
-  init: () => ({ model: initialModel }),
-  update: omittedParentComposition.makeUpdate((model, message) =>
-    ParentMessage.match(message, {
-      RequestedInitializeChild: () => initializeOmittedChild(model),
-      Advanced: () => ({ model }),
-      CompletedRecordBeforeReplay: () => ({ model }),
-      CompletedRecordAfterReplay: () => ({ model }),
-    }),
-  ),
-  operations: {
-    initializeOmittedChild: () =>
-      Tuple.make(ParentMessage.RequestedInitializeChild()),
-  },
-  EffectsLayer: Layer.empty,
-})
+const assembleOmittedParent = () =>
+  omittedParentComposition.assembleBlock({
+    view: omittedParentComposition.makeView((_model, h) => h.div([])),
+    init: () => ({ model: initialModel }),
+    update: omittedParentComposition.makeUpdate((model, message) =>
+      ParentMessage.match(message, {
+        RequestedInitializeChild: () => initializeOmittedChild(model),
+        Advanced: () => ({ model }),
+        CompletedRecordBeforeReplay: () => ({ model }),
+        CompletedRecordAfterReplay: () => ({ model }),
+      }),
+    ),
+    operations: {
+      initializeOmittedChild: () =>
+        Tuple.make(ParentMessage.RequestedInitializeChild()),
+    },
+    EffectsLayer: Layer.empty,
+  })
+const OmittedParent: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof assembleOmittedParent
+> = Block.complete(assembleOmittedParent)
 
 const ForeignOmittedChildBinding = OmittedParentDefinition.makeBinding(
   ChildBlock,
@@ -273,24 +284,29 @@ const initializeWrongPlacement = ExactParentBaseDefinition.makeStep(model =>
     toParentModel: child => modifyFields(model, { primary: () => child }),
   }),
 )
-const ExactParent = exactParentComposition.assembleBlock({
-  view: exactParentComposition.makeView((_model, h) => h.div([])),
-  init: () => ({ model: initialModel }),
-  update: exactParentComposition.makeUpdate((model, message) =>
-    ParentMessage.match(message, {
-      RequestedInitializeChild: () => initializeWrongPlacement(model),
-      Advanced: () =>
-        WrongPlacementBinding.fold(model, 'only', Message.Advanced()),
-      CompletedRecordBeforeReplay: () => ({ model }),
-      CompletedRecordAfterReplay: () => ({ model }),
-    }),
-  ),
-  operations: {
-    initializeWrongPlacement: () =>
-      Tuple.make(ParentMessage.RequestedInitializeChild()),
-  },
-  EffectsLayer: Layer.empty,
-})
+const assembleExactParent = () =>
+  exactParentComposition.assembleBlock({
+    view: exactParentComposition.makeView((_model, h) => h.div([])),
+    init: () => ({ model: initialModel }),
+    update: exactParentComposition.makeUpdate((model, message) =>
+      ParentMessage.match(message, {
+        RequestedInitializeChild: () => initializeWrongPlacement(model),
+        Advanced: () =>
+          WrongPlacementBinding.fold(model, 'only', Message.Advanced()),
+        CompletedRecordBeforeReplay: () => ({ model }),
+        CompletedRecordAfterReplay: () => ({ model }),
+      }),
+    ),
+    operations: {
+      initializeWrongPlacement: () =>
+        Tuple.make(ParentMessage.RequestedInitializeChild()),
+    },
+    EffectsLayer: Layer.empty,
+  })
+const ExactParent: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof assembleExactParent
+> = Block.complete(assembleExactParent)
 
 it('checks exact binding identity before reading or writing the parent Model', () => {
   const lowered = lowerBlock(ExactParent)
@@ -420,15 +436,20 @@ const policyComposition = PolicyNamespace.makeDefinition({
   Message,
   OutMessage: PolicyOutMessage,
 }).makeComposition()
-const PolicyChild = policyComposition.assembleBlock({
-  view: policyComposition.makeView((_model, h) => h.div([])),
-  init: () => ({ model: ChildModel.make({ count: 0 }) }),
-  update: model => ({
-    model,
-    outMessage: PolicyOutMessage.RequestedSiblingReset(),
-  }),
-  EffectsLayer: Layer.empty,
-})
+const assemblePolicyChild = () =>
+  policyComposition.assembleBlock({
+    view: policyComposition.makeView((_model, h) => h.div([])),
+    init: () => ({ model: ChildModel.make({ count: 0 }) }),
+    update: model => ({
+      model,
+      outMessage: PolicyOutMessage.RequestedSiblingReset(),
+    }),
+    EffectsLayer: Layer.empty,
+  })
+const PolicyChild: Block.FromAssemblyWithViewAndOutMessage<
+  typeof ChildModel,
+  typeof assemblePolicyChild
+> = Block.complete(assemblePolicyChild)
 
 const PolicyParentMessage = Schema.Never
 const PolicyParentBaseDefinition = makeNamespace(
@@ -455,12 +476,17 @@ const PolicyChildBinding = PolicyParentBaseDefinition.makeBinding(PolicyChild, {
 const policyParentComposition = PolicyParentBaseDefinition.makeComposition({
   bindings: [PolicyChildBinding, SiblingChildBinding],
 })
-const PolicyParent = policyParentComposition.assembleBlock({
-  view: policyParentComposition.makeView((_model, h) => h.div([])),
-  init: () => ({ model: initialModel }),
-  update: policyParentComposition.makeUpdate(),
-  EffectsLayer: Layer.empty,
-})
+const assemblePolicyParent = () =>
+  policyParentComposition.assembleBlock({
+    view: policyParentComposition.makeView((_model, h) => h.div([])),
+    init: () => ({ model: initialModel }),
+    update: policyParentComposition.makeUpdate(),
+    EffectsLayer: Layer.empty,
+  })
+const PolicyParent: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof assemblePolicyParent
+> = Block.complete(assemblePolicyParent)
 
 it('restores the parent graph before folding a child OutMessage', () => {
   const lowered = lowerBlock(PolicyParent)

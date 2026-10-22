@@ -15,7 +15,12 @@ export const ParentComposition = ParentDefinition.makeComposition({
 export const update = ParentComposition.makeUpdate(model =>
   ChildBinding.load('Primary')(model),
 )
-export const ParentBlock = ParentComposition.assembleBlock({
-  init: ParentComposition.makeInit(() => ({ model: {} })),
-  update,
-})
+const assemble = () =>
+  ParentComposition.assembleBlock({
+    init: ParentComposition.makeInit(() => ({ model: {} })),
+    update,
+  })
+export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof assemble
+> = Block.complete(assemble)

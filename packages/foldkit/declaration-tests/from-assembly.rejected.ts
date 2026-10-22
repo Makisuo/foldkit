@@ -5,10 +5,10 @@ import { Model } from './from-assembly.accepted.js'
 import {
   CountComposition,
   EffectsLayer,
+  init,
   prepareHeadless,
   prepareReportingViewed,
   prepareViewed,
-  init,
   update,
   view,
 } from './from-assembly.accepted.js'

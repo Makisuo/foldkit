@@ -213,7 +213,10 @@ export const previewReadySummary = (manifest, deploymentUrl) => {
     `This command installs the entire set as production dependencies; it is a snapshot reference, not an upgrade command for an existing project.\n\n` +
     `\`${previewInstallCommand(manifest)}\`\n\n</details>\n\n` +
     `For an existing application, update only its installed Foldkit packages and preserve dependency/devDependency placement.\n\n` +
-    `${packages}\n\n` +
+    `### Editor performance\n\n` +
+    `Large Block compositions can still cause editor latency. We have tested an optional tsrs language-server setup that improved responsiveness in Neovim. See the [editor tooling guide](${new URL('/preview-upgrade#optional-editor-setup-tsrs', url).href}) for setup, the tested version and limitations.\n\n` +
+    `### Package versions\n\n${packages}\n\n` +
+    `### Agent prompts\n\n` +
     `<details>\n<summary>Agent prompt: migrate a stable application</summary>\n\n\`\`\`text\n${stablePrompt}\n\`\`\`\n\n</details>\n\n` +
     `<details>\n<summary>Agent prompt: upgrade an earlier preview</summary>\n\n\`\`\`text\n${previewPrompt}\n\`\`\`\n\n</details>\n`
   )

@@ -165,7 +165,7 @@ The preview reduces repeated compiler work during Block assembly. Large root ass
 
 [tsrs](https://github.com/oxc-project/tsrs/blob/467182f2402b140897e8a02d7a25699db0e79e2a/docs/LSP.md) is an experimental TypeScript language server. In a real Neovim trial, it made `ApplicationBlock` completion usable, though not instantaneous. Testing is limited to that trial and the paired benchmarks recorded in [#1737](https://github.com/foldkit/foldkit/issues/1737); those benchmarks predate the latest optimization and do not establish current-candidate performance.
 
-This is optional editor setup. Keep the project's official TypeScript dependency, typecheck scripts and CI unchanged.
+For this preview, we recommend trying tsrs for editor responsiveness, especially with large Block compositions. Keep the project's official TypeScript dependency, typecheck scripts and CI unchanged.
 
 #### Install and select the server
 

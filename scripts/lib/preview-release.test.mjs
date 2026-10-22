@@ -229,7 +229,11 @@ test('links optional editor guidance to the verified preview deployment', () => 
   assert.ok(
     summary.includes('Large Block compositions can still cause editor latency'),
   )
-  assert.ok(summary.includes('optional tsrs language-server setup'))
+  assert.ok(
+    summary.includes(
+      'We recommend trying the optional tsrs language-server setup',
+    ),
+  )
   assert.ok(
     summary.includes(
       `${deployment}/preview-upgrade#optional-editor-setup-tsrs`,

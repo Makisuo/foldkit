@@ -82,7 +82,7 @@ describe('Listbox trigger click', () => {
     document.documentElement.style.overflow = ''
   })
 
-  it('treats a same-task click as one open', async () => {
+  it('treats a same-task click as one open and releases modal resources on close', async () => {
     const background = document.createElement('button')
     const container = document.createElement('div')
     container.id = 'app'
@@ -104,6 +104,22 @@ describe('Listbox trigger click', () => {
         ).toBe('true')
         expect(document.documentElement.style.overflow).toBe('hidden')
         expect(background.inert).toBe(true)
+      })
+
+      requireElement('sort-items').dispatchEvent(
+        new KeyboardEvent('keydown', {
+          bubbles: true,
+          cancelable: true,
+          key: 'Escape',
+        }),
+      )
+
+      await vi.waitFor(() => {
+        expect(
+          document.getElementById('sort-button')?.getAttribute('aria-expanded'),
+        ).toBe('false')
+        expect(document.documentElement.style.overflow).toBe('')
+        expect(background.inert).toBe(false)
       })
     } finally {
       handle.dispose()

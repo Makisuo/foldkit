@@ -44,9 +44,16 @@ After installing one coherent target, make the changes used by your application:
 
 1. Apply the [Definition and Namespace factory renames](#rename-definition-authoring-factories). The old names have no compatibility aliases.
 2. Replace `Animation.defaultLeaveCommand` with the [bound leave-settlement operation](#replace-the-standard-animation-leave-helper) wherever the application uses standard CSS settlement. Keep custom settlement Commands for additional signals.
-3. Run [the upgrade checks](#verify-the-upgrade). Assembly now rejects incompatible same-named Command handler contracts inside generic Block factories. Correct the owning definitions or handler Layers when this exposes invalid wiring.
+3. Update any affected [UI trigger and focus tests](#update-ui-trigger-and-focus-tests).
+4. Run [the upgrade checks](#verify-the-upgrade). Assembly now rejects incompatible same-named Command handler contracts inside generic Block factories. Correct the owning definitions or handler Layers when this exposes invalid wiring.
 
 The compiler-work reductions also apply without changing Block authoring. [Native TypeScript tooling](#native-typescript-tooling), [explicit assembly boundaries](#keep-source-model-schemas-independent-of-completion), and [Command-only Steps](#optional-convenience) are separate setup or organization choices.
+
+### Update UI trigger and focus tests
+
+Popover, Menu, and Listbox report trigger clicks as `ClickedButton`. Include that fact in exhaustive component Message matchers and update Scene expectations that previously expected an open or close Message from a trigger click. The component's update decides whether to open or close from its current Model. Parent coordination uses Binding operations and OutMessage policies.
+
+For a Popover with the default focus policy, use `Scene.focusLeave(panel)` instead of `Scene.blur(panel)` when testing dismissal as focus leaves the panel. Moving focus between the panel and its descendants keeps it open. With `contentFocus: true`, the application owns focus and dismissal.
 
 ## Update the Application Boundary
 

@@ -276,7 +276,7 @@ describe('update', () => {
           expect(model.peoplePage.searchHistory).toStrictEqual(['designer'])
           expect(model.peoplePage.results._tag).toBe('Loading')
         }),
-        Command.expectHas(People.FetchPeople),
+        Command.expectHas(FetchPeople),
         resolveFetch('designer'),
       )
     })

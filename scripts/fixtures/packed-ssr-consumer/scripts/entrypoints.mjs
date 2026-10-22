@@ -44,11 +44,13 @@ const Message = message.defineMessageUnion({ IgnoredRender: {} })
 const ApplicationComposition = block
   .makeDefinition('Application', { Model, Message })
   .makeComposition()
-const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init: ApplicationComposition.makeInit(() => ({ model: Model.make({}) })),
-  update: ApplicationComposition.makeUpdate(model => ({ model })),
-  view: ApplicationComposition.makeView(() => ({ title: 't', body: null })),
-})
+const ApplicationBlock = block.complete(() =>
+  ApplicationComposition.assembleBlock({
+    init: ApplicationComposition.makeInit(() => ({ model: Model.make({}) })),
+    update: ApplicationComposition.makeUpdate(model => ({ model })),
+    view: ApplicationComposition.makeView(() => ({ title: 't', body: null })),
+  }),
+)
 const error = await Effect.runPromise(
   Effect.flip(server.renderToString(ApplicationBlock, {}, {})),
 )

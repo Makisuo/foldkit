@@ -7,7 +7,9 @@ const packageLink = ([name, version]: readonly [string, string]): Html =>
   ih.a(
     [
       ih.Href(`https://www.npmjs.com/package/${name}/v/${version}`),
-      ih.Class('font-mono underline hover:no-underline'),
+      ih.Class(
+        'inline-flex min-h-6 items-center font-mono underline hover:no-underline',
+      ),
     ],
     [`${name}@${version}`],
   )

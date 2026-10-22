@@ -157,3 +157,11 @@ The final scoped community refresh found an ordinary-Block counterexample in [dr
 Runtime Service guarantees now retain only capabilities installed by every possible root. Residual requirements are computed per alternative before subtracting its own Layer outputs. Positive cases where all alternatives register the same Service, including different local registration field names, remain accepted. Explicit provider and unrelated-Service checks retain precise requirements.
 
 [Source assertions](../packages/foldkit/src/block/requirements.test.ts), [accepted Program fixtures](../packages/foldkit/declaration-tests/program-union-services.accepted.ts), [rejected wiring](../packages/foldkit/declaration-tests/program-union-services.rejected.ts) and [relocated declaration consumers](../packages/foldkit/declaration-tests/program-union-services.consume.ts) cover this correction. Source, package emission/relocation, 18 requirements tests, all 37 consumer/UI source projects and unchanged compiler budgets pass. All 276 emitted runtime JavaScript files are identical to the checkpoint. Independent review reports no findings. No terminal-root API is adopted.
+
+## Final local closeout
+
+The checked export boundary is saved at `8547fcb18384db82d7481e46054b074ad2fda7e5`; the Service-alternative correction is saved at `3f043be3ea5ad92cc21306449981022044793376`. Independent exact-commit reviews report no findings for either commit.
+
+The final Binding lookup experiment from #1756 is not adopted. Against the Service-corrected checkpoint, three alternating pairs pass 24 editor sessions, but root completion is essentially unchanged and route completion regresses from 252ms to 272ms. The modest diagnostic benefit does not earn the added internal complexity. [Comparison and retained limitations](./block-model-boundary-assessment.md#final-bounded-community-comparison).
+
+A fresh read of #1737 and the five related contribution PRs finds no additional replies or changed heads after that assessment. This is a scoped feedback closeout, not a claim to have reviewed unrelated issues. No source push, publication, deployment or Ready promotion is performed. Final release/security and consumer-upgrade rehearsal remain separate gates for the next preview.

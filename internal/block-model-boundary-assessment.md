@@ -114,6 +114,24 @@ Core external source, package emission and relocated consumers pass with `skipLi
 
 The recommended lint rule flags proven unguarded completed Model dependencies in parent Schema construction. It recognizes the checked producer/header form, immutable aliases, explicit relative barrels and known raw-returning Block methods. It does not infer arbitrary factory behavior or guess public imports. Ordinary Model access and type annotations remain allowed. This is a performance guardrail, not a new type-safety guarantee.
 
+## Final bounded community comparison
+
+After correcting Service requirements for alternative root Blocks, an isolated placement lookup index from [PR #1756](https://github.com/foldkit/foldkit/pull/1756) was compared against local commit `3f043be3ea5ad92cc21306449981022044793376`. Both arms use the selected checked headers, including the same Service correction. This comparison uses a newer baseline than the canonical Schema import control above.
+
+Three alternating pairs cover four workflows, with 24 fresh-process sessions. Source, compiler and semantic payload checks pass with unchanged memory and process limits. The candidate changes only the internal Binding lookup; it does not include that PR's direct-channel validation rewrite.
+
+| Post-edit operation   | Current implementation | Placement index |
+| --------------------- | ---------------------: | --------------: |
+| Root completion       |                  169ms |           167ms |
+| Root error appearance |                3,195ms |         3,080ms |
+| Root error clearing   |                3,122ms |         3,077ms |
+| ChangedUrl completion |                  252ms |           272ms |
+| ChangedUrl hover      |                  272ms |           275ms |
+
+The small diagnostic improvement does not justify the extra lookup machinery and repeatable regression in route completion. Retain the current distributive scan. Independent source review found no demonstrated semantic defect in the isolated index. The measurements and maintenance cost determine this decision; they establish no TypeScript limitation. The wider rewrite of channel validation remains unadopted because its edge cases need separate proof.
+
+Concrete lookup parity, emitted/relocated policy consumers and unchanged compiler budgets pass. A proof for unresolved generic placement through policy resolution remains inconclusive. It establishes neither a guarantee nor a counterexample. No index code is integrated, and no further encoding search is needed for this closeout.
+
 ## Verification links
 
 - [Checked aliases and declaration support](../packages/foldkit/src/block/fromAssembly.ts)

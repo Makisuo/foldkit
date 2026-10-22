@@ -26,6 +26,8 @@ If the project already maintains a version-pinned Foldkit source reference or su
 
 The target scaffold uses native TypeScript `7.1.0-beta`. Follow the shared [native TypeScript tooling guidance](/preview-upgrade#native-typescript-tooling) when updating an existing native compiler or editor SDK. Keep that tooling choice separate from the application API migration below, and verify the application's normal checks with the compiler it actually resolves.
 
+Apply the shared [Vite security patch guidance](/preview-upgrade#vite-security-patches) when the project resolves an affected Vite or `launch-editor` version. The preview scaffold includes the patched Vite line.
+
 ## Inventory the Stable Application
 
 Take one pass through the application before editing. Record the baseline result of its existing typecheck, lint, unit tests, browser tests, and production build. A failure that already exists belongs in the baseline; a new failure belongs to the migration.

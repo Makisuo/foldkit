@@ -56,6 +56,7 @@ overrides:
   '@effect/platform-node-shared': 4.0.0
   '@effect/vitest': 4.0.0
   fflate: 0.7.5
+  launch-editor: 2.14.2
   '@modelcontextprotocol/sdk>hono': 4.13.11
   'monaco-editor>dompurify': 3.4.16
   shell-quote: 1.11.0

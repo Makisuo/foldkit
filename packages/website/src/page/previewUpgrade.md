@@ -45,7 +45,8 @@ After installing one coherent target, make the changes used by your application:
 1. Apply the [Definition and Namespace factory renames](#rename-definition-authoring-factories). The old names have no compatibility aliases.
 2. Replace `Animation.defaultLeaveCommand` with the [bound leave-settlement operation](#replace-the-standard-animation-leave-helper) wherever the application uses standard CSS settlement. Keep custom settlement Commands for additional signals.
 3. Update any affected [UI trigger and focus tests](#update-ui-trigger-and-focus-tests).
-4. Run [the upgrade checks](#verify-the-upgrade). Assembly now rejects incompatible same-named Command handler contracts inside generic Block factories. Correct the owning definitions or handler Layers when this exposes invalid wiring.
+4. Apply the [Vite security patches](#vite-security-patches) to affected installed development tooling.
+5. Run [the upgrade checks](#verify-the-upgrade). Assembly now rejects incompatible same-named Command handler contracts inside generic Block factories. Correct the owning definitions or handler Layers when this exposes invalid wiring.
 
 The compiler-work reductions also apply without changing Block authoring. [Native TypeScript tooling](#native-typescript-tooling), [explicit assembly boundaries](#keep-source-model-schemas-independent-of-completion), and [Command-only Steps](#optional-convenience) are separate setup or organization choices.
 
@@ -145,6 +146,12 @@ The module-level `Toast.test` fixture is gone. Call `test.drainEntry` on the exa
 ::Snippet{name="uiToastDrainEntry" label="Selecting the Toast fixture and Binding"}
 
 The helper handles a freshly shown, non-sticky entry whose first enter and auto-dismiss lifecycle is pending. Use individual Command resolvers after another test step has advanced that lifecycle.
+
+## Vite Security Patches
+
+Update an installed Vite to `8.3.3` or a patched release on its existing supported line, such as `8.2.4` or `8.1.6`. The preview scaffold uses the patched `8.3` line. Refresh the lockfile and confirm that it no longer resolves `launch-editor@2.14.1` or an earlier version.
+
+This vulnerability was already present in the previous preview’s development tooling. The [upstream advisory](https://github.com/advisories/GHSA-587h-7wmj-h5pm) describes the affected Windows editor-launch path and related WSL conditions. Keep existing dependency placement and verify the application's normal development and build commands after updating.
 
 ## Native TypeScript Tooling
 

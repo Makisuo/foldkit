@@ -118,7 +118,7 @@
     "semver": "^7.8.5",
     "simple-git-hooks": "^2.14.0",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "vite": "^8.3.1"
+    "vite": "^8.3.3"
   },
   "simple-git-hooks": {
     "commit-msg": "if grep -q 'Co-Authored-By.*[Cc]laude' \"$1\"; then echo '\\n\u274c Commit message contains a Claude Co-Authored-By line. Remove it and try again.' && exit 1; fi",

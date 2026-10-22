@@ -18,7 +18,7 @@ const Message = defineMessageUnion({
   ClickedToggleBadge: {},
 })
 
-const ApplicationDefinition = Block.makeDefinition(
+const PopoverSiblingRuntimeTestDefinition = Block.makeDefinition(
   'PopoverSiblingRuntimeTest',
   {
     Model,
@@ -26,32 +26,35 @@ const ApplicationDefinition = Block.makeDefinition(
   },
 )
 
-const foldPopoverOutMessage = ApplicationDefinition.makeOutMessageFold(
+const foldPopoverOutMessage =
+  PopoverSiblingRuntimeTestDefinition.makeOutMessageFold(PopoverBlock, {
+    Opened: () => PopoverSiblingRuntimeTestDefinition.makeNoopStep(),
+    Closed: () => PopoverSiblingRuntimeTestDefinition.makeNoopStep(),
+  })
+
+const PopoverBinding = PopoverSiblingRuntimeTestDefinition.makeBinding(
   PopoverBlock,
   {
-    Opened: () => ApplicationDefinition.makeNoopStep(),
-    Closed: () => ApplicationDefinition.makeNoopStep(),
+    field: 'popover',
+    init: false,
   },
-)
+).withOutMessagePolicy({ fold: foldPopoverOutMessage })
 
-const PopoverBinding = ApplicationDefinition.makeBinding(PopoverBlock, {
-  field: 'popover',
-  init: false,
-}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+const PopoverSiblingRuntimeTestComposition =
+  PopoverSiblingRuntimeTestDefinition.makeComposition({
+    bindings: [PopoverBinding],
+  })
 
-const ApplicationComposition = ApplicationDefinition.makeComposition({
-  bindings: [PopoverBinding],
-})
-
-const update = ApplicationComposition.makeUpdate((model, message) =>
-  Message.match(message, {
-    ClickedToggleBadge: () => ({
-      model: modifyFields(model, { isBadgeShown: isShown => !isShown }),
+const update = PopoverSiblingRuntimeTestComposition.makeUpdate(
+  (model, message) =>
+    Message.match(message, {
+      ClickedToggleBadge: () => ({
+        model: modifyFields(model, { isBadgeShown: isShown => !isShown }),
+      }),
     }),
-  }),
 )
 
-const view = ApplicationComposition.makeView((model, h) =>
+const view = PopoverSiblingRuntimeTestComposition.makeView((model, h) =>
   h.main(
     [],
     [
@@ -83,8 +86,8 @@ const view = ApplicationComposition.makeView((model, h) =>
   ),
 )
 
-const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init: ApplicationComposition.makeInit(() =>
+const ApplicationBlock = PopoverSiblingRuntimeTestComposition.assembleBlock({
+  init: PopoverSiblingRuntimeTestComposition.makeInit(() =>
     PopoverBinding.init({
       args: [{ id: popoverId }],
       toParentModel: popover => ({ popover, isBadgeShown: false }),

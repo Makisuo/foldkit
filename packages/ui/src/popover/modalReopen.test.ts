@@ -8,25 +8,30 @@ const PORTAL_ROOT_ID = 'foldkit-portal-root'
 const POPOVER_ID = 'sort'
 
 const Model = Schema.Struct({ popover: PopoverBlock.Model })
-const ApplicationDefinition = Block.makeDefinition('PopoverModalReopenTest', {
-  Model,
-  Message: Schema.Never,
-})
-const foldPopoverOutMessage = ApplicationDefinition.makeOutMessageFold(
-  PopoverBlock,
+const PopoverModalReopenTestDefinition = Block.makeDefinition(
+  'PopoverModalReopenTest',
   {
-    Opened: () => ApplicationDefinition.makeNoopStep(),
-    Closed: () => ApplicationDefinition.makeNoopStep(),
+    Model,
+    Message: Schema.Never,
   },
 )
-const PopoverBinding = ApplicationDefinition.makeBinding(PopoverBlock, {
-  field: 'popover',
-  init: false,
-}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
-const ApplicationComposition = ApplicationDefinition.makeComposition({
-  bindings: [PopoverBinding],
-})
-const view = ApplicationComposition.makeView((model, h) =>
+const foldPopoverOutMessage =
+  PopoverModalReopenTestDefinition.makeOutMessageFold(PopoverBlock, {
+    Opened: () => PopoverModalReopenTestDefinition.makeNoopStep(),
+    Closed: () => PopoverModalReopenTestDefinition.makeNoopStep(),
+  })
+const PopoverBinding = PopoverModalReopenTestDefinition.makeBinding(
+  PopoverBlock,
+  {
+    field: 'popover',
+    init: false,
+  },
+).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+const PopoverModalReopenTestComposition =
+  PopoverModalReopenTestDefinition.makeComposition({
+    bindings: [PopoverBinding],
+  })
+const view = PopoverModalReopenTestComposition.makeView((model, h) =>
   h.main(
     [h.Id('page')],
     [
@@ -63,14 +68,14 @@ const view = ApplicationComposition.makeView((model, h) =>
     ],
   ),
 )
-const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init: ApplicationComposition.makeInit(() =>
+const ApplicationBlock = PopoverModalReopenTestComposition.assembleBlock({
+  init: PopoverModalReopenTestComposition.makeInit(() =>
     PopoverBinding.init({
       args: [{ id: POPOVER_ID, isModal: true }],
       toParentModel: popover => ({ popover }),
     }),
   ),
-  update: ApplicationComposition.makeUpdate(),
+  update: PopoverModalReopenTestComposition.makeUpdate(),
   view,
 })
 

@@ -9,22 +9,29 @@ import { create } from './public.js'
 const TestMenu = create<string>()
 
 const Model = Schema.Struct({ menu: TestMenu.Model })
-const ApplicationDefinition = Block.makeDefinition('MenuTriggerClickTest', {
-  Model,
-  Message: Schema.Never,
-})
-const foldMenuOutMessage = ApplicationDefinition.makeOutMessageFold(TestMenu, {
-  Selected: () => ApplicationDefinition.makeNoopStep(),
-  Closed: () => ApplicationDefinition.makeNoopStep(),
-})
-const MenuBinding = ApplicationDefinition.makeBinding(TestMenu, {
+const MenuTriggerClickTestDefinition = Block.makeDefinition(
+  'MenuTriggerClickTest',
+  {
+    Model,
+    Message: Schema.Never,
+  },
+)
+const foldMenuOutMessage = MenuTriggerClickTestDefinition.makeOutMessageFold(
+  TestMenu,
+  {
+    Selected: () => MenuTriggerClickTestDefinition.makeNoopStep(),
+    Closed: () => MenuTriggerClickTestDefinition.makeNoopStep(),
+  },
+)
+const MenuBinding = MenuTriggerClickTestDefinition.makeBinding(TestMenu, {
   field: 'menu',
   init: false,
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
-const ApplicationComposition = ApplicationDefinition.makeComposition({
-  bindings: [MenuBinding],
-})
-const view = ApplicationComposition.makeView((model, h) =>
+const MenuTriggerClickTestComposition =
+  MenuTriggerClickTestDefinition.makeComposition({
+    bindings: [MenuBinding],
+  })
+const view = MenuTriggerClickTestComposition.makeView((model, h) =>
   h.div(
     [],
     [
@@ -43,14 +50,14 @@ const view = ApplicationComposition.makeView((model, h) =>
     ],
   ),
 )
-const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init: ApplicationComposition.makeInit(() =>
+const ApplicationBlock = MenuTriggerClickTestComposition.assembleBlock({
+  init: MenuTriggerClickTestComposition.makeInit(() =>
     MenuBinding.init({
       args: [{ id: 'actions', isModal: true }],
       toParentModel: menu => ({ menu }),
     }),
   ),
-  update: ApplicationComposition.makeUpdate(),
+  update: MenuTriggerClickTestComposition.makeUpdate(),
   view,
 })
 

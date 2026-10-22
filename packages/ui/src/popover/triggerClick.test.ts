@@ -7,25 +7,30 @@ import { describe, it } from '@effect/vitest'
 import { PopoverBlock } from './block.js'
 
 const Model = Schema.Struct({ popover: PopoverBlock.Model })
-const ApplicationDefinition = Block.makeDefinition('PopoverTriggerClickTest', {
-  Model,
-  Message: Schema.Never,
-})
-const foldPopoverOutMessage = ApplicationDefinition.makeOutMessageFold(
-  PopoverBlock,
+const PopoverTriggerClickTestDefinition = Block.makeDefinition(
+  'PopoverTriggerClickTest',
   {
-    Opened: () => ApplicationDefinition.makeNoopStep(),
-    Closed: () => ApplicationDefinition.makeNoopStep(),
+    Model,
+    Message: Schema.Never,
   },
 )
-const PopoverBinding = ApplicationDefinition.makeBinding(PopoverBlock, {
-  field: 'popover',
-  init: false,
-}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
-const ApplicationComposition = ApplicationDefinition.makeComposition({
-  bindings: [PopoverBinding],
-})
-const view = ApplicationComposition.makeView((model, h) =>
+const foldPopoverOutMessage =
+  PopoverTriggerClickTestDefinition.makeOutMessageFold(PopoverBlock, {
+    Opened: () => PopoverTriggerClickTestDefinition.makeNoopStep(),
+    Closed: () => PopoverTriggerClickTestDefinition.makeNoopStep(),
+  })
+const PopoverBinding = PopoverTriggerClickTestDefinition.makeBinding(
+  PopoverBlock,
+  {
+    field: 'popover',
+    init: false,
+  },
+).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+const PopoverTriggerClickTestComposition =
+  PopoverTriggerClickTestDefinition.makeComposition({
+    bindings: [PopoverBinding],
+  })
+const view = PopoverTriggerClickTestComposition.makeView((model, h) =>
   h.div(
     [],
     [
@@ -65,14 +70,14 @@ const view = ApplicationComposition.makeView((model, h) =>
 
 const makeProgram = (container: HTMLElement, isModal: boolean) =>
   Program.makeElement({
-    block: ApplicationComposition.assembleBlock({
-      init: ApplicationComposition.makeInit(() =>
+    block: PopoverTriggerClickTestComposition.assembleBlock({
+      init: PopoverTriggerClickTestComposition.makeInit(() =>
         PopoverBinding.init({
           args: [{ id: 'sort', isModal }],
           toParentModel: popover => ({ popover }),
         }),
       ),
-      update: ApplicationComposition.makeUpdate(),
+      update: PopoverTriggerClickTestComposition.makeUpdate(),
       view,
     }),
     container,

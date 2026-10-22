@@ -30,13 +30,13 @@ export const AnyReportingHeadless: Block.AssemblyWithOutMessage<
 > = anyProducer()
 
 // @ts-expect-error A declaration carrier with any Producer has poisoned required fields.
-export const AnyViewedAsBlock: Block.AnyBlock = AnyViewed
+AnyViewed satisfies Block.AnyBlock
 // @ts-expect-error The headless carrier cannot launder any into AnyBlock.
-export const AnyHeadlessAsBlock: Block.AnyBlock = AnyHeadless
+AnyHeadless satisfies Block.AnyBlock
 // @ts-expect-error The reporting viewed carrier cannot launder any into AnyBlock.
-export const AnyReportingViewedAsBlock: Block.AnyBlock = AnyReportingViewed
+AnyReportingViewed satisfies Block.AnyBlock
 // @ts-expect-error The reporting headless carrier cannot launder any into AnyBlock.
-export const AnyReportingHeadlessAsBlock: Block.AnyBlock = AnyReportingHeadless
+AnyReportingHeadless satisfies Block.AnyBlock
 // @ts-expect-error The carrier cannot register an any Producer as a valid child.
 ParentDefinition.makeBinding(AnyViewed, { field: 'child', init: false })
 // @ts-expect-error The carrier cannot complete a Program with an any Producer.
@@ -52,9 +52,9 @@ export declare const NeverProducer: Block.AssemblyWithView<
   typeof neverProducer
 >
 // @ts-expect-error A never result keeps poisoned fields in the public carrier too.
-export const NeverResultAsBlock: Block.AnyBlock = NeverResult
+NeverResult satisfies Block.AnyBlock
 // @ts-expect-error A whole-never Producer keeps poisoned fields in the public carrier too.
-export const NeverProducerAsBlock: Block.AnyBlock = NeverProducer
+NeverProducer satisfies Block.AnyBlock
 // @ts-expect-error A never-result carrier cannot register a child.
 ParentDefinition.makeBinding(NeverResult, { field: 'child', init: false })
 // @ts-expect-error A whole-never carrier cannot register a child.
@@ -127,7 +127,7 @@ export declare const NeverHeadless: Block.AssemblyWithoutViewOrOutMessage<
   never
 >
 // @ts-expect-error Every carrier keeps whole-never producers unusable as a Block.
-export const NeverHeadlessAsBlock: Block.AnyBlock = NeverHeadless
+NeverHeadless satisfies Block.AnyBlock
 
 export type AnyModelReportingViewed = Block.AssemblyWithViewAndOutMessage<
   any,
@@ -149,7 +149,7 @@ export declare const NeverReportingViewed: Block.AssemblyWithViewAndOutMessage<
   never
 >
 // @ts-expect-error Every carrier keeps whole-never producers unusable as a Block.
-export const NeverReportingViewedAsBlock: Block.AnyBlock = NeverReportingViewed
+NeverReportingViewed satisfies Block.AnyBlock
 
 export type AnyModelReportingHeadless = Block.AssemblyWithOutMessage<
   any,
@@ -171,5 +171,4 @@ export declare const NeverReportingHeadless: Block.AssemblyWithOutMessage<
   never
 >
 // @ts-expect-error Every carrier keeps whole-never producers unusable as a Block.
-export const NeverReportingHeadlessAsBlock: Block.AnyBlock =
-  NeverReportingHeadless
+NeverReportingHeadless satisfies Block.AnyBlock

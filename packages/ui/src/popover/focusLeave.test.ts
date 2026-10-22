@@ -7,25 +7,30 @@ import { describe, it } from '@effect/vitest'
 import { PopoverBlock } from './block.js'
 
 const Model = Schema.Struct({ popover: PopoverBlock.Model })
-const ApplicationDefinition = Block.makeDefinition('PopoverFocusLeaveTest', {
-  Model,
-  Message: Schema.Never,
-})
-const foldPopoverOutMessage = ApplicationDefinition.makeOutMessageFold(
-  PopoverBlock,
+const PopoverFocusLeaveTestDefinition = Block.makeDefinition(
+  'PopoverFocusLeaveTest',
   {
-    Opened: () => ApplicationDefinition.makeNoopStep(),
-    Closed: () => ApplicationDefinition.makeNoopStep(),
+    Model,
+    Message: Schema.Never,
   },
 )
-const PopoverBinding = ApplicationDefinition.makeBinding(PopoverBlock, {
-  field: 'popover',
-  init: false,
-}).withOutMessagePolicy({ fold: foldPopoverOutMessage })
-const ApplicationComposition = ApplicationDefinition.makeComposition({
-  bindings: [PopoverBinding],
-})
-const view = ApplicationComposition.makeView((model, h) =>
+const foldPopoverOutMessage =
+  PopoverFocusLeaveTestDefinition.makeOutMessageFold(PopoverBlock, {
+    Opened: () => PopoverFocusLeaveTestDefinition.makeNoopStep(),
+    Closed: () => PopoverFocusLeaveTestDefinition.makeNoopStep(),
+  })
+const PopoverBinding = PopoverFocusLeaveTestDefinition.makeBinding(
+  PopoverBlock,
+  {
+    field: 'popover',
+    init: false,
+  },
+).withOutMessagePolicy({ fold: foldPopoverOutMessage })
+const PopoverFocusLeaveTestComposition =
+  PopoverFocusLeaveTestDefinition.makeComposition({
+    bindings: [PopoverBinding],
+  })
+const view = PopoverFocusLeaveTestComposition.makeView((model, h) =>
   h.div(
     [],
     [
@@ -65,14 +70,14 @@ const view = ApplicationComposition.makeView((model, h) =>
 
 const makeProgram = (container: HTMLElement) =>
   Program.makeElement({
-    block: ApplicationComposition.assembleBlock({
-      init: ApplicationComposition.makeInit(() =>
+    block: PopoverFocusLeaveTestComposition.assembleBlock({
+      init: PopoverFocusLeaveTestComposition.makeInit(() =>
         PopoverBinding.init({
           args: [{ id: 'sort' }],
           toParentModel: popover => ({ popover }),
         }),
       ),
-      update: ApplicationComposition.makeUpdate(),
+      update: PopoverFocusLeaveTestComposition.makeUpdate(),
       view,
     }),
     container,

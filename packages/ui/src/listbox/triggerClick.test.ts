@@ -9,24 +9,29 @@ import { create } from './public.js'
 const TestListbox = create<string>()
 
 const Model = Schema.Struct({ listbox: TestListbox.Model })
-const ApplicationDefinition = Block.makeDefinition('ListboxTriggerClickTest', {
-  Model,
-  Message: Schema.Never,
-})
-const foldListboxOutMessage = ApplicationDefinition.makeOutMessageFold(
-  TestListbox,
+const ListboxTriggerClickTestDefinition = Block.makeDefinition(
+  'ListboxTriggerClickTest',
   {
-    Selected: () => ApplicationDefinition.makeNoopStep(),
+    Model,
+    Message: Schema.Never,
   },
 )
-const ListboxBinding = ApplicationDefinition.makeBinding(TestListbox, {
-  field: 'listbox',
-  init: false,
-}).withOutMessagePolicy({ fold: foldListboxOutMessage })
-const ApplicationComposition = ApplicationDefinition.makeComposition({
-  bindings: [ListboxBinding],
-})
-const view = ApplicationComposition.makeView((model, h) =>
+const foldListboxOutMessage =
+  ListboxTriggerClickTestDefinition.makeOutMessageFold(TestListbox, {
+    Selected: () => ListboxTriggerClickTestDefinition.makeNoopStep(),
+  })
+const ListboxBinding = ListboxTriggerClickTestDefinition.makeBinding(
+  TestListbox,
+  {
+    field: 'listbox',
+    init: false,
+  },
+).withOutMessagePolicy({ fold: foldListboxOutMessage })
+const ListboxTriggerClickTestComposition =
+  ListboxTriggerClickTestDefinition.makeComposition({
+    bindings: [ListboxBinding],
+  })
+const view = ListboxTriggerClickTestComposition.makeView((model, h) =>
   h.div(
     [],
     [
@@ -46,14 +51,14 @@ const view = ApplicationComposition.makeView((model, h) =>
     ],
   ),
 )
-const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init: ApplicationComposition.makeInit(() =>
+const ApplicationBlock = ListboxTriggerClickTestComposition.assembleBlock({
+  init: ListboxTriggerClickTestComposition.makeInit(() =>
     ListboxBinding.init({
       args: [{ id: 'sort', isModal: true }],
       toParentModel: listbox => ({ listbox }),
     }),
   ),
-  update: ApplicationComposition.makeUpdate(),
+  update: ListboxTriggerClickTestComposition.makeUpdate(),
   view,
 })
 

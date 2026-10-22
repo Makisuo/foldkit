@@ -19,7 +19,7 @@ import { SnippetCopyBlock } from '../snippetCopy'
 import { SnippetDisclosureBlock } from '../snippetDisclosure'
 import { ApplyTheme, SaveThemePreference, resolveTheme } from '../theme'
 import { type ThemePreference } from '../themePreference'
-import { ThemeMenu } from '../view'
+import * as ThemeMenu from '../view/themeMenu'
 import { HomeBinding } from './home'
 
 export const SearchBinding = ApplicationDefinition.makeBinding(SearchBlock, {

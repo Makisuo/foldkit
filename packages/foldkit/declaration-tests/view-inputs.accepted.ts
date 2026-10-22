@@ -41,6 +41,16 @@ export type ViewInputs = Readonly<{
   recursive: RecursiveItem
 }>
 
+export type DateBearingInputs = Readonly<{
+  report: Readonly<{
+    createdAt: Date
+    timeline: ReadonlyArray<Readonly<{ at: Date }>>
+    maybeExpiresAt: Option.Option<Date>
+    range: readonly [Date, Date]
+    byId: Readonly<Record<string, Readonly<{ at: Date }>>>
+  }>
+}>
+
 const DeclarationViewInputsNamespace = Block.makeNamespace(
   'DeclarationViewInputs',
 )
@@ -73,6 +83,20 @@ export const DeclarationGenericViewInputsComposition = Block.makeNamespace(
     Message: ViewInputsMessage,
   })
   .makeComposition()
+
+export const dateBearingView =
+  DeclarationGenericViewInputsComposition.makeView.withInputs<DateBearingInputs>(
+    (_model, { report }, h) => h.div([], [report.createdAt.toISOString()]),
+  )
+
+export const DateInputBlock =
+  DeclarationGenericViewInputsComposition.assembleBlock({
+    init: () => ({ model: ViewInputsModel.make({ id: 'date-child' }) }),
+    update: DeclarationGenericViewInputsComposition.makeUpdate(model => ({
+      model,
+    })),
+    view: dateBearingView,
+  })
 
 export const makeGenericBlock = <Item>() => {
   const genericView =

@@ -248,6 +248,8 @@ A child view builds handlers for the child's Message union. A top-level callback
 
 Keep callbacks at the top level of `viewInputs`. View authoring rejects statically visible functions nested inside records, arrays, tuples, unions, or `Option` values because Foldkit cannot infer which boundary should own them. Generic views retain that check when their inputs become concrete. Runtime validation also checks dynamically typed inputs.
 
+Ordinary `Date` values are data, including inside records, arrays, tuples, and `Option`. Their standard prototype methods do not count as application callbacks. Adding a callback field to a Date still makes that field subject to the nested-callback check. TypeScript cannot distinguish an own override of a standard Date method from the prototype method; the runtime check rejects enumerable own function fields. An invalid input diagnostic can identify the nested field; move an application callback to a top-level input rather than casting the inputs.
+
 ### Publish child attributes {#child-attributes}
 
 A headless Block may supply behavior while its parent chooses the markup. The child builds attribute groups with `childAttributes` before passing them to `toView`. Each group retains the child's dispatcher and any Mount requirements.
@@ -265,6 +267,16 @@ Block authors call `childAttributes`; consumers spread the supplied groups. Stat
 Build shared renderers in the parent and pass them as top-level `viewInputs` callbacks. A renderer can embed a sibling Block through that sibling's Binding. Each embed then establishes its own child boundary.
 
 Thread `h` through view functions and render callbacks. Do not store a builder in module state; its dispatch context belongs to the current render boundary.
+
+## Connected Step Diagnostics
+
+A connected Step needs the Composition that registered its Binding. A plain Model has the right data but cannot establish that registration. If a diagnostic asks for a registered Composition, return the connected result intact from that Composition's `makeUpdate`, or define a deferred parent Step with the Definition's `makeStep` and apply it there:
+
+::Snippet{name="blockDeferredConnectedStep" label="Deferring a connected Step to its registered Composition"}
+
+The Definition helper preserves the Binding requirement; it does not register the Binding. Removing `SettingsBinding` from this Composition still makes completion fail. Do not widen the Step to an ordinary Model-returning function or extract `.model` from its opaque result.
+
+At assembly, check the failing implementation field first. Author the primary view through the same Composition's `makeView`; use a plain function only as an extracted rendering helper. A missing handler needs its attached `.layer` in the local `EffectsLayer` or an explicit `hostHandlers` declaration. An invalid init plan needs every parent-owned field with its declared type; registered initialization supplies only the fields its Bindings own. These are different contracts, so changing a view or casting the assembly object cannot repair a missing handler or init field.
 
 ## Child Delivery Context
 

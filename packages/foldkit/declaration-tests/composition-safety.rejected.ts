@@ -13,9 +13,37 @@ import {
   PlainBinding,
   PlainBlock,
   RestContextBlock,
+  combinedMixedConnectedStep,
+  deferredMixedConnectedStep,
   initialParentModel,
   initializePlain,
+  mixedConnectedSteps,
 } from './composition-safety.accepted.js'
+
+const rejectRawMixedConnectedSteps = () => {
+  // @ts-expect-error A generic no-op cannot erase a connected Step's graph requirement.
+  // oxfmt-ignore
+  Update.combineSteps(initialParentModel, [PlainBinding.increment(), CompositionSafetyParentDefinition.makeNoopStep()])
+  // @ts-expect-error Reversing Steps cannot erase the connected graph requirement.
+  // oxfmt-ignore
+  Update.combineSteps(initialParentModel, [CompositionSafetyParentDefinition.makeNoopStep(), PlainBinding.increment()])
+  // @ts-expect-error A predeclared tuple retains the connected graph requirement.
+  Update.combineSteps(initialParentModel, mixedConnectedSteps)
+  // @ts-expect-error A deferred combination still requires its registered Composition.
+  deferredMixedConnectedStep(initialParentModel)
+}
+const rejectReadableMixedRecipe = (
+  model: Parameters<typeof combinedMixedConnectedStep>[0],
+) => {
+  const combined = combinedMixedConnectedStep(model)
+
+  // @ts-expect-error A connected combination remains opaque before composition.
+  combined.model
+  // @ts-expect-error A connected combination cannot expose unresolved Commands.
+  combined.commands
+}
+void rejectRawMixedConnectedSteps
+void rejectReadableMixedRecipe
 
 declare const useSecondField: boolean
 

@@ -193,6 +193,12 @@ Import Effect's module as `Layer`. Use these names to keep local implementations
 
 Compose local recipes directly with `Layer.mergeAll`. Name an individual provider `LoadUserLayer` only when it is intentionally public or independently reused outside that assembly. Name an external test alternative `LoadUserTestLayer`.
 
+Commands and ManagedResources currently have no aggregate Layer. List each local Command's `.layer` and each ManagedResource entry's `.layer` in the merge. An owned Subscription registry supplies `subscriptions.layer` when every entry has an attached handler:
+
+::Snippet{name="applicationFeatureLayer" label="Combining local handler recipes"}
+
+`Layer.mergeAll` and Block completion build passive recipes. The Runtime constructs the handlers when the Program starts. A ManagedResource acquires its handle when its Model condition becomes active; including its handler Layer does not acquire the handle.
+
 A Block passes its local bundle to `FeatureComposition.assembleBlock({ EffectsLayer })`. Registering its Binding in the parent contributes the child's checked handler graph, including descendants. The parent supplies only its own local recipes. Do not merge a registered child's bundle again. This works for static, optional, and keyed Bindings, so the entry point never needs to import every leaf handler.
 
 A feature can provide a business service it owns beneath its local `EffectsLayer`. Leave concrete environment providers open for the root to select. Those ordinary requirements flow through parents until `program.provide(ApplicationLayer)` satisfies them. `ServicesLayer` is a useful name for an intermediate service bundle when root composition needs one.

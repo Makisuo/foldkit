@@ -5,7 +5,10 @@ import { makeNamespace } from '../block/define.js'
 import { defineMessageUnion } from '../message/index.js'
 import type * as Mount from '../mount/index.js'
 import type { ChildAttribute, Html, HtmlBuilder } from './index.js'
-import type { ValidViewInputs } from './viewInputs.js'
+import type {
+  InvalidViewInputsDiagnostic,
+  ValidViewInputs,
+} from './viewInputs.js'
 
 type Equal<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends <
@@ -73,6 +76,43 @@ type RecursiveUnionCallbacks = Readonly<{
   next?: RecursiveUnionCallbacks
   branch: RecursiveUnionCallbacks | Readonly<{ onSubmit: () => unknown }>
 }>
+
+type DateBearingInputs = Readonly<{
+  report: Readonly<{
+    createdAt: Date
+    timeline: ReadonlyArray<Readonly<{ at: Date }>>
+    maybeExpiresAt: Option.Option<Date>
+    range: readonly [Date, Date]
+    byId: Readonly<Record<string, Readonly<{ at: Date }>>>
+  }>
+}>
+
+type DateWithCallback = Date & Readonly<{ onSubmit: () => unknown }>
+
+type PreservesDateBearingInputs = Expect<
+  Equal<ValidViewInputs<DateBearingInputs>, DateBearingInputs>
+>
+type RejectsDateWithCallback = Expect<
+  Equal<ValidViewInputs<Readonly<{ createdAt: DateWithCallback }>>, never>
+>
+type IdentifiesNestedCallbackPath = Expect<
+  Equal<
+    keyof InvalidViewInputsDiagnostic<NestedArrayCallbacks>,
+    'Nested callback at viewInputs.rows[number].onSubmit: move it to a top-level ViewInputs field'
+  >
+>
+
+type OmitsOptionalTopLevelCallbackPath = Expect<
+  Equal<
+    keyof InvalidViewInputsDiagnostic<
+      Readonly<{
+        onClose?: () => void
+        config: Readonly<{ onSubmit: () => void }>
+      }>
+    >,
+    'Nested callback at viewInputs.config.onSubmit: move it to a top-level ViewInputs field'
+  >
+>
 
 class SchemaBackedItem extends Schema.Class<SchemaBackedItem>(
   'SchemaBackedItem',
@@ -144,6 +184,11 @@ const ViewInputsComposition = ViewInputsNamespace.makeDefinition({
 const acceptedView =
   ViewInputsComposition.makeView.withInputs<AcceptedViewInputs>(
     (model, _viewInputs, h) => h.div([h.OnMount(Observe())], [model.id]),
+  )
+
+const dateBearingView =
+  ViewInputsComposition.makeView.withInputs<DateBearingInputs>(
+    (_model, { report }, h) => h.div([], [report.createdAt.toISOString()]),
   )
 
 type GenericViewInputs<Item> = Readonly<{
@@ -255,6 +300,10 @@ type CallbackItemViewStillRequiresInputs = Expect<
 >
 
 export type ViewInputsAssertions = [
+  PreservesDateBearingInputs,
+  RejectsDateWithCallback,
+  IdentifiesNestedCallbackPath,
+  OmitsOptionalTopLevelCallbackPath,
   RejectsNestedRecordCallbacks,
   RejectsNestedArrayCallbacks,
   RejectsTopLevelArrayCallbacks,
@@ -277,6 +326,7 @@ describe('ValidViewInputs', () => {
 
     expect(Object.keys(item)).toEqual(['id'])
     expect(acceptedView).toBeTypeOf('function')
+    expect(dateBearingView).toBeTypeOf('function')
     expect(rejectNestedRecordCallbacks).toBeTypeOf('function')
     expect(rejectNestedArrayCallbacks).toBeTypeOf('function')
     expect(rejectNestedOptionCallbacks).toBeTypeOf('function')

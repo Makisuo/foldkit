@@ -317,6 +317,13 @@ child Bindings contribute their selected handler and lifecycle graphs
 automatically. The root `ApplicationLayer` supplies the ordinary HTTP, storage,
 RPC, browser, and business Services that those recipes still require.
 
+Compose local Command and ManagedResource entry `.layer` recipes explicitly
+with `Layer.mergeAll`; neither has an aggregate Layer. An owned Subscription
+registry exposes `subscriptions.layer` when every entry has an attached
+handler. Merging recipes does not construct handlers or acquire a managed
+handle. The Runtime constructs handlers at startup and acquires each
+ManagedResource when its Model condition becomes active.
+
 Keep those responsibilities separate. Do not merge a registered child's Layer
 again at its parent or flatten every handler into the entry point. Completion
 and `program.provide(ApplicationLayer)` remain passive; the Runtime builds
@@ -363,7 +370,7 @@ export const EffectsLayer = MeasurePanel.layer
 
 The view uses `h.OnMount(MeasurePanel())`. Put the Mount in `FeatureDefinition.makeComposition({ mounts })` and author the canonical view through that Composition; its builder receives the capability automatically. Immediately after the Composition, declare `type FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` for ordinary feature-local helpers on the same mounted or child embedding path. Export it only when another file uses it. Give each helper only its meaningful Model, domain, or context parameters plus `h: FeatureViewBuilder`. Reusable helpers independent of one owner keep the general `HtmlBuilder<Message>`. Use `FeatureDefinition.makeMountStream` when the element supplies an ongoing event Stream; keep listener or observer acquisition and cleanup inside the returned Stream so each element owns its own scope.
 
-The owner-specific `FeatureViewBuilder` alias preserves its Composition's Message, child, and Mount evidence and creates no runtime value. Its owner prefix is the exception to the standard `Model`, `Message`, and `OutMessage` names because a plain builder type import must identify the Composition whose capabilities it carries. Reusable helpers retain the framework's general `HtmlBuilder<Message>`.
+The owner-specific `FeatureViewBuilder` alias preserves its Composition's Message, child, and Mount evidence and creates no runtime value. Its owner prefix is the exception to the standard `Model`, `Message`, and `OutMessage` names because a plain builder type import must identify the Composition whose capabilities it carries. A helper shared across Compositions declares a `ParentMessage` generic and takes `h: HtmlBuilder<ParentMessage>`. Add a capability generic only when forwarding Mount attributes, view callbacks, or child embeddings requires preserving that capability.
 
 Complete each feature with its local Subscription registry. Include its parent-owned Binding in the parent Composition's `bindings`; composition collects child records and preserves their Message contracts automatically. Parent Subscription activation belongs in the Binding's `subscriptions.when` policy.
 
@@ -399,10 +406,12 @@ Subscriptions are model-driven streams. They automatically start and stop based 
 Build them with `FeatureDefinition.makeSubscriptions(entry => ({ ... }))`. Use the Layer-backed `entry(handlerName, fields, callbacks)` form when its lifetime depends on the Model. For those Subscriptions, provide:
 
 - A stable handler name. Distinct definitions in one application need distinct names even when their record keys differ.
-- A `fields` map (the bare field map passed as `entry`'s second argument) naming every dependency. The builder calls `Schema.Struct(fields)` internally and infers the dependency type from this map.
+- A `fields` map (the bare field map passed as `entry`'s second argument) naming every dependency. The builder calls `Schema.Struct(fields)` internally and infers the dependency type from this map. If an adapter already exposes a Struct, pass `dependenciesSchema.fields`, not the Struct itself.
 - A `messages` collection in `callbacks` listing the exact Message Schemas the attached handler or external `toLayer` Stream can emit. Use `messages: []` when the scoped Stream emits no Messages; that declaration requires `Stream<never>`. Scene uses the Schemas to validate both the selected `Subscription.emit` source and its Message before applying parent mappings.
 - A `modelToDependencies(model)` function that returns the parameters the stream needs. Wrap an absent dependency in `Option` at the field level. The runtime restarts the stream whenever the dependencies change.
 - A `handler: function* () { return dependencies => stream }` field. Errors should be mapped to a `Failed*` Message inside the stream rather than thrown. Compose the owned registry’s `subscriptions.layer` in the owning module’s `EffectsLayer` when every entry has an attached handler. It preserves all constructor errors and Service requirements. Mixed host contracts have no aggregate; the entry key `layer` is reserved. Individual entry Layers remain valid for selective assembly.
+
+When an external generic Stream helper infers its Message from one callback and rejects another declared variant, annotate the callback that determines its result with the union this entry declares. Use `typeof Message.Type` when the entry declares the full Message union. Keep the entry's exact `messages` declaration; it still checks the resulting Stream.
 
 Name the handler for the events or scoped behavior the entry supplies, such as `KeyboardPresses`, `SystemThemeChanges`, or `GameClockTicks`. The handler name identifies the Layer requirement. Keep the record key parallel, such as `keyboardPresses`, `systemThemeChanges`, or `gameClockTicks`; the key identifies the runtime registration and Stream scope. Several lifted registrations can share one definition and handler Layer while retaining distinct keys. The Model dependencies determine when its scope is active. Avoid generic `Watch*` names that identify only the input source. Compose the entry's attached recipe directly in `EffectsLayer`; create a standalone binding such as `KeyboardPressesLayer` only when that individual provider is intentionally public or independently reused outside `EffectsLayer` assembly. Subscription lifecycle entries in DevTools are follow-up work.
 

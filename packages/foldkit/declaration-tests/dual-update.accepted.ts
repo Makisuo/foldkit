@@ -83,6 +83,54 @@ const reportUpdate = CounterComposition.makeUpdate((model, message) =>
   ),
 )
 
+const ternaryUpdate = CounterComposition.makeUpdate((model, message) =>
+  message._tag === 'ChangedCount'
+    ? {
+        model,
+        commands: [Save()],
+        outMessage: OutMessage.ReportedCount({ count: model.count }),
+      }
+    : { model },
+)
+const earlyReturnUpdate = CounterComposition.makeUpdate((model, message) => {
+  if (message._tag === 'ChangedCount') {
+    return {
+      model,
+      commands: [Save()],
+      outMessage: OutMessage.ReportedCount({ count: model.count }),
+    }
+  }
+
+  return { model }
+})
+
+type TernaryReturn = Expect<
+  Equal<
+    ReturnType<typeof ternaryUpdate>,
+    Update.ReturnWithOutMessage<
+      Model,
+      Message,
+      OutMessage,
+      Command.HandlerOf<typeof Save>
+    >
+  >
+>
+type EarlyReturn = Expect<
+  Equal<ReturnType<typeof earlyReturnUpdate>, ReturnType<typeof ternaryUpdate>>
+>
+type TernaryRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<typeof ternaryUpdate>,
+    Command.HandlerOf<typeof Save>
+  >
+>
+type EarlyReturnRequirements = Expect<
+  Equal<
+    Update.RequirementsOf<typeof earlyReturnUpdate>,
+    Command.HandlerOf<typeof Save>
+  >
+>
+
 type CanonicalParameters = Expect<
   Equal<Parameters<typeof update>, [model: Model, message: Message]>
 >
@@ -114,6 +162,20 @@ const CounterBlock = CounterComposition.assembleBlock({
     model: Model.make({ count: 0 }),
   })),
   update,
+  EffectsLayer: SaveLayer,
+})
+const TernaryBlock = CounterComposition.assembleBlock({
+  init: CounterComposition.makeInit(() => ({
+    model: Model.make({ count: 0 }),
+  })),
+  update: ternaryUpdate,
+  EffectsLayer: SaveLayer,
+})
+const EarlyReturnBlock = CounterComposition.assembleBlock({
+  init: CounterComposition.makeInit(() => ({
+    model: Model.make({ count: 0 }),
+  })),
+  update: earlyReturnUpdate,
   EffectsLayer: SaveLayer,
 })
 const plainUpdate = (model: Model, _message: Message) => ({ model })
@@ -183,6 +245,11 @@ const combined = Update.combineSteps(Model.make({ count: 0 }), [
   changedCountStep,
   stepModel => incrementAgain(stepModel, 3),
 ])
+
+const combineGenericSteps = <Model, Message, R>(
+  model: Model,
+  steps: ReadonlyArray<Update.Step<Model, Message, R>>,
+) => Update.combineSteps<Model, Message, R>(model, steps)
 
 type CombinedModel = Expect<Equal<typeof combined.model, Model>>
 
@@ -664,13 +731,20 @@ void Option.none()
 
 export {
   ChildBlock,
+  CounterComposition,
+  EarlyReturnBlock,
   Model,
   Message,
+  OutMessage,
+  Save,
+  TernaryBlock,
   changedCount,
   combined,
+  combineGenericSteps,
   completedGraphCombined,
   completedParentStep,
   defaultContextUpdate,
+  earlyReturnUpdate,
   FullChannelBlock,
   fullChannelStep,
   graphCombined,
@@ -702,6 +776,7 @@ export {
   requiredContextUpdate,
   requiredRestContextUpdate,
   restContextUpdate,
+  ternaryUpdate,
   update,
 }
 
@@ -709,6 +784,10 @@ export type Assertions = [
   CanonicalParameters,
   CanonicalReturn,
   OutMessageReturn,
+  TernaryReturn,
+  EarlyReturn,
+  TernaryRequirements,
+  EarlyReturnRequirements,
   CurriedStepParameters,
   CurriedStepReturn,
   ConstructorError,

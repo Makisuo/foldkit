@@ -58,6 +58,45 @@ const reportUpdate = CounterComposition.makeUpdate((model, message) =>
   ),
 )
 
+const ternaryUpdate = CounterComposition.makeUpdate((model, message) =>
+  message._tag === 'ChangedCount'
+    ? {
+        model,
+        commands: [Save()],
+        outMessage: OutMessage.ReportedCount({ count: model.count }),
+      }
+    : { model },
+)
+const earlyReturnUpdate = CounterComposition.makeUpdate((model, message) => {
+  if (message._tag === 'ChangedCount') {
+    return {
+      model,
+      commands: [Save()],
+      outMessage: OutMessage.ReportedCount({ count: model.count }),
+    }
+  }
+
+  return { model }
+})
+const rejectMissingBranchHandlers = () => {
+  // @ts-expect-error A Command in one ternary branch still requires its handler.
+  CounterComposition.assembleBlock({
+    init: () => ({ model: Model.make({ count: 0 }) }),
+    update: ternaryUpdate,
+  })
+  // @ts-expect-error A Command before an early return still requires its handler.
+  CounterComposition.assembleBlock({
+    init: () => ({ model: Model.make({ count: 0 }) }),
+    update: earlyReturnUpdate,
+  })
+}
+void rejectMissingBranchHandlers
+
+const combineGenericSteps = <Model, Message, R>(
+  model: Model,
+  steps: ReadonlyArray<Update.Step<Model, Message, R>>,
+) => Update.combineSteps<Model, Message, R>(model, steps)
+
 type DispatchContext = Readonly<{ multiplier: number }>
 
 const ContextComposition = makeDefinition('DualUpdateRuntimeContextCounter', {
@@ -198,6 +237,83 @@ it('runs direct and Message-first curried updates identically', () => {
   )
   expect(update.length).toBe(2)
   expect(update(changedCount).length).toBe(1)
+})
+
+it('retains branch Commands and OutMessage beside a pure return', () => {
+  const model = Model.make({ count: 3 })
+
+  for (const branchUpdate of [ternaryUpdate, earlyReturnUpdate]) {
+    const changed = branchUpdate(model, changedCount)
+    const completed = branchUpdate(model, Message.CompletedSave())
+
+    expect(changed.model).toBe(model)
+    expect(changed.commands?.map(command => command.name)).toEqual([Save.name])
+    expect(changed.outMessage).toEqual(
+      OutMessage.ReportedCount({ count: model.count }),
+    )
+    expect(completed).toEqual({ model })
+    expect(branchUpdate(changedCount)(model).outMessage).toEqual(
+      changed.outMessage,
+    )
+  }
+
+  expectTypeOf<ReturnType<typeof ternaryUpdate>>().toEqualTypeOf<
+    Update.ReturnWithOutMessage<
+      Model,
+      Message,
+      OutMessage,
+      Command.HandlerOf<typeof Save>
+    >
+  >()
+  expectTypeOf<ReturnType<typeof earlyReturnUpdate>>().toEqualTypeOf<
+    Update.ReturnWithOutMessage<
+      Model,
+      Message,
+      OutMessage,
+      Command.HandlerOf<typeof Save>
+    >
+  >()
+  expectTypeOf<Update.RequirementsOf<typeof ternaryUpdate>>().toEqualTypeOf<
+    Command.HandlerOf<typeof Save>
+  >()
+  expectTypeOf<Update.RequirementsOf<typeof earlyReturnUpdate>>().toEqualTypeOf<
+    Command.HandlerOf<typeof Save>
+  >()
+})
+
+it('keeps a generic no-op Step and Command Step precise in either order', () => {
+  const model = Model.make({ count: 3 })
+  const commandsStep = Counter.makeCommandsStep([Save()])
+  const commandsLast = Update.combineSteps(model, [
+    Counter.makeNoopStep(),
+    commandsStep,
+  ])
+  const commandsFirst = Update.combineSteps(model, [
+    commandsStep,
+    Counter.makeNoopStep(),
+  ])
+  const genericCommands = combineGenericSteps(model, [commandsStep])
+
+  expect(commandsLast.model).toBe(model)
+  expect(commandsFirst.model).toBe(model)
+  expect(genericCommands.model).toBe(model)
+  expect(commandsLast.commands?.map(command => command.name)).toEqual([
+    Save.name,
+  ])
+  expect(commandsFirst.commands?.map(command => command.name)).toEqual([
+    Save.name,
+  ])
+  expectTypeOf(commandsLast.model).toEqualTypeOf<Model>()
+  expectTypeOf(commandsFirst.model).toEqualTypeOf<Model>()
+  expectTypeOf<
+    Update.RequirementsOf<() => typeof commandsLast>
+  >().toEqualTypeOf<Command.HandlerOf<typeof Save>>()
+  expectTypeOf<
+    Update.RequirementsOf<() => typeof commandsFirst>
+  >().toEqualTypeOf<Command.HandlerOf<typeof Save>>()
+  expectTypeOf<
+    Update.RequirementsOf<() => typeof genericCommands>
+  >().toEqualTypeOf<Command.HandlerOf<typeof Save>>()
 })
 
 it('supplies required, optional, default, rest, and required-rest Context', () => {

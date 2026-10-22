@@ -207,6 +207,65 @@ describe('h.block', () => {
     expect(result?.text).toBe('count: 3')
   })
 
+  it('preserves native Dates in nested records and collections', () => {
+    const createdAt = new Date('2026-10-21T12:00:00.000Z')
+    const dateView = defineView<
+      object,
+      ChildMessage,
+      Readonly<{
+        report: Readonly<{
+          createdAt: Date
+          timeline: ReadonlyArray<Readonly<{ at: Date }>>
+          maybeExpiresAt: Option.Option<Date>
+        }>
+      }>
+    >((_model, { report }) => {
+      expect(report.createdAt).toBe(createdAt)
+      expect(report.timeline.map(({ at }) => at)).toEqual([createdAt])
+      expect(report.maybeExpiresAt).toEqual(Option.some(createdAt))
+
+      return h('div', report.createdAt.toISOString())
+    })
+
+    const result = block({
+      slotId: 'date-inputs',
+      model: {},
+      view: dateView,
+      viewInputs: {
+        report: {
+          createdAt,
+          timeline: [{ at: createdAt }],
+          maybeExpiresAt: Option.some(createdAt),
+        },
+      },
+      toParentMessage: message => GotChild({ entryId: 'date-inputs', message }),
+    })
+
+    expect(result?.text).toBe('2026-10-21T12:00:00.000Z')
+  })
+
+  it('rejects enumerable callback overrides on Date values', () => {
+    const createdAt = Object.assign(new Date('2026-10-21T12:00:00.000Z'), {
+      getTime: () => 0,
+    })
+    const dateView = defineView<
+      object,
+      ChildMessage,
+      Readonly<{ report: Readonly<{ createdAt: Date }> }>
+    >(() => h('div'))
+
+    expect(() =>
+      block({
+        slotId: 'date-callback',
+        model: {},
+        view: dateView,
+        viewInputs: { report: { createdAt } },
+        toParentMessage: message =>
+          GotChild({ entryId: 'date-callback', message }),
+      }),
+    ).toThrow('viewInputs.report.createdAt.getTime')
+  })
+
   it('preserves outer boundary after the Block call returns', () => {
     // NOTE: register a wrap for the outer boundary the way h.block
     // pairs registerBoundaryWrap with pushBoundary in real code. A

@@ -98,6 +98,9 @@ type ConcreteGraphRequirement<Requirement> = 0 extends 1 & Requirement
 /**
  * Carries the exact registered Binding graph available to a Composition callback.
  * Connected Steps require this capability on their Model input.
+ * Apply them inside the Composition's `makeUpdate` or `makeInit` callback.
+ * To define a reusable Step before composition, return the connected Step from
+ * `Definition.makeStep`, or return `Update.combineSteps(steps)` for several Steps.
  */
 export interface GraphCapability<Model, Requirement> {
   readonly [GraphCapabilityTypeId]: readonly [
@@ -765,6 +768,14 @@ type StepsFromReturns<
 type CombinedGraphRequirement<Steps extends ReadonlyArray<AnyStep>> =
   GraphRequirementOf<Steps[number]>
 
+type RegisteredCompositionDiagnostic<Input, Model> = [Input] extends [Model]
+  ? unknown
+  : [GraphCapabilityRequirement<Model>] extends [never]
+    ? unknown
+    : Readonly<{
+        'Connected Steps require a Composition registering their Bindings: return Update.combineSteps(steps) from Definition.makeStep instead of applying it to a plain Model': never
+      }>
+
 type ResolvedStepReturn<StepValue> = StepValue extends AnyStep
   ? ResolvedOperationOutput<ReturnOf<StepValue>>
   : never
@@ -856,10 +867,11 @@ type CombinedStepRecipe<
  * which runs them independently. Array order does not sequence their effects
  * or completion.
  *
- * Dual: call it data-first with the Model to run the Steps now
- * (`combineSteps(model, steps)` returns a {@link Return}), or data-last with
- * only the Steps to build a composable {@link Step} that runs later
- * (`combineSteps(steps)`, for a `pipe` or a nested Step list).
+ * Dual: pass the Model and Steps (`combineSteps(model, steps)`), or pass only
+ * the Steps to build a composable {@link Step} that runs later
+ * (`combineSteps(steps)`, for a `pipe` or a nested Step list). Ordinary Steps
+ * produce a readable {@link Return}. Connected Steps preserve an opaque
+ * {@link ResultRecipe} for execution by a matching registered Composition.
  *
  * Steps only ever accumulate Commands; a Step cannot cancel or replace
  * another Step's Commands, and no Command runs during the fold. The
@@ -977,13 +989,15 @@ export const combineSteps: {
   >
   <ModelInput, const Steps extends ReadonlyArray<AnyStep>>(
     model: ModelInput,
-    steps: number extends Steps['length']
-      ? [CombinedGraphRequirement<Steps>] extends [never]
-        ? Steps &
-            StepsForModel<Steps, GraphModelOfValue<ModelInput>> &
-            StepsWithoutOutMessage<NoInfer<Steps>>
-        : never
-      : never,
+    steps: Steps extends readonly []
+      ? Steps
+      : number extends Steps['length']
+        ? [CombinedGraphRequirement<Steps>] extends [never]
+          ? Steps &
+              StepsForModel<Steps, GraphModelOfValue<ModelInput>> &
+              StepsWithoutOutMessage<NoInfer<Steps>>
+          : never
+        : never,
   ): WithRegistrationEvidence<
     Return<
       GraphModelOfValue<ModelInput>,
@@ -1029,27 +1043,12 @@ export const combineSteps: {
     >,
     CombinedStepRegistrationEvidence<Steps>
   >
-  <const Steps extends NonEmptySteps>(
-    model: GraphInput<
-      CombinedStepModel<Steps>,
-      CombinedGraphRequirement<Steps>
-    >,
-    steps: Steps &
-      StepsForModel<Steps, CombinedStepModel<Steps>> &
-      StepsWithoutOutMessage<NoInfer<Steps>>,
-  ): WithRegistrationEvidence<
-    Return<
-      CombinedStepModel<Steps>,
-      CombinedStepMessage<Steps>,
-      CombinedStepRequirements<Steps>
-    >,
-    CombinedStepRegistrationEvidence<Steps>
-  >
   <Model, Message, R = never>(
     steps: ReadonlyArray<Step<Model, Message, R>>,
   ): Step<Model, Message, R>
-  <Model, Message, R = never>(
-    model: Model,
+  <Model, Message, R = never, Input = Model>(
+    model: Input &
+      NoInfer<RegisteredCompositionDiagnostic<Input, Model> & Model>,
     steps: ReadonlyArray<Step<Model, Message, R>>,
   ): Return<Model, Message, R>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */

@@ -73,6 +73,8 @@ Commands describe one-shot work that produces one result. Subscriptions describe
 - A field map defining the dependency Schema, in the same shape passed to `Schema.Struct`.
 - A config containing `messages`, `modelToDependencies`, and the `handler` generator that returns the Stream function. `messages` lists the Message Schemas that the handler Stream may emit. Use `messages: []` for scoped work that emits no Messages.
 
+If an adapter already exposes a dependency Struct, pass its `.fields` as the second argument: `dependenciesSchema.fields`. Passing the Struct itself produces a field-map error, often wrapped in `No overload matches this call`.
+
 `modelToDependencies` extracts the values that control the entry. The `handler` generator constructs the Stream factory, and the owned registry’s `subscriptions.layer` supplies its attached handlers to the application. Foldkit compares the extracted record structurally by default, so unrelated Model updates do not restart the timer.
 
 When `isAutoCounting` changes to `true`, the new Stream starts ticking. When it changes back to `false`, the active scope closes and the timer stops.
@@ -90,6 +92,8 @@ The [websocket-chat example](/example-apps/websocket-chat) shows a more involved
 ### Declared Messages
 
 The declared Message Schemas constrain the Stream returned by both the attached handler and an external `toLayer` implementation. Emitting an undeclared Message is a type error. Scene uses these Schemas to validate `Subscription.emit(entry, message)` against the composed source, including its generated delivery through parents. An empty declaration requires a `Stream<never>` for work that emits no Messages.
+
+An external generic Stream helper can infer its result Message from one callback and then reject a different, valid variant returned by another callback. If the error compares two declared Message variants, inspect the helper's callback inference. Give the callback that determines the generic result an explicit return type for the union this entry declares. Use `typeof Message.Type` when the entry declares the full Message union. The entry's `messages` declaration still checks every variant the resulting Stream may emit.
 
 ### Handler Construction and Layers
 

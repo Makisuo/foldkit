@@ -163,6 +163,63 @@ const registeredDynamicCombinedStep = RegisteredParent.assembleBlock({
   update: registeredDynamicCombinedUpdate,
   EffectsLayer: Layer.empty,
 })
+
+const mixedConnectedSteps = Tuple.make(
+  ChildBinding.reset(),
+  RegisteredParentBaseDefinition.makeNoopStep(),
+)
+const combinedMixedConnectedStep = Update.combineSteps(mixedConnectedSteps)
+const deferredMixedConnectedStep = RegisteredParentBaseDefinition.makeStep(() =>
+  Update.combineSteps(mixedConnectedSteps),
+)
+const mixedConnectedUpdate = RegisteredParent.makeUpdate(model =>
+  Update.combineSteps(model, [
+    ChildBinding.reset(),
+    RegisteredParentBaseDefinition.makeNoopStep(),
+  ]),
+)
+const reversedMixedConnectedUpdate = RegisteredParent.makeUpdate(model =>
+  Update.combineSteps(model, [
+    RegisteredParentBaseDefinition.makeNoopStep(),
+    ChildBinding.reset(),
+  ]),
+)
+const tupleMixedConnectedUpdate = RegisteredParent.makeUpdate(model =>
+  Update.combineSteps(model, mixedConnectedSteps),
+)
+const deferredMixedConnectedUpdate = RegisteredParent.makeUpdate(model =>
+  deferredMixedConnectedStep(model),
+)
+const explicitGenericOrdinaryUpdate = RegisteredParent.makeUpdate(model =>
+  Update.combineSteps<typeof model, typeof ParentMessage.Type, never>(model, [
+    stepModel => ({ model: stepModel }),
+  ]),
+)
+const rejectRawMixedConnectedSteps = (model: ParentModel) => {
+  // @ts-expect-error A generic no-op cannot erase a connected Step's graph requirement.
+  // oxfmt-ignore
+  Update.combineSteps(model, [ChildBinding.reset(), RegisteredParentBaseDefinition.makeNoopStep()])
+  // @ts-expect-error Reversing Steps cannot erase the connected graph requirement.
+  // oxfmt-ignore
+  Update.combineSteps(model, [RegisteredParentBaseDefinition.makeNoopStep(), ChildBinding.reset()])
+  // @ts-expect-error A predeclared tuple retains the connected graph requirement.
+  Update.combineSteps(model, mixedConnectedSteps)
+  // @ts-expect-error Deferred mixed Steps still require their registered Composition.
+  deferredMixedConnectedStep(model)
+}
+const rejectReadableMixedRecipe = (
+  model: Parameters<typeof combinedMixedConnectedStep>[0],
+) => {
+  const combined = combinedMixedConnectedStep(model)
+
+  // @ts-expect-error A connected combination remains opaque before composition.
+  combined.model
+  // @ts-expect-error A connected combination cannot expose unresolved Commands.
+  combined.commands
+}
+void rejectRawMixedConnectedSteps
+void rejectReadableMixedRecipe
+
 // @ts-expect-error A computed Step list cannot execute without its registered Binding.
 OmittedParent.makeUpdate(model => Update.combineSteps(model, dynamicChildSteps))
 const omittedDynamicCombinedStep = OmittedParent.assembleBlock({
@@ -503,6 +560,7 @@ const PolicyChildBlock = makeNamespace('RegistrationPolicyChild')
       model,
       outMessage: PolicyOutMessage.RequestedSecondaryReset(),
     }),
+    operations: { requestSecondaryReset: Message.Advanced },
     EffectsLayer: Layer.empty,
   })
 
@@ -594,6 +652,27 @@ const registeredPolicyFold = RegisteredPolicyParent.assembleBlock({
   ),
   EffectsLayer: Layer.empty,
 })
+const combinedPolicyStep = Update.combineSteps([
+  PolicyChildBinding.requestSecondaryReset(),
+  PolicyParentBaseDefinition.makeNoopStep(),
+])
+const mixedPolicyUpdate = RegisteredPolicyParent.makeUpdate(model =>
+  Update.combineSteps(model, [
+    PolicyChildBinding.requestSecondaryReset(),
+    PolicyParentBaseDefinition.makeNoopStep(),
+  ]),
+)
+const rejectReadableMixedPolicy = (
+  model: Parameters<typeof combinedPolicyStep>[0],
+) => {
+  const combined = combinedPolicyStep(model)
+
+  // @ts-expect-error A potentially deferred policy combination is not a readable result.
+  combined.model
+  // @ts-expect-error Policy Commands remain opaque until checked composition.
+  combined.commands
+}
+void rejectReadableMixedPolicy
 const KeyedPolicyParentMessage = defineMessageUnion({
   Advanced: {},
   Ignored: {},
@@ -923,4 +1002,102 @@ it('keeps the declared child graph independent from operation use', () => {
   expectTypeOf<
     Update.RequirementsOf<typeof childResultWithOutMessage>
   >().toEqualTypeOf<never>()
+})
+
+it('preserves connected Steps beside generic no-op Steps', () => {
+  const model = makeParentModel(ChildModel.make({ count: 4 }))
+
+  expect(
+    explicitGenericOrdinaryUpdate(model, ParentMessage.Advanced()).model,
+  ).toBe(model)
+
+  for (const mixedUpdate of [
+    mixedConnectedUpdate,
+    reversedMixedConnectedUpdate,
+    tupleMixedConnectedUpdate,
+    deferredMixedConnectedUpdate,
+  ]) {
+    expect(mixedUpdate(model, ParentMessage.Advanced()).model.child.count).toBe(
+      0,
+    )
+  }
+
+  expectTypeOf<ReturnType<typeof combinedMixedConnectedStep>>().toEqualTypeOf<
+    ReturnType<ReturnType<typeof ChildBinding.reset>>
+  >()
+  expectTypeOf<ReturnType<typeof deferredMixedConnectedStep>>().toEqualTypeOf<
+    ReturnType<ReturnType<typeof ChildBinding.reset>>
+  >()
+  expectTypeOf<
+    Update.RegistrationEvidenceOf<ReturnType<typeof mixedConnectedUpdate>>
+  >().toEqualTypeOf<RequirementOfBinding<typeof ChildBinding>>()
+  expectTypeOf<
+    Update.RegistrationEvidenceOf<
+      ReturnType<typeof reversedMixedConnectedUpdate>
+    >
+  >().toEqualTypeOf<RequirementOfBinding<typeof ChildBinding>>()
+  expectTypeOf<ReturnType<typeof tupleMixedConnectedUpdate>>().toEqualTypeOf<
+    ReturnType<typeof mixedConnectedUpdate>
+  >()
+  expectTypeOf<ReturnType<typeof deferredMixedConnectedUpdate>>().toEqualTypeOf<
+    ReturnType<typeof mixedConnectedUpdate>
+  >()
+  expectTypeOf<
+    Update.RequirementsOf<typeof explicitGenericOrdinaryUpdate>
+  >().toEqualTypeOf<never>()
+})
+
+it('resolves a mixed connected Step through its OutMessage policy', () => {
+  const model = makeParentModel(ChildModel.make({ count: 4 }))
+  const result = mixedPolicyUpdate(model, PolicyParentMessage.Advanced())
+
+  expect(result.model.child.count).toBe(0)
+  expectTypeOf<
+    Update.ResolvedOperationOutput<ReturnType<typeof combinedPolicyStep>>
+  >().toEqualTypeOf<
+    Update.ResolvedOperationOutput<
+      ReturnType<ReturnType<typeof PolicyChildBinding.requestSecondaryReset>>
+    >
+  >()
+  expectTypeOf<Update.RegistrationEvidenceOf<typeof result>>().toEqualTypeOf<
+    | RequirementOfBinding<typeof PolicyChildBinding>
+    | RequirementOfBinding<typeof SecondaryChildBinding>
+  >()
+  expectTypeOf<
+    Update.RequirementsOf<typeof mixedPolicyUpdate>
+  >().toEqualTypeOf<never>()
+})
+
+it('preserves the Model when combining no Steps', () => {
+  const model = ChildModel.make({ count: 4 })
+  const combined = Update.combineSteps(model, [])
+
+  expect(combined.model).toBe(model)
+  expect(combined.commands).toBeUndefined()
+  expectTypeOf<typeof combined.model>().toEqualTypeOf<ChildModel>()
+})
+
+it('contextually types ordinary inline Steps', () => {
+  const model = ChildModel.make({ count: 4 })
+  const single = Update.combineSteps(model, [
+    stepModel => {
+      expectTypeOf<typeof stepModel>().toEqualTypeOf<ChildModel>()
+      return { model: stepModel }
+    },
+  ])
+  const pair = Update.combineSteps(model, [
+    stepModel => {
+      expectTypeOf<typeof stepModel>().toEqualTypeOf<ChildModel>()
+      return { model: stepModel }
+    },
+    stepModel => {
+      expectTypeOf<typeof stepModel>().toEqualTypeOf<ChildModel>()
+      return { model: stepModel }
+    },
+  ])
+
+  expect(single.model).toBe(model)
+  expect(pair.model).toBe(model)
+  expectTypeOf<typeof single.model>().toEqualTypeOf<ChildModel>()
+  expectTypeOf<typeof pair.model>().toEqualTypeOf<ChildModel>()
 })

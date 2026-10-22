@@ -105,7 +105,11 @@ The owner prefix identifies the specific Composition at a plain type import site
 
 ::Snippet{name="featureViewHelpers" label="View helpers within a feature"}
 
-Rendering functions that are genuinely shared across owners should keep taking the caller's general `HtmlBuilder<Message>`. A shared helper that forwards attributes, a view callback, child embeddings, or Mounts can introduce an `AllowedMountRequirements` generic to preserve the caller's capability. Introduce a `ParentMessage` generic when the helper accepts any parent Message universe.
+A rendering helper shared across Compositions takes a generic `ParentMessage` and the caller's `HtmlBuilder<ParentMessage>`. Both a root view and a child view can call this heading helper with their own `h`; TypeScript infers the Message type at each call:
+
+::Snippet{name="viewSharedHelper" label="Sharing a view helper across Compositions"}
+
+The heading uses only ordinary elements and attributes. A helper that forwards Mount attributes, a view callback, or child embeddings may also need an `AllowedMountRequirements` generic to preserve those capabilities. Keep that extra parameter only when the helper needs it. Helpers tied to one feature continue to use that Composition's `FeatureViewBuilder`.
 
 ### Inert HTML
 

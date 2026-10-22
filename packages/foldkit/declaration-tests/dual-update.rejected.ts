@@ -6,12 +6,15 @@ import * as Update from 'foldkit/update'
 
 import {
   ChildBlock,
+  CounterComposition,
+  Model as CounterModel,
   ParentDefinition,
   PersistLayer,
   RequiredRestBlock,
   RequiredRestParentDefinition,
   RootComposition,
   SaveClient,
+  earlyReturnUpdate,
   makePendingApplication,
   parentMessage,
   parentModel,
@@ -19,7 +22,22 @@ import {
   rootInit,
   rootUpdate,
   rootView,
+  ternaryUpdate,
 } from './dual-update.accepted.js'
+
+const rejectMissingBranchHandlers = () => {
+  // @ts-expect-error A Command in one ternary branch still requires its handler.
+  CounterComposition.assembleBlock({
+    init: () => ({ model: CounterModel.make({ count: 0 }) }),
+    update: ternaryUpdate,
+  })
+  // @ts-expect-error A Command before an early return still requires its handler.
+  CounterComposition.assembleBlock({
+    init: () => ({ model: CounterModel.make({ count: 0 }) }),
+    update: earlyReturnUpdate,
+  })
+}
+void rejectMissingBranchHandlers
 
 const Model = Schema.Struct({ count: Schema.Number })
 const Message = defineMessageUnion({ ChangedCount: { amount: Schema.Number } })

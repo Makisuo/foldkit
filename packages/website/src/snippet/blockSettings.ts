@@ -10,6 +10,8 @@ import {
   Theme,
 } from './blockDefinition'
 
+export { Model }
+
 const changeTheme = SettingsDefinition.makeStep(
   (model, theme: typeof Theme.Type) => ({
     model: modifyFields(model, { theme: () => theme }),

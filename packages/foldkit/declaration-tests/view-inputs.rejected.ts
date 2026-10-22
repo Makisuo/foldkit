@@ -14,6 +14,33 @@ DeclarationViewInputsComposition.makeView.withInputs<
   (_model, _viewInputs, h) => h.empty,
 )
 
+DeclarationViewInputsComposition.makeView.withInputs<
+  Readonly<{
+    config: Readonly<{ createdAt: Date; onSubmit: () => unknown }>
+  }>
+>(
+  // @ts-expect-error A Date field does not hide a sibling nested application callback.
+  (_model, _viewInputs, h) => h.empty,
+)
+
+DeclarationViewInputsComposition.makeView.withInputs<
+  Readonly<{
+    dates: ReadonlyArray<Date & Readonly<{ onSelect: () => unknown }>>
+  }>
+>(
+  // @ts-expect-error Added Date fields are checked even though standard prototype methods are allowed.
+  (_model, _viewInputs, h) => h.empty,
+)
+
+DeclarationViewInputsComposition.makeView.withInputs<
+  Readonly<{
+    maybeEvent: Option.Option<Readonly<{ at: Date; onSelect: () => unknown }>>
+  }>
+>(
+  // @ts-expect-error Option does not hide application callbacks beside Date data.
+  (_model, _viewInputs, h) => h.empty,
+)
+
 type CallbackItem = Readonly<{
   id: string
   onSubmit: () => unknown

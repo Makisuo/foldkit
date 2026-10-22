@@ -21,7 +21,10 @@ import {
   type HtmlBuilder,
   defineView as defineHtmlView,
 } from '../html/index.js'
-import type { ValidViewInputs } from '../html/viewInputs.js'
+import type {
+  InvalidViewInputsDiagnostic,
+  ValidViewInputs,
+} from '../html/viewInputs.js'
 import * as ManagedResource from '../managedResource/index.js'
 import * as Mount from '../mount/index.js'
 import * as Subscription from '../subscription/subscription.js'
@@ -247,7 +250,12 @@ type ViewWithInputs<Model, Message, ViewInputs, RequiredViewRequirements> =
               viewInputs: NoInfer<ViewInputs>,
               h: HtmlBuilder<Message, RequiredViewRequirements>,
             ) => VNode | null
-          : never
+          : ((
+              model: Model,
+              viewInputs: NoInfer<ViewInputs>,
+              h: HtmlBuilder<Message, RequiredViewRequirements>,
+            ) => VNode | null) &
+              InvalidViewInputsDiagnostic<ViewInputs>
 
 type OwnedReturn<Model, Message, OutMessage> = Readonly<{
   model: Model

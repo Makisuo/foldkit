@@ -363,19 +363,25 @@ export const view = TooltipComposition.makeView.withInputs<ViewInputs>(
   },
 )
 
+const assembleTooltipBlock = () =>
+  TooltipComposition.assembleBlock({
+    init,
+    update,
+    view,
+    operations: {
+      /** Supplies a new hover delay without changing visibility or restarting a
+       * pending timer. Accepts any Effect Duration input. */
+      informShowDelayChanged: (showDelay: Duration.Input) => [
+        Message.InformedOfShowDelayChange({
+          showDelay: Duration.fromInputUnsafe(showDelay),
+        }),
+      ],
+    },
+    EffectsLayer,
+  })
+
 /** Completed Tooltip Block for binding into a parent. */
-export const TooltipBlock = TooltipComposition.assembleBlock({
-  init,
-  update,
-  view,
-  operations: {
-    /** Supplies a new hover delay without changing visibility or restarting a
-     * pending timer. Accepts any Effect Duration input. */
-    informShowDelayChanged: (showDelay: Duration.Input) => [
-      Message.InformedOfShowDelayChange({
-        showDelay: Duration.fromInputUnsafe(showDelay),
-      }),
-    ],
-  },
-  EffectsLayer,
-})
+export const TooltipBlock: Block.FromAssemblyWithViewAndOutMessage<
+  typeof Model,
+  typeof assembleTooltipBlock
+> = assembleTooltipBlock()

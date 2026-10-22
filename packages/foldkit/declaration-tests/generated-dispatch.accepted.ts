@@ -101,7 +101,7 @@ export const childView = GeneratedDispatchChildComposition.makeView(
       [globalThis.String(model.count)],
     ),
 )
-export const GeneratedDispatchChildBlock =
+export const assembleGeneratedDispatchChildBlock = () =>
   GeneratedDispatchChildComposition.assembleBlock({
     init: childInit,
     update: childUpdate,
@@ -116,6 +116,13 @@ export const GeneratedDispatchChildBlock =
       childSubscriptions.observations.layer,
     ),
   })
+
+export const RawGeneratedDispatchChildBlock =
+  assembleGeneratedDispatchChildBlock()
+export const GeneratedDispatchChildBlock: Block.FromAssemblyWithView<
+  typeof GeneratedDispatchChildComposition.Model,
+  typeof assembleGeneratedDispatchChildBlock
+> = assembleGeneratedDispatchChildBlock()
 
 export const ParentModel = Schema.Struct({
   child: GeneratedDispatchChildBlock.Model,
@@ -169,12 +176,19 @@ export const parentView = GeneratedDispatchParentComposition.makeView(
       ],
     ),
 )
-export const GeneratedDispatchParentBlock =
+export const assembleGeneratedDispatchParentBlock = () =>
   GeneratedDispatchParentComposition.assembleBlock({
     init: parentInit,
     update: parentUpdate,
     view: parentView,
   })
+
+export const RawGeneratedDispatchParentBlock =
+  assembleGeneratedDispatchParentBlock()
+export const GeneratedDispatchParentBlock: Block.FromAssemblyWithView<
+  typeof GeneratedDispatchParentComposition.Model,
+  typeof assembleGeneratedDispatchParentBlock
+> = assembleGeneratedDispatchParentBlock()
 
 export const simulateChildObservations = () =>
   Scene.scene(
@@ -221,12 +235,21 @@ export const view = ApplicationComposition.makeView((model, h) =>
     ],
   ),
 )
-export const element = Program.makeElement({
-  block: ApplicationComposition.assembleBlock({
+export const assembleApplicationBlock = () =>
+  ApplicationComposition.assembleBlock({
     init,
     update,
     view,
-  }),
+  })
+
+export const RawApplicationBlock = assembleApplicationBlock()
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof ApplicationComposition.Model,
+  typeof assembleApplicationBlock
+> = assembleApplicationBlock()
+
+export const element = Program.makeElement({
+  block: ApplicationBlock,
   container: null,
   devTools: { dispatch: true },
 })

@@ -89,8 +89,14 @@ export const view = ApplicationComposition.makeView((model, h) => ({
 
 const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-})
+const assembleApplicationBlock = () =>
+  ApplicationComposition.assembleBlock({
+    init,
+    update,
+    view,
+  })
+
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assembleApplicationBlock
+> = assembleApplicationBlock()

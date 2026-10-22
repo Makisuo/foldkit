@@ -163,9 +163,15 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-  EffectsLayer,
-})
+const assembleApplicationBlock = () =>
+  ApplicationComposition.assembleBlock({
+    init,
+    update,
+    view,
+    EffectsLayer,
+  })
+
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assembleApplicationBlock
+> = assembleApplicationBlock()

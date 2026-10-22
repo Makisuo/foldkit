@@ -1,4 +1,5 @@
 import { Layer, Match, Tuple } from 'effect'
+import type { Block } from 'foldkit'
 import type { ChildAttribute, Html, TagName } from 'foldkit/html'
 import type * as Update from 'foldkit/update'
 
@@ -138,31 +139,37 @@ export const view = AnimationComposition.makeView.withInputs<ViewInputs>(
   },
 )
 
+const assembleAnimationBlock = () =>
+  AnimationComposition.assembleBlock({
+    init,
+    update: (
+      model: Model,
+      message: Message,
+    ): Update.ReturnWithOutMessage<
+      Model,
+      Message,
+      OutMessage,
+      Layer.Success<typeof EffectsLayer>
+    > => update(model, message),
+    view,
+    operations: {
+      requestShow: Message.RequestedShow,
+      requestHide: Message.RequestedHide,
+      requestWaitForLeaveSettlement: Message.RequestedWaitForLeaveSettlement,
+      requestFinish: (generation: number) =>
+        Tuple.make(Message.RequestedFinish({ generation })),
+      requestToggle: Message.RequestedToggle,
+      requestResume: Message.RequestedResume,
+      requestImmediateReset: Message.RequestedImmediateReset,
+    },
+    EffectsLayer,
+  })
+
 /** Complete Animation Block definition for connecting to a parent. */
-export const AnimationBlock = AnimationComposition.assembleBlock({
-  init,
-  update: (
-    model: Model,
-    message: Message,
-  ): Update.ReturnWithOutMessage<
-    Model,
-    Message,
-    OutMessage,
-    Layer.Success<typeof EffectsLayer>
-  > => update(model, message),
-  view,
-  operations: {
-    requestShow: Message.RequestedShow,
-    requestHide: Message.RequestedHide,
-    requestWaitForLeaveSettlement: Message.RequestedWaitForLeaveSettlement,
-    requestFinish: (generation: number) =>
-      Tuple.make(Message.RequestedFinish({ generation })),
-    requestToggle: Message.RequestedToggle,
-    requestResume: Message.RequestedResume,
-    requestImmediateReset: Message.RequestedImmediateReset,
-  },
-  EffectsLayer,
-})
+export const AnimationBlock: Block.FromAssemblyWithViewAndOutMessage<
+  typeof Model,
+  typeof assembleAnimationBlock
+> = assembleAnimationBlock()
 
 /** Programmatically starts the enter lifecycle through Animation update. */
 export const show = AnimationBlock.operations.requestShow

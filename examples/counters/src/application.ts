@@ -6,13 +6,13 @@ import { modifyFields } from 'foldkit/struct'
 
 import { Button } from '@foldkit/ui'
 
-import { CounterBlock } from './counter'
+import * as Counter from './counter'
 
 const INITIAL_COUNTER_COUNT = 3
 
 const CounterInstance = Schema.Struct({
   id: Schema.String,
-  counter: CounterBlock.Model,
+  counter: Counter.CounterBlock.Model,
 })
 
 export const Model = Schema.Struct({
@@ -30,19 +30,22 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-export const CountersBinding = ApplicationDefinition.makeBinding(CounterBlock, {
-  field: 'counters',
-  key: 'id',
-  childField: 'counter',
-  init: {
-    instances: () =>
-      Array.makeBy(INITIAL_COUNTER_COUNT, counterId => ({
-        key: `counter-${counterId}`,
-        args: Tuple.make(),
-      })),
-    toItem: ({ key }, counter) => ({ id: key, counter }),
+export const CountersBinding = ApplicationDefinition.makeBinding(
+  Counter.CounterBlock,
+  {
+    field: 'counters',
+    key: 'id',
+    childField: 'counter',
+    init: {
+      instances: () =>
+        Array.makeBy(INITIAL_COUNTER_COUNT, counterId => ({
+          key: `counter-${counterId}`,
+          args: Tuple.make(),
+        })),
+      toItem: ({ key }, counter) => ({ id: key, counter }),
+    },
   },
-})
+)
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [CountersBinding],
@@ -158,8 +161,14 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-})
+const assembleApplicationBlock = () =>
+  ApplicationComposition.assembleBlock({
+    init,
+    update,
+    view,
+  })
+
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assembleApplicationBlock
+> = assembleApplicationBlock()

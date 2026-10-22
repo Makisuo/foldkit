@@ -1381,36 +1381,43 @@ export const view = CalendarComposition.makeView.withInputs<ViewInputs>(
     ),
 )
 
+const assembleCalendarBlock = () =>
+  CalendarComposition.assembleBlock({
+    init,
+    update,
+    view,
+    operations: {
+      requestSelectDate: (date: CalendarDate) =>
+        Tuple.make(Message.RequestedSelectDate({ date })),
+      requestFocusDate: (date: CalendarDate) =>
+        Tuple.make(Message.RequestedFocusDate({ date })),
+      requestDropToDays: Message.RequestedDropToDays,
+      /** Supplies a new minimum selectable date without reconciling selection. */
+      informMinDateChanged: (maybeMinDate: Option.Option<CalendarDate>) =>
+        Tuple.make(Message.InformedOfMinDateChange({ maybeMinDate })),
+      /** Supplies a new maximum selectable date without reconciling selection. */
+      informMaxDateChanged: (maybeMaxDate: Option.Option<CalendarDate>) =>
+        Tuple.make(Message.InformedOfMaxDateChange({ maybeMaxDate })),
+      /** Supplies the individually disabled dates without reconciling selection. */
+      informDisabledDatesChanged: (
+        disabledDates: ReadonlyArray<CalendarDate>,
+      ) => Tuple.make(Message.InformedOfDisabledDatesChange({ disabledDates })),
+      /** Supplies the disabled weekdays without reconciling selection. */
+      informDisabledDaysOfWeekChanged: (
+        disabledDaysOfWeek: ReadonlyArray<CalendarDomain.DayOfWeek>,
+      ) =>
+        Tuple.make(
+          Message.InformedOfDisabledDaysOfWeekChange({ disabledDaysOfWeek }),
+        ),
+    },
+    EffectsLayer,
+  })
+
 /** Complete Calendar Block definition for connecting to a parent. */
-export const CalendarBlock = CalendarComposition.assembleBlock({
-  init,
-  update,
-  view,
-  operations: {
-    requestSelectDate: (date: CalendarDate) =>
-      Tuple.make(Message.RequestedSelectDate({ date })),
-    requestFocusDate: (date: CalendarDate) =>
-      Tuple.make(Message.RequestedFocusDate({ date })),
-    requestDropToDays: Message.RequestedDropToDays,
-    /** Supplies a new minimum selectable date without reconciling selection. */
-    informMinDateChanged: (maybeMinDate: Option.Option<CalendarDate>) =>
-      Tuple.make(Message.InformedOfMinDateChange({ maybeMinDate })),
-    /** Supplies a new maximum selectable date without reconciling selection. */
-    informMaxDateChanged: (maybeMaxDate: Option.Option<CalendarDate>) =>
-      Tuple.make(Message.InformedOfMaxDateChange({ maybeMaxDate })),
-    /** Supplies the individually disabled dates without reconciling selection. */
-    informDisabledDatesChanged: (disabledDates: ReadonlyArray<CalendarDate>) =>
-      Tuple.make(Message.InformedOfDisabledDatesChange({ disabledDates })),
-    /** Supplies the disabled weekdays without reconciling selection. */
-    informDisabledDaysOfWeekChanged: (
-      disabledDaysOfWeek: ReadonlyArray<CalendarDomain.DayOfWeek>,
-    ) =>
-      Tuple.make(
-        Message.InformedOfDisabledDaysOfWeekChange({ disabledDaysOfWeek }),
-      ),
-  },
-  EffectsLayer,
-})
+export const CalendarBlock: Block.FromAssemblyWithViewAndOutMessage<
+  typeof Model,
+  typeof assembleCalendarBlock
+> = assembleCalendarBlock()
 
 /** Moves the Calendar view and cursor to a date without changing the
  * parent-owned selection. */

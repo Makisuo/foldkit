@@ -120,3 +120,14 @@ export type {
   OperationParameters,
   OperationPayload,
 } from './operation.js'
+
+export type {
+  AssemblyWithView,
+  AssemblyWithOutMessage,
+  AssemblyWithViewAndOutMessage,
+  AssemblyWithoutViewOrOutMessage,
+  FromAssemblyWithView,
+  FromAssemblyWithOutMessage,
+  FromAssemblyWithViewAndOutMessage,
+  FromAssemblyWithoutViewOrOutMessage,
+} from './fromAssembly.js'

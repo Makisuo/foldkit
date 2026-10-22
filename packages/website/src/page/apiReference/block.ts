@@ -1,15 +1,24 @@
+import type { Block } from 'foldkit'
+
 import { ApiReferenceComposition } from './composition'
 import { init } from './init'
 import { Message } from './message'
+import type { Model } from './model'
 import { EffectsLayer, update } from './update'
 import { view } from './view'
 
-export const ApiReferenceBlock = ApiReferenceComposition.assembleBlock({
-  init,
-  update,
-  view,
-  operations: {
-    informRouteChanged: Message.InformedOfRouteChange,
-  },
-  EffectsLayer,
-})
+const assembleApiReferenceBlock = () =>
+  ApiReferenceComposition.assembleBlock({
+    init,
+    update,
+    view,
+    operations: {
+      informRouteChanged: Message.InformedOfRouteChange,
+    },
+    EffectsLayer,
+  })
+
+export const ApiReferenceBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assembleApiReferenceBlock
+> = assembleApiReferenceBlock()

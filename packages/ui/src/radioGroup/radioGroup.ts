@@ -458,13 +458,19 @@ const internalView = RadioGroupComposition.makeView.withInputs<ViewInputs>(
   },
 )
 
+const assembleRadioGroupBlock = () =>
+  RadioGroupComposition.assembleBlock({
+    init,
+    update,
+    view: internalView,
+    EffectsLayer,
+  })
+
 /** Complete RadioGroup Block definition. */
-export const block = RadioGroupComposition.assembleBlock({
-  init,
-  update,
-  view: internalView,
-  EffectsLayer,
-})
+export const block: Block.FromAssemblyWithViewAndOutMessage<
+  typeof Model,
+  typeof assembleRadioGroupBlock
+> = assembleRadioGroupBlock()
 
 const makeBlockParts = <Value extends string>() => {
   type GenericReturn = Update.ReturnWithOutMessage<

@@ -5,10 +5,11 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { build } from 'rolldown'
 import { transform } from 'rolldown/experimental'
@@ -34,8 +35,14 @@ const workDir = mkdtempSync(join(tmpdir(), 'foldkit-oxlint-integration-'))
 const bundlePath = join(workDir, 'plugin.mjs')
 
 beforeAll(async () => {
+  symlinkSync(
+    join(pluginRoot, 'node_modules'),
+    join(workDir, 'node_modules'),
+    'dir',
+  )
   await build({
     input: join(pluginRoot, 'src', 'index.ts'),
+    external: ['oxc-parser'],
     platform: 'node',
     output: { file: bundlePath, format: 'esm' },
   })
@@ -122,6 +129,80 @@ describe('real-oxlint rule fixtures', () => {
       expect(countDiagnostics(rule, 'valid')).toBe(0)
     })
   }
+
+  it('reports proven completed Block Models only in Schema inputs', () => {
+    const diagnostics = diagnosticsFor(
+      'no-completed-block-model-in-schema',
+      'invalid',
+    )
+    expect(
+      diagnostics.map(diagnostic => basename(diagnostic.filename)).sort(),
+    ).toEqual([
+      'block-returning-methods.ts',
+      'block-returning-methods.ts',
+      'block-returning-methods.ts',
+      'block-returning-methods.ts',
+      'block-returning-methods.ts',
+      'block-returning-methods.ts',
+      'block-returning-methods.ts',
+      'block-returning-methods.ts',
+      'block-returning-methods.ts',
+      'block-returning-methods.ts',
+      'block-returning-methods.ts',
+      'block-returning-methods.ts',
+      'explicit-header.ts',
+      'explicit-header.ts',
+      'explicit-header.ts',
+      'explicit-header.ts',
+      'explicit-header.ts',
+      'explicit-header.ts',
+      'explicit-header.ts',
+      'explicit-header.ts',
+      'explicit-header.ts',
+      'explicit-header.ts',
+      'explicit-header.ts',
+      'explicit-header.ts',
+      'explicit-header.ts',
+      'explicit-header.ts',
+      'explicit-header.ts',
+      'explicit-header.ts',
+      'explicit-header.ts',
+      'imports.ts',
+      'imports.ts',
+      'imports.ts',
+      'imports.ts',
+      'inline.ts',
+      'local.ts',
+      'local.ts',
+      'namespaces-and-literals.ts',
+      'namespaces-and-literals.ts',
+      'widened-header.ts',
+      'widened-header.ts',
+      'widened-header.ts',
+      'widened-header.ts',
+      'widened-header.ts',
+      'widened-header.ts',
+      'widened-header.ts',
+      'widened-header.ts',
+      'widened-header.ts',
+      'widened-header.ts',
+      'widened-header.ts',
+      'widened-header.ts',
+      'widened-header.ts',
+      'widened-header.ts',
+      'widened-header.ts',
+      'widened-header.ts',
+      'wrapped.ts',
+      'wrapped.ts',
+      'wrapped.ts',
+      'wrapped.ts',
+      'wrapped.ts',
+      'wrapped.ts',
+    ])
+    expect(
+      countDiagnostics('no-completed-block-model-in-schema', 'valid'),
+    ).toBe(0)
+  })
 
   it('reports every direct decision-time operation in its invalid fixture', () => {
     expect(countDiagnostics('no-impure-call-at-decision-time', 'invalid')).toBe(

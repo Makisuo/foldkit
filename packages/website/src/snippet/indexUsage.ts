@@ -2,7 +2,7 @@ import { Cart, Item } from './domain'
 import { Products } from './page'
 
 // Access a feature namespace
-Products.Model
+Products.ProductsBlock.Model
 Products.ProductsBlock.Message
 Products.ProductsBlock.OutMessage
 

@@ -1,4 +1,7 @@
+import type { Block } from 'foldkit'
+
 import { PlaygroundComposition } from './composition'
+import type { Model } from './definition'
 import { Message } from './definition'
 import {
   EffectsLayer,
@@ -8,11 +11,17 @@ import {
   view,
 } from './playground'
 
-export const PlaygroundBlock = PlaygroundComposition.assembleBlock({
-  init,
-  update,
-  view,
-  managedResources,
-  EffectsLayer,
-  operations: { informSupport: Message.InformedOfSupport },
-})
+const assemblePlaygroundBlock = () =>
+  PlaygroundComposition.assembleBlock({
+    init,
+    update,
+    view,
+    managedResources,
+    EffectsLayer,
+    operations: { informSupport: Message.InformedOfSupport },
+  })
+
+export const PlaygroundBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assemblePlaygroundBlock
+> = assemblePlaygroundBlock()

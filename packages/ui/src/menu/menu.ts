@@ -1320,14 +1320,20 @@ type RefineOutMessage<Return, OutMessage> =
         ? Omit<Return, 'outMessage'> & Readonly<{ outMessage?: OutMessage }>
         : never
 
+const assembleMenuBlock = () =>
+  MenuComposition.assembleBlock({
+    init,
+    update,
+    view,
+    operations,
+    EffectsLayer,
+  })
+
 /** Complete default Menu Block definition. */
-export const block = MenuComposition.assembleBlock({
-  init,
-  update,
-  view,
-  operations,
-  EffectsLayer,
-})
+export const block: Block.FromAssemblyWithViewAndOutMessage<
+  typeof Model,
+  typeof assembleMenuBlock
+> = assembleMenuBlock()
 
 /** Programmatically opens the Menu through Menu update. */
 export const open = block.operations.requestOpen

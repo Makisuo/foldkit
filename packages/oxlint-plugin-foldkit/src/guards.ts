@@ -484,7 +484,8 @@ const moduleCandidates = (
   ]
 }
 
-const sourceFileForModule = (
+/** Resolves supported relative source imports without loading a compiler. */
+export const sourceFileForModule = (
   importerFilename: string,
   source: string,
 ): Option.Option<string> =>

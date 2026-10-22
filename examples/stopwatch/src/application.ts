@@ -257,10 +257,16 @@ const startStopButton = (
 const buttonStyle =
   'px-6 py-4 flex-1 font-semibold text-white transition-colors'
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-  subscriptions,
-  EffectsLayer,
-})
+const assembleApplicationBlock = () =>
+  ApplicationComposition.assembleBlock({
+    init,
+    update,
+    view,
+    subscriptions,
+    EffectsLayer,
+  })
+
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assembleApplicationBlock
+> = assembleApplicationBlock()

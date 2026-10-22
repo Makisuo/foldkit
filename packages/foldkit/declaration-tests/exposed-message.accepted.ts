@@ -65,16 +65,23 @@ export const childUpdate = ChildComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const ChildBlock = ChildComposition.assembleBlock({
-  init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
-  update: childUpdate,
-  operations: {
-    reset: () => [ChildMessage.RequestedReset()],
-    setValue: (value: string) => [ChildMessage.UpdatedValue({ value })],
-  },
-  EffectsLayer: Layer.empty,
-  hostHandlers: [RecordValue],
-})
+export const assembleChildBlock = () =>
+  ChildComposition.assembleBlock({
+    init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
+    update: childUpdate,
+    operations: {
+      reset: () => [ChildMessage.RequestedReset()],
+      setValue: (value: string) => [ChildMessage.UpdatedValue({ value })],
+    },
+    EffectsLayer: Layer.empty,
+    hostHandlers: [RecordValue],
+  })
+
+export const RawChildBlock = assembleChildBlock()
+export const ChildBlock: Block.FromAssemblyWithOutMessage<
+  typeof ChildComposition.Model,
+  typeof assembleChildBlock
+> = assembleChildBlock()
 
 export const ContextModel = Schema.Struct({ value: Schema.String })
 export const ContextMessage = defineMessageUnion({
@@ -106,29 +113,36 @@ export const contextUpdate = ContextComposition.makeUpdate(
     }),
   }),
 )
-export const ContextBlock = ContextComposition.assembleBlock({
-  init: () => ({ model: ContextModel.make({ value: '' }) }),
-  update: contextUpdate,
-  operations: {
-    setRequired: (value: string, required: RequiredContext) => [
-      ContextMessage.UpdatedValue({ value }),
-      required,
-    ],
-    setAll: (
-      value: string,
-      required: RequiredContext,
-      maybeCount: number | undefined,
-      label: string | undefined,
-      ...flags: ReadonlyArray<boolean>
-    ) => [
-      ContextMessage.UpdatedValue({ value }),
-      required,
-      maybeCount,
-      label,
-      ...flags,
-    ],
-  },
-})
+export const assembleContextBlock = () =>
+  ContextComposition.assembleBlock({
+    init: () => ({ model: ContextModel.make({ value: '' }) }),
+    update: contextUpdate,
+    operations: {
+      setRequired: (value: string, required: RequiredContext) => [
+        ContextMessage.UpdatedValue({ value }),
+        required,
+      ],
+      setAll: (
+        value: string,
+        required: RequiredContext,
+        maybeCount: number | undefined,
+        label: string | undefined,
+        ...flags: ReadonlyArray<boolean>
+      ) => [
+        ContextMessage.UpdatedValue({ value }),
+        required,
+        maybeCount,
+        label,
+        ...flags,
+      ],
+    },
+  })
+
+export const RawContextBlock = assembleContextBlock()
+export const ContextBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ContextComposition.Model,
+  typeof assembleContextBlock
+> = assembleContextBlock()
 
 export const ParentModel = Schema.Struct({
   child: ChildModel,
@@ -183,19 +197,26 @@ export const parentUpdate = ParentComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const ParentBlock = ParentComposition.assembleBlock({
-  init: ParentComposition.makeInit(() => ({
-    model: { entries: [{ id: 'first', child: { value: 'entry' } }] },
-  })),
-  update: parentUpdate,
-  operations: {
-    setChild: (value: string) => [ParentMessage.RequestedSetChild({ value })],
-    setEntry: (id: string, value: string) => [
-      ParentMessage.RequestedSetEntry({ id, value }),
-    ],
-  },
-  EffectsLayer: Layer.empty,
-})
+export const assembleParentBlock = () =>
+  ParentComposition.assembleBlock({
+    init: ParentComposition.makeInit(() => ({
+      model: { entries: [{ id: 'first', child: { value: 'entry' } }] },
+    })),
+    update: parentUpdate,
+    operations: {
+      setChild: (value: string) => [ParentMessage.RequestedSetChild({ value })],
+      setEntry: (id: string, value: string) => [
+        ParentMessage.RequestedSetEntry({ id, value }),
+      ],
+    },
+    EffectsLayer: Layer.empty,
+  })
+
+export const RawParentBlock = assembleParentBlock()
+export const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ParentComposition.Model,
+  typeof assembleParentBlock
+> = assembleParentBlock()
 
 export function makeChoice<
   const Values extends readonly [string, ...Array<string>],
@@ -237,21 +258,28 @@ export function makeChoice<
   const select = (value: Values[number], required: RequiredContext) =>
     Tuple.make(Message.UpdatedValue({ value }), required)
 
-  const block = Composition.assembleBlock({
-    init: (selected: Values[number]) => ({ model: Model.make({ selected }) }),
-    update,
-    view,
-    operations: { select },
-    EffectsLayer: Layer.empty,
-    hostHandlers: [Observe],
-  })
+  const assembleBlock = () =>
+    Composition.assembleBlock({
+      init: (selected: Values[number]) => ({ model: Model.make({ selected }) }),
+      update,
+      view,
+      operations: { select },
+      EffectsLayer: Layer.empty,
+      hostHandlers: [Observe],
+    })
+
+  const rawBlock = assembleBlock()
+  const block: Block.FromAssemblyWithView<
+    typeof Composition.Model,
+    typeof assembleBlock
+  > = assembleBlock()
   const provided = block.provideHandlers(
     Observe.toLayer(
       Effect.succeed(() => Effect.succeed(Message.CompletedObserve())),
     ),
   )
 
-  return { block, provided, Observe }
+  return { block, rawBlock, provided, Observe }
 }
 
 export const FruitChoiceResult = makeChoice(['Apple', 'Pear'])
@@ -292,20 +320,27 @@ export const mountedChoiceUpdate = MountedChoiceComposition.makeUpdate(
       CompletedObserveSelection: () => ({ model }),
     }),
 )
-export const MountedChoiceBlock = MountedChoiceComposition.assembleBlock({
-  init: (selected: string) => ({
-    model: MountedChoiceModel.make({ selected }),
-  }),
-  update: mountedChoiceUpdate,
-  view: mountedChoiceView,
-  operations: {
-    select: (value: string) =>
-      Tuple.make(MountedChoiceMessage.UpdatedSelection({ value })),
-  },
-  EffectsLayer: ObserveSelection.layer,
-})
-export const ManagedMountedChoiceBlock = MountedChoiceComposition.assembleBlock(
-  {
+export const assembleMountedChoiceBlock = () =>
+  MountedChoiceComposition.assembleBlock({
+    init: (selected: string) => ({
+      model: MountedChoiceModel.make({ selected }),
+    }),
+    update: mountedChoiceUpdate,
+    view: mountedChoiceView,
+    operations: {
+      select: (value: string) =>
+        Tuple.make(MountedChoiceMessage.UpdatedSelection({ value })),
+    },
+    EffectsLayer: ObserveSelection.layer,
+  })
+
+export const RawMountedChoiceBlock = assembleMountedChoiceBlock()
+export const MountedChoiceBlock: Block.FromAssemblyWithView<
+  typeof MountedChoiceComposition.Model,
+  typeof assembleMountedChoiceBlock
+> = assembleMountedChoiceBlock()
+export const assembleManagedMountedChoiceBlock = () =>
+  MountedChoiceComposition.assembleBlock({
     init: (selected: string) => ({
       model: MountedChoiceModel.make({ selected }),
     }),
@@ -317,8 +352,13 @@ export const ManagedMountedChoiceBlock = MountedChoiceComposition.assembleBlock(
         Tuple.make(MountedChoiceMessage.UpdatedSelection({ value })),
     },
     EffectsLayer: ObserveSelection.layer,
-  },
-)
+  })
+
+export const RawManagedMountedChoiceBlock = assembleManagedMountedChoiceBlock()
+export const ManagedMountedChoiceBlock: Block.FromAssemblyWithView<
+  typeof MountedChoiceComposition.Model,
+  typeof assembleManagedMountedChoiceBlock
+> = assembleManagedMountedChoiceBlock()
 
 export const ExactModel = Schema.Struct({ value: Schema.String })
 export const ExactMessage = defineMessageUnion({ RequestedPing: {} })
@@ -335,18 +375,25 @@ export function exactUpdate(
 }
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture deliberately uses a distinct literal Block identity for type coverage.
 export const ExactComposition = ExactDefinition.makeComposition()
-export const ExactBlock = ExactComposition.assembleBlock({
-  init: () => ({ model: ExactModel.make({ value: '' }) }),
-  update: exactUpdate,
-  operations: {
-    ping: () => [ExactMessage.RequestedPing()],
-    pingWithMetadata: () =>
-      Object.assign(Tuple.make(ExactMessage.RequestedPing()), {
-        model: 'TupleMetadata',
-      }),
-  },
-  EffectsLayer: Layer.empty,
-})
+export const assembleExactBlock = () =>
+  ExactComposition.assembleBlock({
+    init: () => ({ model: ExactModel.make({ value: '' }) }),
+    update: exactUpdate,
+    operations: {
+      ping: () => [ExactMessage.RequestedPing()],
+      pingWithMetadata: () =>
+        Object.assign(Tuple.make(ExactMessage.RequestedPing()), {
+          model: 'TupleMetadata',
+        }),
+    },
+    EffectsLayer: Layer.empty,
+  })
+
+export const RawExactBlock = assembleExactBlock()
+export const ExactBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ExactComposition.Model,
+  typeof assembleExactBlock
+> = assembleExactBlock()
 
 type SetValueArguments = Expect<
   Equal<Parameters<typeof ChildBinding.setValue>, [value: string]>

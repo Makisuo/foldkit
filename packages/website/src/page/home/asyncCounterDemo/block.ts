@@ -1,3 +1,5 @@
+import type { Block } from 'foldkit'
+
 import {
   AsyncCounterDemoComposition,
   EffectsLayer,
@@ -5,10 +7,17 @@ import {
   update,
   view,
 } from './asyncCounterDemo'
+import type { Model } from './definition'
 
-export const AsyncCounterDemoBlock = AsyncCounterDemoComposition.assembleBlock({
-  init,
-  update,
-  view,
-  EffectsLayer,
-})
+const assembleAsyncCounterDemoBlock = () =>
+  AsyncCounterDemoComposition.assembleBlock({
+    init,
+    update,
+    view,
+    EffectsLayer,
+  })
+
+export const AsyncCounterDemoBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assembleAsyncCounterDemoBlock
+> = assembleAsyncCounterDemoBlock()

@@ -1,9 +1,11 @@
+import type { Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import { FetchPeople } from './informingBlocksCommand'
 import { PeopleComposition } from './informingBlocksDefinition'
 import { init } from './informingBlocksInit'
 import { Message } from './informingBlocksMessage'
+import type { Model } from './informingBlocksModel'
 import {
   SearchResults,
   addSearchToHistory,
@@ -34,9 +36,15 @@ export const update = PeopleComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const PeopleBlock = PeopleComposition.assembleBlock({
-  init,
-  update,
-  operations: { informRouteChanged },
-  EffectsLayer: FetchPeople.layer,
-})
+const assemblePeopleBlock = () =>
+  PeopleComposition.assembleBlock({
+    init,
+    update,
+    operations: { informRouteChanged },
+    EffectsLayer: FetchPeople.layer,
+  })
+
+export const PeopleBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof assemblePeopleBlock
+> = assemblePeopleBlock()

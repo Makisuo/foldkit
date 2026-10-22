@@ -1,5 +1,5 @@
 import { Effect, Layer } from 'effect'
-import { Runtime, type Command, type Update } from 'foldkit'
+import { type Command, Runtime, type Update } from 'foldkit'
 
 import { CityFeature, initial, pendingProgram, selected } from './consumer.js'
 

@@ -1,3 +1,4 @@
+import type { Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
 import {
@@ -9,8 +10,6 @@ import {
   SettingsComposition,
   Theme,
 } from './blockDefinition'
-
-export { Model }
 
 const changeTheme = SettingsDefinition.makeStep(
   (model, theme: typeof Theme.Type) => ({
@@ -47,13 +46,19 @@ const init = SettingsComposition.makeInit(() => ({
   model: Model.make({ theme: 'System' }),
 }))
 
-export const SettingsBlock = SettingsComposition.assembleBlock({
-  init,
-  update,
-  view,
-  operations: {
-    requestThemeChange: Message.RequestedThemeChange,
-    requestReset: Message.RequestedReset,
-  },
-  EffectsLayer: SaveTheme.layer,
-})
+const assembleSettingsBlock = () =>
+  SettingsComposition.assembleBlock({
+    init,
+    update,
+    view,
+    operations: {
+      requestThemeChange: Message.RequestedThemeChange,
+      requestReset: Message.RequestedReset,
+    },
+    EffectsLayer: SaveTheme.layer,
+  })
+
+export const SettingsBlock: Block.FromAssemblyWithViewAndOutMessage<
+  typeof Model,
+  typeof assembleSettingsBlock
+> = assembleSettingsBlock()

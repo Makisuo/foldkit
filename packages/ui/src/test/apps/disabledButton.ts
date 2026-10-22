@@ -4,13 +4,13 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import * as Dialog from '../../dialog/index.js'
+import * as Dialog from '../../dialog/block.js'
 
 // MODEL
 
 export const Model = Schema.Struct({
   isEnabled: Schema.Boolean,
-  dialog: Dialog.DialogBlock.Model,
+  dialog: Dialog.Model,
 })
 export type Model = typeof Model.Type
 

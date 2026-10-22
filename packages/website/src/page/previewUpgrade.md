@@ -46,7 +46,7 @@ After installing one coherent target, make the changes used by your application:
 2. Replace `Animation.defaultLeaveCommand` with the [bound leave-settlement operation](#replace-the-standard-animation-leave-helper) wherever the application uses standard CSS settlement. Keep custom settlement Commands for additional signals.
 3. Run [the upgrade checks](#verify-the-upgrade). Assembly now rejects incompatible same-named Command handler contracts inside generic Block factories. Correct the owning definitions or handler Layers when this exposes invalid wiring.
 
-The compiler-work reductions also apply without changing Block authoring. [Native TypeScript tooling](#native-typescript-tooling), [canonical Model Schema exports](#keep-source-model-schemas-independent-of-completion), and [Command-only Steps](#optional-convenience) are separate setup or organization choices.
+The compiler-work reductions also apply without changing Block authoring. [Native TypeScript tooling](#native-typescript-tooling), [explicit assembly boundaries](#keep-source-model-schemas-independent-of-completion), and [Command-only Steps](#optional-convenience) are separate setup or organization choices.
 
 ## Update the Application Boundary
 
@@ -147,13 +147,50 @@ After installation, confirm that the project's typecheck command and editor lang
 
 The preview reduces repeated compiler work during Block assembly. Large root assemblies can still produce noticeable editor delays; the update does not guarantee a particular response time or memory limit in every editor. Keep the project's normal typecheck and test coverage when changing compiler versions.
 
+### Optional editor setup: tsrs
+
+[tsrs](https://github.com/oxc-project/tsrs/blob/467182f2402b140897e8a02d7a25699db0e79e2a/docs/LSP.md) is an experimental TypeScript language server. In a real Neovim trial, it made `ApplicationBlock` completion usable, though not instantaneous. Testing is limited to that trial and the paired benchmarks recorded in [#1737](https://github.com/foldkit/foldkit/issues/1737); those benchmarks predate the latest optimization and do not establish current-candidate performance.
+
+This is optional editor setup. Keep the project's official TypeScript dependency, typecheck scripts and CI unchanged.
+
+#### Install and select the server
+
+Install the tested version outside the application, then check the executable's identity:
+
+::Snippet{name="previewTsrsInstall" label="Install the pinned editor server"}
+
+The npm package version identifies the tsrs release; its `--version` output also identifies the TypeScript version it implements, so record both.
+
+For Neovim 0.11 or later, use the installed executable in your LSP configuration. Replace the example path with its absolute installation path. Keep exactly one TypeScript server enabled for the trial buffers by disabling the previous server there.
+
+::Snippet{name="previewTsrsNeovim" label="Select tsrs in Neovim"}
+
+Restart Neovim and open a TypeScript file in the intended project. Run `:checkhealth vim.lsp` and confirm that `foldkit_tsrs_trial` is attached, with the intended executable and project root. Try completion, hover and a diagnostic that appears and clears after an edit. These checks confirm the selected editor server; the project's official typecheck remains the verification gate.
+
+To revert, remove the trial configuration, restore the previous server's enablement and restart Neovim. Confirm the previous client is attached before removing the isolated installation.
+
+See the [official editor setup](https://github.com/oxc-project/tsrs/blob/467182f2402b140897e8a02d7a25699db0e79e2a/docs/LSP.md) for other editors and current limitations.
+
 ## Keep Source Model Schemas Independent of Completion
 
-A source feature can re-export its canonical `Model` Schema alongside its completed Block. A parent then declares state with a namespace query such as `Settings.Model` and binds `Settings.SettingsBlock`. This avoids making TypeScript infer the child's whole completed implementation just to obtain its Schema, which can make editor requests slow in a large source graph.
+Give an ordinary completed Block an explicit producer/header boundary. Move its existing `assembleBlock` call into a zero-argument `assembleSettingsBlock` function, then export `SettingsBlock` with the matching `Block.FromAssemblyWith*` annotation and initialize it by calling that producer once. Keep its payload, local effects and graph unchanged.
 
-This is an organization improvement; existing `ChildBlock.Model` access remains supported. Re-export the exact Schema already supplied to the Definition. Keep the local Message private because the completed Message Schema includes generated child envelopes. Do not instantiate a generic factory twice to obtain separate contracts. See [Model Schema dependencies](/patterns/project-organization#keep-model-schema-dependencies-small).
+::Snippet{name="blockFeatureExports" label="An explicit completed Block boundary"}
 
-::Snippet{name="blockFeatureExports" label="Public Model Schema and completed Block"}
+Choose the helper from the Definition's declared OutMessage and the assembled view:
+
+| Assembled view | Declared OutMessage | Export annotation                           |
+| -------------- | ------------------- | ------------------------------------------- |
+| Yes            | No                  | `Block.FromAssemblyWithView`                |
+| Yes            | Yes                 | `Block.FromAssemblyWithViewAndOutMessage`   |
+| No             | Yes                 | `Block.FromAssemblyWithOutMessage`          |
+| No             | No                  | `Block.FromAssemblyWithoutViewOrOutMessage` |
+
+Each helper takes `typeof Model` and `typeof assembleSettingsBlock`. The four names keep the view and OutMessage shapes explicit; there is no unified `FromAssembly` helper. The longer annotation gives TypeScript a direct Model member without making a parent infer the whole source implementation merely to read its Schema. The producer still infers the assembled implementation, and the helper checks its exact completed contract and Model Schema. Do not replace this with a cast, a broad Block annotation, or `satisfies`.
+
+The feature barrel exports its completed Block. Keep the Model Schema internal to the feature and compose parent state with `SettingsBlock.Model`. An application that adopted a separate canonical Model reexport for compiler performance can remove that reexport after adding the checked header and updating its parent imports. Preserve independently public domain Schemas and generic component contracts.
+
+The recommended `foldkit/no-completed-block-model-in-schema` rule still reports proven inferred completed Models inside Schema construction, including nested wrappers. It accepts the recognized checked producer/header boundary. Ordinary public Model access and type queries remain supported. See [Model Schema dependencies](/patterns/project-organization#keep-model-schema-dependencies-small) for recognition limits. This is a compiler-work boundary, not a promise of instant editor responses.
 
 ## Confirm the Remaining Compiler Findings
 

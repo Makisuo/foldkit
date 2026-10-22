@@ -9,6 +9,7 @@ import * as Update from 'foldkit/update'
 import type { AnchorConfig } from '../anchor/index.js'
 import * as UiCalendar from '../calendar/index.js'
 import { idSelector } from '../internal/selectors.js'
+import { Model as PopoverModel } from '../popover/block.js'
 import * as Popover from '../popover/index.js'
 
 // MODEL
@@ -21,7 +22,7 @@ import * as Popover from '../popover/index.js'
 export const Model = Schema.Struct({
   id: Schema.String,
   calendar: UiCalendar.CalendarBlock.Model,
-  popover: Popover.PopoverBlock.Model,
+  popover: PopoverModel,
 })
 export type Model = typeof Model.Type
 

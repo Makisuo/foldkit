@@ -59,6 +59,17 @@
       }
     },
     {
+      "files": [
+        "packages/foldkit/declaration-tests/composition-safety.accepted.ts",
+        "packages/foldkit/declaration-tests/from-assembly.carrier-guards.ts",
+        "packages/foldkit/declaration-tests/from-assembly.generic.ts",
+        "packages/foldkit/declaration-tests/from-assembly.overloaded-producer.ts"
+      ],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
       "files": ["packages/foldkit/src/**/*.ts"],
       "rules": {
         "typescript/no-explicit-any": "off",

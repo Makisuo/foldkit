@@ -46,8 +46,14 @@ const update = EditorComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const EditorBlock = EditorComposition.assembleBlock({
-  init,
-  update,
-  hostHandlers: [SaveDocument],
-})
+const assembleEditorBlock = () =>
+  EditorComposition.assembleBlock({
+    init,
+    update,
+    hostHandlers: [SaveDocument],
+  })
+
+export const EditorBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof assembleEditorBlock
+> = assembleEditorBlock()

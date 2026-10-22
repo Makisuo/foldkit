@@ -387,13 +387,19 @@ const internalView = TabsComposition.makeView.withInputs<ViewInputs>(
   },
 )
 
+const assembleTabsBlock = () =>
+  TabsComposition.assembleBlock({
+    init,
+    update,
+    view: internalView,
+    EffectsLayer,
+  })
+
 /** Complete Tabs Block definition. */
-export const block = TabsComposition.assembleBlock({
-  init,
-  update,
-  view: internalView,
-  EffectsLayer,
-})
+export const block: Block.FromAssemblyWithViewAndOutMessage<
+  typeof Model,
+  typeof assembleTabsBlock
+> = assembleTabsBlock()
 
 const makeBlockParts = <Value extends string>() => {
   type GenericReturn = Update.ReturnWithOutMessage<

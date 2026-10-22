@@ -360,13 +360,19 @@ export const view = HoverIntentComposition.makeView.withInputs<ViewInputs>(
   },
 )
 
+const assembleHoverIntentBlock = () =>
+  HoverIntentComposition.assembleBlock({
+    init,
+    update,
+    view,
+    operations: {
+      requestClose: Message.RequestedClose,
+    },
+    EffectsLayer,
+  })
+
 /** Complete HoverIntent Block definition for connecting to a parent. */
-export const HoverIntentBlock = HoverIntentComposition.assembleBlock({
-  init,
-  update,
-  view,
-  operations: {
-    requestClose: Message.RequestedClose,
-  },
-  EffectsLayer,
-})
+export const HoverIntentBlock: Block.FromAssemblyWithViewAndOutMessage<
+  typeof Model,
+  typeof assembleHoverIntentBlock
+> = assembleHoverIntentBlock()

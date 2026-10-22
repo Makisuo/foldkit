@@ -43,7 +43,7 @@ const acknowledgeAcquireResources = Scene.Mount.resolve(
 const DialogEvent = Schema.Literals(['Opened', 'Closed'])
 
 const ParentModel = Schema.Struct({
-  dialog: DialogBlock.Model,
+  dialog: Model,
   dialogEvents: Schema.Array(DialogEvent),
 })
 

@@ -4,13 +4,13 @@
 
 Organize a Foldkit application around ownership. A feature owns its state machine and local effects. Its parent owns the policy that connects it to siblings and the application. The browser entry owns host configuration, Service provision, and Runtime startup.
 
-Keep three boundaries visible as the application grows:
+Keep these ownership boundaries visible as the application grows:
 
 | Boundary    | Typical home                                                 | Responsibility                                                                             |
 | ----------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
 | Definition  | `definition.ts`, or the top of `composition.ts` when unnamed | Early Model, Message, OutMessage, ChildInitContext, Command, lifecycle, and Step contracts |
 | Composition | `composition.ts` or `composition/`                           | Parent-owned Bindings, Mount registrations, and graph-aware authoring                      |
-| Completion  | `block.ts` or compact `application.ts`                       | Packages implementation as a completed Block                                               |
+| Assembly    | `block.ts` or compact `application.ts`                       | Packages implementation as a completed Block                                               |
 | Host        | `entry.ts`                                                   | Chooses page or element ownership, supplies Services, and starts Runtime                   |
 
 `makeBinding` configures one parent-child relationship. A child with OutMessages then selects its parent-owned policy through `withOutMessagePolicy`. Including that full Binding in `makeComposition({ bindings })` registers it. These calls and `assembleBlock` are passive: they do not build Layers, run handlers, or start lifecycle work. `Program.make` or `Program.makeElement` adds host behavior without starting anything. A browser Runtime builds Layers, calls init, and starts effects after the entry starts it.
@@ -57,7 +57,7 @@ For a split feature, `composition.ts` owns its child Bindings, complete child an
 
 An update can import `CounterBinding` to invoke its operations. Generated child envelopes route through the Binding automatically. The view imports `DashboardComposition`. Including `CounterBinding` under `bindings` also includes the completed child's handler graph and lifecycle declarations.
 
-`block.ts` imports the Composition, init, update, view, and local `EffectsLayer`, then calls `DashboardComposition.assembleBlock`. Its explicit `index.ts` exports the completed `DashboardBlock` and may re-export the canonical `Model` Schema for parent Schema construction. Shared domain Schemas and selectors have a separate `domain/` barrel. Internal implementation files do not import their own completed barrel.
+`block.ts` imports the Composition, init, update, view, and local `EffectsLayer`, then calls `DashboardComposition.assembleBlock`. Its explicit `index.ts` exports the completed `DashboardBlock` with the checked producer/header boundary; parent Schemas use `DashboardBlock.Model`. Shared domain Schemas and selectors have a separate `domain/` barrel. Internal implementation files do not import their own completed barrel.
 
 ### A Feature with Mounts Only
 
@@ -69,7 +69,7 @@ The view imports both the Composition and the local Mount definition:
 
 ::Snippet{name="organizationMountView" label="View using its registered Mount"}
 
-Registration grants the view permission to use the Mount. Completion supplies its handler recipe through the local `EffectsLayer`:
+This Panel Definition declares Model and Message, without an OutMessage. Registration grants its view permission to use the Mount. The completed export therefore uses `FromAssemblyWithView` and supplies the handler recipe through its local `EffectsLayer`:
 
 ::Snippet{name="organizationMountBlock" label="Mount handler at Block completion"}
 
@@ -187,13 +187,13 @@ Import the module as a namespace and call operations such as `Cart.addItem` and 
 
 ## Index Re-exports {#index-reexports}
 
-Use `index.ts` only as a barrel. A feature barrel explicitly re-exports its completed value, such as `ProductsBlock`, from `block.ts`. When a parent needs the child's Schema to declare its own Model, also re-export the existing `Model` Schema from its owning module. The parent barrel can re-export feature namespaces to keep those structural names distinct.
+Use `index.ts` only as a barrel. A feature barrel explicitly re-exports its completed value, such as `ProductsBlock`, from `block.ts`. Keep the Model Schema internal to the feature and give the completed export the checked producer/header boundary below. The parent barrel can re-export feature namespaces to keep those structural names distinct.
 
 Bindings, operations, views, and complete Message contracts still come from the completed Block. Keep local authoring values, lifecycle registries, and implementation helpers private. Shared domain concepts belong in a separate `domain/` barrel. Focused tests can import their owning implementation modules without adding test access to the feature's public surface.
 
 ::Snippet{name="indexReexports" label="Index re-exports"}
 
-Consumers use a feature namespace such as `Products.Model` when composing source Model Schemas. They pass `Products.ProductsBlock` to Binding helpers, or import `ProductsBlock` directly in composition files. Domain modules use namespace imports too.
+Consumers use `Products.ProductsBlock.Model` when composing parent Model Schemas. They pass `Products.ProductsBlock` to Binding helpers, or import `ProductsBlock` directly in composition files. Domain modules use namespace imports too.
 
 ::Snippet{name="indexUsage" label="Completed features and domain namespaces"}
 
@@ -201,16 +201,35 @@ Consumers use a feature namespace such as `Products.Model` when composing source
 
 ### Keep Model Schema dependencies small
 
-Reading `ProductsBlock.Model` from an inferred source Block can make TypeScript resolve the feature's init, update, views, and child graph before it can check the parent Model. Re-exporting the exact `Model` value already passed to the Definition lets the parent declare its Schema without that inference dependency. The Website uses this boundary for its source features to keep editor requests responsive.
+Reading `ProductsBlock.Model` from an inferred source Block can make TypeScript resolve init, update, views and the child graph before checking the parent Schema. An explicit export header gives the completed value a directly named Model member while preserving its checked implementation contract.
 
-Do not reconstruct the Schema, annotate away its Codec channels, or create another generic Block instance to obtain a Model. Assembly still checks the completed implementation and its requirements. This is a type dependency boundary; an ESM barrel still loads its re-exported modules normally.
+::Snippet{name="blockFeatureExports" label="A checked assembly producer and export header"}
 
-Only the Model Schema has this early export. The local `Message` contains local facts; the completed Block's `Message` includes generated child envelopes. Keep using that complete contract at dispatch boundaries. A published UI component or generic factory may already provide its Schema through an explicit declaration, so consuming its completed Model does not require another source contract export.
+Choose the helper from the Definition's declared OutMessage and the assembled view:
+
+| Assembled view | Declared OutMessage | Export annotation                           |
+| -------------- | ------------------- | ------------------------------------------- |
+| Yes            | No                  | `Block.FromAssemblyWithView`                |
+| Yes            | Yes                 | `Block.FromAssemblyWithViewAndOutMessage`   |
+| No             | Yes                 | `Block.FromAssemblyWithOutMessage`          |
+| No             | No                  | `Block.FromAssemblyWithoutViewOrOutMessage` |
+
+Each helper takes `typeof Model` and `typeof assembleSettingsBlock`. The four names keep the view and OutMessage shapes explicit; there is no unified `FromAssembly` helper. The longer annotation gives TypeScript a direct Model member without making a parent infer the whole source implementation merely to read its Schema. The producer still infers the assembled implementation, and the helper checks its exact completed contract and Model Schema. Do not replace this with a cast, a broad Block annotation, or `satisfies`.
+
+Parents can use the checked completed Block's Model directly; the feature barrel needs only the completed Block. Local implementation modules import Model from its owning module, never from their own completed barrel. Shared domain Schemas still belong in independent domain modules. Do not reconstruct a Schema, repeat a generic factory call, or erase Codec channels to create this boundary.
+
+::Snippet{name="parentSchemaCompletedBlockBad" label="❌ Parent Schema through inferred assembly"}
+
+::Snippet{name="parentSchemaGuardedModel" label="✅ Parent Schema through a checked Block boundary"}
+
+The recommended `foldkit/no-completed-block-model-in-schema` rule follows proven Foldkit assemblies, immutable aliases and nested Schema wrappers. It accepts the four actual helper imports with an exact declaration annotation, matching zero-argument producer and initializer. A cast, `satisfies`, helper-shaped name or unannotated producer is insufficient. Ordinary `.Model` access, decoders and `typeof ChildBlock.Model.Type` annotations remain allowed.
+
+This is a performance guardrail. It does not replace compiler checking or establish a response-time bound. The lint exemption is deliberately narrower than TypeScript: helper type aliases and reexport barrels, imported producer functions, arbitrary factories and dynamic aliases are outside its recognized boundary. Import the helper directly from `foldkit` or `foldkit/block` and keep the producer beside the completed export. Published generic UI contracts remain separate from this ordinary source authoring pattern.
 
 ### Keep Barrel Dependencies Pointing Inward
 
 A parent barrel may re-export its immediate children's named completed Blocks, and application code may import those values from the barrel. The exported child modules must not import the application root in return. A local `message.ts` should not import child Blocks to declare `Got*` variants. Composition derives those wrappers from its registered Bindings. This keeps the local Message module independent of child completion and avoids a common cycle through `page/index.ts`.
 
-Within a feature, import implementation pieces from their owning modules rather than from the feature's own completed barrel. For child features built in the same source project, define parent Model fields using the canonical Schema export, such as `Products.Model`. Child implementation files must not import their parent or its completed barrel. Keep shared domain Schemas in leaf modules that do not import either Composition.
+Within a feature, import implementation pieces from their owning modules rather than from the feature's own completed barrel. For ordinary child features built in the same source project, use the checked completed export and define parent Model fields with `Products.ProductsBlock.Model`. Child implementation files must not import their parent or its completed barrel. Keep shared domain Schemas in leaf modules that do not import either Composition.
 
 Keep shared leaf modules independent of the root. Pass parent-owned rendering capabilities through function arguments or Block `viewInputs`, and make stateful shared behavior its own Block. The parent then provides the capability at the view boundary while each Page remains importable through the one-level barrel.

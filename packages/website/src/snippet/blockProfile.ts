@@ -1,3 +1,6 @@
+import type { Block } from 'foldkit'
+
+import type { Model } from './blockProfileContract'
 import { ApplicationDefinition } from './blockProfileContract'
 import * as Settings from './blockSettings'
 
@@ -38,8 +41,14 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-})
+const assembleApplicationBlock = () =>
+  ApplicationComposition.assembleBlock({
+    init,
+    update,
+    view,
+  })
+
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assembleApplicationBlock
+> = assembleApplicationBlock()

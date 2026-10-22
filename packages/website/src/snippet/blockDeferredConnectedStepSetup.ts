@@ -5,7 +5,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import * as Settings from './blockSettings'
 
 const Model = Schema.Struct({
-  settings: Settings.Model,
+  settings: Settings.SettingsBlock.Model,
   resetCount: Schema.Number,
 })
 export const Message = defineMessageUnion({ RequestedResetSettings: {} })

@@ -2,10 +2,10 @@ import { Schema } from 'effect'
 import { Block, Calendar } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { EducationEntryBlock } from './entry'
+import * as Entry from './entry'
 
 export const Model = Schema.Struct({
-  entries: Schema.Array(EducationEntryBlock.Model),
+  entries: Schema.Array(Entry.EducationEntryBlock.Model),
   today: Calendar.CalendarDate,
 })
 

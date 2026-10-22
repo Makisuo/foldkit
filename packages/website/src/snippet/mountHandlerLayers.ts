@@ -53,9 +53,15 @@ const init = PanelComposition.makeInit(() => ({
   model: Model.make({ panelHeight: Option.none() }),
 }))
 
-export const PanelBlock = PanelComposition.assembleBlock({
-  init,
-  update,
-  view,
-  EffectsLayer: MeasurePanel.layer,
-})
+const assemblePanelBlock = () =>
+  PanelComposition.assembleBlock({
+    init,
+    update,
+    view,
+    EffectsLayer: MeasurePanel.layer,
+  })
+
+export const PanelBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assemblePanelBlock
+> = assemblePanelBlock()

@@ -1,13 +1,22 @@
+import type { Block } from 'foldkit'
+
 import { UiComposition } from './composition'
 import { init } from './init'
 import { Message } from './message'
+import type { Model } from './model'
 import { update } from './update'
 
-export const UiBlock = UiComposition.assembleBlock({
-  init,
-  update,
-  operations: {
-    requestOpenMobileMenu: Message.RequestedOpenMobileMenu,
-    requestCloseMobileMenu: Message.RequestedCloseMobileMenu,
-  },
-})
+const assembleUiBlock = () =>
+  UiComposition.assembleBlock({
+    init,
+    update,
+    operations: {
+      requestOpenMobileMenu: Message.RequestedOpenMobileMenu,
+      requestCloseMobileMenu: Message.RequestedCloseMobileMenu,
+    },
+  })
+
+export const UiBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof assembleUiBlock
+> = assembleUiBlock()

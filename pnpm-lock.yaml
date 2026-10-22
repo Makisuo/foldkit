@@ -1857,6 +1857,9 @@ importers:
       effect-oxlint:
         specifier: ^0.3.4 || ^0.4.0
         version: 0.3.4(effect@4.0.0)
+      oxc-parser:
+        specifier: 0.150.0
+        version: 0.150.0
     devDependencies:
       '@types/node':
         specifier: 26.4.0

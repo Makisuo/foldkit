@@ -62,12 +62,30 @@ export const view = SettingsComposition.makeView((model, h) =>
   h.p([], [model.theme]),
 )
 
-export const SettingsBlock = SettingsComposition.assembleBlock({
-  init,
-  update,
-  view,
-})
+const assembleSettingsBlock = () =>
+  SettingsComposition.assembleBlock({
+    init,
+    update,
+    view,
+  })
+
+export const SettingsBlock: Block.FromAssemblyWithViewAndOutMessage<
+  typeof Model,
+  typeof assembleSettingsBlock
+> = assembleSettingsBlock()
 ```
+
+Ordinary source exports use an explicit zero-argument assembly producer and
+header. Choose `Block.FromAssemblyWithView`,
+`Block.FromAssemblyWithViewAndOutMessage`, `Block.FromAssemblyWithOutMessage`,
+or `Block.FromAssemblyWithoutViewOrOutMessage` from the actual assembled view
+and Definition OutMessage. Pass `typeof Model` and `typeof assembleChildBlock`;
+initialize the annotated completed export by calling that producer once. Parent
+Schemas use `ChildBlock.Model`, and the feature barrel exports the completed
+Block while Model remains internal. The explicit four shapes avoid a unified
+conditional boundary that would force parent Schema access back through the
+implementation graph. Helper constraints still check the actual contract.
+Casts, broad Block annotations and `satisfies` do not establish this boundary.
 
 An authored update is dual: the Runtime uses
 `update(model, message, ...context)`, while application composition can use

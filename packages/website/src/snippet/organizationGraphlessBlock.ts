@@ -28,8 +28,14 @@ const view = CounterComposition.makeView((model, h) =>
   h.button([h.OnClick(Message.ClickedIncrement())], [`Count: ${model.count}`]),
 )
 
-export const CounterBlock = CounterComposition.assembleBlock({
-  init,
-  update,
-  view,
-})
+const assembleCounterBlock = () =>
+  CounterComposition.assembleBlock({
+    init,
+    update,
+    view,
+  })
+
+export const CounterBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assembleCounterBlock
+> = assembleCounterBlock()

@@ -1540,14 +1540,20 @@ const operations = {
   requestScrollToEnd: Message.RequestedScrollToEnd,
 }
 
+const assembleVirtualListBlock = () =>
+  VirtualListComposition.assembleBlock({
+    init,
+    update,
+    view: viewImpl,
+    operations,
+    EffectsLayer,
+  })
+
 /** Complete VirtualList Block definition using an unknown item type. */
-export const block = VirtualListComposition.assembleBlock({
-  init,
-  update,
-  view: viewImpl,
-  operations,
-  EffectsLayer,
-})
+export const block: Block.FromAssemblyWithViewAndOutMessage<
+  typeof Model,
+  typeof assembleVirtualListBlock
+> = assembleVirtualListBlock()
 
 /** Programmatically scrolls to a logical target. */
 export const scrollTo = block.operations.requestScrollTo

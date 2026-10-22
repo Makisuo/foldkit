@@ -31,29 +31,35 @@ export const pinsSubscriptions = PinsDefinition.makeSubscriptions(entry => ({
 }))
 
 const PinsComposition = PinsDefinition.makeComposition()
-export const PinsBlock = PinsComposition.assembleBlock({
-  init: PinsComposition.makeInit(() => ({ model: { count: 0 } })),
-  update: PinsComposition.makeUpdate((model, message) =>
-    PinsMessage.match(message, {
-      RequestedReadPins: () => ({ model, commands: [ReadPins()] }),
-      CompletedReadPins: ({ count }) => ({
-        model: modifyFields(model, { count: () => count }),
+const assemblePinsBlock = () =>
+  PinsComposition.assembleBlock({
+    init: PinsComposition.makeInit(() => ({ model: { count: 0 } })),
+    update: PinsComposition.makeUpdate((model, message) =>
+      PinsMessage.match(message, {
+        RequestedReadPins: () => ({ model, commands: [ReadPins()] }),
+        CompletedReadPins: ({ count }) => ({
+          model: modifyFields(model, { count: () => count }),
+        }),
+        ObservedPins: ({ count }) => ({
+          model: modifyFields(model, { count: () => count }),
+        }),
       }),
-      ObservedPins: ({ count }) => ({
-        model: modifyFields(model, { count: () => count }),
-      }),
-    }),
-  ),
-  view: PinsComposition.makeView((model, h) =>
-    h.output([], [globalThis.String(model.count)]),
-  ),
-  subscriptions: pinsSubscriptions,
-  operations: { requestReadPins: PinsMessage.RequestedReadPins },
-  EffectsLayer: Layer.merge(
-    ReadPins.layer,
-    pinsSubscriptions.observations.layer,
-  ),
-})
+    ),
+    view: PinsComposition.makeView((model, h) =>
+      h.output([], [globalThis.String(model.count)]),
+    ),
+    subscriptions: pinsSubscriptions,
+    operations: { requestReadPins: PinsMessage.RequestedReadPins },
+    EffectsLayer: Layer.merge(
+      ReadPins.layer,
+      pinsSubscriptions.observations.layer,
+    ),
+  })
+
+export const PinsBlock: Block.FromAssemblyWithView<
+  typeof PinsModel,
+  typeof assemblePinsBlock
+> = assemblePinsBlock()
 
 const Model = Schema.Struct({ pins: PinsBlock.Model })
 export const Message = defineMessageUnion({ RequestedRefreshPins: {} })

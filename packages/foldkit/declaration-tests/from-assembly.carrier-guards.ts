@@ -1,0 +1,175 @@
+import type { Schema } from 'effect'
+import { Block, Program } from 'foldkit'
+
+import { Model } from './from-assembly.accepted.js'
+import {
+  assembleErased,
+  assembleHeadless,
+  assembleReportingHeadless,
+  assembleReportingViewed,
+  assembleViewed,
+} from './from-assembly.accepted.js'
+import { ParentDefinition } from './from-assembly.accepted.js'
+
+declare const anyProducer: any
+export const AnyViewed: Block.AssemblyWithView<
+  typeof Model,
+  typeof anyProducer
+> = anyProducer()
+export const AnyHeadless: Block.AssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof anyProducer
+> = anyProducer()
+export const AnyReportingViewed: Block.AssemblyWithViewAndOutMessage<
+  typeof Model,
+  typeof anyProducer
+> = anyProducer()
+export const AnyReportingHeadless: Block.AssemblyWithOutMessage<
+  typeof Model,
+  typeof anyProducer
+> = anyProducer()
+
+// @ts-expect-error A declaration carrier with any Producer has poisoned required fields.
+export const AnyViewedAsBlock: Block.AnyBlock = AnyViewed
+// @ts-expect-error The headless carrier cannot launder any into AnyBlock.
+export const AnyHeadlessAsBlock: Block.AnyBlock = AnyHeadless
+// @ts-expect-error The reporting viewed carrier cannot launder any into AnyBlock.
+export const AnyReportingViewedAsBlock: Block.AnyBlock = AnyReportingViewed
+// @ts-expect-error The reporting headless carrier cannot launder any into AnyBlock.
+export const AnyReportingHeadlessAsBlock: Block.AnyBlock = AnyReportingHeadless
+// @ts-expect-error The carrier cannot register an any Producer as a valid child.
+ParentDefinition.makeBinding(AnyViewed, { field: 'child', init: false })
+// @ts-expect-error The carrier cannot complete a Program with an any Producer.
+Program.makeElement({ block: AnyViewed, container: null })
+
+export const NeverResult: Block.AssemblyWithView<
+  typeof Model,
+  typeof assembleErased
+> = assembleErased()
+declare const neverProducer: never
+export declare const NeverProducer: Block.AssemblyWithView<
+  typeof Model,
+  typeof neverProducer
+>
+// @ts-expect-error A never result keeps poisoned fields in the public carrier too.
+export const NeverResultAsBlock: Block.AnyBlock = NeverResult
+// @ts-expect-error A whole-never Producer keeps poisoned fields in the public carrier too.
+export const NeverProducerAsBlock: Block.AnyBlock = NeverProducer
+// @ts-expect-error A never-result carrier cannot register a child.
+ParentDefinition.makeBinding(NeverResult, { field: 'child', init: false })
+// @ts-expect-error A whole-never carrier cannot register a child.
+ParentDefinition.makeBinding(NeverProducer, { field: 'child', init: false })
+// @ts-expect-error A never-result carrier cannot complete a Program.
+Program.makeElement({ block: NeverResult, container: null })
+// @ts-expect-error A whole-never carrier cannot complete a Program.
+Program.makeElement({ block: NeverProducer, container: null })
+
+export const BroadModel: Schema.Codec<
+  { count: number | string },
+  { count: number | string }
+> = Model
+export const MutableModel: Schema.Codec<{ count: number }, { count: number }> =
+  Model
+export const BroadCarrier: Block.AssemblyWithView<
+  typeof BroadModel,
+  // @ts-expect-error The public carrier preserves exact Model agreement.
+  typeof assembleViewed
+> = assembleViewed()
+export const MutableCarrier: Block.AssemblyWithView<
+  typeof MutableModel,
+  // @ts-expect-error A structurally assignable mutable header still fails exact Schema agreement.
+  typeof assembleViewed
+> = assembleViewed()
+export const AnyModelCarrier: Block.AssemblyWithView<
+  any,
+  // @ts-expect-error Any Model cannot disable the carrier's header validation.
+  typeof assembleViewed
+> = assembleViewed()
+
+declare function twoOverloads(): any
+declare function twoOverloads(
+  ...args: ReadonlyArray<never>
+): ReturnType<typeof assembleViewed>
+export const TwoOverloads: Block.AssemblyWithView<
+  typeof Model,
+  // @ts-expect-error The public carrier retains the complete-producer guard.
+  typeof twoOverloads
+> = twoOverloads()
+
+declare function threeOverloads(): any
+declare function threeOverloads(): never
+declare function threeOverloads(
+  ...args: ReadonlyArray<never>
+): ReturnType<typeof assembleViewed>
+export const ThreeOverloads: Block.AssemblyWithView<
+  typeof Model,
+  // @ts-expect-error A never middle signature cannot bypass the public carrier's marker requirement.
+  typeof threeOverloads
+> = threeOverloads()
+
+export type AnyModelHeadless = Block.AssemblyWithoutViewOrOutMessage<
+  any,
+  // @ts-expect-error Every carrier retains exact Model validation.
+  typeof assembleHeadless
+>
+export type BroadModelHeadless = Block.AssemblyWithoutViewOrOutMessage<
+  typeof BroadModel,
+  // @ts-expect-error Every carrier rejects a broader mutable Model header.
+  typeof assembleHeadless
+>
+export type OverloadedHeadless = Block.AssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  // @ts-expect-error Every carrier rejects the three-signature overload attack.
+  typeof threeOverloads
+>
+export declare const NeverHeadless: Block.AssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  never
+>
+// @ts-expect-error Every carrier keeps whole-never producers unusable as a Block.
+export const NeverHeadlessAsBlock: Block.AnyBlock = NeverHeadless
+
+export type AnyModelReportingViewed = Block.AssemblyWithViewAndOutMessage<
+  any,
+  // @ts-expect-error Every carrier retains exact Model validation.
+  typeof assembleReportingViewed
+>
+export type BroadModelReportingViewed = Block.AssemblyWithViewAndOutMessage<
+  typeof BroadModel,
+  // @ts-expect-error Every carrier rejects a broader mutable Model header.
+  typeof assembleReportingViewed
+>
+export type OverloadedReportingViewed = Block.AssemblyWithViewAndOutMessage<
+  typeof Model,
+  // @ts-expect-error Every carrier rejects the three-signature overload attack.
+  typeof threeOverloads
+>
+export declare const NeverReportingViewed: Block.AssemblyWithViewAndOutMessage<
+  typeof Model,
+  never
+>
+// @ts-expect-error Every carrier keeps whole-never producers unusable as a Block.
+export const NeverReportingViewedAsBlock: Block.AnyBlock = NeverReportingViewed
+
+export type AnyModelReportingHeadless = Block.AssemblyWithOutMessage<
+  any,
+  // @ts-expect-error Every carrier retains exact Model validation.
+  typeof assembleReportingHeadless
+>
+export type BroadModelReportingHeadless = Block.AssemblyWithOutMessage<
+  typeof BroadModel,
+  // @ts-expect-error Every carrier rejects a broader mutable Model header.
+  typeof assembleReportingHeadless
+>
+export type OverloadedReportingHeadless = Block.AssemblyWithOutMessage<
+  typeof Model,
+  // @ts-expect-error Every carrier rejects the three-signature overload attack.
+  typeof threeOverloads
+>
+export declare const NeverReportingHeadless: Block.AssemblyWithOutMessage<
+  typeof Model,
+  never
+>
+// @ts-expect-error Every carrier keeps whole-never producers unusable as a Block.
+export const NeverReportingHeadlessAsBlock: Block.AnyBlock =
+  NeverReportingHeadless

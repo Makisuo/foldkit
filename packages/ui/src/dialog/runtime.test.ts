@@ -10,7 +10,7 @@ const dialogId = 'preserved-dialog'
 const DialogEvent = Schema.Literals(['Opened', 'Closed'])
 
 const Model = Schema.Struct({
-  dialog: Dialog.DialogBlock.Model,
+  dialog: Dialog.Model,
   dialogEvents: Schema.Array(DialogEvent),
 })
 type Model = typeof Model.Type

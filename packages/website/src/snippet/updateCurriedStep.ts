@@ -31,8 +31,14 @@ const update = RouteAwareComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const RouteAwareBlock = RouteAwareComposition.assembleBlock({
-  init,
-  update,
-  operations: { informRouteChanged },
-})
+const assembleRouteAwareBlock = () =>
+  RouteAwareComposition.assembleBlock({
+    init,
+    update,
+    operations: { informRouteChanged },
+  })
+
+export const RouteAwareBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof assembleRouteAwareBlock
+> = assembleRouteAwareBlock()

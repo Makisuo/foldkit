@@ -938,11 +938,17 @@ export const maybeDropTarget = (
     Match.orElse(() => Option.none()),
   )
 
+const assembleDragAndDropBlock = () =>
+  DragAndDropComposition.assembleBlock({
+    init,
+    update,
+    view,
+    subscriptions,
+    EffectsLayer,
+  })
+
 /** Complete DragAndDrop Block definition for connecting to a parent. */
-export const DragAndDropBlock = DragAndDropComposition.assembleBlock({
-  init,
-  update,
-  view,
-  subscriptions,
-  EffectsLayer,
-})
+export const DragAndDropBlock: Block.FromAssemblyWithViewAndOutMessage<
+  typeof Model,
+  typeof assembleDragAndDropBlock
+> = assembleDragAndDropBlock()

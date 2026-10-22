@@ -63,8 +63,14 @@ const view = CounterComposition.makeView((model, h) =>
   ),
 )
 
-export const CounterBlock = CounterComposition.assembleBlock({
-  init,
-  update,
-  view,
-})
+const assembleCounterBlock = () =>
+  CounterComposition.assembleBlock({
+    init,
+    update,
+    view,
+  })
+
+export const CounterBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assembleCounterBlock
+> = assembleCounterBlock()

@@ -240,7 +240,7 @@ const NestedParentBlock = DragAndDropTestParentComposition.assembleBlock({
 
 const NestedSlot = Schema.Struct({
   key: Schema.String,
-  parent: NestedParentBlock.Model,
+  parent: ParentModel,
 })
 
 const NestedModel = Schema.Struct({ slots: Schema.Array(NestedSlot) })

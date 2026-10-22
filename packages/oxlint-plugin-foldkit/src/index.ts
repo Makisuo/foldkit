@@ -11,6 +11,7 @@ import { lazyViewStableReferences } from './rules/lazy-view-stable-references.ts
 import { mountFactoryMustUseElement } from './rules/mount-factory-must-use-element.ts'
 import { noArrayIndexViewKeys } from './rules/no-array-index-view-keys.ts'
 import { noChildMessageConstructionInRoot } from './rules/no-child-message-construction-in-root.ts'
+import { noCompletedBlockModelInSchema } from './rules/no-completed-block-model-in-schema.ts'
 import { noDirectBlockStateUpdate } from './rules/no-direct-block-state-update.ts'
 import { noDisablingDevGuardrails } from './rules/no-disabling-dev-guardrails.ts'
 import { noDuplicateOnmountPerElement } from './rules/no-duplicate-onmount-per-element.ts'
@@ -54,6 +55,7 @@ const basePlugin = Plugin.define({
     'mount-factory-must-use-element': mountFactoryMustUseElement,
     'no-array-index-view-keys': noArrayIndexViewKeys,
     'no-child-message-construction-in-root': noChildMessageConstructionInRoot,
+    'no-completed-block-model-in-schema': noCompletedBlockModelInSchema,
     'no-direct-block-state-update': noDirectBlockStateUpdate,
     'no-disabling-dev-guardrails': noDisablingDevGuardrails,
     'no-duplicate-onmount-per-element': noDuplicateOnmountPerElement,

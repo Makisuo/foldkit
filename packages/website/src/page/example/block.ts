@@ -1,6 +1,9 @@
+import type { Block } from 'foldkit'
+
 import { ExampleDetailComposition } from './composition'
 import { EffectsLayer, init, update, view } from './example'
 import { Message } from './message'
+import type { Model } from './model'
 
 export { mounts } from './composition'
 export {
@@ -15,12 +18,18 @@ export {
   view,
 } from './example'
 
-export const ExampleDetailBlock = ExampleDetailComposition.assembleBlock({
-  init,
-  update,
-  view,
-  operations: {
-    informRouteChanged: Message.InformedOfRouteChange,
-  },
-  EffectsLayer,
-})
+const assembleExampleDetailBlock = () =>
+  ExampleDetailComposition.assembleBlock({
+    init,
+    update,
+    view,
+    operations: {
+      informRouteChanged: Message.InformedOfRouteChange,
+    },
+    EffectsLayer,
+  })
+
+export const ExampleDetailBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof assembleExampleDetailBlock
+> = assembleExampleDetailBlock()

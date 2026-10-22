@@ -11,17 +11,23 @@ const RoomComposition = Block.makeDefinition('Room', {
   Model: RoomModel,
   Message: RoomMessage,
 }).makeComposition()
-const RoomBlock = RoomComposition.assembleBlock({
-  init: RoomComposition.makeInit((title: string) => ({ model: { title } })),
-  update: RoomComposition.makeUpdate((model, message) =>
-    RoomMessage.match(message, {
-      RequestedRename: ({ title }) => ({
-        model: modifyFields(model, { title: () => title }),
+const assembleRoomBlock = () =>
+  RoomComposition.assembleBlock({
+    init: RoomComposition.makeInit((title: string) => ({ model: { title } })),
+    update: RoomComposition.makeUpdate((model, message) =>
+      RoomMessage.match(message, {
+        RequestedRename: ({ title }) => ({
+          model: modifyFields(model, { title: () => title }),
+        }),
       }),
-    }),
-  ),
-  operations: { requestRename: RoomMessage.RequestedRename },
-})
+    ),
+    operations: { requestRename: RoomMessage.RequestedRename },
+  })
+
+const RoomBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof RoomModel,
+  typeof assembleRoomBlock
+> = assembleRoomBlock()
 
 const RoomInstance = Schema.Struct({
   roomId: Schema.String,

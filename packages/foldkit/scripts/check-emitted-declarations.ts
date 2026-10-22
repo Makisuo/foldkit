@@ -447,6 +447,32 @@ const checks: ReadonlyArray<
   }>
 > = [
   {
+    name: 'from-assembly',
+    accepted: [
+      'from-assembly.accepted.ts',
+      'from-assembly.generic.ts',
+      'from-assembly.barrel.ts',
+      'from-assembly.lifecycle.ts',
+      'generated-dispatch.accepted.ts',
+      'composed-init.accepted.ts',
+      'exposed-message.accepted.ts',
+    ],
+    rejected: [
+      'from-assembly.rejected.ts',
+      'from-assembly.overloaded-producer.ts',
+      'from-assembly.carrier-guards.ts',
+    ],
+    consumers: [
+      'from-assembly.assertions.ts',
+      'from-assembly.consume.ts',
+      'from-assembly.generic-consume.ts',
+      'from-assembly.schema-consume.ts',
+      'from-assembly.dispatch-consume.ts',
+      'from-assembly.precision-consume.ts',
+      'from-assembly.channels-consume.ts',
+    ],
+  },
+  {
     name: 'generic-handler-contracts',
     accepted: ['generic-handler-contracts.accepted.ts'],
     rejected: ['generic-handler-contracts.rejected.ts'],

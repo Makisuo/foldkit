@@ -133,6 +133,11 @@ export const Viewed: Block.FromAssemblyWithView<
   typeof assembleViewed
 > = assembleViewed()
 
+export const replaceOriginalViewed: typeof OriginalViewed.replaceEffectsLayer =
+  OriginalViewed.replaceEffectsLayer
+export const replaceViewed: typeof Viewed.replaceEffectsLayer =
+  Viewed.replaceEffectsLayer
+
 export const OriginalHeadless = assembleHeadless()
 export const Headless: Block.FromAssemblyWithoutViewOrOutMessage<
   typeof Model,

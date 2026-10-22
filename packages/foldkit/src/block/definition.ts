@@ -1844,7 +1844,7 @@ type SelectedEffectsImplementation<ImplementationValue, SelectedEffectsLayer> =
       : ImplementationValue[Key]
   }>
 
-interface BlockOperations<
+interface ReplaceEffectsLayer<
   OwnerValue extends Owner<string>,
   ModelSchema extends Schema.Codec<any, any, any, any>,
   MessageSchema extends Schema.Codec<any, any, any, any>,
@@ -1857,21 +1857,7 @@ interface BlockOperations<
     EffectsLayer: AnyLayer
   }>,
 > {
-  /** Authors an alternate embedded view against this completed Block's fixed
-   * child and Mount graph. Parents can select it through a Binding. */
-  readonly makeView: DefineView<
-    OwnerValue,
-    ModelSchema['Type'],
-    MessageSchema['Type'],
-    DefinitionViewRequirements<Mounts, Children>
-  >
-  /**
-   * Selects a replacement local Layer recipe and retains the selected child
-   * graph. The returned block keeps the Owner, operations, lifecycle
-   * registrations, and host handler contract. Selection builds no services
-   * and never constructs the previous local recipe.
-   */
-  readonly replaceEffectsLayer: <
+  <
     const SelectedEffectsLayer extends
       | Layer.Layer<never, any, any>
       | Layer.Layer<any, any, any>,
@@ -1899,7 +1885,7 @@ interface BlockOperations<
           >
         >
       >,
-  ) => Block<
+  ): Block<
     OwnerValue,
     ModelSchema,
     MessageSchema,
@@ -1907,6 +1893,44 @@ interface BlockOperations<
     Mounts,
     Children,
     SelectedEffectsImplementation<ImplementationValue, SelectedEffectsLayer>
+  >
+}
+
+interface BlockOperations<
+  OwnerValue extends Owner<string>,
+  ModelSchema extends Schema.Codec<any, any, any, any>,
+  MessageSchema extends Schema.Codec<any, any, any, any>,
+  OutMessageSchema extends Schema.Codec<any, any, any, any> | undefined,
+  Mounts extends ReadonlyArray<Mount.LayeredMountDefinition>,
+  Children extends ReadonlyArray<AnyBinding>,
+  ImplementationValue extends Readonly<{
+    init: AnyFunction
+    update: AnyFunction
+    EffectsLayer: AnyLayer
+  }>,
+> {
+  /** Authors an alternate embedded view against this completed Block's fixed
+   * child and Mount graph. Parents can select it through a Binding. */
+  readonly makeView: DefineView<
+    OwnerValue,
+    ModelSchema['Type'],
+    MessageSchema['Type'],
+    DefinitionViewRequirements<Mounts, Children>
+  >
+  /**
+   * Selects a replacement local Layer recipe and retains the selected child
+   * graph. The returned block keeps the Owner, operations, lifecycle
+   * registrations, and host handler contract. Selection builds no services
+   * and never constructs the previous local recipe.
+   */
+  readonly replaceEffectsLayer: ReplaceEffectsLayer<
+    OwnerValue,
+    ModelSchema,
+    MessageSchema,
+    OutMessageSchema,
+    Mounts,
+    Children,
+    ImplementationValue
   >
   /**
    * Supplies the declared host-owned handler services with an ordinary Layer.

@@ -1,7 +1,7 @@
 import { Effect, Layer } from 'effect'
 import { Program, Runtime } from 'foldkit'
 
-import { Model, Store } from './from-assembly.accepted.js'
+import { EffectsLayer, Model, Store } from './from-assembly.accepted.js'
 import { view } from './from-assembly.accepted.js'
 import {
   BottomAnnotation,
@@ -17,10 +17,13 @@ import {
   Parent,
   ParentBinding,
   ParentComposition,
+  ParentDefinition,
   RawParent,
   ReportingHeadless,
   ReportingViewed,
   Viewed,
+  replaceOriginalViewed,
+  replaceViewed,
 } from './from-assembly.accepted.js'
 import type {
   Assert,
@@ -77,6 +80,39 @@ export const ReportingHeadlessToOriginal: typeof OriginalReportingHeadless =
 export const OriginalToReportingHeadless: typeof ReportingHeadless =
   OriginalReportingHeadless
 
+export const ReplacedOriginalViewed = replaceOriginalViewed(EffectsLayer)
+export const ReplacedViewed = replaceViewed(EffectsLayer)
+
+// @ts-expect-error The extracted raw callable cannot discard the Command and Mount handlers.
+replaceOriginalViewed(Layer.empty)
+// @ts-expect-error The extracted checked callable cannot discard the Command and Mount handlers.
+replaceViewed(Layer.empty)
+
+export type ReplacedOriginalViewedMembers = Assert<
+  SameMembers<typeof ReplacedOriginalViewed, typeof OriginalViewed>
+>
+export type ReplacedViewedMembers = Assert<
+  SameMembers<typeof ReplacedViewed, typeof Viewed>
+>
+export type ReplacedOriginalViewedStore = Assert<
+  Equal<Layer.Services<typeof ReplacedOriginalViewed.EffectsLayer>, Store>
+>
+export type ReplacedViewedStore = Assert<
+  Equal<Layer.Services<typeof ReplacedViewed.EffectsLayer>, Store>
+>
+export type ReplacedOriginalViewedOperationArguments = Assert<
+  Equal<
+    Parameters<typeof ReplacedOriginalViewed.operations.setCount>,
+    Parameters<typeof OriginalViewed.operations.setCount>
+  >
+>
+export type ReplacedViewedOperationArguments = Assert<
+  Equal<
+    Parameters<typeof ReplacedViewed.operations.setCount>,
+    Parameters<typeof Viewed.operations.setCount>
+  >
+>
+
 export type ParentBindings = Assert<
   Equal<typeof Parent.bindings, typeof ParentComposition.bindings>
 >
@@ -126,6 +162,28 @@ export const HeadlessEmbedding = HeadlessBinding.embedView({
   viewInputs: { label: 'Alternate' },
 })
 
+export const ReplacedViewedBinding = ParentDefinition.makeBinding(
+  ReplacedViewed,
+  { field: 'child' },
+)
+export const ReplacedViewedParentComposition = ParentDefinition.makeComposition(
+  { bindings: [ReplacedViewedBinding] },
+)
+export const ReplacedViewedParent =
+  ReplacedViewedParentComposition.assembleBlock({
+    init: ReplacedViewedParentComposition.makeInit(() => ({ model: {} })),
+    update: ReplacedViewedParentComposition.makeUpdate(),
+    view: ReplacedViewedParentComposition.makeView((model, h) =>
+      h.block(
+        ReplacedViewedBinding.embedView({
+          slotId: 'replaced-child',
+          model: model.child,
+          viewInputs: { label: 'Replaced count' },
+        }),
+      ),
+    ),
+  })
+
 export const ProgramWithStoreRequirement = Program.makeElement({
   block: Parent,
   container: null,
@@ -141,6 +199,11 @@ export const RawParentProgramWithStoreRequirement = Program.makeElement({
   container: null,
 })
 
+export const ReplacedViewedProgramWithStoreRequirement = Program.makeElement({
+  block: ReplacedViewedParent,
+  container: null,
+})
+
 export const StoreLayer = Layer.succeed(Store, {
   saveCount: () => Effect.void,
 })
@@ -148,3 +211,6 @@ export const StoreLayer = Layer.succeed(Store, {
 Runtime.run(ProgramWithStoreRequirement.provide(StoreLayer))
 Runtime.run(OriginalParentProgramWithStoreRequirement.provide(StoreLayer))
 Runtime.run(RawParentProgramWithStoreRequirement.provide(StoreLayer))
+// @ts-expect-error The replacement retains the Store Service requirement.
+Runtime.run(ReplacedViewedProgramWithStoreRequirement)
+Runtime.run(ReplacedViewedProgramWithStoreRequirement.provide(StoreLayer))

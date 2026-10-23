@@ -5,7 +5,7 @@ import { DatePickerBlock } from '@foldkit/ui'
 
 import { WorkHistoryEntryDefinition } from './definition'
 
-export const StartDatePickerBinding = WorkHistoryEntryDefinition.bindChild(
+export const StartDatePickerBinding = WorkHistoryEntryDefinition.makeBinding(
   DatePickerBlock,
   {
     field: 'startDate',
@@ -17,7 +17,7 @@ export const StartDatePickerBinding = WorkHistoryEntryDefinition.bindChild(
   },
 )
 
-export const EndDatePickerBinding = WorkHistoryEntryDefinition.bindChild(
+export const EndDatePickerBinding = WorkHistoryEntryDefinition.makeBinding(
   DatePickerBlock,
   {
     field: 'endDate',
@@ -30,17 +30,17 @@ export const EndDatePickerBinding = WorkHistoryEntryDefinition.bindChild(
 const foldStartDateOutMessage = WorkHistoryEntryDefinition.makeOutMessageFold(
   DatePickerBlock,
   {
-    ChangedViewMonth: WorkHistoryEntryDefinition.stepNoop,
+    ChangedViewMonth: WorkHistoryEntryDefinition.makeNoopStep,
     SelectedDate: ({ date }) =>
       Update.combineSteps([
-        WorkHistoryEntryDefinition.stepFields(() => ({
+        WorkHistoryEntryDefinition.makeFieldsStep(() => ({
           maybeStartDate: () => Option.some(date),
         })),
         EndDatePickerBinding.informMinDateChanged(Option.some(date)),
       ]),
     ClearedDate: () =>
       Update.combineSteps([
-        WorkHistoryEntryDefinition.stepFields(() => ({
+        WorkHistoryEntryDefinition.makeFieldsStep(() => ({
           maybeStartDate: () => Option.none(),
         })),
         EndDatePickerBinding.informMinDateChanged(Option.none()),
@@ -51,17 +51,17 @@ const foldStartDateOutMessage = WorkHistoryEntryDefinition.makeOutMessageFold(
 const foldEndDateOutMessage = WorkHistoryEntryDefinition.makeOutMessageFold(
   DatePickerBlock,
   {
-    ChangedViewMonth: WorkHistoryEntryDefinition.stepNoop,
+    ChangedViewMonth: WorkHistoryEntryDefinition.makeNoopStep,
     SelectedDate: ({ date }) =>
       Update.combineSteps([
-        WorkHistoryEntryDefinition.stepFields(() => ({
+        WorkHistoryEntryDefinition.makeFieldsStep(() => ({
           maybeEndDate: () => Option.some(date),
         })),
         StartDatePickerBinding.informMaxDateChanged(Option.some(date)),
       ]),
     ClearedDate: () =>
       Update.combineSteps([
-        WorkHistoryEntryDefinition.stepFields(() => ({
+        WorkHistoryEntryDefinition.makeFieldsStep(() => ({
           maybeEndDate: () => Option.none(),
         })),
         StartDatePickerBinding.informMaxDateChanged(Option.none()),

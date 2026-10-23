@@ -40,10 +40,10 @@ const ActivityListExampleDefinition = Block.makeDefinition(
 
 const foldActivityListOutMessage =
   ActivityListExampleDefinition.makeOutMessageFold(ActivityList, {
-    ObservedContainerScroll: ActivityListExampleDefinition.stepNoop,
+    ObservedContainerScroll: ActivityListExampleDefinition.makeNoopStep,
   })
 
-const ActivityListBinding = ActivityListExampleDefinition.bindChild(
+const ActivityListBinding = ActivityListExampleDefinition.makeBinding(
   ActivityList,
   {
     field: 'activityList',

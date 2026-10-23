@@ -32,7 +32,7 @@ export class SettingsStore extends Context.Service<
   }>
 >()('SettingsStore') {}
 
-export const SaveTheme = SettingsDefinition.command('SaveTheme', {
+export const SaveTheme = SettingsDefinition.makeCommand('SaveTheme', {
   args: { theme: Theme },
   messages: [Message.CompletedSaveTheme, Message.FailedSaveTheme],
   handler: function* () {

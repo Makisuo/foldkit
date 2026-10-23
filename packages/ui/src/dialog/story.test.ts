@@ -43,7 +43,7 @@ const acknowledgeAcquireResources = Scene.Mount.resolve(
 const DialogEvent = Schema.Literals(['Opened', 'Closed'])
 
 const ParentModel = Schema.Struct({
-  dialog: DialogBlock.Model,
+  dialog: Model,
   dialogEvents: Schema.Array(DialogEvent),
 })
 
@@ -73,16 +73,19 @@ const foldDialogOutMessage = DialogParentTestDefinition.makeOutMessageFold(
   },
 )
 
-const LoadParentData = DialogParentTestDefinition.command('LoadParentData', {
-  messages: [ParentMessage.CompletedLoadParentData],
-})
+const LoadParentData = DialogParentTestDefinition.makeCommand(
+  'LoadParentData',
+  {
+    messages: [ParentMessage.CompletedLoadParentData],
+  },
+)
 
-const loadParentData = DialogParentTestDefinition.step(model => ({
+const loadParentData = DialogParentTestDefinition.makeStep(model => ({
   model,
   commands: [LoadParentData()],
 }))
 
-const DialogBinding = DialogParentTestDefinition.bindChild(DialogBlock, {
+const DialogBinding = DialogParentTestDefinition.makeBinding(DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: 'initial-dialog' }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })

@@ -2,6 +2,7 @@ import { Effect, Option, Schema } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import { makeDefinition } from '../block/define.js'
+import * as Block from '../block/public.js'
 import { qualifyCommand } from '../block/scope.js'
 import * as Command from '../command/index.js'
 import { defineMessageUnion } from '../message/index.js'
@@ -19,7 +20,7 @@ const ChildDefinition = makeDefinition('BindingMatcherChild', {
   Message,
 })
 
-const Work = ChildDefinition.command('Work', {
+const Work = ChildDefinition.makeCommand('Work', {
   args: {
     entryId: Schema.String,
     version: Schema.Number,
@@ -42,24 +43,29 @@ const OtherWork = Command.define('Work', {
 })
 
 const ChildComposition = ChildDefinition.makeComposition()
-const ChildBlock = ChildComposition.assembleBlock({
-  init: () => ({ model: {} }),
-  update: ChildComposition.makeUpdate(model => ({ model })),
-  EffectsLayer: Work.layer,
-})
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
+    init: () => ({ model: {} }),
+    update: ChildComposition.makeUpdate(model => ({ model })),
+    EffectsLayer: Work.layer,
+  })
+const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildComposition.Model,
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const ParentDefinition = makeDefinition('BindingMatcherParent', {
   Model: Schema.Struct({}),
   Message: Schema.Never,
 })
 
-const LeftBinding = ParentDefinition.bindChild(ChildBlock, {
+const LeftBinding = ParentDefinition.makeBinding(ChildBlock, {
   placement: 'Left',
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
 })
 
-const RightBinding = ParentDefinition.bindChild(ChildBlock, {
+const RightBinding = ParentDefinition.makeBinding(ChildBlock, {
   placement: 'Right',
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
@@ -198,11 +204,16 @@ describe('__bindCommandMatcher', () => {
 
   it('rejects a Binding from another completed Block instance', () => {
     const OtherComposition = ChildDefinition.makeComposition()
-    const OtherBlock = OtherComposition.assembleBlock({
-      init: () => ({ model: {} }),
-      update: OtherComposition.makeUpdate(model => ({ model })),
-      EffectsLayer: Work.layer,
-    })
+    const prepareOtherBlock = () =>
+      OtherComposition.prepareBlock({
+        init: () => ({ model: {} }),
+        update: OtherComposition.makeUpdate(model => ({ model })),
+        EffectsLayer: Work.layer,
+      })
+    const OtherBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+      typeof OtherComposition.Model,
+      typeof prepareOtherBlock
+    > = Block.assemble(prepareOtherBlock)
 
     expect(() =>
       __bindCommandMatcher(OtherBlock, LeftBinding, Work(args)),

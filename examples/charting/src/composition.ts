@@ -52,7 +52,7 @@ export const refetchTelemetry = (model: typeof Model.Type) =>
 const selectedControl = (
   updateModel: (model: typeof Model.Type) => typeof Model.Type,
 ) =>
-  ApplicationDefinition.step(model => {
+  ApplicationDefinition.makeStep(model => {
     const nextModel = updateModel(
       modifyFields(model, { maybeSelectedDatumId: () => Option.none() }),
     )
@@ -70,7 +70,7 @@ const selectedControl = (
     }
   })
 
-export const ChartModeRadioGroupBinding = ApplicationDefinition.bindChild(
+export const ChartModeRadioGroupBinding = ApplicationDefinition.makeBinding(
   ChartModeRadioGroupBlock,
   {
     field: 'chartModeRadioGroup',
@@ -83,7 +83,7 @@ export const ChartModeRadioGroupBinding = ApplicationDefinition.bindChild(
   }),
 })
 
-export const PeriodRadioGroupBinding = ApplicationDefinition.bindChild(
+export const PeriodRadioGroupBinding = ApplicationDefinition.makeBinding(
   PeriodRadioGroupBlock,
   {
     field: 'periodRadioGroup',
@@ -96,7 +96,7 @@ export const PeriodRadioGroupBinding = ApplicationDefinition.bindChild(
   }),
 })
 
-export const PackageRadioGroupBinding = ApplicationDefinition.bindChild(
+export const PackageRadioGroupBinding = ApplicationDefinition.makeBinding(
   PackageRadioGroupBlock,
   {
     field: 'packageRadioGroup',

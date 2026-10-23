@@ -6,9 +6,11 @@ import * as Toast from '@foldkit/ui/toast'
 import * as Tooltip from '@foldkit/ui/tooltip'
 
 import {
+  AnimationBinding,
   ApplicationDefinition,
   DialogBinding,
   DragAndDropBinding,
+  KeyedAnimationBinding,
   KeyedDragAndDropBinding,
   KeyedToastBinding,
   MenuFoldFixtureDefinition,
@@ -26,14 +28,14 @@ MenuFoldFixtureDefinition.makeOutMessageFold(MenuPicker, {
   Selected: ({ value }) => {
     // @ts-expect-error Parent-owned folds preserve the generic Menu payload.
     const _wrong: 'Banana' = value
-    return MenuFoldFixtureDefinition.stepNoop()
+    return MenuFoldFixtureDefinition.makeNoopStep()
   },
-  Closed: () => MenuFoldFixtureDefinition.stepNoop(),
+  Closed: () => MenuFoldFixtureDefinition.makeNoopStep(),
 })
 
 // @ts-expect-error Parent-owned folds require every generic Menu OutMessage variant.
 MenuFoldFixtureDefinition.makeOutMessageFold(MenuPicker, {
-  Selected: () => MenuFoldFixtureDefinition.stepNoop(),
+  Selected: () => MenuFoldFixtureDefinition.makeNoopStep(),
 })
 
 // @ts-expect-error Animation content must be rendered through the caller-scoped slot.
@@ -42,6 +44,15 @@ void invalidAnimationViewInputs
 
 // @ts-expect-error The connected Dialog operation takes no arguments.
 DialogBinding.requestOpen('unexpected')
+
+// @ts-expect-error The connected Animation operation takes no arguments.
+AnimationBinding.requestWaitForLeaveSettlement('unexpected')
+
+// @ts-expect-error A keyed Animation operation requires its occurrence key.
+KeyedAnimationBinding.requestWaitForLeaveSettlement()
+
+// @ts-expect-error The keyed Animation operation retains its literal key Schema.
+KeyedAnimationBinding.requestWaitForLeaveSettlement('Secondary')
 
 Picker.Message.SelectedItem({
   // @ts-expect-error The refined Message rejects an item outside its Schema.

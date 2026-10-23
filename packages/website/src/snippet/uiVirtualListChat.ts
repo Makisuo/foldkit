@@ -31,21 +31,24 @@ const MessageListExampleDefinition = Block.makeDefinition(
 
 const foldMessageListOutMessage =
   MessageListExampleDefinition.makeOutMessageFold(MessageList, {
-    ObservedContainerScroll: MessageListExampleDefinition.stepNoop,
+    ObservedContainerScroll: MessageListExampleDefinition.makeNoopStep,
   })
 
-const MessageListBinding = MessageListExampleDefinition.bindChild(MessageList, {
-  field: 'messageList',
-  init: {
-    contextToArgs: () =>
-      Tuple.make({
-        id: 'message-list',
-        rowHeightPx: 64,
-        initialScroll: { target: VirtualListScrollTarget.End() },
-        followEnd: { thresholdPx: 8 },
-      }),
+const MessageListBinding = MessageListExampleDefinition.makeBinding(
+  MessageList,
+  {
+    field: 'messageList',
+    init: {
+      contextToArgs: () =>
+        Tuple.make({
+          id: 'message-list',
+          rowHeightPx: 64,
+          initialScroll: { target: VirtualListScrollTarget.End() },
+          followEnd: { thresholdPx: 8 },
+        }),
+    },
   },
-}).withOutMessagePolicy({ fold: foldMessageListOutMessage })
+).withOutMessagePolicy({ fold: foldMessageListOutMessage })
 
 const MessageListExampleComposition =
   MessageListExampleDefinition.makeComposition({

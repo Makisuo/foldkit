@@ -108,7 +108,7 @@ export const init = NotePlayerDemoComposition.makeInit(() => ({
   },
 }))
 
-const DelayAdvanceNotePlayerPhase = NotePlayerDemoDefinition.command(
+const DelayAdvanceNotePlayerPhase = NotePlayerDemoDefinition.makeCommand(
   'DelayAdvanceNotePlayerPhase',
   {
     args: { generation: Schema.Number },
@@ -356,9 +356,9 @@ export const update = NotePlayerDemoComposition.makeUpdate((model, message) =>
 // MANAGED RESOURCE
 
 const AudioContextResource =
-  NotePlayerDemoDefinition.resource<AudioContext>()('AudioContext')
+  NotePlayerDemoDefinition.makeResource<AudioContext>()('AudioContext')
 
-export const managedResources = NotePlayerDemoDefinition.managedResources(
+export const managedResources = NotePlayerDemoDefinition.makeManagedResources(
   entry => ({
     audioContext: entry('ManageAudioContext', Schema.Option(Schema.Null), {
       resource: AudioContextResource,
@@ -382,7 +382,7 @@ export const managedResources = NotePlayerDemoDefinition.managedResources(
   }),
 )
 
-const PlayNote = NotePlayerDemoDefinition.command('PlayNote', {
+const PlayNote = NotePlayerDemoDefinition.makeCommand('PlayNote', {
   args: { note: Note, duration: NoteDuration, noteIndex: Schema.Number },
   messages: [Message.CompletedPlayNote],
   handler: function* () {

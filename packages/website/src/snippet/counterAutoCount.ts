@@ -20,7 +20,7 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
-export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
   gameClockTicks: entry(
     'GameClockTicks',
     { isAutoCounting: Schema.Boolean },

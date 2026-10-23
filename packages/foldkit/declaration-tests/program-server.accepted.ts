@@ -9,16 +9,21 @@ const DeclarationServerRootComposition = Block.makeDefinition(
   { Model, Message: Schema.Never },
 ).makeComposition()
 
-export const ServerRootBlock = DeclarationServerRootComposition.assembleBlock({
-  init: DeclarationServerRootComposition.makeInit(() => ({
-    model: { status: 'Ready' },
-  })),
-  update: DeclarationServerRootComposition.makeUpdate(),
-  view: DeclarationServerRootComposition.makeView((model, h) => ({
-    title: model.status,
-    body: h.main([], [model.status]),
-  })),
-})
+const prepareServerRootBlock = () =>
+  DeclarationServerRootComposition.prepareBlock({
+    init: DeclarationServerRootComposition.makeInit(() => ({
+      model: { status: 'Ready' },
+    })),
+    update: DeclarationServerRootComposition.makeUpdate(),
+    view: DeclarationServerRootComposition.makeView((model, h) => ({
+      title: model.status,
+      body: h.main([], [model.status]),
+    })),
+  })
+export const ServerRootBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepareServerRootBlock
+> = Block.assemble(prepareServerRootBlock)
 
 export const renderPure = () =>
   Server.renderToString(ServerRootBlock, {}, { isHydratable: false })

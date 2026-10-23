@@ -41,11 +41,11 @@ const toPreviousStep = (
     Option.getOrElse(() => current),
   )
 
-const markSubmitAttempted = ApplicationDefinition.stepFields(() => ({
+const markSubmitAttempted = ApplicationDefinition.makeFieldsStep(() => ({
   isSubmitAttempted: () => true,
 }))
 
-const submitWhenComplete = ApplicationDefinition.step(model => {
+const submitWhenComplete = ApplicationDefinition.makeStep(model => {
   if (isApplicationComplete(model)) {
     return {
       model: modifyFields(model, {

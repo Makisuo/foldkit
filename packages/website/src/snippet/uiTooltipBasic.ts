@@ -33,18 +33,18 @@ const foldTooltipOutMessage = TooltipExampleDefinition.makeOutMessageFold(
     // The child has emitted `Shown`. In this arm the parent can update its
     // own state or dispatch its own Commands, for example log analytics,
     // prefetch content, or trigger a downstream Command.
-    Shown: TooltipExampleDefinition.stepNoop,
+    Shown: TooltipExampleDefinition.makeNoopStep,
     // The child has emitted `Hidden`. In this arm the parent can update its
     // own state or dispatch its own Commands, for example clear ephemeral
     // state, fire analytics, or trigger a downstream Command.
-    Hidden: TooltipExampleDefinition.stepNoop,
+    Hidden: TooltipExampleDefinition.makeNoopStep,
   },
 )
 
 // The Binding wires the completed child Block into the parent: it runs Tooltip.TooltipBlock.update,
 // writes the next Tooltip Model back, routes generated delivery and Command
 // results, and hands any OutMessage to the OutMessage fold.
-const TooltipBinding = TooltipExampleDefinition.bindChild(
+const TooltipBinding = TooltipExampleDefinition.makeBinding(
   Tooltip.TooltipBlock,
   {
     field: 'tooltip',

@@ -4,7 +4,7 @@ import { LoggedOutDefinition } from './definition'
 import { OutMessage } from './message'
 import { LoginBlock } from './page/login'
 
-export const LoginBinding = LoggedOutDefinition.bindChild(LoginBlock, {
+export const LoginBinding = LoggedOutDefinition.makeBinding(LoginBlock, {
   field: 'loginModel',
   init: { contextToArgs: () => [] },
 }).withOutMessagePolicy({

@@ -136,7 +136,7 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-const CounterBinding = ApplicationDefinition.bindChild(Counter.block, {
+const CounterBinding = ApplicationDefinition.makeBinding(Counter.block, {
   field: 'counter',
   parentMessage: Message.GotCounterMessage,
 })

@@ -6,7 +6,7 @@ Recognize completed Block Bindings in the architecture rules. `no-direct-block-s
 
 For wrapped keyed Bindings, `no-direct-block-state-update` rejects parent replacement of the nested child Model while allowing the parent to update wrapper metadata and collection membership.
 
-Recognize provenance-backed child transform references in direct field evolution, keyed `Array.map` calls, and Definition-owned `stepFields` records. Imported aliases remain tied to their registered child module, and local helpers require child Model annotations, so ordinary domain transforms, parent collection reconciliation, Binding writers, and initialization stay valid.
+Recognize provenance-backed child transform references in direct field evolution, keyed `Array.map` calls, and Definition-owned `makeFieldsStep` records. Imported aliases remain tied to their registered child module, and local helpers require child Model annotations, so ordinary domain transforms, parent collection reconciliation, Binding writers, and initialization stay valid.
 
 Recognize root-owned Messages in Application completion callbacks and view helpers whose builder type comes from the owning Composition without permitting parents to manufacture foreign child Messages. Report authored `Got*` wrappers around Block, Query, and UI component Messages; registered Bindings generate and route those delivery envelopes.
 

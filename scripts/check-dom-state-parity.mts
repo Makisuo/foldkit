@@ -15,8 +15,9 @@ import {
   reflectedAttributeName,
 } from '../packages/foldkit/dist/domReflection.js'
 
+const Model = Schema.Null
 const ApplicationComposition = Block.makeDefinition('Application', {
-  Model: Schema.Null,
+  Model,
   Message: Schema.Never,
 }).makeComposition()
 const makeParityBlock = (
@@ -24,13 +25,21 @@ const makeParityBlock = (
     model: null,
     h: HtmlBuilder<never>,
   ) => Readonly<{ title: string; body: Html }>,
-) =>
-  ApplicationComposition.assembleBlock({
-    init: ApplicationComposition.makeInit(() => ({ model: null })),
-    update: ApplicationComposition.makeUpdate(),
-    view: ApplicationComposition.makeView(view),
-    EffectsLayer: Layer.empty,
-  })
+) => {
+  const prepare = () =>
+    ApplicationComposition.prepareBlock({
+      init: ApplicationComposition.makeInit(() => ({ model: null })),
+      update: ApplicationComposition.makeUpdate(),
+      view: ApplicationComposition.makeView(view),
+      EffectsLayer: Layer.empty,
+    })
+  const ApplicationBlock: Block.FromAssemblyWithView<
+    typeof Model,
+    typeof prepare
+  > = Block.assemble(prepare)
+
+  return ApplicationBlock
+}
 
 // The state a served element is in, compared against the state the client puts
 // the same element in.

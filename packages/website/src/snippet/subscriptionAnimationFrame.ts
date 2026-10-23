@@ -14,7 +14,7 @@ const Model = Schema.Struct({
 
 const SpinnerDefinition = Block.makeDefinition('Spinner', { Model, Message })
 
-const subscriptions = SpinnerDefinition.subscriptions(entry => ({
+const subscriptions = SpinnerDefinition.makeSubscriptions(entry => ({
   animationFrameTicks: entry(
     'AnimationFrameTicks',
     { isActive: Schema.Boolean },

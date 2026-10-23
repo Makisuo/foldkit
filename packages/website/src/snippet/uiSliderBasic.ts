@@ -37,14 +37,16 @@ const foldSliderOutMessage = VolumeSliderDefinition.makeOutMessageFold(
     // you own. This arm is also where the parent can validate, persist, or
     // trigger a downstream Command.
     ChangedValue: ({ value }) =>
-      VolumeSliderDefinition.stepFields(() => ({ ratingValue: () => value })),
+      VolumeSliderDefinition.makeFieldsStep(() => ({
+        ratingValue: () => value,
+      })),
   },
 )
 
 // The Binding wires the completed child Block into the parent: it runs Slider.SliderBlock.update,
 // writes the next Slider Model back, routes generated delivery and Command
 // results, and hands any OutMessage to the OutMessage fold.
-const SliderBinding = VolumeSliderDefinition.bindChild(Slider.SliderBlock, {
+const SliderBinding = VolumeSliderDefinition.makeBinding(Slider.SliderBlock, {
   field: 'ratingDemo',
   init: {
     contextToArgs: () => Tuple.make({ id: 'rating', min: 0, max: 10, step: 1 }),

@@ -11,17 +11,22 @@ const RoomComposition = Block.makeDefinition('Room', {
   Model: RoomModel,
   Message: RoomMessage,
 }).makeComposition()
-const RoomBlock = RoomComposition.assembleBlock({
-  init: RoomComposition.makeInit((title: string) => ({ model: { title } })),
-  update: RoomComposition.makeUpdate((model, message) =>
-    RoomMessage.match(message, {
-      RequestedRename: ({ title }) => ({
-        model: modifyFields(model, { title: () => title }),
+const prepare = () =>
+  RoomComposition.prepareBlock({
+    init: RoomComposition.makeInit((title: string) => ({ model: { title } })),
+    update: RoomComposition.makeUpdate((model, message) =>
+      RoomMessage.match(message, {
+        RequestedRename: ({ title }) => ({
+          model: modifyFields(model, { title: () => title }),
+        }),
       }),
-    }),
-  ),
-  operations: { requestRename: RoomMessage.RequestedRename },
-})
+    ),
+    operations: { requestRename: RoomMessage.RequestedRename },
+  })
+const RoomBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof RoomModel,
+  typeof prepare
+> = Block.assemble(prepare)
 
 const RoomInstance = Schema.Struct({
   roomId: Schema.String,
@@ -39,7 +44,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-const RoomBinding = ApplicationDefinition.bindChild(RoomBlock, {
+const RoomBinding = ApplicationDefinition.makeBinding(RoomBlock, {
   field: 'maybeRoomInstance',
   key: 'roomId',
   childField: 'model',

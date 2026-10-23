@@ -30,13 +30,13 @@ const DialogExampleDefinition = Block.makeDefinition('DialogExample', {
 const foldDialogOutMessage = DialogExampleDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: DialogExampleDefinition.stepNoop,
-    Closed: DialogExampleDefinition.stepNoop,
-    CompletedClose: DialogExampleDefinition.stepNoop,
+    Opened: DialogExampleDefinition.makeNoopStep,
+    Closed: DialogExampleDefinition.makeNoopStep,
+    CompletedClose: DialogExampleDefinition.makeNoopStep,
   },
 )
 
-const DialogBinding = DialogExampleDefinition.bindChild(Dialog.DialogBlock, {
+const DialogBinding = DialogExampleDefinition.makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => Tuple.make({ id: 'confirm' }) },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })

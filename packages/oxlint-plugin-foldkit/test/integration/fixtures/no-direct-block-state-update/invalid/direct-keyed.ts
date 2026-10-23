@@ -14,7 +14,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const EntriesBinding = ApplicationDefinition.bindChild(KeyedEntry.Entry, {
+const EntriesBinding = ApplicationDefinition.makeBinding(KeyedEntry.Entry, {
   field: 'entries',
   key: 'id',
   toParentMessage: (id, message) =>

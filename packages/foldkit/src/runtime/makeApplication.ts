@@ -413,7 +413,7 @@ type ValidUpdate<Model, Update> = Update extends (
  * Its view returns a Document, so the runtime manages document.title and the
  * canonical and og:url tags. Add routing configuration for URL routing, and
  * use one Application per document. Complete Applications whose handlers or
- * Flags require Services with the owning Composition's `assembleBlock` method,
+ * Flags require Services with the owning Composition's `prepareBlock` method,
  * pass that Block to `Program.make`, and supply Services through the Program's
  * `provide` method. Use `Program.makeElement` for rendering scoped to a node
  * without changing the document head.

@@ -58,8 +58,8 @@ const ItemMessage = defineMessageUnion({
   FailedAcquireValue: {},
   EmittedPulse: { value: Schema.String },
 })
-const Value = ItemNamespace.resource<string>()('Value')
-const ReadValue = ItemNamespace.command('ReadValue', {
+const Value = ItemNamespace.makeResource<string>()('Value')
+const ReadValue = ItemNamespace.makeCommand('ReadValue', {
   messages: [ItemMessage.CompletedReadValue, ItemMessage.FailedReadValue],
   handler: function* () {
     const controls = yield* TestControls
@@ -73,7 +73,7 @@ const ReadValue = ItemNamespace.command('ReadValue', {
       )
   },
 })
-const ObserveValue = ItemNamespace.mountStream('ObserveValue', {
+const ObserveValue = ItemNamespace.makeMountStream('ObserveValue', {
   messages: [ItemMessage.EmittedPulse],
   handler: function* () {
     const controls = yield* TestControls
@@ -100,7 +100,7 @@ const ItemBaseDefinition = ItemNamespace.makeDefinition({
   Message: ItemMessage,
 })
 const item = ItemBaseDefinition.makeComposition({ mounts: [ObserveValue] })
-const subscriptions = ItemBaseDefinition.subscriptions(entry => ({
+const subscriptions = ItemBaseDefinition.makeSubscriptions(entry => ({
   activePulse: entry(
     'ActivePulse',
     { source: Schema.String },
@@ -126,7 +126,7 @@ const subscriptions = ItemBaseDefinition.subscriptions(entry => ({
     },
   ),
 }))
-const managedResources = ItemBaseDefinition.managedResources(entry => ({
+const managedResources = ItemBaseDefinition.makeManagedResources(entry => ({
   value: entry(
     'Value',
     Schema.Option(Schema.Struct({ source: Schema.String })),
@@ -202,7 +202,11 @@ const itemImplementation = {
   managedResources,
   EffectsLayer: ItemEffectsLayer,
 }
-const itemBlock = item.assembleBlock(itemImplementation)
+const prepareItemBlock = () => item.prepareBlock(itemImplementation)
+const itemBlock: Block.FromAssemblyWithView<
+  typeof ItemModel,
+  typeof prepareItemBlock
+> = Block.assemble(prepareItemBlock)
 
 const RootModel = Schema.Struct({ entries: Schema.Array(ItemModel) })
 const RootMessage = defineMessageUnion({
@@ -214,7 +218,7 @@ const RootBaseDefinition = Block.makeDefinition('Application', {
   Model: RootModel,
   Message: RootMessage,
 })
-const EntriesBinding = RootBaseDefinition.bindChild(itemBlock, {
+const EntriesBinding = RootBaseDefinition.makeBinding(itemBlock, {
   field: 'entries',
   key: 'id',
 })
@@ -334,13 +338,20 @@ describe('keyed Block occurrences', () => {
     const container = document.createElement('div')
     container.id = 'memoized-keyed-composition'
     document.body.append(container)
-    const element = Program.makeElement({
-      block: root.assembleBlock({
+
+    const prepare = () =>
+      root.prepareBlock({
         init: rootInit,
         update: rootUpdate,
         view: rootView,
         EffectsLayer: Layer.empty,
-      }),
+      })
+    const completedBlock: Block.FromAssemblyWithView<
+      typeof RootModel,
+      typeof prepare
+    > = Block.assemble(prepare)
+    const element = Program.makeElement({
+      block: completedBlock,
       container,
     })
     const provideControls = element.provide
@@ -433,13 +444,20 @@ describe('keyed Block occurrences', () => {
     const container = document.createElement('div')
     container.id = 'keyed-composition'
     document.body.append(container)
-    const application = Program.makeElement({
-      block: root.assembleBlock({
+
+    const prepare = () =>
+      root.prepareBlock({
         init: rootInit,
         update: rootUpdate,
         view: rootView,
         EffectsLayer: Layer.empty,
-      }),
+      })
+    const completedBlock: Block.FromAssemblyWithView<
+      typeof RootModel,
+      typeof prepare
+    > = Block.assemble(prepare)
+    const application = Program.makeElement({
+      block: completedBlock,
       container,
     }).provide(Layer.succeed(TestControls, controls))
     const handle = embed(application)
@@ -536,13 +554,20 @@ describe('keyed Block occurrences', () => {
     const container = document.createElement('div')
     container.id = 'keyed-mount-barrier'
     document.body.append(container)
-    const application = Program.makeElement({
-      block: root.assembleBlock({
+
+    const prepare = () =>
+      root.prepareBlock({
         init: rootInit,
         update: rootUpdate,
         view: rootView,
         EffectsLayer: Layer.empty,
-      }),
+      })
+    const completedBlock: Block.FromAssemblyWithView<
+      typeof RootModel,
+      typeof prepare
+    > = Block.assemble(prepare)
+    const application = Program.makeElement({
+      block: completedBlock,
       container,
     }).provide(Layer.succeed(TestControls, controls))
     const handle = embed(application)

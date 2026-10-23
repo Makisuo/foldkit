@@ -1,3 +1,5 @@
+import { Block } from 'foldkit'
+
 import {
   ApplicationComposition,
   FetchCountLayer,
@@ -16,9 +18,14 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   body: h.p([], [model.count.toString()]),
 }))
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-  EffectsLayer: FetchCountLayer,
-})
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
+    init,
+    update,
+    view,
+    EffectsLayer: FetchCountLayer,
+  })
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)

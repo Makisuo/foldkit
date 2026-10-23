@@ -24,8 +24,8 @@ const elementView = RootApplicationComposition.makeView((_model, h) =>
   h.div([h.OnClick(Child.Message.ClickedFromElementCompletion())]),
 )
 
-const ApplicationBlock = RootApplicationComposition.assembleBlock({ view })
-const ElementBlock = RootApplicationComposition.assembleBlock({
+const ApplicationBlock = RootApplicationComposition.prepareBlock({ view })
+const ElementBlock = RootApplicationComposition.prepareBlock({
   view: elementView,
 })
 

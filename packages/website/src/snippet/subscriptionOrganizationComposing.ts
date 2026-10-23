@@ -12,12 +12,12 @@ export const SettingsDefinition = Block.makeDefinition('Settings', {
 const foldThemeMenuOutMessage = SettingsDefinition.makeOutMessageFold(
   ThemeMenu.ThemeMenuBlock,
   {
-    Selected: SettingsDefinition.stepNoop,
-    Closed: SettingsDefinition.stepNoop,
+    Selected: SettingsDefinition.makeNoopStep,
+    Closed: SettingsDefinition.makeNoopStep,
   },
 )
 
-const ThemeMenuBinding = SettingsDefinition.bindChild(
+const ThemeMenuBinding = SettingsDefinition.makeBinding(
   ThemeMenu.ThemeMenuBlock,
   {
     field: 'themeMenu',

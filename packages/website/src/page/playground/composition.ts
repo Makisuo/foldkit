@@ -5,7 +5,7 @@ import { PlaygroundDefinition } from './definition'
 import { PlaygroundFileTabsBlock } from './fileTabs'
 import { MountPlaygroundEditor } from './mount'
 
-export const FileTabsBinding = PlaygroundDefinition.bindChild(
+export const FileTabsBinding = PlaygroundDefinition.makeBinding(
   PlaygroundFileTabsBlock,
   {
     field: 'fileTabs',
@@ -14,7 +14,9 @@ export const FileTabsBinding = PlaygroundDefinition.bindChild(
 ).withOutMessagePolicy({
   fold: PlaygroundDefinition.makeOutMessageFold(PlaygroundFileTabsBlock, {
     Selected: ({ value }) =>
-      PlaygroundDefinition.stepFields(() => ({ activeFilePath: () => value })),
+      PlaygroundDefinition.makeFieldsStep(() => ({
+        activeFilePath: () => value,
+      })),
   }),
 })
 

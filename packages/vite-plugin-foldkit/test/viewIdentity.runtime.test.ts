@@ -175,12 +175,17 @@ const withRunningApp = async (
   view: View,
   run: () => Promise<void>,
 ): Promise<void> => {
-  const ApplicationBlock = ApplicationComposition.assembleBlock({
-    init,
-    update,
-    view: ApplicationComposition.makeView(model => view(model)),
-    EffectsLayer: Layer.empty,
-  })
+  const prepare = () =>
+    ApplicationComposition.prepareBlock({
+      init,
+      update,
+      view: ApplicationComposition.makeView(model => view(model)),
+      EffectsLayer: Layer.empty,
+    })
+  const ApplicationBlock: Block.FromAssemblyWithView<
+    typeof Model,
+    typeof prepare
+  > = Block.assemble(prepare)
   const element = Program.makeElement({
     block: ApplicationBlock,
     container,

@@ -43,15 +43,15 @@ const foldMenuOutMessage = ActionMenuExampleDefinition.makeOutMessageFold(
     // The child has emitted `Selected`. In this arm the parent can update
     // its own state or dispatch its own Commands, for example transition a
     // page, mutate domain state, or trigger a downstream Command.
-    Selected: ActionMenuExampleDefinition.stepNoop,
-    Closed: ActionMenuExampleDefinition.stepNoop,
+    Selected: ActionMenuExampleDefinition.makeNoopStep,
+    Closed: ActionMenuExampleDefinition.makeNoopStep,
   },
 )
 
 // The Binding wires the completed child Block into the parent: it runs ActionMenu.update,
 // writes the next Menu Model back, routes generated delivery and Command
 // results, and hands any OutMessage to the OutMessage fold.
-const MenuBinding = ActionMenuExampleDefinition.bindChild(ActionMenu, {
+const MenuBinding = ActionMenuExampleDefinition.makeBinding(ActionMenu, {
   field: 'menu',
   init: { contextToArgs: () => Tuple.make({ id: 'actions' }) },
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })

@@ -70,7 +70,7 @@ Prevents constructing Messages by typing or casting object literals. Use the cal
 
 ### foldkit/command-define-pascal-const {#command-define-pascal-const}
 
-Requires a Command declaration to use a nonempty PascalCase `const` whose name matches the declared Command name. It recognizes standalone `Command.define(...)` and owned `Definition.command(...)` declarations. This rule includes the former `command-binding-matches-name` checks; remove that retired rule ID from explicit configurations.
+Requires a Command declaration to use a nonempty PascalCase `const` whose name matches the declared Command name. It recognizes standalone `Command.define(...)` and owned `Definition.makeCommand(...)` declarations. This rule includes the former `command-binding-matches-name` checks; remove that retired rule ID from explicit configurations.
 
 ::Snippet{name="lintCommandDefinePascalConst" label="Rule: foldkit/command-define-pascal-const"}
 
@@ -276,15 +276,6 @@ The rule fixes straightforward object literals. If removal could disturb a comme
 
 ::Snippet{name="lintNoEmptyToParentOutMessage" label="Rule: foldkit/no-empty-to-parent-out-message"}
 
-### Legacy wrapper rules
-
-The following published rule IDs remain available for projects maintaining authored child wrappers. They are disabled in both current presets. Current Bindings derive their envelopes, so new Blocks do not declare or map these wrappers.
-
-- `foldkit/got-block-message-name` requires legacy wrapper names to follow `Got*Message`.
-- `foldkit/got-prefix-requires-block-payload` requires a legacy `Got*` variant to carry a child Message.
-- `foldkit/wrap-child-output-in-got-message` checks legacy child output wrapping.
-- `foldkit/got-wrapper-carries-only-routing` restricts legacy wrapper payloads to the child Message and routing fields.
-
 ### foldkit/no-manual-composition-routing {#no-manual-composition-routing}
 
 Keeps generated child delivery out of authored updates. It reports authored `parentMessage`, `toParentMessage`, and `fromParentMessage` fields in recognized Binding configurations, including paired mappings. It also reports `Got*` handlers in an owned `makeUpdate` callback and inspection of internal child Message tags. Composition routes registered Bindings automatically. Use `delivery.when` and `delivery.toUpdateContext` for delivery policy, and the Binding's OutMessage policy for parent coordination.
@@ -356,7 +347,7 @@ annotation at those boundaries when lint recognition is needed.
 Replace `foldkit/command-binding-matches-name` with
 `foldkit/command-define-pascal-const` in explicit rule configurations. The latter
 now includes all Command declaration-name checks, including owned
-`Definition.command(...)` declarations.
+`Definition.makeCommand(...)` declarations.
 
 ### Child update results {#require-fold-for-child-update-result}
 

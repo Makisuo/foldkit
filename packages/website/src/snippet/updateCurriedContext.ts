@@ -25,7 +25,7 @@ const update = ContextualRefreshComposition.makeUpdate(
 const refresh = (model: typeof Model.Type) =>
   update(Message.RequestedRefresh())(model, { requestId: 'current' })
 
-const countRefresh = ContextualRefreshDefinition.stepFields(() => ({
+const countRefresh = ContextualRefreshDefinition.makeFieldsStep(() => ({
   refreshCount: count => count + 1,
 }))
 

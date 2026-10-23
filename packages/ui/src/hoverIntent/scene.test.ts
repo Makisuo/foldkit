@@ -20,7 +20,7 @@ const foldHoverIntentOutMessage = HoverIntentSceneDefinition.makeOutMessageFold(
   },
 )
 
-const HoverIntentBinding = HoverIntentSceneDefinition.bindChild(
+const HoverIntentBinding = HoverIntentSceneDefinition.makeBinding(
   HoverIntentBlock,
   {
     read: model => Option.some(model),

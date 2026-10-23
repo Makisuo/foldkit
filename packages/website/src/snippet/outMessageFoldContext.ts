@@ -1,6 +1,6 @@
 const foldLoginOutMessage = Application.makeOutMessageFold(Login.LoginBlock, {
   RequestedMagicLink: ({ email }, { liftCommand }) =>
-    Application.step(model => ({
+    Application.makeStep(model => ({
       model,
       commands: [
         liftCommand(Login.SendMagicLink({ email, redirectRoute: model.route })),

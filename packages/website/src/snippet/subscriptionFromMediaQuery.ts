@@ -15,7 +15,7 @@ const MotionPreferencesDefinition = Block.makeDefinition('MotionPreferences', {
   Message,
 })
 
-const subscriptions = MotionPreferencesDefinition.subscriptions(entry => ({
+const subscriptions = MotionPreferencesDefinition.makeSubscriptions(entry => ({
   reducedMotionChanges: entry('ReducedMotionChanges', {
     messages: [Message.ChangedReducedMotion],
     handler: function* () {

@@ -225,14 +225,20 @@ const flagsRoutingInit = InvalidApplicationComposition.makeInit(
     model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   }),
 )
-
-// @ts-expect-error Completion requires the Flags and routing inputs declared by init.
-Program.make({
-  block: InvalidApplicationComposition.assembleBlock({
+const prepare = () =>
+  InvalidApplicationComposition.prepareBlock({
     init: flagsRoutingInit,
     update: invalidApplicationImplementation.update,
     view: invalidDocumentView,
-  }),
+  })
+const completedBlock: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof prepare
+> = Block.assemble(prepare)
+
+// @ts-expect-error Completion requires the Flags and routing inputs declared by init.
+Program.make({
+  block: completedBlock,
   container: null,
 })
 
@@ -243,14 +249,14 @@ const DeclarationTestsViewHelperDefinition = Block.makeDefinition(
     Message: ParentMessage,
   },
 )
-const ObserveViewHelper = DeclarationTestsViewHelperDefinition.mount(
+const ObserveViewHelper = DeclarationTestsViewHelperDefinition.makeMount(
   'ObserveViewHelper',
   {
     messages: [ParentMessage.RequestedRefresh],
   },
 )
 const AlternativeViewChildBinding =
-  DeclarationTestsViewHelperDefinition.bindChild(ChildBlock, {
+  DeclarationTestsViewHelperDefinition.makeBinding(ChildBlock, {
     field: 'child',
     placement: 'alternativeViewChild',
     init: false,
@@ -315,7 +321,7 @@ const viewHelperWithForeignMessage = (h: ViewHelperViewBuilder) =>
 // @ts-expect-error Composition no longer carries a render helper.
 ViewHelperComposition.render
 
-ViewHelperComposition.assembleBlock({
+ViewHelperComposition.prepareBlock({
   init: ViewHelperComposition.makeInit(() => ({
     model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   })),
@@ -334,10 +340,15 @@ const applicationInputView = InvalidApplicationComposition.makeView.withInputs<
   Readonly<{ label: string }>
 >((_model, { label }, h) => h.main([], [label]))
 
-const applicationInputBlock = InvalidApplicationComposition.assembleBlock({
-  ...invalidApplicationImplementation,
-  view: applicationInputView,
-})
+const prepareApplicationInputBlock = () =>
+  InvalidApplicationComposition.prepareBlock({
+    ...invalidApplicationImplementation,
+    view: applicationInputView,
+  })
+const applicationInputBlock: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof prepareApplicationInputBlock
+> = Block.assemble(prepareApplicationInputBlock)
 // @ts-expect-error A Program root view cannot require parent-supplied inputs.
 Program.makeElement({
   block: applicationInputBlock,
@@ -347,7 +358,7 @@ Program.makeElement({
 // @ts-expect-error Application Composition no longer carries a render helper.
 InvalidApplicationComposition.render
 
-InvalidApplicationComposition.assembleBlock({
+InvalidApplicationComposition.prepareBlock({
   ...invalidApplicationImplementation,
   // @ts-expect-error A plain view helper cannot complete a Block as its branded view.
   view: applicationViewHelper,
@@ -404,11 +415,17 @@ const RequiresConflictingProvisionContract = Layer.effect(
   }),
 )
 
-const provisionContractProgram = Program.makeElement({
-  block: InvalidApplicationComposition.assembleBlock({
+const prepare2 = () =>
+  InvalidApplicationComposition.prepareBlock({
     ...invalidApplicationImplementation,
     view: invalidElementView,
-  }),
+  })
+const completedBlock2: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof prepare2
+> = Block.assemble(prepare2)
+const provisionContractProgram = Program.makeElement({
+  block: completedBlock2,
   container: null,
 })
 const programWithProvisionContract = provisionContractProgram.provide(
@@ -421,20 +438,30 @@ programWithProvisionContract.provide(ConflictingProvisionContract.layer)
 // @ts-expect-error A later provider cannot require a conflicting handler contract.
 programWithProvisionContract.provide(RequiresConflictingProvisionContract)
 
-const invalidElementBlock = InvalidApplicationComposition.assembleBlock({
-  ...invalidApplicationImplementation,
-  view: invalidElementView,
-})
+const prepareInvalidElementBlock = () =>
+  InvalidApplicationComposition.prepareBlock({
+    ...invalidApplicationImplementation,
+    view: invalidElementView,
+  })
+const invalidElementBlock: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof prepareInvalidElementBlock
+> = Block.assemble(prepareInvalidElementBlock)
 // @ts-expect-error Program.make requires a Document view.
 Program.make({
   block: invalidElementBlock,
   container: null,
 })
 
-const invalidDocumentBlock = InvalidApplicationComposition.assembleBlock({
-  ...invalidApplicationImplementation,
-  view: invalidDocumentView,
-})
+const prepareInvalidDocumentBlock = () =>
+  InvalidApplicationComposition.prepareBlock({
+    ...invalidApplicationImplementation,
+    view: invalidDocumentView,
+  })
+const invalidDocumentBlock: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof prepareInvalidDocumentBlock
+> = Block.assemble(prepareInvalidDocumentBlock)
 // @ts-expect-error Program.makeElement requires an Html view.
 Program.makeElement({
   block: invalidDocumentBlock,
@@ -448,11 +475,16 @@ const requiredContextUpdate = InvalidApplicationComposition.makeUpdate(
   },
 )
 
-const requiredContextBlock = InvalidApplicationComposition.assembleBlock({
-  ...invalidApplicationImplementation,
-  update: requiredContextUpdate,
-  view: invalidElementView,
-})
+const prepareRequiredContextBlock = () =>
+  InvalidApplicationComposition.prepareBlock({
+    ...invalidApplicationImplementation,
+    update: requiredContextUpdate,
+    view: invalidElementView,
+  })
+const requiredContextBlock: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof prepareRequiredContextBlock
+> = Block.assemble(prepareRequiredContextBlock)
 // @ts-expect-error A Program root update cannot require dispatch context.
 Program.makeElement({
   block: requiredContextBlock,
@@ -460,7 +492,6 @@ Program.makeElement({
 })
 
 const WiderMessage = defineMessageUnion({
-  // eslint-disable-next-line foldkit/got-prefix-requires-block-payload
   RequestedRefresh: {},
   RequestedExtraWork: {},
 })
@@ -479,7 +510,7 @@ const widerMessageUpdate = WiderMessageComposition.makeUpdate(
   }),
 )
 
-InvalidApplicationComposition.assembleBlock({
+InvalidApplicationComposition.prepareBlock({
   ...invalidApplicationImplementation,
   // @ts-expect-error A completed Block accepts only an update owned by its Composition.
   update: widerMessageUpdate,
@@ -502,17 +533,22 @@ const widerModelUpdate = WiderInputModelComposition.makeUpdate(
   }),
 )
 
-InvalidApplicationComposition.assembleBlock({
+InvalidApplicationComposition.prepareBlock({
   ...invalidApplicationImplementation,
   // @ts-expect-error A completed Block accepts only an update owned by its Composition.
   update: widerModelUpdate,
   view: invalidElementView,
 })
 
-const invalidServerBlock = InvalidApplicationComposition.assembleBlock({
-  ...invalidApplicationImplementation,
-  view: invalidElementView,
-})
+const prepareInvalidServerBlock = () =>
+  InvalidApplicationComposition.prepareBlock({
+    ...invalidApplicationImplementation,
+    view: invalidElementView,
+  })
+const invalidServerBlock: Block.FromAssemblyWithView<
+  typeof ParentModel,
+  typeof prepareInvalidServerBlock
+> = Block.assemble(prepareInvalidServerBlock)
 // oxlint-disable-next-line effecttsgo/floating-effect
 Server.renderToString(
   // @ts-expect-error Server rendering requires a page-owning Document view.
@@ -543,15 +579,15 @@ const DeclarationTestsTypedPrimitiveOwnerDefinition = Block.makeDefinition(
   },
 )
 
-DeclarationTestsTypedPrimitiveOwnerDefinition.command('ForeignCommand', {
+DeclarationTestsTypedPrimitiveOwnerDefinition.makeCommand('ForeignCommand', {
   // @ts-expect-error A typed Block Command must produce its owner's Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-DeclarationTestsTypedPrimitiveOwnerDefinition.mount('ForeignMount', {
+DeclarationTestsTypedPrimitiveOwnerDefinition.makeMount('ForeignMount', {
   // @ts-expect-error A typed Block Mount must produce its owner's Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-DeclarationTestsTypedPrimitiveOwnerDefinition.mountStream(
+DeclarationTestsTypedPrimitiveOwnerDefinition.makeMountStream(
   'ForeignMountStream',
   {
     // @ts-expect-error A typed Block stream Mount must produce its owner's Message.
@@ -568,29 +604,29 @@ const TypedPrimitiveApplication = (() => {
   return ApplicationDefinition
 })()
 
-TypedPrimitiveApplication.command('ForeignApplicationCommand', {
+TypedPrimitiveApplication.makeCommand('ForeignApplicationCommand', {
   // @ts-expect-error A root Command must produce the Application Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-TypedPrimitiveApplication.mount('ForeignApplicationMount', {
+TypedPrimitiveApplication.makeMount('ForeignApplicationMount', {
   // @ts-expect-error A root Mount must produce the Application Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
-TypedPrimitiveApplication.mountStream('ForeignApplicationMountStream', {
+TypedPrimitiveApplication.makeMountStream('ForeignApplicationMountStream', {
   // @ts-expect-error A root stream Mount must produce the Application Message.
   messages: [ForeignPrimitiveMessage.ForeignCompleted],
 })
 
 // @ts-expect-error Owned primitive names cannot contain a scoped identity separator.
-DeclarationTestsConstructorNamespace.command('Invalid::Work', {
+DeclarationTestsConstructorNamespace.makeCommand('Invalid::Work', {
   messages: [ConstructorMessage.CompletedWork],
 })
 
-const HostWork = DeclarationTestsConstructorNamespace.command('HostWork', {
+const HostWork = DeclarationTestsConstructorNamespace.makeCommand('HostWork', {
   messages: [ConstructorMessage.CompletedWork],
 })
 
-DeclarationTestsConstructorNamespace.command('InvalidConstructedWork', {
+DeclarationTestsConstructorNamespace.makeCommand('InvalidConstructedWork', {
   messages: [ConstructorMessage.CompletedWork],
   // @ts-expect-error Foldkit handlers are unavailable while another handler is constructed.
   handler: function* () {
@@ -614,7 +650,7 @@ const DeclarationTestsForeignParentDefinition = Block.makeDefinition(
   },
 )
 const ForeignParent = DeclarationTestsForeignParentDefinition
-const ForeignChildBinding = ForeignParent.bindChild(ChildBlock, {
+const ForeignChildBinding = ForeignParent.makeBinding(ChildBlock, {
   placement: 'foreign-child',
   read: model => Option.some(model.child),
   write: (_model, nextChild) => ParentModel.make({ child: nextChild }),
@@ -629,26 +665,26 @@ const DeclarationTestsBindingParentDefinition = Block.makeDefinition(
 )
 const BindingParent = DeclarationTestsBindingParentDefinition
 
-// @ts-expect-error Authored parent Message constructors are no longer accepted by bindChild.
-BindingParent.bindChild(ChildBlock, {
+// @ts-expect-error Authored parent Message constructors are no longer accepted by makeBinding.
+BindingParent.makeBinding(ChildBlock, {
   field: 'child',
   parentMessage: ParentMessage.RequestedRefresh,
 })
 
-// @ts-expect-error Authored outgoing Message mappers are no longer accepted by bindChild.
-BindingParent.bindChild(ChildBlock, {
+// @ts-expect-error Authored outgoing Message mappers are no longer accepted by makeBinding.
+BindingParent.makeBinding(ChildBlock, {
   field: 'child',
   toParentMessage: (message: ChildMessage) => message,
 })
 
-// @ts-expect-error Authored incoming Message routes are no longer accepted by bindChild.
-BindingParent.bindChild(ChildBlock, {
+// @ts-expect-error Authored incoming Message routes are no longer accepted by makeBinding.
+BindingParent.makeBinding(ChildBlock, {
   field: 'child',
   fromParentMessage: false,
 })
 
 // @ts-expect-error Generated keyed delivery rejects authored outgoing Message mappers.
-BindingParent.bindChild(ChildBlock, {
+BindingParent.makeBinding(ChildBlock, {
   placement: 'children',
   readAll: (model: ParentModel) => [model.child],
   key: (): 'only' => 'only',
@@ -687,7 +723,7 @@ Block.makeDefinition('DeclarationTestsInvalidDirectContracts', {
 })
 
 const AlternativeChildBinding =
-  DeclarationTestsOmittedChildDefinition.bindChild(ChildBlock, {
+  DeclarationTestsOmittedChildDefinition.makeBinding(ChildBlock, {
     field: 'child',
     placement: 'alternativeChild',
     init: false,
@@ -705,7 +741,7 @@ const omittedChildUpdate = DeclarationTestsOmittedChildComposition.makeUpdate(
 )
 
 // @ts-expect-error Completion retains evidence from the rejected child operation.
-DeclarationTestsOmittedChildComposition.assembleBlock({
+DeclarationTestsOmittedChildComposition.prepareBlock({
   init: DeclarationTestsOmittedChildComposition.makeInit(() => ({
     model: ParentModel.make({ child: ChildBlock.Model.make({ value: 0 }) }),
   })),
@@ -721,13 +757,13 @@ const DeclarationTestsOmittedInitChildDefinition = Block.makeDefinition(
   },
 )
 const OmittedInitChildBinding =
-  DeclarationTestsOmittedInitChildDefinition.bindChild(ChildBlock, {
+  DeclarationTestsOmittedInitChildDefinition.makeBinding(ChildBlock, {
     placement: 'omitted-init-child',
     read: model => Option.some(model),
     write: (_model, nextChild) => nextChild,
   })
 const AlternativeInitChildBinding =
-  DeclarationTestsOmittedInitChildDefinition.bindChild(ChildBlock, {
+  DeclarationTestsOmittedInitChildDefinition.makeBinding(ChildBlock, {
     placement: 'alternativeInitChild',
     read: model => Option.some(model),
     write: (_model, nextChild) => nextChild,
@@ -745,7 +781,7 @@ const omittedChildInit = DeclarationTestsOmittedInitChildComposition.makeInit(
 )
 
 // @ts-expect-error A Block initializer cannot use an unregistered child Binding.
-DeclarationTestsOmittedInitChildComposition.assembleBlock({
+DeclarationTestsOmittedInitChildComposition.prepareBlock({
   init: omittedChildInit,
   update: DeclarationTestsOmittedInitChildComposition.makeUpdate(model => ({
     model,

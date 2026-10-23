@@ -1,6 +1,7 @@
 import { Array, Option, Predicate, Schema, SchemaAST } from 'effect'
 
 import type * as Update from '../update/index.js'
+import { assertCompletedBlock } from './assemblyState.js'
 import { type BindableBlock, type Binding, bind } from './binding.js'
 import {
   attachOutMessagePolicy,
@@ -2798,7 +2799,7 @@ const assertBindingConfig: (
 
   if (Object.hasOwn(config, 'outMessage')) {
     throw new Error(
-      '[foldkit] Definition.bindChild no longer accepts outMessage. Select a callable policy with Binding.withOutMessagePolicy({ fold, forward }).',
+      '[foldkit] Definition.makeBinding no longer accepts outMessage. Select a callable policy with Binding.withOutMessagePolicy({ fold, forward }).',
     )
   }
 }
@@ -2819,6 +2820,7 @@ export const makeBindChild = <
 ): BindChild<ParentModelSchema, ParentMessageSchema, ParentOutMessageSchema> =>
   /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
   ((block: BindableBlock, providedConfig: unknown): unknown => {
+    assertCompletedBlock(block)
     assertBindingConfig(providedConfig)
     const hasOutMessage = Schema.isSchema(Reflect.get(block, 'OutMessage'))
     let currentBinding: Readonly<{ placement: string }> | undefined

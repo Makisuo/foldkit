@@ -30,13 +30,13 @@ const ProjectDialogsDefinition = Block.makeDefinition('ProjectDialogs', {
 const foldConfirmDialogOutMessage = ProjectDialogsDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: ProjectDialogsDefinition.stepNoop,
-    Closed: ProjectDialogsDefinition.stepNoop,
-    CompletedClose: ProjectDialogsDefinition.stepNoop,
+    Opened: ProjectDialogsDefinition.makeNoopStep,
+    Closed: ProjectDialogsDefinition.makeNoopStep,
+    CompletedClose: ProjectDialogsDefinition.makeNoopStep,
   },
 )
 
-const SettingsDialogBinding = ProjectDialogsDefinition.bindChild(
+const SettingsDialogBinding = ProjectDialogsDefinition.makeBinding(
   Dialog.DialogBlock,
   {
     field: 'settingsDialog',
@@ -44,7 +44,7 @@ const SettingsDialogBinding = ProjectDialogsDefinition.bindChild(
   },
 ).withOutMessagePolicy({ fold: foldConfirmDialogOutMessage })
 
-const ConfirmDialogBinding = ProjectDialogsDefinition.bindChild(
+const ConfirmDialogBinding = ProjectDialogsDefinition.makeBinding(
   Dialog.DialogBlock,
   {
     field: 'confirmDialog',

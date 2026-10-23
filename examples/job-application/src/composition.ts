@@ -11,7 +11,7 @@ import {
   WorkHistoryBlock,
 } from './step'
 
-export const PersonalInfoBinding = ApplicationDefinition.bindChild(
+export const PersonalInfoBinding = ApplicationDefinition.makeBinding(
   PersonalInfoBlock,
   {
     field: 'personalInfo',
@@ -19,7 +19,7 @@ export const PersonalInfoBinding = ApplicationDefinition.bindChild(
   },
 )
 
-export const WorkHistoryBinding = ApplicationDefinition.bindChild(
+export const WorkHistoryBinding = ApplicationDefinition.makeBinding(
   WorkHistoryBlock,
   {
     field: 'workHistory',
@@ -32,7 +32,7 @@ export const WorkHistoryBinding = ApplicationDefinition.bindChild(
   },
 )
 
-export const EducationBinding = ApplicationDefinition.bindChild(
+export const EducationBinding = ApplicationDefinition.makeBinding(
   EducationBlock,
   {
     field: 'education',
@@ -45,45 +45,55 @@ export const EducationBinding = ApplicationDefinition.bindChild(
   },
 )
 
-export const SkillsBinding = ApplicationDefinition.bindChild(SkillsBlock, {
+export const SkillsBinding = ApplicationDefinition.makeBinding(SkillsBlock, {
   field: 'skills',
   init: {
     contextToArgs: ({ initialSkillsEntryId }) => [initialSkillsEntryId],
   },
 })
 
-export const CoverLetterBinding = ApplicationDefinition.bindChild(
+export const CoverLetterBinding = ApplicationDefinition.makeBinding(
   CoverLetterBlock,
   {
     field: 'coverLetter',
   },
 )
 
-export const AttachmentsBinding = ApplicationDefinition.bindChild(
+export const AttachmentsBinding = ApplicationDefinition.makeBinding(
   AttachmentsBlock,
   {
     field: 'attachments',
   },
 )
 
-export const StepMenuBinding = ApplicationDefinition.bindChild(StepMenuBlock, {
-  field: 'stepMenu',
-  init: { contextToArgs: () => [{ id: 'step-menu' }] },
-}).withOutMessagePolicy({
+export const StepMenuBinding = ApplicationDefinition.makeBinding(
+  StepMenuBlock,
+  {
+    field: 'stepMenu',
+    init: { contextToArgs: () => [{ id: 'step-menu' }] },
+  },
+).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(StepMenuBlock, {
     Selected: ({ value }) =>
-      ApplicationDefinition.stepFields(() => ({ currentStep: () => value })),
-    Closed: ApplicationDefinition.stepNoop,
+      ApplicationDefinition.makeFieldsStep(() => ({
+        currentStep: () => value,
+      })),
+    Closed: ApplicationDefinition.makeNoopStep,
   }),
 })
 
-export const StepTabsBinding = ApplicationDefinition.bindChild(StepTabsBlock, {
-  field: 'stepTabs',
-  init: { contextToArgs: () => [{ id: 'step-tabs' }] },
-}).withOutMessagePolicy({
+export const StepTabsBinding = ApplicationDefinition.makeBinding(
+  StepTabsBlock,
+  {
+    field: 'stepTabs',
+    init: { contextToArgs: () => [{ id: 'step-tabs' }] },
+  },
+).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(StepTabsBlock, {
     Selected: ({ value }) =>
-      ApplicationDefinition.stepFields(() => ({ currentStep: () => value })),
+      ApplicationDefinition.makeFieldsStep(() => ({
+        currentStep: () => value,
+      })),
   }),
 })
 

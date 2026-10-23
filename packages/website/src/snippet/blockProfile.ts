@@ -1,7 +1,10 @@
+import { Block } from 'foldkit'
+
+import type { Model } from './blockProfileContract'
 import { ApplicationDefinition } from './blockProfileContract'
 import * as Settings from './blockSettings'
 
-export const SettingsBinding = ApplicationDefinition.bindChild(
+export const SettingsBinding = ApplicationDefinition.makeBinding(
   Settings.SettingsBlock,
   {
     field: 'settings',
@@ -9,7 +12,9 @@ export const SettingsBinding = ApplicationDefinition.bindChild(
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(Settings.SettingsBlock, {
     ChangedTheme: ({ theme }) =>
-      ApplicationDefinition.stepFields(() => ({ previewTheme: () => theme })),
+      ApplicationDefinition.makeFieldsStep(() => ({
+        previewTheme: () => theme,
+      })),
   }),
 })
 
@@ -36,8 +41,13 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-})
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
+    init,
+    update,
+    view,
+  })
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)

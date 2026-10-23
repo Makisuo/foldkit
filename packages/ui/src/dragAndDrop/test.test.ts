@@ -40,7 +40,7 @@ const foldDragAndDropOutMessage =
     Cancelled: () => model => ({ model }),
   })
 
-const LeftBinding = DragAndDropTestParentDefinition.bindChild(
+const LeftBinding = DragAndDropTestParentDefinition.makeBinding(
   DragAndDropBlock,
   {
     field: 'left',
@@ -48,7 +48,7 @@ const LeftBinding = DragAndDropTestParentDefinition.bindChild(
   },
 ).withOutMessagePolicy({ fold: foldDragAndDropOutMessage })
 
-const RightBinding = DragAndDropTestParentDefinition.bindChild(
+const RightBinding = DragAndDropTestParentDefinition.makeBinding(
   DragAndDropBlock,
   {
     field: 'right',
@@ -233,14 +233,19 @@ describe('DragAndDrop.test Binding selection', () => {
   })
 })
 
-const NestedParentBlock = DragAndDropTestParentComposition.assembleBlock({
-  init: () => ({ model: initialModel }),
-  update,
-})
+const prepare = () =>
+  DragAndDropTestParentComposition.prepareBlock({
+    init: () => ({ model: initialModel }),
+    update,
+  })
+const NestedParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ParentModel,
+  typeof prepare
+> = Block.assemble(prepare)
 
 const NestedSlot = Schema.Struct({
   key: Schema.String,
-  parent: NestedParentBlock.Model,
+  parent: ParentModel,
 })
 
 const NestedModel = Schema.Struct({ slots: Schema.Array(NestedSlot) })
@@ -256,7 +261,7 @@ const NestedDragAndDropTestParentDefinition = Block.makeDefinition(
   },
 )
 
-const NestedBinding = NestedDragAndDropTestParentDefinition.bindChild(
+const NestedBinding = NestedDragAndDropTestParentDefinition.makeBinding(
   NestedParentBlock,
   {
     placement: 'parents',
@@ -352,7 +357,7 @@ const foldKeyedDragAndDropOutMessage =
     Cancelled: () => model => ({ model }),
   })
 
-const KeyedBinding = KeyedDragAndDropTestParentDefinition.bindChild(
+const KeyedBinding = KeyedDragAndDropTestParentDefinition.makeBinding(
   DragAndDropBlock,
   {
     placement: 'boards',

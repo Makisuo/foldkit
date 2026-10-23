@@ -3,6 +3,7 @@ import * as Block from 'foldkit/block'
 
 import {
   ChildBinding,
+  DateInputBlock,
   SchemaBackedItem,
   ViewInputsModel,
   makeGenericBlock,
@@ -32,10 +33,11 @@ const EmittedGenericViewInputsParentDefinition = Block.makeDefinition(
     Message: Schema.Never,
   },
 )
-const GenericStringBinding = EmittedGenericViewInputsParentDefinition.bindChild(
-  makeGenericBlock<string>(),
-  { field: 'child' },
-)
+const GenericStringBinding =
+  EmittedGenericViewInputsParentDefinition.makeBinding(
+    makeGenericBlock<string>(),
+    { field: 'child' },
+  )
 
 export const emittedGenericConfig = GenericStringBinding.embedView({
   slotId: 'emitted-generic-child',
@@ -43,5 +45,25 @@ export const emittedGenericConfig = GenericStringBinding.embedView({
   viewInputs: {
     items: ['first'],
     itemToView: () => null,
+  },
+})
+
+const DateBinding = EmittedGenericViewInputsParentDefinition.makeBinding(
+  DateInputBlock,
+  { field: 'child' },
+)
+const date = new Date('2026-10-21T12:00:00.000Z')
+
+export const emittedDateConfig = DateBinding.embedView({
+  slotId: 'date-child',
+  model: ViewInputsModel.make({ id: 'date-child' }),
+  viewInputs: {
+    report: {
+      createdAt: date,
+      timeline: [{ at: date }],
+      maybeExpiresAt: Option.some(date),
+      range: [date, date],
+      byId: { first: { at: date } },
+    },
   },
 })

@@ -46,7 +46,7 @@ const foldListboxOutMessage = CharacterPickerDefinition.makeOutMessageFold(
   CharacterListbox,
   {
     Selected: ({ value }) =>
-      CharacterPickerDefinition.stepFields(() => ({
+      CharacterPickerDefinition.makeFieldsStep(() => ({
         maybeCharacter: () => Option.some(value),
       })),
   },
@@ -56,7 +56,7 @@ const foldListboxOutMessage = CharacterPickerDefinition.makeOutMessageFold(
 // navigation, typeahead, and open/close to CharacterListbox.update, writes the
 // next Listbox Model back, routes generated delivery and Command results, and
 // hands any OutMessage to the OutMessage fold.
-const CharacterListboxBinding = CharacterPickerDefinition.bindChild(
+const CharacterListboxBinding = CharacterPickerDefinition.makeBinding(
   CharacterListbox,
   {
     field: 'listbox',

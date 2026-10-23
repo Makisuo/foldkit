@@ -16,9 +16,17 @@ For an agent-assisted migration, give the agent this guide's full deployment URL
 
 Update every installed Foldkit package named by the manifest as one snapshot. Keep `effect` and `@effect/platform-browser` on the exact peer versions declared by those packages. Commit the resulting lockfile only after the application compiles and its tests pass.
 
-The stable side of this guide was checked against the published `foldkit@0.168.0` and `@foldkit/ui@0.168.0` APIs with `effect@4.0.0` and `@effect/platform-browser@4.0.0`. The stable source examples were also checked at Foldkit main commit `76fa0d1ee2a5f9d06333e83a1ee381eab0ed37d5`. That commit identifies the source used to verify the stable API; it is neither a package version nor the candidate target. Coverchart checkpoint `6480e465d27b1179bf7e4acffae5da58f65b339d` provides the tested stable consumer baseline for the separate local migration rehearsal. Local packed-artifact checks support guide preparation; acceptance against the published candidate packages remains a separate release gate.
+The stable package lane was checked against the published `foldkit@0.169.0` and `@foldkit/ui@0.169.0` APIs with `effect@4.0.0` and `@effect/platform-browser@4.0.0`. Those packages were released from Foldkit commit `7ee214268c602967937b80f6f20d1e831f2e8ab6`.
+
+The stable source examples were also checked at Foldkit main commit `76fa0d1ee2a5f9d06333e83a1ee381eab0ed37d5`. That commit identifies the source used to verify those examples; it is neither a package version nor the candidate target. Coverchart checkpoint `6480e465d27b1179bf7e4acffae5da58f65b339d` provides the tested stable consumer baseline for the separate local migration rehearsal. Local packed-artifact checks support guide preparation; acceptance against the published candidate packages remains a separate release gate.
 
 If the project already maintains a version-pinned Foldkit source reference or subtree, repin it to the `sourceCommit` recorded by the deployment manifest. If it already maintains generated `FOLDKIT.md` guidance or installed Foldkit skills, refresh those from the same snapshot. These steps keep existing project references aligned; a migration does not require adding a source checkout, guidance file, or skills to a project that does not maintain them.
+
+## Check Compiler and Editor Setup
+
+The target scaffold uses native TypeScript `7.1.0-beta`. Follow the shared [native TypeScript tooling guidance](/preview-upgrade#native-typescript-tooling) when updating an existing native compiler or editor SDK. Keep that tooling choice separate from the application API migration below, and verify the application's normal checks with the compiler it actually resolves.
+
+Apply the shared [Vite security patch guidance](/preview-upgrade#vite-security-patches) when the project resolves an affected Vite or `launch-editor` version. The preview scaffold includes the patched Vite line.
 
 ## Inventory the Stable Application
 
@@ -47,7 +55,9 @@ The final API separates four responsibilities:
 | Completed Block | The fixed graph plus init, update, view, local lifecycle declarations, operations, and local `EffectsLayer`                   | It does not choose a container, request Flags, or application Service providers. |
 | Program         | Page or element host configuration, including the container, Flags Schema, routing, Ports, and DevTools                       | It does not own feature behavior or handler definitions.                         |
 
-`Block.makeDefinition`, `makeComposition`, `assembleBlock`, `Program.make`, and `Program.makeElement` all return passive values. `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` builds the selected Layers and starts the application.
+`Block.makeDefinition`, `makeComposition`, `prepareBlock`, `Program.make`, and `Program.makeElement` all return passive values. `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` builds the selected Layers and starts the application.
+
+For ordinary source Blocks, name the single private zero-argument preparation producer `prepare` and put the matching four-shape export header immediately after it with no blank line. Use a descriptive producer name only when one file genuinely contains multiple preparation producers. Keep the feature barrel focused on its completed Block, and compose parent state with `ChildBlock.Model`. The recommended `foldkit/no-completed-block-model-in-schema` rule guards inferred assembly dependencies while accepting the recognized checked boundary. See [Model Schema dependencies](/patterns/project-organization#keep-model-schema-dependencies-small).
 
 The completed Block is the boundary that parents consume. It carries its Model Schema, complete Message Codec, optional OutMessage matcher, operations, view contract, lifecycle declarations, handler graph, and child graph together.
 
@@ -67,15 +77,17 @@ The handler constructor runs once when the Runtime builds the application Layer.
 
 Apply the same ownership to every effect primitive:
 
-| Stable shape                                        | Candidate shape                                                                                                                                      |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Command.define(..., { execute })`                  | `FeatureDefinition.command(..., { handler: function* () { return args => Effect } })`                                                                |
-| `Subscription.make` with `dependenciesToStream`     | `FeatureDefinition.subscriptions`, a stable handler name, declared `messages`, `modelToDependencies`, and a handler that returns the Stream function |
-| `Subscription.persistentEntry(stream)`              | A named Definition-owned entry whose handler returns a zero-argument Stream function                                                                 |
-| `Mount.define(..., { execute })`                    | `FeatureDefinition.mount(..., { handler })`; register the Mount in the Composition                                                                   |
-| ManagedResource with inline `acquire` and `release` | `FeatureDefinition.managedResources`; the handler returns both `acquire` and `release`                                                               |
+| Stable shape                                        | Candidate shape                                                                                                                                          |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Command.define(..., { execute })`                  | `FeatureDefinition.makeCommand(..., { handler: function* () { return args => Effect } })`                                                                |
+| `Subscription.make` with `dependenciesToStream`     | `FeatureDefinition.makeSubscriptions`, a stable handler name, declared `messages`, `modelToDependencies`, and a handler that returns the Stream function |
+| `Subscription.persistentEntry(stream)`              | A named Definition-owned entry whose handler returns a zero-argument Stream function                                                                     |
+| `Mount.define(..., { execute })`                    | `FeatureDefinition.makeMount(..., { handler })`; register the Mount in the Composition                                                                   |
+| ManagedResource with inline `acquire` and `release` | `FeatureDefinition.makeManagedResources`; the handler returns both `acquire` and `release`                                                               |
 
-Every attached handler exposes a `.layer`. Merge only the definitions owned by that feature into its local `EffectsLayer`, then pass that bundle to `assembleBlock`. Registered child Bindings contribute their own handler graphs automatically.
+`makeSubscriptions` entries take a dependency Schema field record, in the same shape passed to `Schema.Struct`. If an adapter already supplies a Struct as `dependenciesSchema`, pass `dependenciesSchema.fields` to `entry`.
+
+Every attached handler exposes a `.layer`. Merge only the definitions owned by that feature into its local `EffectsLayer`, then pass that bundle to `prepareBlock`. Registered child Bindings contribute their own handler graphs automatically.
 
 ::Snippet{name="applicationFeatureLayer" label="Feature handler Layer composition"}
 
@@ -129,7 +141,7 @@ Make these changes together:
 
 1. Delete the parent's authored `GotSettingsMessage` variant.
 2. Complete Settings as `SettingsBlock`, including its init, update, primary view, OutMessage, lifecycle declarations, and local handlers.
-3. Replace the `Update.foldChild` configuration with `ParentDefinition.bindChild(SettingsBlock, ...)`. Move its Model access, delivery context, presence, key, and OutMessage policy into the Binding.
+3. Replace the `Update.foldChild` configuration with `ParentDefinition.makeBinding(SettingsBlock, ...)`. Move its Model access, delivery context, presence, key, and OutMessage policy into the Binding.
 4. Register that Binding with `ParentDefinition.makeComposition({ bindings: [SettingsBinding] })`.
 5. Delete `toParentMessage` and the local update branch that unpacks the child Message. Author the parent update with `ParentComposition.makeUpdate`; it matches only the parent's local Message union.
 
@@ -155,7 +167,7 @@ Never key repeated occurrences by array position. Generated delivery records the
 
 ### Fold OutMessages in the Parent
 
-A child OutMessage reports a fact across the boundary. The parent owns the response. Pass the completed child explicitly whether a fold is inline or named: `bindChild(ChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(ChildBlock, handlers) })`.
+A child OutMessage reports a fact across the boundary. The parent owns the response. Pass the completed child explicitly whether a fold is inline or named: `makeBinding(ChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(ChildBlock, handlers) })`.
 
 ::Snippet{name="blockOutMessagePolicy" label="Parent-owned child OutMessage policy"}
 
@@ -173,11 +185,13 @@ The completed Settings Block exposes `requestThemeChange`. In a `makeUpdate` bra
 
 ::Snippet{name="blockDelegateViaHelper" label="Calling a bound Block operation"}
 
+An operation retains the child update's full context tuple, even when the Message branch it selects does not use every context value. Pass those context arguments when calling the completed Block or bound operation. `delivery.toUpdateContext` supplies context for incoming child Message delivery; it does not supply arguments to an ordinary operation call.
+
 Rename existing `Update.combine` calls to `Update.combineSteps`. Both data-first and data-last calls retain the same arguments and inference.
 
-When several Steps must run in order, pass the unapplied Binding operations alongside the parent Steps to `Update.combineSteps`. A Definition-owned `step` may return the connected Step for later use under that Composition, and Composition startup may list it under `steps`. Do not return an unapplied Binding operation from an ordinary update branch that must produce an update result.
+When several Steps must run in order, pass the unapplied Binding operations alongside the parent Steps to `Update.combineSteps`. A Definition-owned `makeStep` may return the connected Step for later use under that Composition, and Composition startup may list it under `steps`. Do not return an unapplied Binding operation from an ordinary update branch that must produce an update result.
 
-Author parent transitions that read current state with `Definition.step` or `stepFields`, then combine them with the Binding operations. The owner supplies the Model type, and each Step reads the Model produced by preceding Steps when it is applied.
+Author parent transitions that read current state with `Definition.makeStep` or `makeFieldsStep`, then combine them with the Binding operations. The owner supplies the Model type, and each Step reads the Model produced by preceding Steps when it is applied.
 
 Use `request*` with `Requested*` Messages for actions and `inform*` with `InformedOf*` Messages for notifications. Keep internal Model-only transformations as Definition-owned Steps. Remove stable public helpers that silently accept and return a child Model, especially `reflect*` helpers.
 
@@ -216,11 +230,12 @@ Stable `Runtime.makeApplication` combines the application state machine, lifecyc
 Make the root an ordinary completed Block named `Application`:
 
 1. Replace the loose root contracts passed to `Runtime.makeApplication` with `Block.makeDefinition('Application', { Model, Message })`.
-2. Build `ApplicationComposition` through `makeComposition({ bindings, mounts })` as needed.
-3. Author root init, update, and view through that Composition.
-4. Complete `ApplicationBlock` with `ApplicationComposition.assembleBlock(...)`.
-5. Move container, Flags, routing, Ports, DevTools, and other browser host fields into `Program.make`.
-6. Supply ordinary application Services with `program.provide(ApplicationLayer)` before starting the Runtime.
+2. Rename a root route union named `AppRoute` to `ApplicationRoute`, including its imports and type queries.
+3. Build `ApplicationComposition` through `makeComposition({ bindings, mounts })` as needed.
+4. Author root init, update, and view through that Composition.
+5. Return `ApplicationComposition.prepareBlock(...)` from the private `prepare` producer, then complete `ApplicationBlock` with `Block.assemble(prepare)`.
+6. Move container, Flags, routing, Ports, DevTools, and other browser host fields into `Program.make`.
+7. Supply ordinary application Services with `program.provide(ApplicationLayer)` before starting the Runtime.
 
 The browser entry should now be small and host-focused:
 
@@ -254,7 +269,7 @@ Split a growing feature by ownership:
 | `command.ts`, `subscription.ts`, `mount.ts`, `managedResource.ts` | Local effect and lifecycle declarations                                                       |
 | `composition.ts` or `composition/`                                | Bindings, OutMessage policy, Mount registration, Composition, and optional view builder alias |
 | `init.ts`, `update.ts`, `view.ts`                                 | Behavior authored through that Composition                                                    |
-| `block.ts`                                                        | `assembleBlock` and the local `EffectsLayer` selection                                        |
+| `block.ts`                                                        | `prepareBlock` and the local `EffectsLayer` selection                                         |
 | `services.ts`                                                     | Root `ApplicationLayer` and test providers for ordinary Services                              |
 | `entry.ts`                                                        | Program host configuration and Runtime startup                                                |
 
@@ -335,7 +350,7 @@ Treat the first error in an ownership chain as the useful one.
 | `Submodel.defineView` or `h.submodel` is missing                           | Author the view through the owning Composition and render the child through `h.block(Binding.embedView(...))`.                                                                                                                                                |
 | `Runtime.makeApplication` or `Runtime.makeElement` is missing              | Complete `ApplicationBlock`, then create the matching page or element Program separately.                                                                                                                                                                     |
 | A view cannot embed a child or use a Mount                                 | Register the exact Binding or Mount in the same Composition that authored the view. Derive helper builders from that Composition.                                                                                                                             |
-| A Binding operation is a Step where an update result is required           | Apply it to the contextual Model, such as `Binding.requestOpen()(model)`. Pass the unapplied Step only to `Update.combineSteps`, a Definition-owned `step`, or Composition startup.                                                                           |
+| A Binding operation is a Step where an update result is required           | Apply it to the contextual Model, such as `Binding.requestOpen()(model)`. Pass the unapplied Step only to `Update.combineSteps`, a Definition-owned `makeStep`, or Composition startup.                                                                       |
 | The parent update loses Commands or an OutMessage                          | Return the executed result after applying the Binding operation to the contextual Model. Do not select or copy only `.model`; that discards the other channels.                                                                                               |
 | Child initialization leaves a field missing or loses Commands              | Put startup args and instances on the Binding. Let `makeInit` assemble children, and use `Binding.init` for dynamic occurrences.                                                                                                                              |
 | `Runtime.run` still requires a handler                                     | Include the owning definition's `.layer` in the feature's local `EffectsLayer`, or explicitly complete an intentional host handler contract.                                                                                                                  |

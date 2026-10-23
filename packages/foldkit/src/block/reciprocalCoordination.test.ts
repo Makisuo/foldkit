@@ -29,7 +29,7 @@ const Home = Block.makeDefinition('Home', {
   Message: HomeMessage,
   OutMessage: HomeOutMessage,
 })
-const ClearJoinDraft = Home.command('ClearJoinDraft', {
+const ClearJoinDraft = Home.makeCommand('ClearJoinDraft', {
   messages: [HomeMessage.CompletedClearJoinDraft],
   handler: function* () {
     const store = yield* DraftStore
@@ -38,41 +38,49 @@ const ClearJoinDraft = Home.command('ClearJoinDraft', {
   },
 })
 const HomeComposition = Home.makeComposition()
-const resetJoinForm = Home.step((model, username: string) => ({
+const resetJoinForm = Home.makeStep((model, username: string) => ({
   model: modifyFields(model, {
     username: () => username,
     resetCount: count => count + 1,
   }),
   commands: [ClearJoinDraft()],
 }))
-const requestJoin = Home.step((model, roomId: string, username: string) => ({
-  model,
-  outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
-}))
-const HomeBlock = HomeComposition.assembleBlock({
-  init: HomeComposition.makeInit(() => ({
-    model: HomeModel.make({ username: '', resetCount: 0 }),
-  })),
-  update: HomeComposition.makeUpdate((model, message) =>
-    HomeMessage.match(message, {
-      RequestedResetJoinForm: ({ username }) => resetJoinForm(model, username),
-      RequestedJoin: ({ roomId, username }) =>
-        requestJoin(model, roomId, username),
-      SucceededJoinRoom: ({ roomId, username }) => ({
-        model,
-        outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
+const requestJoin = Home.makeStep(
+  (model, roomId: string, username: string) => ({
+    model,
+    outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
+  }),
+)
+const prepareHomeBlock = () =>
+  HomeComposition.prepareBlock({
+    init: HomeComposition.makeInit(() => ({
+      model: HomeModel.make({ username: '', resetCount: 0 }),
+    })),
+    update: HomeComposition.makeUpdate((model, message) =>
+      HomeMessage.match(message, {
+        RequestedResetJoinForm: ({ username }) =>
+          resetJoinForm(model, username),
+        RequestedJoin: ({ roomId, username }) =>
+          requestJoin(model, roomId, username),
+        SucceededJoinRoom: ({ roomId, username }) => ({
+          model,
+          outMessage: HomeOutMessage.JoinedRoom({ roomId, username }),
+        }),
+        CompletedClearJoinDraft: () => ({ model }),
       }),
-      CompletedClearJoinDraft: () => ({ model }),
-    }),
-  ),
-  operations: {
-    resetJoinForm: (username: string) =>
-      Tuple.make(HomeMessage.RequestedResetJoinForm({ username })),
-    requestJoin: (roomId: string, username: string) =>
-      Tuple.make(HomeMessage.RequestedJoin({ roomId, username })),
-  },
-  EffectsLayer: ClearJoinDraft.layer,
-})
+    ),
+    operations: {
+      resetJoinForm: (username: string) =>
+        Tuple.make(HomeMessage.RequestedResetJoinForm({ username })),
+      requestJoin: (roomId: string, username: string) =>
+        Tuple.make(HomeMessage.RequestedJoin({ roomId, username })),
+    },
+    EffectsLayer: ClearJoinDraft.layer,
+  })
+const HomeBlock: Block.FromAssemblyWithOutMessage<
+  typeof HomeModel,
+  typeof prepareHomeBlock
+> = Block.assemble(prepareHomeBlock)
 
 const RoomModel = Schema.Struct({ maybeUsername: Schema.Option(Schema.String) })
 const RoomContext = Schema.Struct({ roomId: Schema.String })
@@ -89,32 +97,37 @@ const Room = Block.makeDefinition('Room', {
   OutMessage: RoomOutMessage,
 })
 const RoomComposition = Room.makeComposition()
-const informJoined = Room.step(
+const informJoined = Room.makeStep(
   (model, username: string, _context: typeof RoomContext.Type) => ({
     model: modifyFields(model, { maybeUsername: () => Option.some(username) }),
   }),
 )
-const RoomBlock = RoomComposition.assembleBlock({
-  init: RoomComposition.makeInit(() => ({
-    model: RoomModel.make({ maybeUsername: Option.none() }),
-  })),
-  update: RoomComposition.makeUpdate(
-    (model, message, context: typeof RoomContext.Type) =>
-      RoomMessage.match(message, {
-        RequestedInformJoined: ({ username }) =>
-          informJoined(model, username, context),
-        CompletedLeaveRoom: () => ({
-          model,
-          outMessage: RoomOutMessage.LeftRoom({ roomId: context.roomId }),
+const prepareRoomBlock = () =>
+  RoomComposition.prepareBlock({
+    init: RoomComposition.makeInit(() => ({
+      model: RoomModel.make({ maybeUsername: Option.none() }),
+    })),
+    update: RoomComposition.makeUpdate(
+      (model, message, context: typeof RoomContext.Type) =>
+        RoomMessage.match(message, {
+          RequestedInformJoined: ({ username }) =>
+            informJoined(model, username, context),
+          CompletedLeaveRoom: () => ({
+            model,
+            outMessage: RoomOutMessage.LeftRoom({ roomId: context.roomId }),
+          }),
         }),
-      }),
-  ),
-  operations: {
-    informJoined: (username: string, context: typeof RoomContext.Type) =>
-      Tuple.make(RoomMessage.RequestedInformJoined({ username }), context),
-  },
-  EffectsLayer: Layer.empty,
-})
+    ),
+    operations: {
+      informJoined: (username: string, context: typeof RoomContext.Type) =>
+        Tuple.make(RoomMessage.RequestedInformJoined({ username }), context),
+    },
+    EffectsLayer: Layer.empty,
+  })
+const RoomBlock: Block.FromAssemblyWithOutMessage<
+  typeof RoomModel,
+  typeof prepareRoomBlock
+> = Block.assemble(prepareRoomBlock)
 
 const ApplicationRoute = defineRouteUnion({
   Home: {},
@@ -139,7 +152,7 @@ const Application = Block.makeDefinition('ReciprocalApplication', {
 const foldRoomOutMessage = Application.makeOutMessageFold(RoomBlock, {
   LeftRoom: () =>
     Update.combineSteps([
-      Application.step(model => ({
+      Application.makeStep(model => ({
         model: modifyFields(model, {
           route: () => ApplicationRoute.Home(),
           maybeRoomInstance: () => Option.none(),
@@ -152,7 +165,7 @@ const foldRoomOutMessage = Application.makeOutMessageFold(RoomBlock, {
 const foldHomeOutMessage = Application.makeOutMessageFold(HomeBlock, {
   JoinedRoom: ({ roomId, username }) =>
     Update.combineSteps([
-      Application.step(model =>
+      Application.makeStep(model =>
         RoomBinding.init({
           key: roomId,
           args: [],
@@ -164,7 +177,7 @@ const foldHomeOutMessage = Application.makeOutMessageFold(HomeBlock, {
         }),
       ),
       RoomBinding.informJoined(roomId, username, { roomId }),
-      Application.step(model => ({
+      Application.makeStep(model => ({
         model: modifyFields(model, {
           route: () => ApplicationRoute.Room({ roomId }),
         }),
@@ -172,7 +185,7 @@ const foldHomeOutMessage = Application.makeOutMessageFold(HomeBlock, {
     ]),
 })
 
-const HomeBinding = Application.bindChild(HomeBlock, {
+const HomeBinding = Application.makeBinding(HomeBlock, {
   field: 'home',
   presentWhen: model => model.route._tag === 'Home',
   init: false,
@@ -180,7 +193,7 @@ const HomeBinding = Application.bindChild(HomeBlock, {
   fold: foldHomeOutMessage,
 })
 
-const RoomBinding = Application.bindChild(RoomBlock, {
+const RoomBinding = Application.makeBinding(RoomBlock, {
   readAll: model => Option.toArray(model.maybeRoomInstance),
   key: instance => instance.roomId,
   read: instance => instance.model,
@@ -249,16 +262,23 @@ ApplicationComposition.makeInit(() => ({
 }))
 
 void erasedDirectHomeRequest
-const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init: ApplicationComposition.makeInit(() => ({ model: makeInitialModel() })),
-  update,
-  operations: {
-    requestJoin: (roomId: string, username: string) =>
-      Tuple.make(Message.RequestedJoin({ roomId, username })),
-    resetJoinForm: (username: string) =>
-      Tuple.make(Message.RequestedResetJoinForm({ username })),
-  },
-})
+const prepareApplicationBlock = () =>
+  ApplicationComposition.prepareBlock({
+    init: ApplicationComposition.makeInit(() => ({
+      model: makeInitialModel(),
+    })),
+    update,
+    operations: {
+      requestJoin: (roomId: string, username: string) =>
+        Tuple.make(Message.RequestedJoin({ roomId, username })),
+      resetJoinForm: (username: string) =>
+        Tuple.make(Message.RequestedResetJoinForm({ username })),
+    },
+  })
+const ApplicationBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof prepareApplicationBlock
+> = Block.assemble(prepareApplicationBlock)
 const joinRoom = (model: typeof Model.Type) =>
   update(model, {
     _tag: 'GotHomeMessage',
@@ -304,7 +324,7 @@ describe('reciprocal sibling coordination', () => {
   ])(
     'rejects $name OutMessage policy from erased configuration',
     ({ policy, error }) => {
-      const binding = Reflect.apply(Application.bindChild, undefined, [
+      const binding = Reflect.apply(Application.makeBinding, undefined, [
         HomeBlock,
         { field: 'home' },
       ])
@@ -322,9 +342,9 @@ describe('reciprocal sibling coordination', () => {
   )
 
   it('validates a policy without calling it during Binding construction', () => {
-    const fold = vi.fn(() => Application.step(model => ({ model })))
+    const fold = vi.fn(() => Application.makeStep(model => ({ model })))
 
-    const binding = Reflect.apply(Application.bindChild, undefined, [
+    const binding = Reflect.apply(Application.makeBinding, undefined, [
       HomeBlock,
       { field: 'home' },
     ])

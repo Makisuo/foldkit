@@ -25,7 +25,9 @@ type Includes<
 
 type ObjectKey<Value> = Exclude<
   keyof Value,
-  symbol | (Value extends Pipeable.Pipeable ? keyof Pipeable.Pipeable : never)
+  | symbol
+  | (Value extends Pipeable.Pipeable ? keyof Pipeable.Pipeable : never)
+  | (Value extends Date ? keyof Date : never)
 >
 
 type NestedFunctionInFields<
@@ -105,3 +107,81 @@ export type ValidViewInputs<ViewInputs> =
         : true extends HasNestedFunction<ViewInputs>
           ? never
           : ViewInputs
+
+type CallbackDiagnosticDepthLimit = 6
+
+type NestedCallbackPath<
+  Value,
+  Path extends string,
+  Seen extends ReadonlyArray<unknown>,
+> =
+  IsAny<Value> extends true
+    ? never
+    : Seen['length'] extends CallbackDiagnosticDepthLimit
+      ? never
+      : Includes<Seen, Value> extends true
+        ? never
+        : Value extends AnyFunction
+          ? Path
+          : Value extends Primitive | VNode | ChildAttribute<unknown>
+            ? never
+            : Value extends Option.Option<infer Item>
+              ? NestedCallbackPath<
+                  Item,
+                  `${Path}.value`,
+                  readonly [...Seen, Value]
+                >
+              : Value extends ReadonlyArray<infer Item>
+                ? NestedCallbackPath<
+                    Item,
+                    `${Path}[number]`,
+                    readonly [...Seen, Value]
+                  >
+                : Value extends object
+                  ? {
+                      [Key in ObjectKey<Value>]-?: Key extends string | number
+                        ? NestedCallbackPath<
+                            Value[Key],
+                            `${Path}.${Key}`,
+                            readonly [...Seen, Value]
+                          >
+                        : never
+                    }[ObjectKey<Value>]
+                  : never
+
+type ViewInputFieldCallbackPath<
+  Value,
+  Path extends string,
+> = Value extends AnyFunction
+  ? never
+  : NestedCallbackPath<Value, Path, readonly []>
+
+type ViewInputCallbackPath<ViewInputs> = ViewInputs extends
+  | AnyFunction
+  | VNode
+  | ChildAttribute<unknown>
+  ? never
+  : ViewInputs extends Option.Option<infer Item>
+    ? NestedCallbackPath<Item, 'viewInputs.value', readonly [ViewInputs]>
+    : ViewInputs extends ReadonlyArray<infer Item>
+      ? NestedCallbackPath<Item, 'viewInputs[number]', readonly [ViewInputs]>
+      : ViewInputs extends object
+        ? {
+            [Key in ObjectKey<ViewInputs>]-?: Key extends string | number
+              ? ViewInputFieldCallbackPath<ViewInputs[Key], `viewInputs.${Key}`>
+              : never
+          }[ObjectKey<ViewInputs>]
+        : never
+
+/** @internal Describes invalid callback placement without weakening validation. */
+export type InvalidViewInputsDiagnostic<ViewInputs> = [
+  ViewInputCallbackPath<ViewInputs>,
+] extends [never]
+  ? Readonly<{
+      'Invalid ViewInputs: nested callbacks must be top-level fields': never
+    }>
+  : Readonly<{
+      [
+        Path in ViewInputCallbackPath<ViewInputs> as `Nested callback at ${Path}: move it to a top-level ViewInputs field`
+      ]: never
+    }>

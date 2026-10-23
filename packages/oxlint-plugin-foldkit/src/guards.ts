@@ -484,7 +484,8 @@ const moduleCandidates = (
   ]
 }
 
-const sourceFileForModule = (
+/** Resolves supported relative source imports without loading a compiler. */
+export const sourceFileForModule = (
   importerFilename: string,
   source: string,
 ): Option.Option<string> =>
@@ -950,7 +951,7 @@ const directBindingCall = (
   return node
 }
 
-/** Returns the owned `bindChild` call beneath a direct fluent policy chain. */
+/** Returns the owned `makeBinding` call beneath a direct fluent policy chain. */
 export const blockBindingSourceCall = (
   node: ESTree.CallExpression,
 ): ESTree.CallExpression => directBindingCall(node)
@@ -965,7 +966,7 @@ export const blockBindingConfiguration = (
     Array.get(
       bindingCall.arguments,
       Option.exists(staticMemberPath(bindingCall.callee), path =>
-        Option.contains(Array.last(path.members), 'bindChild'),
+        Option.contains(Array.last(path.members), 'makeBinding'),
       )
         ? 1
         : 0,
@@ -979,7 +980,7 @@ export const blockBindingMethod = (
   references?: WeakMap<ESTree.Node, Reference>,
 ): Option.Option<'Static' | 'Keyed'> => {
   const bindingCall = directBindingCall(node)
-  if (!isOwnedDefinitionCall(bindingCall, 'bindChild', references)) {
+  if (!isOwnedDefinitionCall(bindingCall, 'makeBinding', references)) {
     return Option.none()
   }
 

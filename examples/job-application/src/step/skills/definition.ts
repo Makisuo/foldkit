@@ -2,10 +2,10 @@ import { Schema } from 'effect'
 import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
-import { SkillsEntryBlock } from './entry'
+import * as Entry from './entry'
 
 export const Model = Schema.Struct({
-  entries: Schema.Array(SkillsEntryBlock.Model),
+  entries: Schema.Array(Entry.SkillsEntryBlock.Model),
 })
 
 export const Message = defineMessageUnion({

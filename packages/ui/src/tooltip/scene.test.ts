@@ -21,7 +21,7 @@ const foldTooltipOutMessage = TooltipSceneDefinition.makeOutMessageFold(
   },
 )
 
-const TooltipBinding = TooltipSceneDefinition.bindChild(TooltipBlock, {
+const TooltipBinding = TooltipSceneDefinition.makeBinding(TooltipBlock, {
   read: model => Option.some(model),
   write: (_model, nextTooltip) => nextTooltip,
 }).withOutMessagePolicy({ fold: foldTooltipOutMessage })

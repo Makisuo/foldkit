@@ -6,7 +6,6 @@ import { Block } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 
 import { Animation } from '@foldkit/ui'
-import { defaultLeaveCommand as AnimationDefaultLeaveCommand } from '@foldkit/ui/animation'
 
 // Add a field to your Model for the Animation Block. Animation tracks
 // its own visibility and lifecycle state. No need for a separate flag:
@@ -25,29 +24,23 @@ const AnimationExampleDefinition = Block.makeDefinition('AnimationExample', {
   Message,
 })
 
-// At module scope, fold the OutMessage into your own Model. It signals
-// lifecycle events Animation can't handle on its own. Most importantly, it
-// tells you when a leave animation has started so you can provide the Command
-// that listens for animation settlement. That Command's result is an Animation
-// Message, so use `liftCommand` from the second handler argument to lift it
-// into the parent Message type. The completed child Block lets the parent
-// Definition infer that context without annotations:
+// Bind before defining the policy so its standard leave operation is available
+// inside the StartedLeaveAnimating branch.
+const AnimationBinding = AnimationExampleDefinition.makeBinding(
+  Animation.AnimationBlock,
+  {
+    field: 'animation',
+    init: { contextToArgs: () => Tuple.make({ id: 'content' }) },
+  },
+)
+
 const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
   Animation.AnimationBlock,
   {
-    // Animation handles enter completion internally but hands leave
-    // settlement detection to you here, because the strategy varies
-    // by consumer. For example, Foldkit's Dialog just waits for CSS,
-    // while its Popover races CSS against the anchor button scrolling
-    // off-screen. defaultLeaveCommand is the default strategy: it
-    // waits for every CSS transition and keyframe animation on the
-    // element to settle, then dispatches EndedAnimation back into
-    // Animation.AnimationBlock.update. Use it unless you need a custom strategy.
-    StartedLeaveAnimating: (_, { liftCommand }) =>
-      AnimationExampleDefinition.step(model => ({
-        model,
-        commands: [liftCommand(AnimationDefaultLeaveCommand(model.animation))],
-      })),
+    // The operation asks Animation to wait for its wrapper's CSS to settle.
+    // A custom policy can race another signal against that settlement instead.
+    StartedLeaveAnimating: () =>
+      AnimationBinding.requestWaitForLeaveSettlement(),
     // TransitionedOut is Animation's signal that the leave has fully
     // settled (your leave Command's EndedAnimation message has been
     // processed). Return Commands for any post-animation work, for
@@ -55,23 +48,14 @@ const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
     // release a resource. No Commands here because animateSize keeps the
     // element mounted (collapsed to zero height) so there's nothing to
     // tear down.
-    TransitionedOut: AnimationExampleDefinition.stepNoop,
+    TransitionedOut: AnimationExampleDefinition.makeNoopStep,
   },
 )
 
-// The Binding wires the completed child Block into the parent: it runs Animation.AnimationBlock.update,
-// writes the next Animation Model back, delivers Command results through the
-// generated boundary, and hands any OutMessage to the OutMessage fold.
-const AnimationBinding = AnimationExampleDefinition.bindChild(
-  Animation.AnimationBlock,
-  {
-    field: 'animation',
-    init: { contextToArgs: () => Tuple.make({ id: 'content' }) },
-  },
-).withOutMessagePolicy({ fold: foldAnimationOutMessage })
-
 const AnimationExampleComposition = AnimationExampleDefinition.makeComposition({
-  bindings: [AnimationBinding],
+  bindings: [
+    AnimationBinding.withOutMessagePolicy({ fold: foldAnimationOutMessage }),
+  ],
 })
 
 // In your init function, specify the fields the parent owns. The Composition

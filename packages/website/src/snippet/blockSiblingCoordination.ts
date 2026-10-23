@@ -2,11 +2,11 @@ import { ApplicationDefinition } from './definition'
 import * as Home from './home'
 import * as Room from './room'
 
-export const HomeBinding = ApplicationDefinition.bindChild(Home.HomeBlock, {
+export const HomeBinding = ApplicationDefinition.makeBinding(Home.HomeBlock, {
   field: 'home',
 })
 
-export const RoomBinding = ApplicationDefinition.bindChild(Room.RoomBlock, {
+export const RoomBinding = ApplicationDefinition.makeBinding(Room.RoomBlock, {
   field: 'room',
 })
 

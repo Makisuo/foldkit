@@ -28,7 +28,7 @@ const GenericMenuBindingIdentityDefinition = Block.makeDefinition(
   },
 )
 
-const MenuBinding = GenericMenuBindingIdentityDefinition.bindChild(
+const MenuBinding = GenericMenuBindingIdentityDefinition.makeBinding(
   RefinedMenu,
   {
     field: 'menu',
@@ -37,11 +37,11 @@ const MenuBinding = GenericMenuBindingIdentityDefinition.bindChild(
 ).withOutMessagePolicy({
   fold: GenericMenuBindingIdentityDefinition.makeOutMessageFold(RefinedMenu, {
     Selected: ({ value }) =>
-      GenericMenuBindingIdentityDefinition.step(model => ({
+      GenericMenuBindingIdentityDefinition.makeStep(model => ({
         model,
         outMessage: OutMessage.SelectedMenuItem({ value }),
       })),
-    Closed: () => GenericMenuBindingIdentityDefinition.stepNoop(),
+    Closed: () => GenericMenuBindingIdentityDefinition.makeNoopStep(),
   }),
 })
 
@@ -60,12 +60,15 @@ const update = GenericMenuBindingIdentityComposition.makeUpdate(model =>
   MenuBinding.requestOpen()(model),
 )
 const requestOpen = Message.RequestedOpen
-const block = GenericMenuBindingIdentityComposition.assembleBlock({
-  init,
-  update,
-  operations: { requestOpen },
-  EffectsLayer: RefinedMenu.EffectsLayer,
-})
+const prepare = () =>
+  GenericMenuBindingIdentityComposition.prepareBlock({
+    init,
+    update,
+    operations: { requestOpen },
+    EffectsLayer: RefinedMenu.EffectsLayer,
+  })
+const block: Block.FromAssemblyWithOutMessage<typeof Model, typeof prepare> =
+  Block.assemble(prepare)
 
 const deliverMenuMessage = (
   model: Model,

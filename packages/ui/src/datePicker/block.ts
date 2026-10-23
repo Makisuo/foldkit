@@ -9,6 +9,7 @@ import * as Update from 'foldkit/update'
 import type { AnchorConfig } from '../anchor/index.js'
 import * as UiCalendar from '../calendar/index.js'
 import { idSelector } from '../internal/selectors.js'
+import { Model as PopoverModel } from '../popover/block.js'
 import * as Popover from '../popover/index.js'
 
 // MODEL
@@ -21,7 +22,7 @@ import * as Popover from '../popover/index.js'
 export const Model = Schema.Struct({
   id: Schema.String,
   calendar: UiCalendar.CalendarBlock.Model,
-  popover: Popover.PopoverBlock.Model,
+  popover: PopoverModel,
 })
 export type Model = typeof Model.Type
 
@@ -115,12 +116,12 @@ const makeInitialModel = (config: InitConfig): Model => ({
 
 // UPDATE
 
-const PopoverBinding = DatePickerDefinition.bindChild(Popover.PopoverBlock, {
+const PopoverBinding = DatePickerDefinition.makeBinding(Popover.PopoverBlock, {
   field: 'popover',
   init: false,
 })
 
-const CalendarBinding = DatePickerDefinition.bindChild(
+const CalendarBinding = DatePickerDefinition.makeBinding(
   UiCalendar.CalendarBlock,
   {
     field: 'calendar',
@@ -139,7 +140,7 @@ const foldPopoverOutMessage = DatePickerDefinition.makeOutMessageFold(
 const foldCalendarOutMessage = DatePickerDefinition.makeOutMessageFold(
   UiCalendar.CalendarBlock,
   {
-    ChangedViewMonth: DatePickerDefinition.stepNoop,
+    ChangedViewMonth: DatePickerDefinition.makeNoopStep,
     SelectedDate: () => PopoverBinding.requestClose(),
   },
 )
@@ -473,11 +474,12 @@ const implementation = {
   },
 }
 
+const prepare = () => DatePickerComposition.prepareBlock(implementation)
 /** Complete DatePicker Block definition. */
-export const DatePickerBlock: Block.CompletedWithViewAndOutMessage<
-  typeof DatePickerComposition,
-  typeof implementation
-> = DatePickerComposition.assembleBlock(implementation)
+export const DatePickerBlock: Block.FromAssemblyWithViewAndOutMessage<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)
 
 /** Moves the embedded Calendar view and cursor through DatePicker update. */
 export const focusDate = DatePickerBlock.operations.requestFocusDate

@@ -5,7 +5,7 @@ import { DatePickerBlock } from '@foldkit/ui'
 
 import { PersonalInfoDefinition, PronounsListboxBlock } from './definition'
 
-export const PronounsListboxBinding = PersonalInfoDefinition.bindChild(
+export const PronounsListboxBinding = PersonalInfoDefinition.makeBinding(
   PronounsListboxBlock,
   {
     field: 'pronouns',
@@ -14,13 +14,13 @@ export const PronounsListboxBinding = PersonalInfoDefinition.bindChild(
 ).withOutMessagePolicy({
   fold: PersonalInfoDefinition.makeOutMessageFold(PronounsListboxBlock, {
     Selected: ({ value }) =>
-      PersonalInfoDefinition.stepFields(() => ({
+      PersonalInfoDefinition.makeFieldsStep(() => ({
         maybeSelectedPronoun: () => Option.some(value),
       })),
   }),
 })
 
-export const AvailableDatePickerBinding = PersonalInfoDefinition.bindChild(
+export const AvailableDatePickerBinding = PersonalInfoDefinition.makeBinding(
   DatePickerBlock,
   {
     field: 'availableDate',
@@ -31,14 +31,14 @@ export const AvailableDatePickerBinding = PersonalInfoDefinition.bindChild(
 ).withOutMessagePolicy({
   fold: PersonalInfoDefinition.makeOutMessageFold(DatePickerBlock, {
     SelectedDate: ({ date }) =>
-      PersonalInfoDefinition.stepFields(() => ({
+      PersonalInfoDefinition.makeFieldsStep(() => ({
         maybeAvailableDate: () => Option.some(date),
       })),
     ClearedDate: () =>
-      PersonalInfoDefinition.stepFields(() => ({
+      PersonalInfoDefinition.makeFieldsStep(() => ({
         maybeAvailableDate: () => Option.none(),
       })),
-    ChangedViewMonth: PersonalInfoDefinition.stepNoop,
+    ChangedViewMonth: PersonalInfoDefinition.makeNoopStep,
   }),
 })
 

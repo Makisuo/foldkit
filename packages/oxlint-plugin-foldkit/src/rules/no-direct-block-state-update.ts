@@ -651,7 +651,7 @@ const foldDefinitions = (
         ? childBlockOwner(boundChild, references)
         : undefined
       const owner = Option.isSome(bindingMethod)
-        ? definitionOwner(bindingCall, 'bindChild', references)
+        ? definitionOwner(bindingCall, 'makeBinding', references)
         : undefined
       const directField =
         Option.isSome(bindingMethod) &&
@@ -911,7 +911,7 @@ const ownedStepFieldsCallFor = (
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): ESTree.CallExpression | undefined => {
   if (isCallExpression(node)) {
-    return isOwnedDefinitionCall(node, 'stepFields', references)
+    return isOwnedDefinitionCall(node, 'makeFieldsStep', references)
       ? node
       : undefined
   }
@@ -928,7 +928,7 @@ const ownedStepFieldsCallFor = (
             !isCallExpression(definition.node.init) ||
             !isOwnedDefinitionCall(
               definition.node.init,
-              'stepFields',
+              'makeFieldsStep',
               references,
             )
           ) {
@@ -1538,11 +1538,11 @@ const directChildStepFieldsField = (
   callbacks: ReadonlyMap<string, ESTree.ArrowFunctionExpression>,
   references: WeakMap<ESTree.Node, Reference> | undefined,
 ): DirectChildStateUpdate | undefined => {
-  if (!isOwnedDefinitionCall(node, 'stepFields', references)) {
+  if (!isOwnedDefinitionCall(node, 'makeFieldsStep', references)) {
     return undefined
   }
 
-  const stepOwner = definitionOwner(node, 'stepFields', references)
+  const stepOwner = definitionOwner(node, 'makeFieldsStep', references)
   const parentModel = evidence.parentModelByStepFieldsCall.get(node)
   if (stepOwner === undefined || parentModel === undefined) {
     return undefined

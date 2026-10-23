@@ -25,31 +25,36 @@ const FoldChildDefinition = Block.makeDefinition('FoldChild', {
   Message: ChildMessage,
   OutMessage: ChildOutMessage,
 })
-const ObserveSelection = FoldChildDefinition.command('ObserveSelection', {
+const ObserveSelection = FoldChildDefinition.makeCommand('ObserveSelection', {
   messages: [ChildMessage.CompletedObserveSelection],
   handler: function* () {
     return () => Effect.succeed(ChildMessage.CompletedObserveSelection())
   },
 })
 const FoldChildComposition = FoldChildDefinition.makeComposition()
-const ChildBlock = FoldChildComposition.assembleBlock({
-  init: () => ({ model: ChildModel.make({ count: 0 }) }),
-  update: FoldChildComposition.makeUpdate((model, message) =>
-    ChildMessage.match(message, {
-      RequestedSelect: ({ value }) => ({
-        model: modifyFields(model, { count: Number.increment }),
-        outMessage: ChildOutMessage.Selected({ value }),
+const prepareChildBlock = () =>
+  FoldChildComposition.prepareBlock({
+    init: () => ({ model: ChildModel.make({ count: 0 }) }),
+    update: FoldChildComposition.makeUpdate((model, message) =>
+      ChildMessage.match(message, {
+        RequestedSelect: ({ value }) => ({
+          model: modifyFields(model, { count: Number.increment }),
+          outMessage: ChildOutMessage.Selected({ value }),
+        }),
+        RequestedClose: () => ({ model, outMessage: ChildOutMessage.Closed() }),
+        CompletedObserveSelection: () => ({ model }),
       }),
-      RequestedClose: () => ({ model, outMessage: ChildOutMessage.Closed() }),
-      CompletedObserveSelection: () => ({ model }),
-    }),
-  ),
-  operations: {
-    requestSelect: ChildMessage.RequestedSelect,
-    requestClose: ChildMessage.RequestedClose,
-  },
-  EffectsLayer: ObserveSelection.layer,
-})
+    ),
+    operations: {
+      requestSelect: ChildMessage.RequestedSelect,
+      requestClose: ChildMessage.RequestedClose,
+    },
+    EffectsLayer: ObserveSelection.layer,
+  })
+const ChildBlock: Block.FromAssemblyWithOutMessage<
+  typeof ChildModel,
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const Model = Schema.Struct({
   child: ChildBlock.Model,
@@ -68,7 +73,7 @@ const FoldParentDefinition = Block.makeDefinition('FoldParent', {
   Message,
   OutMessage,
 })
-const RecordChoice = FoldParentDefinition.command('RecordChoice', {
+const RecordChoice = FoldParentDefinition.makeCommand('RecordChoice', {
   args: { value: Choice },
   messages: [Message.CompletedRecordChoice],
   handler: function* () {
@@ -93,7 +98,7 @@ it('infers exact child payloads and the parent Model without running a transitio
         transitions += 1
         return { model: modifyFields(model, { choice: () => value }) }
       },
-    Closed: () => FoldParentDefinition.stepNoop(),
+    Closed: () => FoldParentDefinition.makeNoopStep(),
   })
 
   expect(transitions).toBe(0)
@@ -171,14 +176,14 @@ it('retains Command requirements and derived parent OutMessages beside pure bran
         commands: [RecordChoice({ value })],
         outMessage: OutMessage.Chose({ value }),
       }),
-    Closed: () => FoldParentDefinition.stepNoop(),
+    Closed: () => FoldParentDefinition.makeNoopStep(),
   })
 
   expectTypeOf<Update.RequirementsOf<ReturnType<typeof fold>>>().toEqualTypeOf<
     Command.HandlerOf<typeof RecordChoice>
   >()
 
-  const ChildBinding = FoldParentDefinition.bindChild(ChildBlock, {
+  const ChildBinding = FoldParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
   }).withOutMessagePolicy({ fold })
   const FoldParentComposition = FoldParentDefinition.makeComposition({
@@ -191,12 +196,17 @@ it('retains Command requirements and derived parent OutMessages beside pure bran
       CompletedRecordChoice: () => ({ model }),
     }),
   )
-  const ParentBlock = FoldParentComposition.assembleBlock({
-    init: () => ({ model: initialModel }),
-    update,
-    operations: { requestSelect: Message.RequestedSelect },
-    EffectsLayer: RecordChoice.layer,
-  })
+  const prepareParentBlock = () =>
+    FoldParentComposition.prepareBlock({
+      init: () => ({ model: initialModel }),
+      update,
+      operations: { requestSelect: Message.RequestedSelect },
+      EffectsLayer: RecordChoice.layer,
+    })
+  const ParentBlock: Block.FromAssemblyWithOutMessage<
+    typeof Model,
+    typeof prepareParentBlock
+  > = Block.assemble(prepareParentBlock)
   const selected = ParentBlock.operations.requestSelect(initialModel, {
     value: 'Pear',
   })
@@ -225,7 +235,7 @@ it('accepts valid conditional Step and result unions without widening requiremen
           outMessage: OutMessage.Chose({ value }),
         }
       },
-    Closed: () => FoldParentDefinition.stepNoop(),
+    Closed: () => FoldParentDefinition.makeNoopStep(),
   })
 
   expectTypeOf<Update.RequirementsOf<ReturnType<typeof fold>>>().toEqualTypeOf<
@@ -235,7 +245,7 @@ it('accepts valid conditional Step and result unions without widening requiremen
 
 it('rejects every invalid member of mixed Step and result unions', () => {
   if (false) {
-    const validStep = FoldParentDefinition.stepNoop()
+    const validStep = FoldParentDefinition.makeNoopStep()
     const wrongModelStep = (model: typeof Model.Type) => {
       if (model.choice === 'Apple') {
         return { model }
@@ -322,7 +332,7 @@ it('rejects every invalid member of mixed Step and result unions', () => {
 
     FoldParentDefinition.makeOutMessageFold(ChildBlock, {
       // @ts-expect-error The returned Step must produce a result, not another Step.
-      Selected: () => _model => FoldParentDefinition.stepNoop(),
+      Selected: () => _model => FoldParentDefinition.makeNoopStep(),
       Closed: () => validStep,
     })
 
@@ -337,35 +347,40 @@ it('rejects every invalid member of mixed Step and result unions', () => {
 })
 
 it('keeps sibling registration obligations when an exhaustive fold returns connected Steps', () => {
-  const SiblingBinding = FoldParentDefinition.bindChild(ChildBlock, {
+  const SiblingBinding = FoldParentDefinition.makeBinding(ChildBlock, {
     field: 'sibling',
   }).withOutMessagePolicy({
     fold: FoldParentDefinition.makeOutMessageFold(ChildBlock, {
-      Selected: () => FoldParentDefinition.stepNoop(),
-      Closed: () => FoldParentDefinition.stepNoop(),
+      Selected: () => FoldParentDefinition.makeNoopStep(),
+      Closed: () => FoldParentDefinition.makeNoopStep(),
     }),
   })
   const fold = FoldParentDefinition.makeOutMessageFold(ChildBlock, {
     Selected: ({ value }) => SiblingBinding.requestSelect({ value }),
-    Closed: () => FoldParentDefinition.stepNoop(),
+    Closed: () => FoldParentDefinition.makeNoopStep(),
   })
-  const ChildBinding = FoldParentDefinition.bindChild(ChildBlock, {
+  const ChildBinding = FoldParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
   }).withOutMessagePolicy({ fold })
   const FoldSiblingComposition = FoldParentDefinition.makeComposition({
     bindings: [ChildBinding, SiblingBinding],
   })
-  const ParentBlock = FoldSiblingComposition.assembleBlock({
-    init: () => ({ model: initialModel }),
-    update: FoldSiblingComposition.makeUpdate((model, message) =>
-      Message.match(message, {
-        RequestedSelect: ({ value }) =>
-          ChildBinding.requestSelect({ value })(model),
-        CompletedRecordChoice: () => ({ model }),
-      }),
-    ),
-    operations: { requestSelect: Message.RequestedSelect },
-  })
+  const prepareParentBlock = () =>
+    FoldSiblingComposition.prepareBlock({
+      init: () => ({ model: initialModel }),
+      update: FoldSiblingComposition.makeUpdate((model, message) =>
+        Message.match(message, {
+          RequestedSelect: ({ value }) =>
+            ChildBinding.requestSelect({ value })(model),
+          CompletedRecordChoice: () => ({ model }),
+        }),
+      ),
+      operations: { requestSelect: Message.RequestedSelect },
+    })
+  const ParentBlock: Block.FromAssemblyWithOutMessage<
+    typeof Model,
+    typeof prepareParentBlock
+  > = Block.assemble(prepareParentBlock)
   const selected = ParentBlock.operations.requestSelect(initialModel, {
     value: 'Pear',
   })
@@ -397,7 +412,7 @@ it('contextually types FoldContext and preserves lifted Command requirements', (
         }),
         commands: [liftCommand(ObserveSelection())],
       }),
-    Closed: () => FoldParentDefinition.stepNoop(),
+    Closed: () => FoldParentDefinition.makeNoopStep(),
   })
   expectTypeOf<Update.RequirementsOf<ReturnType<typeof fold>>>().toEqualTypeOf<
     Command.HandlerOf<typeof ObserveSelection>
@@ -426,43 +441,48 @@ it('contextually types FoldContext and preserves lifted Command requirements', (
 })
 
 it('executes an initialized sibling through an owned Step and retains its graph requirement', () => {
-  const SiblingBinding = FoldParentDefinition.bindChild(ChildBlock, {
+  const SiblingBinding = FoldParentDefinition.makeBinding(ChildBlock, {
     field: 'sibling',
   }).withOutMessagePolicy({
     fold: FoldParentDefinition.makeOutMessageFold(ChildBlock, {
-      Selected: () => FoldParentDefinition.stepNoop(),
-      Closed: () => FoldParentDefinition.stepNoop(),
+      Selected: () => FoldParentDefinition.makeNoopStep(),
+      Closed: () => FoldParentDefinition.makeNoopStep(),
     }),
   })
   const fold = FoldParentDefinition.makeOutMessageFold(ChildBlock, {
     Selected: () =>
-      FoldParentDefinition.step(model =>
+      FoldParentDefinition.makeStep(model =>
         SiblingBinding.init({
           args: [],
           toParentModel: sibling =>
             modifyFields(model, { sibling: () => sibling }),
         }),
       ),
-    Closed: () => FoldParentDefinition.stepNoop(),
+    Closed: () => FoldParentDefinition.makeNoopStep(),
   })
-  const ChildBinding = FoldParentDefinition.bindChild(ChildBlock, {
+  const ChildBinding = FoldParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
   }).withOutMessagePolicy({ fold })
   const FoldInitializedSiblingComposition =
     FoldParentDefinition.makeComposition({
       bindings: [ChildBinding, SiblingBinding],
     })
-  const ParentBlock = FoldInitializedSiblingComposition.assembleBlock({
-    init: () => ({ model: initialModel }),
-    update: FoldInitializedSiblingComposition.makeUpdate((model, message) =>
-      Message.match(message, {
-        RequestedSelect: ({ value }) =>
-          ChildBinding.requestSelect({ value })(model),
-        CompletedRecordChoice: () => ({ model }),
-      }),
-    ),
-    operations: { requestSelect: Message.RequestedSelect },
-  })
+  const prepareParentBlock = () =>
+    FoldInitializedSiblingComposition.prepareBlock({
+      init: () => ({ model: initialModel }),
+      update: FoldInitializedSiblingComposition.makeUpdate((model, message) =>
+        Message.match(message, {
+          RequestedSelect: ({ value }) =>
+            ChildBinding.requestSelect({ value })(model),
+          CompletedRecordChoice: () => ({ model }),
+        }),
+      ),
+      operations: { requestSelect: Message.RequestedSelect },
+    })
+  const ParentBlock: Block.FromAssemblyWithOutMessage<
+    typeof Model,
+    typeof prepareParentBlock
+  > = Block.assemble(prepareParentBlock)
   const selected = ParentBlock.operations.requestSelect(
     modifyFields(initialModel, {
       sibling: () => ChildModel.make({ count: 5 }),
@@ -478,21 +498,21 @@ it('executes an initialized sibling through an owned Step and retains its graph 
     FoldParentDefinition.makeComposition({ bindings: [ChildBinding] })
 
     FoldParentDefinition.makeOutMessageFold(ChildBlock, {
-      // @ts-expect-error A raw init recipe needs Definition.step's normalization.
+      // @ts-expect-error A raw init recipe needs Definition.makeStep's normalization.
       Selected: () => model =>
         SiblingBinding.init({
           args: [],
           toParentModel: sibling =>
             modifyFields(model, { sibling: () => sibling }),
         }),
-      Closed: () => FoldParentDefinition.stepNoop(),
+      Closed: () => FoldParentDefinition.makeNoopStep(),
     })
   }
 })
 
 it('rejects erased invalid configuration before calling a variant handler', () => {
   const makeFold = FoldParentDefinition.makeOutMessageFold
-  const noop = () => FoldParentDefinition.stepNoop()
+  const noop = () => FoldParentDefinition.makeNoopStep()
 
   expect(() => Reflect.apply(makeFold, undefined, [{}, {}])).toThrow(
     'completed child Block',
@@ -546,7 +566,7 @@ it('keeps keyed parent policy explicit and ignores operations on removed instanc
     Model: KeyedModel,
     Message: KeyedMessage,
   })
-  const InstancesBinding = FoldKeyedDefinition.bindChild(ChildBlock, {
+  const InstancesBinding = FoldKeyedDefinition.makeBinding(ChildBlock, {
     field: 'instances',
     key: 'id',
     childField: 'child',
@@ -559,7 +579,7 @@ it('keeps keyed parent policy explicit and ignores operations on removed instanc
             model: modifyFields(model, { choice: () => value }),
           }),
         Closed: () =>
-          FoldKeyedDefinition.stepFields(() => ({
+          FoldKeyedDefinition.makeFieldsStep(() => ({
             instances: Array.filter(instance => instance.id !== id),
           })),
       })(outMessage),
@@ -574,20 +594,25 @@ it('keeps keyed parent policy explicit and ignores operations on removed instanc
     ],
     choice: 'Apple',
   })
-  const ParentBlock = FoldKeyedComposition.assembleBlock({
-    init: () => ({ model }),
-    update: FoldKeyedComposition.makeUpdate((model, message) =>
-      KeyedMessage.match(message, {
-        RequestedSelect: ({ id, value }) =>
-          InstancesBinding.requestSelect(id, { value })(model),
-        RequestedRemove: ({ id }) => InstancesBinding.requestClose(id)(model),
-      }),
-    ),
-    operations: {
-      requestSelect: KeyedMessage.RequestedSelect,
-      requestRemove: KeyedMessage.RequestedRemove,
-    },
-  })
+  const prepareParentBlock = () =>
+    FoldKeyedComposition.prepareBlock({
+      init: () => ({ model }),
+      update: FoldKeyedComposition.makeUpdate((model, message) =>
+        KeyedMessage.match(message, {
+          RequestedSelect: ({ id, value }) =>
+            InstancesBinding.requestSelect(id, { value })(model),
+          RequestedRemove: ({ id }) => InstancesBinding.requestClose(id)(model),
+        }),
+      ),
+      operations: {
+        requestSelect: KeyedMessage.RequestedSelect,
+        requestRemove: KeyedMessage.RequestedRemove,
+      },
+    })
+  const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+    typeof KeyedModel,
+    typeof prepareParentBlock
+  > = Block.assemble(prepareParentBlock)
   const selected = ParentBlock.operations.requestSelect(model, {
     id: 'First',
     value: 'Pear',
@@ -613,21 +638,21 @@ it('keeps keyed parent policy explicit and ignores operations on removed instanc
 })
 
 it('keeps configured Bindings usable for operations, initialization, views and exact Command matching', () => {
-  const ChildBinding = FoldParentDefinition.bindChild(ChildBlock, {
+  const ChildBinding = FoldParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
     init: false,
   })
-  const SiblingBinding = FoldParentDefinition.bindChild(ChildBlock, {
+  const SiblingBinding = FoldParentDefinition.makeBinding(ChildBlock, {
     field: 'sibling',
     init: false,
   })
   const fold = FoldParentDefinition.makeOutMessageFold(ChildBlock, {
     Selected: (_outMessage, { liftCommand }) =>
-      FoldParentDefinition.step(model => ({
+      FoldParentDefinition.makeStep(model => ({
         model,
         commands: [liftCommand(ObserveSelection())],
       })),
-    Closed: () => FoldParentDefinition.stepNoop(),
+    Closed: () => FoldParentDefinition.makeNoopStep(),
   })
   const ConfiguredBinding = ChildBinding.withOutMessagePolicy({ fold })
   const Composition = FoldParentDefinition.makeComposition({
@@ -698,19 +723,19 @@ it('keeps configured Bindings usable for operations, initialization, views and e
 })
 
 it('selects immutable policies per Composition without changing the original Binding', () => {
-  const ChildBinding = FoldParentDefinition.bindChild(ChildBlock, {
+  const ChildBinding = FoldParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
     init: false,
   })
   const foldApple = FoldParentDefinition.makeOutMessageFold(ChildBlock, {
     Selected: () =>
-      FoldParentDefinition.stepFields(() => ({ choice: () => 'Apple' })),
-    Closed: () => FoldParentDefinition.stepNoop(),
+      FoldParentDefinition.makeFieldsStep(() => ({ choice: () => 'Apple' })),
+    Closed: () => FoldParentDefinition.makeNoopStep(),
   })
   const foldPear = FoldParentDefinition.makeOutMessageFold(ChildBlock, {
     Selected: () =>
-      FoldParentDefinition.stepFields(() => ({ choice: () => 'Pear' })),
-    Closed: () => FoldParentDefinition.stepNoop(),
+      FoldParentDefinition.makeFieldsStep(() => ({ choice: () => 'Pear' })),
+    Closed: () => FoldParentDefinition.makeNoopStep(),
   })
   const policy = { fold: foldApple }
   const AppleBinding = ChildBinding.withOutMessagePolicy(policy)
@@ -736,10 +761,15 @@ it('selects immutable policies per Composition without changing the original Bin
     }),
   )
 
-  const AppleBlock = AppleComposition.assembleBlock({
-    init: () => ({ model: initialModel }),
-    update: appleUpdate,
-  })
+  const prepareAppleBlock = () =>
+    AppleComposition.prepareBlock({
+      init: () => ({ model: initialModel }),
+      update: appleUpdate,
+    })
+  const AppleBlock: Block.FromAssemblyWithOutMessage<
+    typeof Model,
+    typeof prepareAppleBlock
+  > = Block.assemble(prepareAppleBlock)
   const ReusedComposition = FoldParentDefinition.makeComposition({
     bindings: AppleComposition.bindings,
   })
@@ -793,21 +823,21 @@ it('selects immutable policies per Composition without changing the original Bin
 })
 
 it('resolves reciprocal and self-referencing folds against registered policies', () => {
-  const ChildBinding = FoldParentDefinition.bindChild(ChildBlock, {
+  const ChildBinding = FoldParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
     init: false,
   })
-  const SiblingBinding = FoldParentDefinition.bindChild(ChildBlock, {
+  const SiblingBinding = FoldParentDefinition.makeBinding(ChildBlock, {
     field: 'sibling',
     init: false,
   })
   const foldChild = FoldParentDefinition.makeOutMessageFold(ChildBlock, {
     Selected: () => SiblingBinding.requestClose(),
-    Closed: () => FoldParentDefinition.stepNoop(),
+    Closed: () => FoldParentDefinition.makeNoopStep(),
   })
   const foldSibling = FoldParentDefinition.makeOutMessageFold(ChildBlock, {
     Selected: () => ChildBinding.requestClose(),
-    Closed: () => FoldParentDefinition.stepNoop(),
+    Closed: () => FoldParentDefinition.makeNoopStep(),
   })
   const Composition = FoldParentDefinition.makeComposition({
     bindings: [
@@ -831,7 +861,7 @@ it('resolves reciprocal and self-referencing folds against registered policies',
   const selfFold = FoldParentDefinition.makeOutMessageFold(ChildBlock, {
     Selected: () => ChildBinding.requestClose(),
     Closed: () =>
-      FoldParentDefinition.stepFields(() => ({ choice: () => 'Pear' })),
+      FoldParentDefinition.makeFieldsStep(() => ({ choice: () => 'Pear' })),
   })
   const SelfComposition = FoldParentDefinition.makeComposition({
     bindings: [ChildBinding.withOutMessagePolicy({ fold: selfFold })],
@@ -851,13 +881,13 @@ it('resolves reciprocal and self-referencing folds against registered policies',
 })
 
 it('rejects erased policies and leaves missing-policy validation at Composition', () => {
-  const ChildBinding = FoldParentDefinition.bindChild(ChildBlock, {
+  const ChildBinding = FoldParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
     init: false,
   })
   const noop = FoldParentDefinition.makeOutMessageFold(ChildBlock, {
-    Selected: () => FoldParentDefinition.stepNoop(),
-    Closed: () => FoldParentDefinition.stepNoop(),
+    Selected: () => FoldParentDefinition.makeNoopStep(),
+    Closed: () => FoldParentDefinition.makeNoopStep(),
   })
 
   for (const policy of [
@@ -877,7 +907,7 @@ it('rejects erased policies and leaves missing-policy validation at Composition'
     ]),
   ).toThrow('requires withOutMessagePolicy')
   expect(() =>
-    Reflect.apply(FoldParentDefinition.bindChild, undefined, [
+    Reflect.apply(FoldParentDefinition.makeBinding, undefined, [
       ChildBlock,
       {
         field: 'child',
@@ -898,14 +928,14 @@ it('rejects erased policies and leaves missing-policy validation at Composition'
 })
 
 it('validates explicit callable cases without invoking handlers', () => {
-  const ChildBinding = FoldParentDefinition.bindChild(ChildBlock, {
+  const ChildBinding = FoldParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
     init: false,
   })
   let handled = 0
   const selected = () => {
     handled += 1
-    return FoldParentDefinition.stepNoop()
+    return FoldParentDefinition.makeNoopStep()
   }
   const makeFold = FoldParentDefinition.makeOutMessageFold
 
@@ -918,22 +948,22 @@ it('validates explicit callable cases without invoking handlers', () => {
       ChildBlock,
       {
         Selected: selected,
-        Closed: FoldParentDefinition.stepNoop,
-        Unexpected: FoldParentDefinition.stepNoop,
+        Closed: FoldParentDefinition.makeNoopStep,
+        Unexpected: FoldParentDefinition.makeNoopStep,
       },
     ]),
   ).toThrow('unexpected handlers for: Unexpected')
   expect(() =>
     Reflect.apply(makeFold, undefined, [
       ChildBlock,
-      { Selected: true, Closed: FoldParentDefinition.stepNoop },
+      { Selected: true, Closed: FoldParentDefinition.makeNoopStep },
     ]),
   ).toThrow('handler "Selected" must be a function')
   expect(() =>
     Reflect.apply(makeFold, undefined, [
       {
         Selected: selected,
-        Closed: FoldParentDefinition.stepNoop,
+        Closed: FoldParentDefinition.makeNoopStep,
       },
     ]),
   ).toThrow(
@@ -941,7 +971,7 @@ it('validates explicit callable cases without invoking handlers', () => {
   )
   const explicitFold = makeFold(ChildBlock, {
     Selected: selected,
-    Closed: FoldParentDefinition.stepNoop,
+    Closed: FoldParentDefinition.makeNoopStep,
   })
   const contextualForward = Reflect.apply(
     FoldParentDefinition.makeOutMessageForward,
@@ -978,7 +1008,7 @@ it('validates explicit callable cases without invoking handlers', () => {
 
 it('infers inline fold and forward contracts from the explicit child', () => {
   let handled = 0
-  const ChildBinding = FoldParentDefinition.bindChild(ChildBlock, {
+  const ChildBinding = FoldParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
     init: false,
   }).withOutMessagePolicy({
@@ -988,11 +1018,11 @@ it('infers inline fold and forward contracts from the explicit child', () => {
         expectTypeOf(modelBeforeUpdate).toEqualTypeOf<typeof Model.Type>()
         handled += 1
 
-        return FoldParentDefinition.stepFields(() => ({
+        return FoldParentDefinition.makeFieldsStep(() => ({
           choice: () => value,
         }))
       },
-      Closed: FoldParentDefinition.stepNoop,
+      Closed: FoldParentDefinition.makeNoopStep,
     }),
     forward: FoldParentDefinition.makeOutMessageForward({
       Selected: ({ value }) => OutMessage.Chose({ value }),
@@ -1028,25 +1058,30 @@ it('rejects helper authoring on a child without a tagged-union contract', () => 
     Message: ChildMessage,
     OutMessage: Schema.TaggedStruct('Closed', {}),
   }).makeComposition()
-  const PlainChildBlock = PlainChildComposition.assembleBlock({
-    init: PlainChildComposition.makeInit(() => ({
-      model: ChildModel.make({ count: 0 }),
-    })),
-    update: PlainChildComposition.makeUpdate(model => ({ model })),
-  })
-  const PlainChildBinding = FoldParentDefinition.bindChild(PlainChildBlock, {
+  const preparePlainChildBlock = () =>
+    PlainChildComposition.prepareBlock({
+      init: PlainChildComposition.makeInit(() => ({
+        model: ChildModel.make({ count: 0 }),
+      })),
+      update: PlainChildComposition.makeUpdate(model => ({ model })),
+    })
+  const PlainChildBlock: Block.FromAssemblyWithOutMessage<
+    typeof ChildModel,
+    typeof preparePlainChildBlock
+  > = Block.assemble(preparePlainChildBlock)
+  const PlainChildBinding = FoldParentDefinition.makeBinding(PlainChildBlock, {
     field: 'child',
     init: false,
   })
   expect(() =>
     Reflect.apply(FoldParentDefinition.makeOutMessageFold, undefined, [
       PlainChildBlock,
-      { Closed: FoldParentDefinition.stepNoop },
+      { Closed: FoldParentDefinition.makeNoopStep },
     ]),
   ).toThrow('requires a tagged child OutMessage union')
   expect(() =>
     PlainChildBinding.withOutMessagePolicy({
-      fold: FoldParentDefinition.stepNoop,
+      fold: FoldParentDefinition.makeNoopStep,
     }),
   ).not.toThrow()
 })

@@ -60,7 +60,7 @@ export const foldMenuChoice = MenuFoldFixtureDefinition.makeOutMessageFold(
       model => ({
         model: Struct.modifyFields(model, { selected: () => value }),
       }),
-    Closed: () => MenuFoldFixtureDefinition.stepNoop(),
+    Closed: () => MenuFoldFixtureDefinition.makeNoopStep(),
   },
 )
 export type FoldedMenuModel = Expect<
@@ -109,16 +109,16 @@ const ToastFixtureDefinition = Block.makeDefinition('ToastFixture', {
   Model: ToastFixtureModel,
   Message: Schema.Never,
 })
-export const ToastBinding = ToastFixtureDefinition.bindChild(ToastBlock, {
+export const ToastBinding = ToastFixtureDefinition.makeBinding(ToastBlock, {
   placement: 'Toast',
   read: model => Option.some(model.toast),
   write: (model, toast) => Struct.modifyFields(model, { toast: () => toast }),
 }).withOutMessagePolicy({
   fold: ToastFixtureDefinition.makeOutMessageFold(ToastBlock, {
-    DismissedToast: () => ToastFixtureDefinition.stepNoop(),
+    DismissedToast: () => ToastFixtureDefinition.makeNoopStep(),
   }),
 })
-export const OtherToastBinding = ToastFixtureDefinition.bindChild(
+export const OtherToastBinding = ToastFixtureDefinition.makeBinding(
   OtherToastBlock,
   {
     placement: 'OtherToast',
@@ -128,7 +128,7 @@ export const OtherToastBinding = ToastFixtureDefinition.bindChild(
   },
 ).withOutMessagePolicy({
   fold: ToastFixtureDefinition.makeOutMessageFold(OtherToastBlock, {
-    DismissedToast: () => ToastFixtureDefinition.stepNoop(),
+    DismissedToast: () => ToastFixtureDefinition.makeNoopStep(),
   }),
 })
 export const drainToastEntry = ToastBlock.test.drainEntry({
@@ -146,10 +146,10 @@ const KeyedToastFixtureDefinition = Block.makeDefinition('KeyedToastFixture', {
 const foldKeyedToastOutMessage = KeyedToastFixtureDefinition.makeOutMessageFold(
   ToastBlock,
   {
-    DismissedToast: () => KeyedToastFixtureDefinition.stepNoop(),
+    DismissedToast: () => KeyedToastFixtureDefinition.makeNoopStep(),
   },
 )
-export const KeyedToastBinding = KeyedToastFixtureDefinition.bindChild(
+export const KeyedToastBinding = KeyedToastFixtureDefinition.makeBinding(
   ToastBlock,
   {
     field: 'toasts',
@@ -178,11 +178,11 @@ const foldDragAndDropOutMessage =
   DragAndDropFixtureDefinition.makeOutMessageFold(
     DragAndDrop.DragAndDropBlock,
     {
-      Reordered: () => DragAndDropFixtureDefinition.stepNoop(),
-      Cancelled: () => DragAndDropFixtureDefinition.stepNoop(),
+      Reordered: () => DragAndDropFixtureDefinition.makeNoopStep(),
+      Cancelled: () => DragAndDropFixtureDefinition.makeNoopStep(),
     },
   )
-export const DragAndDropBinding = DragAndDropFixtureDefinition.bindChild(
+export const DragAndDropBinding = DragAndDropFixtureDefinition.makeBinding(
   DragAndDrop.DragAndDropBlock,
   {
     placement: 'DragAndDrop',
@@ -220,12 +220,12 @@ const foldKeyedDragAndDropOutMessage =
   KeyedDragAndDropFixtureDefinition.makeOutMessageFold(
     DragAndDrop.DragAndDropBlock,
     {
-      Reordered: () => KeyedDragAndDropFixtureDefinition.stepNoop(),
-      Cancelled: () => KeyedDragAndDropFixtureDefinition.stepNoop(),
+      Reordered: () => KeyedDragAndDropFixtureDefinition.makeNoopStep(),
+      Cancelled: () => KeyedDragAndDropFixtureDefinition.makeNoopStep(),
     },
   )
 export const KeyedDragAndDropBinding =
-  KeyedDragAndDropFixtureDefinition.bindChild(DragAndDrop.DragAndDropBlock, {
+  KeyedDragAndDropFixtureDefinition.makeBinding(DragAndDrop.DragAndDropBlock, {
     placement: 'DragAndDrops',
     keySchema: Schema.Literal('Primary'),
     readAll: model => model.dragAndDrops,
@@ -257,7 +257,42 @@ export const resolveKeyedKeyboardMove = DragAndDrop.test.resolveKeyboardMove({
 export const animationViewInputs: Animation.ViewInputs = {
   toView: () => null,
 }
+const AnimationInstance = Schema.Struct({
+  id: Schema.Literal('Primary'),
+  model: Animation.AnimationBlock.Model,
+})
+const KeyedAnimationFixtureDefinition = Block.makeDefinition(
+  'KeyedAnimationFixture',
+  {
+    Model: Schema.Struct({ animations: Schema.Array(AnimationInstance) }),
+    Message: Schema.Never,
+  },
+)
+export const KeyedAnimationBinding =
+  KeyedAnimationFixtureDefinition.makeBinding(Animation.AnimationBlock, {
+    field: 'animations',
+    key: 'id',
+    childField: 'model',
+  })
+const makeKeyedAnimationOutMessageFold = (key: 'Primary') =>
+  KeyedAnimationFixtureDefinition.makeOutMessageFold(Animation.AnimationBlock, {
+    StartedLeaveAnimating: () =>
+      KeyedAnimationBinding.requestWaitForLeaveSettlement(key),
+    TransitionedOut: KeyedAnimationFixtureDefinition.makeNoopStep,
+  })
+export const KeyedAnimationFixtureComposition =
+  KeyedAnimationFixtureDefinition.makeComposition({
+    bindings: [
+      KeyedAnimationBinding.withOutMessagePolicy({
+        fold: (key, outMessage) =>
+          makeKeyedAnimationOutMessageFold(key)(outMessage),
+      }),
+    ],
+  })
+export const keyedAnimationLeaveWait =
+  KeyedAnimationBinding.requestWaitForLeaveSettlement('Primary')
 export const Model = Schema.Struct({
+  animation: Animation.AnimationBlock.Model,
   dialog: Dialog.DialogBlock.Model,
   picker: Picker.Model,
   popover: Popover.PopoverBlock.Model,
@@ -271,7 +306,25 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
   Message: ParentMessage,
 })
 
-export const DialogBinding = ApplicationDefinition.bindChild(
+export const AnimationBinding = ApplicationDefinition.makeBinding(
+  Animation.AnimationBlock,
+  {
+    field: 'animation',
+    init: { contextToArgs: () => [{ id: 'details-animation' }] },
+  },
+)
+const foldAnimationOutMessage = ApplicationDefinition.makeOutMessageFold(
+  Animation.AnimationBlock,
+  {
+    StartedLeaveAnimating: () =>
+      AnimationBinding.requestWaitForLeaveSettlement(),
+    TransitionedOut: ApplicationDefinition.makeNoopStep,
+  },
+)
+export const AnimationBindingWithOutMessagePolicy =
+  AnimationBinding.withOutMessagePolicy({ fold: foldAnimationOutMessage })
+
+export const DialogBinding = ApplicationDefinition.makeBinding(
   Dialog.DialogBlock,
   {
     field: 'dialog',
@@ -279,25 +332,25 @@ export const DialogBinding = ApplicationDefinition.bindChild(
   },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(Dialog.DialogBlock, {
-    Opened: () => ApplicationDefinition.stepNoop(),
-    Closed: () => ApplicationDefinition.stepNoop(),
-    CompletedClose: () => ApplicationDefinition.stepNoop(),
+    Opened: () => ApplicationDefinition.makeNoopStep(),
+    Closed: () => ApplicationDefinition.makeNoopStep(),
+    CompletedClose: () => ApplicationDefinition.makeNoopStep(),
   }),
 })
 
-export const PickerBinding = ApplicationDefinition.bindChild(Picker, {
+export const PickerBinding = ApplicationDefinition.makeBinding(Picker, {
   field: 'picker',
   init: { contextToArgs: () => [{ id: 'fruit' }] },
 }).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(Picker, {
     Selected: ({ value }) =>
-      ApplicationDefinition.step(model => ({
+      ApplicationDefinition.makeStep(model => ({
         model: Struct.modifyFields(model, {
           maybeSelected: () => Option.some(value),
         }),
       })),
     ClearedSelection: () =>
-      ApplicationDefinition.step(model => ({
+      ApplicationDefinition.makeStep(model => ({
         model: Struct.modifyFields(model, {
           maybeSelected: () => Option.none(),
         }),
@@ -305,7 +358,7 @@ export const PickerBinding = ApplicationDefinition.bindChild(Picker, {
   }),
 })
 
-export const PopoverBinding = ApplicationDefinition.bindChild(
+export const PopoverBinding = ApplicationDefinition.makeBinding(
   Popover.PopoverBlock,
   {
     field: 'popover',
@@ -313,8 +366,8 @@ export const PopoverBinding = ApplicationDefinition.bindChild(
   },
 ).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(Popover.PopoverBlock, {
-    Opened: () => ApplicationDefinition.stepNoop(),
-    Closed: () => ApplicationDefinition.stepNoop(),
+    Opened: () => ApplicationDefinition.makeNoopStep(),
+    Closed: () => ApplicationDefinition.makeNoopStep(),
   }),
 })
 
@@ -324,12 +377,22 @@ export type Composition = Block.Composition<
   typeof ParentMessage,
   undefined,
   readonly [],
-  readonly [typeof DialogBinding, typeof PickerBinding, typeof PopoverBinding]
+  readonly [
+    typeof AnimationBindingWithOutMessagePolicy,
+    typeof DialogBinding,
+    typeof PickerBinding,
+    typeof PopoverBinding,
+  ]
 >
 
 export const createComposition = (): Composition =>
   ApplicationDefinition.makeComposition({
-    bindings: [DialogBinding, PickerBinding, PopoverBinding],
+    bindings: [
+      AnimationBindingWithOutMessagePolicy,
+      DialogBinding,
+      PickerBinding,
+      PopoverBinding,
+    ],
     mounts: [],
   })
 export type Builder = Block.ViewBuilderFor<Composition>
@@ -385,7 +448,12 @@ export const author = (composition: Composition) => {
   const update = composition.makeUpdate((model, _message) => ({ model }))
   const view = composition.makeView((model, h) => helper(model, h))
 
-  return composition.assembleBlock({ init, update, view })
+  const prepare = () => composition.prepareBlock({ init, update, view })
+  const completedBlock: Block.FromAssemblyWithView<
+    typeof Model,
+    typeof prepare
+  > = Block.assemble(prepare)
+  return completedBlock
 }
 
 export const ElementBlock = author(createComposition())
@@ -399,6 +467,27 @@ export type GenericAssertions = [
     Equal<ReturnType<typeof matchMenuOutMessage>, 'Apple' | 'Pear' | 'Closed'>
   >,
   Expect<Equal<Parameters<typeof DialogBinding.requestOpen>, []>>,
+  Expect<
+    Equal<Parameters<typeof AnimationBinding.requestWaitForLeaveSettlement>, []>
+  >,
+  Expect<
+    Equal<
+      ReturnType<typeof AnimationBinding.requestWaitForLeaveSettlement>,
+      ReturnType<typeof AnimationBinding.requestResume>
+    >
+  >,
+  Expect<
+    Equal<
+      Parameters<typeof KeyedAnimationBinding.requestWaitForLeaveSettlement>,
+      [key: 'Primary']
+    >
+  >,
+  Expect<
+    Equal<
+      ReturnType<typeof KeyedAnimationBinding.requestWaitForLeaveSettlement>,
+      ReturnType<typeof KeyedAnimationBinding.requestResume>
+    >
+  >,
   Expect<
     Equal<
       Parameters<typeof PickerBinding.requestSelectItem>,
@@ -526,29 +615,45 @@ const withViewAndOutMessageImplementation = {
   view,
   EffectsLayer: Layer.empty,
 }
-export const WithViewAndOutMessage =
-  DeclarationWithOutMessageComposition.assembleBlock(
+const prepareWithViewAndOutMessage = () =>
+  DeclarationWithOutMessageComposition.prepareBlock(
     withViewAndOutMessageImplementation,
   )
-export const WithOutMessageOnly =
-  DeclarationWithOutMessageComposition.assembleBlock({
+export const WithViewAndOutMessage: Block.FromAssemblyWithViewAndOutMessage<
+  typeof ShapeModel,
+  typeof prepareWithViewAndOutMessage
+> = Block.assemble(prepareWithViewAndOutMessage)
+const prepareWithOutMessageOnly = () =>
+  DeclarationWithOutMessageComposition.prepareBlock({
     init: withOutMessageInit,
     update,
     EffectsLayer: Layer.empty,
   })
-export const WithViewOnly =
-  DeclarationWithoutOutMessageComposition.assembleBlock({
+export const WithOutMessageOnly: Block.FromAssemblyWithOutMessage<
+  typeof ShapeModel,
+  typeof prepareWithOutMessageOnly
+> = Block.assemble(prepareWithOutMessageOnly)
+const prepareWithViewOnly = () =>
+  DeclarationWithoutOutMessageComposition.prepareBlock({
     init: withoutOutMessageInit,
     update,
     view: plainView,
     EffectsLayer: Layer.empty,
   })
-export const WithoutViewOrOutMessage =
-  DeclarationWithoutOutMessageComposition.assembleBlock({
+export const WithViewOnly: Block.FromAssemblyWithView<
+  typeof ShapeModel,
+  typeof prepareWithViewOnly
+> = Block.assemble(prepareWithViewOnly)
+const prepareWithoutViewOrOutMessage = () =>
+  DeclarationWithoutOutMessageComposition.prepareBlock({
     init: withoutOutMessageInit,
     update,
     EffectsLayer: Layer.empty,
   })
+export const WithoutViewOrOutMessage: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ShapeModel,
+  typeof prepareWithoutViewOrOutMessage
+> = Block.assemble(prepareWithoutViewOrOutMessage)
 
 type BroadOutMessageBlock = Block.Block<
   typeof DeclarationWithOutMessageDefinition.owner,

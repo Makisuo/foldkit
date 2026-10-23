@@ -21,16 +21,21 @@ export const childViewHelper = (
 const childView = DeclarationViewHelperChildComposition.makeView((model, h) =>
   childViewHelper(model, h),
 )
-export const ChildBlock = DeclarationViewHelperChildComposition.assembleBlock({
-  init: DeclarationViewHelperChildComposition.makeInit(() => ({
-    model: ChildModel.make({ value: 'initial' }),
-  })),
-  update: DeclarationViewHelperChildComposition.makeUpdate(model => ({
-    model,
-  })),
-  view: childView,
-  EffectsLayer: Layer.empty,
-})
+const prepareChildBlock = () =>
+  DeclarationViewHelperChildComposition.prepareBlock({
+    init: DeclarationViewHelperChildComposition.makeInit(() => ({
+      model: ChildModel.make({ value: 'initial' }),
+    })),
+    update: DeclarationViewHelperChildComposition.makeUpdate(model => ({
+      model,
+    })),
+    view: childView,
+    EffectsLayer: Layer.empty,
+  })
+export const ChildBlock: Block.FromAssemblyWithView<
+  typeof ChildModel,
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 export const ParentModel = Schema.Struct({ child: ChildModel })
 export const ParentMessage = Message.defineMessageUnion({
@@ -43,7 +48,7 @@ export const DeclarationViewHelperParentDefinition = Block.makeDefinition(
     Message: ParentMessage,
   },
 )
-export const ObserveParent = DeclarationViewHelperParentDefinition.mount(
+export const ObserveParent = DeclarationViewHelperParentDefinition.makeMount(
   'ObserveParent',
   {
     messages: [ParentMessage.CompletedObserveParent],
@@ -52,7 +57,7 @@ export const ObserveParent = DeclarationViewHelperParentDefinition.mount(
     },
   },
 )
-export const ChildBinding = DeclarationViewHelperParentDefinition.bindChild(
+export const ChildBinding = DeclarationViewHelperParentDefinition.makeBinding(
   ChildBlock,
   {
     field: 'child',

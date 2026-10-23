@@ -38,7 +38,7 @@ describe('Subscription startup supervision', () => {
     })
     const streamStarted = vi.fn()
     const report = vi.fn()
-    const subscriptions = ApplicationDefinition.subscriptions(entry => ({
+    const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
       pulses: entry(
         'Pulses',
         { count: Schema.Number },
@@ -57,8 +57,9 @@ describe('Subscription startup supervision', () => {
       ),
     }))
     const ApplicationComposition = ApplicationDefinition.makeComposition()
-    const application = Program.makeElement({
-      block: ApplicationComposition.assembleBlock({
+
+    const prepare = () =>
+      ApplicationComposition.prepareBlock({
         init: () => ({ model: { count: 0 } }),
         update: ApplicationComposition.makeUpdate(model => ({ model })),
         view: ApplicationComposition.makeView((_model, h) =>
@@ -66,7 +67,13 @@ describe('Subscription startup supervision', () => {
         ),
         subscriptions,
         EffectsLayer: subscriptions.pulses.layer,
-      }),
+      })
+    const completedBlock: Block.FromAssemblyWithView<
+      typeof Model,
+      typeof prepare
+    > = Block.assemble(prepare)
+    const application = Program.makeElement({
+      block: completedBlock,
       container,
       crash: {
         view: ({ error }, h) => h.div([], [error.message]),
@@ -98,7 +105,7 @@ describe('Subscription startup supervision', () => {
       Message: ChildMessage,
     })
     const streamStarted = vi.fn()
-    const subscriptions = ChildDefinition.subscriptions(entry => ({
+    const subscriptions = ChildDefinition.makeSubscriptions(entry => ({
       pulses: entry(
         'Pulses',
         { count: Schema.Number },
@@ -117,12 +124,17 @@ describe('Subscription startup supervision', () => {
       ),
     }))
     const ChildComposition = ChildDefinition.makeComposition()
-    const block = ChildComposition.assembleBlock({
-      init: () => ({ model: { count: 0 } }),
-      update: ChildComposition.makeUpdate(model => ({ model })),
-      subscriptions,
-      EffectsLayer: subscriptions.pulses.layer,
-    })
+    const prepareBlock = () =>
+      ChildComposition.prepareBlock({
+        init: () => ({ model: { count: 0 } }),
+        update: ChildComposition.makeUpdate(model => ({ model })),
+        subscriptions,
+        EffectsLayer: subscriptions.pulses.layer,
+      })
+    const block: Block.FromAssemblyWithoutViewOrOutMessage<
+      typeof ChildModel,
+      typeof prepareBlock
+    > = Block.assemble(prepareBlock)
     const Model = Schema.Struct({ maybeChild: Schema.Option(ChildModel) })
     const Message = defineMessageUnion({
       ClickedActivateChild: {},
@@ -131,7 +143,7 @@ describe('Subscription startup supervision', () => {
       Model,
       Message,
     })
-    const ChildBinding = ApplicationDefinition.bindChild(block, {
+    const ChildBinding = ApplicationDefinition.makeBinding(block, {
       read: model => model.maybeChild,
       write: (model, nextChild) =>
         modifyFields(model, { maybeChild: () => Option.some(nextChild) }),
@@ -140,8 +152,9 @@ describe('Subscription startup supervision', () => {
       bindings: [ChildBinding],
     })
     const report = vi.fn()
-    const application = Program.makeElement({
-      block: ApplicationComposition.assembleBlock({
+
+    const prepare = () =>
+      ApplicationComposition.prepareBlock({
         init: () => ({ model: { maybeChild: Option.none() } }),
         update: ApplicationComposition.makeUpdate((model, message) =>
           Message.match(message, {
@@ -161,7 +174,13 @@ describe('Subscription startup supervision', () => {
             ['Activate child'],
           ),
         ),
-      }),
+      })
+    const completedBlock: Block.FromAssemblyWithView<
+      typeof Model,
+      typeof prepare
+    > = Block.assemble(prepare)
+    const application = Program.makeElement({
+      block: completedBlock,
       container,
       crash: {
         view: ({ error }, h) => h.div([], [error.message]),

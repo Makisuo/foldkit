@@ -22,12 +22,17 @@ const ChildDefinition = Block.makeDefinition('ForwardDeclarationChild', {
   OutMessage: ChildOutMessage,
 })
 const ChildComposition = ChildDefinition.makeComposition()
-export const ChildBlock = ChildComposition.assembleBlock({
-  init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
-  update: ChildComposition.makeUpdate(model => ({ model })),
-  operations: { requestClose: ChildMessage.RequestedClose },
-  EffectsLayer: Layer.empty,
-})
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
+    init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
+    update: ChildComposition.makeUpdate(model => ({ model })),
+    operations: { requestClose: ChildMessage.RequestedClose },
+    EffectsLayer: Layer.empty,
+  })
+export const ChildBlock: Block.FromAssemblyWithOutMessage<
+  typeof ChildModel,
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 export const ParentModel = Schema.Struct({ choice: Choice })
 export const ParentMessage = Message.defineMessageUnion({ RequestedReset: {} })

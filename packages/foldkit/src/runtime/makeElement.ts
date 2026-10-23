@@ -341,7 +341,7 @@ const toCrashConfig = <Model, Message>(
  * `makeElement` when it is one component among others on a page it does not
  * control. Embedded apps do not own the URL bar, so `makeElement` has no
  * `routing` config. Complete the root with
- * `ApplicationComposition.assembleBlock`, pass it to `Program.makeElement`, and
+ * `ApplicationComposition.prepareBlock`, pass it to `Program.makeElement`, and
  * supply Services through the Program's `provide` method when Commands, Flags,
  * Subscriptions, Mounts, or ManagedResources need them.
  */

@@ -1,6 +1,7 @@
-import { Match, Option } from 'effect'
+import { Option } from 'effect'
 import { Update } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
+import { Transition } from 'foldkit/route'
 import { toString as urlToString } from 'foldkit/url'
 
 import { LoadExternal, NavigateInternal } from './command'
@@ -26,7 +27,13 @@ const navigationUrlByShortcut: Readonly<
 }
 
 const setRoute = (nextRoute: typeof ApplicationRoute.Type) =>
-  ApplicationDefinition.stepFields(() => ({ route: () => nextRoute }))
+  ApplicationDefinition.makeFieldsStep(() => ({ route: () => nextRoute }))
+
+const keepModel = ApplicationDefinition.makeNoopStep()
+
+type InformPeopleRouteStep =
+  | typeof keepModel
+  | ReturnType<typeof PeoplePageBinding.informRouteChanged>
 
 export const update = ApplicationComposition.makeUpdate((model, message) =>
   Message.match(message, {
@@ -48,14 +55,23 @@ export const update = ApplicationComposition.makeUpdate((model, message) =>
     ChangedUrl: ({ url }) => {
       const nextRoute = urlToApplicationRoute(url)
 
-      const routeSteps = Match.value(nextRoute).pipe(
-        Match.tag('People', peopleRoute => [
-          PeoplePageBinding.informRouteChanged({ route: peopleRoute }),
-        ]),
-        Match.orElse(() => []),
+      const transition = Transition.make(model.route, nextRoute)
+      const informPeopleRoute = Transition.matchOrElse<InformPeopleRouteStep>()(
+        transition,
+        'People',
+        {
+          Entered: peopleRoute =>
+            PeoplePageBinding.informRouteChanged({ route: peopleRoute }),
+          Stayed: ({ nextRoute }) =>
+            PeoplePageBinding.informRouteChanged({ route: nextRoute }),
+        },
+        () => keepModel,
       )
 
-      return Update.combineSteps(model, [setRoute(nextRoute), ...routeSteps])
+      return Update.combineSteps(model, [
+        setRoute(nextRoute),
+        informPeopleRoute,
+      ])
     },
 
     EnteredNavigationShortcut: ({ shortcut }) => {

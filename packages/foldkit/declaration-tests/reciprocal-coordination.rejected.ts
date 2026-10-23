@@ -55,13 +55,13 @@ RoomBinding.informJoined('room-1', 'alice')
 // @ts-expect-error informJoined preserves the string Room context field.
 RoomBinding.informJoined('room-1', 'alice', { roomId: 1 })
 
-const PendingHomeBinding = ApplicationDefinition.bindChild(HomeBlock, {
+const PendingHomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
   field: 'home',
 })
 // @ts-expect-error A child with OutMessages requires an OutMessage policy before Composition.
 ApplicationDefinition.makeComposition({ bindings: [PendingHomeBinding] })
 
-const PendingRoomBinding = ApplicationDefinition.bindChild(RoomBlock, {
+const PendingRoomBinding = ApplicationDefinition.makeBinding(RoomBlock, {
   placement: 'pending-room',
   readAll: (model: typeof ApplicationDefinition.Model.Type) =>
     Option.toArray(model.maybeRoomInstance),
@@ -79,7 +79,7 @@ const PendingRoomBinding = ApplicationDefinition.bindChild(RoomBlock, {
 // @ts-expect-error A keyed child with OutMessages requires an OutMessage policy before Composition.
 ApplicationDefinition.makeComposition({ bindings: [PendingRoomBinding] })
 
-ApplicationDefinition.bindChild(HomeBlock, {
+ApplicationDefinition.makeBinding(HomeBlock, {
   field: 'home',
 }).withOutMessagePolicy({
   // @ts-expect-error A static policy must accept every refined child OutMessage.
@@ -88,7 +88,7 @@ ApplicationDefinition.bindChild(HomeBlock, {
       typeof HomeOutMessage.Type,
       Readonly<{ username: 'alice' }>
     >,
-  ) => ApplicationDefinition.step(model => ({ model })),
+  ) => ApplicationDefinition.makeStep(model => ({ model })),
 })
 
 // @ts-expect-error A policy-returned sibling recipe retains its required Binding.

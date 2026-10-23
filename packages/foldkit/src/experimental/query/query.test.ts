@@ -702,7 +702,7 @@ describe('Query Block binding', () => {
     Model,
     Message,
   })
-  const NotesChildBinding = QueryParentDefinition.bindChild(notes, {
+  const NotesChildBinding = QueryParentDefinition.makeBinding(notes, {
     field: 'notes',
     init: false,
   })
@@ -714,13 +714,18 @@ describe('Query Block binding', () => {
       ClickedLoad: () => NotesChildBinding.requestRevalidationOrLoad()(model),
     }),
   )
-  const Parent = Composition.assembleBlock({
-    init: Composition.makeInit(() => ({
-      model: Model.make({ notes: notes.init().model }),
-    })),
-    update,
-    EffectsLayer: Layer.empty,
-  })
+  const prepareParent = () =>
+    Composition.prepareBlock({
+      init: Composition.makeInit(() => ({
+        model: Model.make({ notes: notes.init().model }),
+      })),
+      update,
+      EffectsLayer: Layer.empty,
+    })
+  const Parent: Block.FromAssemblyWithoutViewOrOutMessage<
+    typeof Model,
+    typeof prepareParent
+  > = Block.assemble(prepareParent)
 
   it('registers the Query and routes loading and completion through its parent', () => {
     Story.story(
@@ -769,7 +774,7 @@ describe('Query Block binding', () => {
       Model: KeyedModel,
       Message: KeyedMessage,
     })
-    const KeyedNotesBinding = KeyedDefinition.bindChild(noteById, {
+    const KeyedNotesBinding = KeyedDefinition.makeBinding(noteById, {
       field: 'notes',
     })
     const KeyedComposition = KeyedDefinition.makeComposition({
@@ -1584,7 +1589,7 @@ describe('Query handler requirements', () => {
       Model: ParentModel,
       Message: Schema.Never,
     })
-    const ServedNotesBinding = ParentDefinition.bindChild(served, {
+    const ServedNotesBinding = ParentDefinition.makeBinding(served, {
       field: 'notes',
     })
 
@@ -1696,7 +1701,7 @@ describe('Query types', () => {
       Model: ParentModel,
       Message: Schema.Never,
     })
-    const NotesChildBinding = ParentDefinition.bindChild(notes, {
+    const NotesChildBinding = ParentDefinition.makeBinding(notes, {
       field: 'notes',
     })
 
@@ -1718,7 +1723,7 @@ describe('Query types', () => {
         Message: Schema.Never,
       },
     )
-    const NoteByIdChildBinding = KeyedParentDefinition.bindChild(noteById, {
+    const NoteByIdChildBinding = KeyedParentDefinition.makeBinding(noteById, {
       field: 'notes',
     })
 

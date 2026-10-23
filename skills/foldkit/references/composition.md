@@ -13,18 +13,21 @@ Its parent owns integration policy: where the child Model is stored, whether an
 occurrence exists, when child delivery is accepted, what OutMessages mean to
 the parent, and where the child renders.
 
-Build that boundary through Definition → Composition → assembly. All three stages are passive:
+Build that boundary through Definition → Composition → preparation → assembly. All four stages are passive:
 
 1. `Block.makeDefinition` establishes the contracts and authors Commands, Steps,
    lifecycle entries, and child Bindings.
 2. `makeComposition` fixes the registered child and Mount graph. The named
    Composition authors init, update, and the canonical view against that graph.
-3. `assembleBlock` checks and packages that authored implementation plus local
+3. `prepareBlock` checks and packages that authored implementation plus local
    operations, Subscriptions, ManagedResources, `EffectsLayer`, and
-   `hostHandlers` as the completed Block. It does not run init, construct Layers,
-   or start effects.
+   `hostHandlers` as an opaque unfinished assembly with no Model or runtime
+   methods.
+4. `Block.assemble` invokes the producer exactly once while constructing the
+   passive branded Block accepted by Bindings, Programs, and Server rendering.
+   It does not run init, construct Layers, or start effects.
 
-The root is an ordinary Block built through the same three stages. Name its
+The root is an ordinary Block built through the same four stages. Name its
 completed value `ApplicationBlock`. `Program.make` or `Program.makeElement`
 adds host behavior, and the Runtime constructs the resulting Layer graph and
 starts effects.
@@ -62,18 +65,43 @@ export const view = SettingsComposition.makeView((model, h) =>
   h.p([], [model.theme]),
 )
 
-export const SettingsBlock = SettingsComposition.assembleBlock({
-  init,
-  update,
-  view,
-})
+const prepare = () =>
+  SettingsComposition.prepareBlock({
+    init,
+    update,
+    view,
+  })
+export const SettingsBlock: Block.FromAssemblyWithViewAndOutMessage<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)
 ```
+
+Ordinary source exports use an explicit zero-argument assembly producer and
+header. Choose `Block.FromAssemblyWithView`,
+`Block.FromAssemblyWithViewAndOutMessage`, `Block.FromAssemblyWithOutMessage`,
+or `Block.FromAssemblyWithoutViewOrOutMessage` from the actual assembled view
+and Definition OutMessage. Name the single private zero-argument producer
+`prepare`, pass `typeof Model` and `typeof prepare`, and put the annotated
+completed export immediately after it with no blank line. Use a descriptive
+producer name only when one file genuinely contains multiple assembly
+producers. Initialize the completed export with `Block.assemble(prepare)`. Parent
+Schemas use `ChildBlock.Model`, and the feature barrel exports the completed
+Block while Model remains internal. The explicit canonical Model header keeps a
+parent Schema projection from forcing TypeScript through the entire inferred
+implementation graph. This boundary can improve targeted checking and member
+completion; it does not eliminate all TypeScript latency. Helper constraints
+still check the actual contract.
+Casts, broad Block annotations, `satisfies`, raw producer calls, and annotations
+without the matching finisher do not establish this boundary. `replaceEffectsLayer`
+and `provideHandlers` preserve the assembly brand, object metadata, and passive
+runtime behavior.
 
 An authored update is dual: the Runtime uses
 `update(model, message, ...context)`, while application composition can use
 `update(message)(model, ...context)` as an internal Step. Put a local Message
 constructor directly under `operations` when its payload is the public input.
-Completion creates the callable operation without constructing a Message. A constructor with fields takes one constructor payload
+Assembly creates the callable operation without constructing a Message. A constructor with fields takes one constructor payload
 object followed by the update context, with constructor defaults honored; a
 constructor without fields takes no payload placeholder. Keep a tuple producer
 under `operations` when public inputs need mapping, refinement, defaults, or an
@@ -83,9 +111,22 @@ Use `InformedOf*` for parent notifications and `Requested*` for requested
 actions. `Update.combineSteps` accepts unary Steps, so wrap a contextual curried
 update in a unary adapter that supplies every required context argument.
 
+Use `FeatureDefinition.makeFieldsStep(callback)` for a unary Step that only
+transforms owning Model fields, `FeatureDefinition.makeNoopStep()` for a Step
+that only preserves the Model, and `FeatureDefinition.makeCommandsStep(commands)`
+for a Model-preserving Step returning an existing Command collection. Use
+`FeatureDefinition.makeOutMessageStep(outMessage)` for a Model-preserving Step
+that emits one already-known OutMessage declared by that Definition; it is
+available only when the Definition declares an OutMessage Schema. Keep additional
+arguments, Model-dependent Commands or OutMessages, connected Binding,
+initialization, delegated, conditional, and composed results on `makeStep`.
+Keep ordinary update branches as direct returns. `Update.combineSteps` rejects
+OutMessage-producing Steps because its result has no OutMessage channel. Attach
+an OutMessage to the combined result with `Update.withOutMessage`.
+
 Parent-facing operation names describe the communication: `requestCloseMenu` produces `Message.RequestedCloseMenu`, `informJoined` produces `Message.InformedOfJoin`, and `informRouteChanged` produces `Message.InformedOfRouteChange`. Use `request*` for actions and `inform*` for notifications. Both enter child update; avoid silent `reflect*` Model synchronization. Keep an actual UI fact separate when it represents a different event.
 
-An owned `Definition.subscriptions(...)` registry exposes `subscriptions.layer`
+An owned `Definition.makeSubscriptions(...)` registry exposes `subscriptions.layer`
 when every entry has an attached handler. Merge that passive recipe into
 `EffectsLayer`; constructor errors and ordinary Services remain precise. An empty
 record supplies an empty Layer. Mixed host contracts have no aggregate: provide
@@ -116,7 +157,7 @@ different file uses it. A helper shared across owners uses the general
 
 ## Bind a child
 
-`bindChild` describes one relationship. Adding the Binding to
+`makeBinding` describes one relationship. Adding the Binding to
 `bindings` registers it. Binding construction alone does not route
 Messages, collect lifecycle entries, or contribute handler recipes.
 
@@ -149,7 +190,7 @@ Add `presentWhen` only when parent policy gates an entire direct child. A direct
 `Option` field is absent while it is `None`; folds and operations do not create
 it. Use `subscriptions.when` only for Stream activation.
 
-`bindChild` derives child delivery from the completed child Block. Do not add a
+`makeBinding` derives child delivery from the completed child Block. Do not add a
 child wrapper variant to the parent's authored Message or write message
 mappers. The generated envelope records the Binding placement, keyed occurrence
 when present, and runtime generation. The Composition routes it only to that
@@ -164,7 +205,7 @@ Message variants. A child whose Message Schema is `Schema.Never` needs no
 delivery policy.
 
 ```ts
-export const SettingsBinding = ProfileDefinition.bindChild(SettingsBlock, {
+export const SettingsBinding = ProfileDefinition.makeBinding(SettingsBlock, {
   field: 'settings',
 }).withOutMessagePolicy({ fold: foldSettingsOutMessage })
 
@@ -188,7 +229,7 @@ update owns the transition. Render through
 ## OutMessages and sibling policy
 
 Inline an ordinary unkeyed fold as
-`bindChild(WholeChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(WholeChildBlock, handlers) })`.
+`makeBinding(WholeChildBlock, ...).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(WholeChildBlock, handlers) })`.
 Pass the completed child explicitly to `makeOutMessageFold` whether the fold is
 inline, extracted, adapted for keyed policy, or staged for reciprocal
 composition. Keep substantial transition helpers beside their fold. Name every variant directly
@@ -216,7 +257,7 @@ Local handling still runs for a forwarded variant, and a derived parent
 OutMessage takes precedence for that dispatch.
 
 Select the callable `fold` and `forward` through
-`bindChild(...).withOutMessagePolicy({ fold?, forward? })`. The returned value is
+`makeBinding(...).withOutMessagePolicy({ fold?, forward? })`. The returned value is
 the full Binding to register and use. Keep an ordinary one-way policy fluent.
 When a fold calls an operation on the same Binding, or two policies call each
 other's Binding operations, declare the original `FooBinding` values first.
@@ -242,7 +283,7 @@ exposes only the child transition's direct channels. The Composition resolves
 registered OutMessage policy and sibling operations into the final parent
 Command Message, requirements, and OutMessage channels. Derive exported parent
 contracts from the Composition-authored update or completed Block. A
-Definition-owned `step` preserves or wraps the connected value. A completed operation is
+Definition-owned `makeStep` preserves or wraps the connected value. A completed operation is
 a checked raw-Model executor that dispatches its produced Message through update
 under its own graph and returns a readable result. Its return contract uses the
 update function's complete Command requirements and OutMessage type. Calling a
@@ -312,7 +353,7 @@ commands? })` for custom storage or dynamic
 creation. It returns a passive, noncallable recipe that retains the arguments,
 mapping, key, and optional parent Commands. Return the recipe directly from the
 owning Composition's `makeInit` or `makeUpdate`, or preserve it through the
-parent's owned `step` producer. The Composition callbacks interpret it
+parent's owned `makeStep` producer. The Composition callbacks interpret it
 directly; a completed operation may dispatch a Message whose update
 branch returns the recipe. The recipe has no `.model` or `.commands` fields. The compiler checks the key, arguments,
 complete parent Model, requirements, and exact Binding requirement. During
@@ -351,16 +392,16 @@ OutMessage.
 
 Composition and Layers describe different parts of the program:
 
-| Value                                   | Owns                                                                                           |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `FeatureComposition`                    | Registered child placements and Mount capabilities; authors init, update, and the primary view |
-| `FeatureComposition.assembleBlock(...)` | Local operations, Subscriptions, ManagedResources, `EffectsLayer`, and declared `hostHandlers` |
-| Feature `EffectsLayer`                  | Handler recipes declared by that feature                                                       |
-| Registered child Binding                | The selected completed child's registrations and handler graph                                 |
-| Root `ApplicationLayer`                 | Shared HTTP, storage, RPC, browser, and other environment Service providers                    |
+| Value                                  | Owns                                                                                           |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `FeatureComposition`                   | Registered child placements and Mount capabilities; authors init, update, and the primary view |
+| `FeatureComposition.prepareBlock(...)` | Local operations, Subscriptions, ManagedResources, `EffectsLayer`, and declared `hostHandlers` |
+| Feature `EffectsLayer`                 | Handler recipes declared by that feature                                                       |
+| Registered child Binding               | The selected completed child's registrations and handler graph                                 |
+| Root `ApplicationLayer`                | Shared HTTP, storage, RPC, browser, and other environment Service providers                    |
 
-Pass only local handler recipes to `FeatureComposition.assembleBlock` or root
-completion. Registered child Bindings contribute their selected recipes and
+Pass only local handler recipes to `FeatureComposition.prepareBlock` or root
+preparation. Registered child Bindings contribute their selected recipes and
 descendants automatically. Never merge a child's `EffectsLayer` again at its
 parent or root.
 
@@ -414,16 +455,21 @@ Do not capture a Command argument, current time, Subscription dependency, DOM
 element, or active ManagedResource handle in an application-scoped constructor.
 
 Omit `handler` only for a contract intentionally supplied by an external host.
-List that definition under `hostHandlers` when completing the Block, then call
+List that definition under `hostHandlers` when preparing the Block, then call
 `provideHandlers` on that completed Block before binding it:
 
 ```ts
-const EditorBlockWithHostContract = EditorComposition.assembleBlock({
-  init,
-  update,
-  view,
-  hostHandlers: [SaveDocument],
-})
+const prepare = () =>
+  EditorComposition.prepareBlock({
+    init,
+    update,
+    view,
+    hostHandlers: [SaveDocument],
+  })
+const EditorBlockWithHostContract: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)
 
 const SaveDocumentLayer = SaveDocument.toLayer(saveDocumentHandler)
 
@@ -444,12 +490,17 @@ the ordinary Service providers below them.
 At the root:
 
 ```ts
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-  EffectsLayer,
-})
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
+    init,
+    update,
+    view,
+    EffectsLayer,
+  })
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)
 
 const program = Program.make({
   block: ApplicationBlock,
@@ -465,7 +516,7 @@ graph once per start and releases its application scope when that run stops.
 
 ## Organize the graph once
 
-A compact feature may keep all three stages together. In a split feature, `definition.ts` owns a Definition that is reused by authoring methods. When the factory's only use is `makeComposition`, `composition.ts` owns the top-level factory chain instead. `composition.ts` owns Bindings, OutMessage
+A compact feature may keep all four stages together. In a split feature, `definition.ts` owns a Definition that is reused by authoring methods. When the factory's only use is `makeComposition`, `composition.ts` owns the top-level factory chain instead. `composition.ts` owns Bindings, OutMessage
 policies, the complete registrations, the named Composition, and any owner
 ViewBuilder alias. When policy needs a `composition/` directory,
 `composition/composition.ts` remains the single assembly point and its barrel
@@ -476,7 +527,7 @@ A split graphless feature puts its empty Composition in `composition.ts`.
 A retained split `definition.ts` contains contracts and the Definition, never a Composition or owner-specific ViewBuilder. Do not inline the factory into a callback, loop, or conditional because the owner identity must remain a singleton.
 A split root always gives its Composition an assembly module, including when
 the graph is empty. The root entry imports init, update, view, local
-`EffectsLayer`, and `ApplicationLayer` from their owners, completes the
+`EffectsLayer`, and `ApplicationLayer` from their owners, assembles the
 Application, and starts the Runtime. It does not maintain a second child or
 handler inventory.
 
@@ -502,5 +553,5 @@ Before finishing composition work, verify these properties:
   ordinary Services once.
 - An ordinary feature barrel exports only its completed `FooBlock`; reusable
   Schemas and pure utilities use an explicit domain barrel.
-- Definition, Composition, completion, Binding, and `provide` remain passive;
+- Definition, Composition, preparation, assembly, Binding, and `provide` remain passive;
   only the Runtime starts execution.

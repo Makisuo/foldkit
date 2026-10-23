@@ -39,7 +39,7 @@ export const isFormValid = (model: typeof Model.Type): boolean =>
     [model.password, passwordRules],
   ])
 
-export const SimulateAuthRequest = LoginDefinition.command(
+export const SimulateAuthRequest = LoginDefinition.makeCommand(
   'SimulateAuthRequest',
   {
     args: { email: Schema.String, password: Schema.String },

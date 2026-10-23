@@ -401,15 +401,15 @@ type DefinitionOperation = Readonly<{
   importedDefinitionPath: ImportedMessagePath | undefined
   members: ReadonlyArray<string>
   operation:
-    | 'bindChild'
-    | 'command'
-    | 'managedResources'
-    | 'mount'
-    | 'mountStream'
+    | 'makeBinding'
+    | 'makeCommand'
+    | 'makeManagedResources'
+    | 'makeMount'
+    | 'makeMountStream'
     | 'render'
-    | 'resource'
-    | 'step'
-    | 'subscriptions'
+    | 'makeResource'
+    | 'makeStep'
+    | 'makeSubscriptions'
     | 'update'
     | 'view'
   root: ESTree.IdentifierReference
@@ -432,15 +432,15 @@ const definitionOperationName = (
     return 'view'
   }
   if (
-    method === 'bindChild' ||
-    method === 'command' ||
-    method === 'managedResources' ||
-    method === 'mount' ||
-    method === 'mountStream' ||
+    method === 'makeBinding' ||
+    method === 'makeCommand' ||
+    method === 'makeManagedResources' ||
+    method === 'makeMount' ||
+    method === 'makeMountStream' ||
     method === 'render' ||
-    method === 'resource' ||
-    method === 'step' ||
-    method === 'subscriptions'
+    method === 'makeResource' ||
+    method === 'makeStep' ||
+    method === 'makeSubscriptions'
   ) {
     return method
   }
@@ -903,8 +903,8 @@ const importedOperationOwnsMessage = (
           operation,
           Option.fromNullishOr(previousOperation),
         ) !== undefined
-      const isCompletion = operation === 'assembleBlock'
-      if (!isDefinitionOperation && !isViewWithInputs && !isCompletion) {
+      const isPreparation = operation === 'prepareBlock'
+      if (!isDefinitionOperation && !isViewWithInputs && !isPreparation) {
         return false
       }
 

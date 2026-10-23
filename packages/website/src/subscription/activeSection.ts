@@ -50,7 +50,7 @@ import * as ComingFromReact from '../page/comingFromReact/domain'
 import * as CoreBlockMetadata from '../page/core/blockPage/domain'
 import * as UiDocumentation from '../page/ui/domain'
 
-export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
   activeSectionChanges: entry(
     'ActiveSectionChanges',
     {

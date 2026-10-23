@@ -16,7 +16,7 @@ const AnimationExampleDefinition = Block.makeDefinition('AnimationExample', {
 // result, so Animation can tell this leave's settlement apart from a late
 // result left over from an earlier enter. This one waits on a child panel
 // instead of the Animation wrapper:
-const WaitForPanelSettled = AnimationExampleDefinition.command(
+const WaitForPanelSettled = AnimationExampleDefinition.makeCommand(
   'WaitForPanelSettled',
   {
     args: { generation: Schema.Number },
@@ -37,10 +37,9 @@ const foldAnimationOutMessage = AnimationExampleDefinition.makeOutMessageFold(
   Animation.AnimationBlock,
   {
     StartedLeaveAnimating: ({ generation }, { liftCommand }) =>
-      AnimationExampleDefinition.step(model => ({
-        model,
-        commands: [liftCommand(WaitForPanelSettled({ generation }))],
-      })),
-    TransitionedOut: AnimationExampleDefinition.stepNoop,
+      AnimationExampleDefinition.makeCommandsStep([
+        liftCommand(WaitForPanelSettled({ generation })),
+      ]),
+    TransitionedOut: AnimationExampleDefinition.makeNoopStep,
   },
 )

@@ -9,7 +9,7 @@ import { Message } from './message'
 import { urlToApplicationRoute } from './route'
 
 const stepRoute = (url: Url) =>
-  ApplicationDefinition.stepFields(() => ({
+  ApplicationDefinition.makeFieldsStep(() => ({
     route: () => urlToApplicationRoute(url),
   }))
 

@@ -32,7 +32,7 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
   })
   const RefinedPickerComposition = RefinedPicker.makeComposition()
 
-  const selectValue = RefinedPicker.step((model, value: Value) => ({
+  const selectValue = RefinedPicker.makeStep((model, value: Value) => ({
     model: modifyFields(model, { selected: () => Option.some(value) }),
     outMessage: OutMessage.Selected({ value }),
   }))
@@ -65,16 +65,19 @@ export const make = <Value extends string>(Value: ValueSchema<Value>) => {
     model: Model.make({ selected: Option.none() }),
   }))
 
-  return RefinedPickerComposition.assembleBlock({
-    init,
-    update,
-    view,
-    operations: {
-      requestSelectValue: (value: Value) => [
-        Message.RequestedSelectValue({ value }),
-      ],
-    },
-  })
+  const prepare = () =>
+    RefinedPickerComposition.prepareBlock({
+      init,
+      update,
+      view,
+      operations: {
+        requestSelectValue: (value: Value) => [
+          Message.RequestedSelectValue({ value }),
+        ],
+      },
+    })
+
+  return Block.assemble(prepare)
 }
 
 const Fruit = Schema.Literals(['Apple', 'Pear'])
@@ -91,12 +94,12 @@ const FruitSelectionDefinition = Block.makeDefinition('FruitSelection', {
   Message: ParentMessage,
 })
 
-const PickerBinding = FruitSelectionDefinition.bindChild(FruitPicker, {
+const PickerBinding = FruitSelectionDefinition.makeBinding(FruitPicker, {
   field: 'picker',
 }).withOutMessagePolicy({
   fold: FruitSelectionDefinition.makeOutMessageFold(FruitPicker, {
     Selected: ({ value }) =>
-      FruitSelectionDefinition.stepFields(() => ({
+      FruitSelectionDefinition.makeFieldsStep(() => ({
         selectionHistory: Array.append(value),
       })),
   }),

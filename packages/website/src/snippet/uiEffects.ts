@@ -3,7 +3,7 @@ import { Dialog, Menu } from '@foldkit/ui'
 
 import { ApplicationDefinition } from './definition'
 
-export const DialogBinding = ApplicationDefinition.bindChild(
+export const DialogBinding = ApplicationDefinition.makeBinding(
   Dialog.DialogBlock,
   {
     field: 'dialog',
@@ -12,7 +12,7 @@ export const DialogBinding = ApplicationDefinition.bindChild(
 
 export const ApplicationMenu = Menu.create<string>()
 
-export const MenuBinding = ApplicationDefinition.bindChild(ApplicationMenu, {
+export const MenuBinding = ApplicationDefinition.makeBinding(ApplicationMenu, {
   field: 'menu',
 }).withOutMessagePolicy({ fold: foldMenuOutMessage })
 
@@ -56,16 +56,24 @@ export const view = ApplicationComposition.makeView((model, h) => ({
 }))
 
 // block.ts
+import { Block } from 'foldkit'
+
 import { ApplicationComposition } from './composition'
 import { init } from './init'
+import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-})
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
+    init,
+    update,
+    view,
+  })
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)
 
 // entry.ts
 import { Program, Runtime } from 'foldkit'

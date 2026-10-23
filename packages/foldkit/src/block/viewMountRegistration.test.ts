@@ -21,7 +21,7 @@ const MountRegistration = makeDefinition('MountRegistration', {
   Message,
 })
 const constructed = vi.fn()
-const ObserveFirst = MountRegistration.mount('ObserveFirst', {
+const ObserveFirst = MountRegistration.makeMount('ObserveFirst', {
   messages: [Message.CompletedObserveFirst],
   handler: function* () {
     yield* Effect.sync(constructed)
@@ -29,7 +29,7 @@ const ObserveFirst = MountRegistration.mount('ObserveFirst', {
     return () => Effect.succeed(Message.CompletedObserveFirst())
   },
 })
-const ObserveSecond = MountRegistration.mount('ObserveSecond', {
+const ObserveSecond = MountRegistration.makeMount('ObserveSecond', {
   messages: [Message.CompletedObserveSecond],
   handler: function* () {
     yield* Effect.sync(constructed)
@@ -53,12 +53,17 @@ const firstView = first.makeView((_model, h) =>
 const secondView = second.makeView((_model, h) =>
   h.div([h.OnMount(ObserveSecond())]),
 )
-const firstBlock = first.assembleBlock({
-  init,
-  update,
-  view: firstView,
-  EffectsLayer: ObserveFirst.layer,
-})
+const prepareFirstBlock = () =>
+  first.prepareBlock({
+    init,
+    update,
+    view: firstView,
+    EffectsLayer: ObserveFirst.layer,
+  })
+const firstBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepareFirstBlock
+> = Block.assemble(prepareFirstBlock)
 const render = (view: AnyAuthoredView) => {
   setRuntime(() => {}, Context.empty())
   try {
@@ -77,10 +82,10 @@ const MountParent = makeDefinition('MountParent', {
   Model: ParentModel,
   Message: Schema.Never,
 })
-const ChildBinding = MountParent.bindChild(firstBlock, {
+const ChildBinding = MountParent.makeBinding(firstBlock, {
   field: 'child',
 })
-const EntriesBinding = MountParent.bindChild(firstBlock, {
+const EntriesBinding = MountParent.makeBinding(firstBlock, {
   field: 'entries',
   key: 'id',
   childField: 'child',
@@ -106,13 +111,16 @@ describe('captured local Mount registrations', () => {
   })
 
   it('rejects a view completed against a different local Mount set', () => {
-    const block = first.assembleBlock({
-      init,
-      update,
-      // @ts-expect-error The view requires a different local Mount registration.
-      view: secondView,
-      EffectsLayer: ObserveFirst.layer,
-    })
+    const prepareBlock = () =>
+      first.prepareBlock({
+        init,
+        update,
+        // @ts-expect-error The view requires a different local Mount registration.
+        view: secondView,
+        EffectsLayer: ObserveFirst.layer,
+      })
+    const block: Block.FromAssemblyWithView<typeof Model, typeof prepareBlock> =
+      Block.assemble(prepareBlock)
 
     expect(() => render(lowerBlock(block).view)).toThrow(
       'This view uses Mounts that are not registered in its selected Block.',
@@ -127,12 +135,15 @@ describe('captured local Mount registrations', () => {
         h.OnMount(ObserveSecond()),
       ]),
     )
-    const block = both.assembleBlock({
-      init,
-      update: bothUpdate,
-      view,
-      EffectsLayer: Layer.merge(ObserveFirst.layer, ObserveSecond.layer),
-    })
+    const prepareBlock = () =>
+      both.prepareBlock({
+        init,
+        update: bothUpdate,
+        view,
+        EffectsLayer: Layer.merge(ObserveFirst.layer, ObserveSecond.layer),
+      })
+    const block: Block.FromAssemblyWithView<typeof Model, typeof prepareBlock> =
+      Block.assemble(prepareBlock)
 
     expect(() => render(lowerBlock(block).view)).toThrow(
       'Mount "MountRegistration/ObserveSecond" is not registered in this view\'s Mounts.',
@@ -226,7 +237,7 @@ describe('captured local Mount registrations', () => {
       Model,
       Message,
     })
-    const FocusFirst = ApplicationDefinition.mount('FocusFirst', {
+    const FocusFirst = ApplicationDefinition.makeMount('FocusFirst', {
       messages: [Message.CompletedObserveFirst],
       handler: function* () {
         yield* Effect.sync(constructed)
@@ -234,7 +245,7 @@ describe('captured local Mount registrations', () => {
         return () => Effect.succeed(Message.CompletedObserveFirst())
       },
     })
-    const FocusSecond = ApplicationDefinition.mount('FocusSecond', {
+    const FocusSecond = ApplicationDefinition.makeMount('FocusSecond', {
       messages: [Message.CompletedObserveSecond],
       handler: function* () {
         yield* Effect.sync(constructed)
@@ -253,13 +264,18 @@ describe('captured local Mount registrations', () => {
       title: 'Second',
       body: h.main([h.OnMount(FocusSecond())]),
     }))
-    const firstBlock = firstApplication.assembleBlock({
-      init,
-      update: applicationUpdate,
-      // @ts-expect-error A completed Block rejects a view with a different Mount graph.
-      view,
-      EffectsLayer: FocusFirst.layer,
-    })
+    const prepareFirstBlock = () =>
+      firstApplication.prepareBlock({
+        init,
+        update: applicationUpdate,
+        // @ts-expect-error A completed Block rejects a view with a different Mount graph.
+        view,
+        EffectsLayer: FocusFirst.layer,
+      })
+    const firstBlock: Block.FromAssemblyWithView<
+      typeof Model,
+      typeof prepareFirstBlock
+    > = Block.assemble(prepareFirstBlock)
 
     await expect(
       Effect.runPromise(

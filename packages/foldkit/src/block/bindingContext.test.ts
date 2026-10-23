@@ -8,6 +8,7 @@ import type { RequirementOfBinding } from './binding.js'
 import { makeDefinition } from './define.js'
 import type { OutgoingMessageOfBinding } from './delivery.js'
 import type { BindingInitRecipe } from './initRecipe.js'
+import * as Block from './public.js'
 
 const CounterModel = Schema.Struct({ count: Schema.Number })
 const CounterMessage = defineMessageUnion({ ClickedReset: {} })
@@ -17,17 +18,24 @@ const ResetCounter = makeDefinition('ResetCounter', {
   Message: CounterMessage,
   OutMessage: CounterOutMessage,
 })
-const reset = ResetCounter.step(model => ({
+const reset = ResetCounter.makeStep(model => ({
   model: modifyFields(model, { count: () => 0 }),
   outMessage: CounterOutMessage.Reset(),
 }))
 const ResetCounterComposition = ResetCounter.makeComposition()
-const block = ResetCounterComposition.assembleBlock({
-  init: (count: number) => ({ model: CounterModel.make({ count }) }),
-  update: ResetCounterComposition.makeUpdate((model, _message) => reset(model)),
-  operations: { reset: () => Tuple.make(CounterMessage.ClickedReset()) },
-  EffectsLayer: Layer.empty,
-})
+const prepareBlock = () =>
+  ResetCounterComposition.prepareBlock({
+    init: (count: number) => ({ model: CounterModel.make({ count }) }),
+    update: ResetCounterComposition.makeUpdate((model, _message) =>
+      reset(model),
+    ),
+    operations: { reset: () => Tuple.make(CounterMessage.ClickedReset()) },
+    EffectsLayer: Layer.empty,
+  })
+const block: Block.FromAssemblyWithOutMessage<
+  typeof CounterModel,
+  typeof prepareBlock
+> = Block.assemble(prepareBlock)
 const Model = Schema.Struct({
   counter: CounterModel,
   entries: Schema.Array(
@@ -59,7 +67,7 @@ const foldCounterOutMessage = (
       }),
     }),
   })
-const BoundCounterBinding = Parent.bindChild(block, {
+const BoundCounterBinding = Parent.makeBinding(block, {
   read: model => Option.some(model.counter),
   write: (model: Model, nextCounter: typeof CounterModel.Type) =>
     modifyFields(model, { counter: () => nextCounter }),
@@ -108,7 +116,7 @@ const keyedBaseConfig = {
     }),
   keySchema: Schema.Number,
 }
-const EntriesBinding = Parent.bindChild(block, {
+const EntriesBinding = Parent.makeBinding(block, {
   ...keyedBaseConfig,
 }).withOutMessagePolicy(keyedPolicy)
 const initialModel = Model.make({
@@ -134,41 +142,46 @@ const SequencedCounter = makeDefinition('SequencedCounter', {
   Model: SequencedCounterModel,
   Message: SequencedCounterMessage,
 })
-const RecordCount = SequencedCounter.command('RecordCount', {
+const RecordCount = SequencedCounter.makeCommand('RecordCount', {
   args: { count: Schema.Number },
   messages: [SequencedCounterMessage.CompletedRecordCount],
 })
-const add = SequencedCounter.step((model, amount: number) => ({
+const add = SequencedCounter.makeStep((model, amount: number) => ({
   model: modifyFields(model, { count: count => count + amount }),
 }))
-const record = SequencedCounter.step(model => ({
+const record = SequencedCounter.makeStep(model => ({
   model,
   commands: [RecordCount({ count: model.count })],
 }))
-const multiply = SequencedCounter.step((model, factor: number) => ({
+const multiply = SequencedCounter.makeStep((model, factor: number) => ({
   model: modifyFields(model, { count: count => count * factor }),
 }))
 const SequencedCounterComposition = SequencedCounter.makeComposition()
-const sequencedCounterBlock = SequencedCounterComposition.assembleBlock({
-  init: (count: number) => ({ model: { count } }),
-  update: SequencedCounterComposition.makeUpdate((model, message) =>
-    SequencedCounterMessage.match(message, {
-      RequestedAdd: ({ amount }) => add(model, amount),
-      RequestedRecord: () => record(model),
-      RequestedMultiply: ({ factor }) => multiply(model, factor),
-      CompletedRecordCount: () => ({ model }),
-    }),
-  ),
-  operations: {
-    add: (amount: number) =>
-      Tuple.make(SequencedCounterMessage.RequestedAdd({ amount })),
-    record: () => Tuple.make(SequencedCounterMessage.RequestedRecord()),
-    multiply: (factor: number) =>
-      Tuple.make(SequencedCounterMessage.RequestedMultiply({ factor })),
-  },
-  EffectsLayer: Layer.empty,
-  hostHandlers: [RecordCount],
-})
+const prepareSequencedCounterBlock = () =>
+  SequencedCounterComposition.prepareBlock({
+    init: (count: number) => ({ model: { count } }),
+    update: SequencedCounterComposition.makeUpdate((model, message) =>
+      SequencedCounterMessage.match(message, {
+        RequestedAdd: ({ amount }) => add(model, amount),
+        RequestedRecord: () => record(model),
+        RequestedMultiply: ({ factor }) => multiply(model, factor),
+        CompletedRecordCount: () => ({ model }),
+      }),
+    ),
+    operations: {
+      add: (amount: number) =>
+        Tuple.make(SequencedCounterMessage.RequestedAdd({ amount })),
+      record: () => Tuple.make(SequencedCounterMessage.RequestedRecord()),
+      multiply: (factor: number) =>
+        Tuple.make(SequencedCounterMessage.RequestedMultiply({ factor })),
+    },
+    EffectsLayer: Layer.empty,
+    hostHandlers: [RecordCount],
+  })
+const sequencedCounterBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof SequencedCounterModel,
+  typeof prepareSequencedCounterBlock
+> = Block.assemble(prepareSequencedCounterBlock)
 const SequencedParentModel = Schema.Struct({ child: SequencedCounterModel })
 const SequencedParentMessage = defineMessageUnion({
   RequestedSequence: {},
@@ -177,7 +190,7 @@ const SequencedParent = makeDefinition('SequencedCounterParent', {
   Model: SequencedParentModel,
   Message: SequencedParentMessage,
 })
-const SequencedCounterBinding = SequencedParent.bindChild(
+const SequencedCounterBinding = SequencedParent.makeBinding(
   sequencedCounterBlock,
   {
     read: model => Option.some(model.child),
@@ -268,11 +281,11 @@ if (false) {
   // @ts-expect-error A keyed exposed operation requires its key.
   EntriesBinding.reset()
 
-  const MissingPolicyBinding = Parent.bindChild(block, keyedBaseConfig)
+  const MissingPolicyBinding = Parent.makeBinding(block, keyedBaseConfig)
   // @ts-expect-error A keyed child with OutMessages requires an explicit policy before Composition.
   Parent.makeComposition({ bindings: [MissingPolicyBinding] })
 
-  Parent.bindChild(block, {
+  Parent.makeBinding(block, {
     ...keyedBaseConfig,
   }).withOutMessagePolicy({
     // @ts-expect-error A keyed fold must accept the Binding's number key and parent Message context.
@@ -289,24 +302,24 @@ if (false) {
       (model: Model) => ({ model }),
   })
 
-  Parent.bindChild(block, {
+  Parent.makeBinding(block, {
     ...keyedBaseConfig,
   }).withOutMessagePolicy({
     // @ts-expect-error A forward policy must return the parent's OutMessage.
     forward: () => undefined,
   })
 
-  Parent.bindChild(block, {
+  Parent.makeBinding(block, {
     ...keyedBaseConfig,
   }).withOutMessagePolicy({
     // @ts-expect-error A forward policy cannot erase its output to unknown.
     forward: (): unknown => undefined,
   })
 
-  Parent.bindChild(block, {
+  Parent.makeBinding(block, {
     ...keyedBaseConfig,
     // oxlint-disable-next-line effecttsgo/any-unknown-in-error-context
-    // @ts-expect-error OutMessage remains invalid inside bindChild configuration, including when erased to any.
+    // @ts-expect-error OutMessage remains invalid inside makeBinding configuration, including when erased to any.
     outMessage: { forward: (): any => undefined },
   })
 }
@@ -314,31 +327,41 @@ if (false) {
 const StaticComposition = Parent.makeComposition({
   bindings: [BoundCounterBinding, EntriesBinding],
 })
-const staticParent = StaticComposition.assembleBlock({
-  init: () => ({ model: initialModel }),
-  update: StaticComposition.makeUpdate((model, message) =>
-    Message.match(message, {
-      RequestedResetCounter: () => BoundCounterBinding.reset()(model),
-      RequestedResetEntry: () => ({ model }),
-    }),
-  ),
-  operations: { reset: () => Tuple.make(Message.RequestedResetCounter()) },
-})
+const prepareStaticParent = () =>
+  StaticComposition.prepareBlock({
+    init: () => ({ model: initialModel }),
+    update: StaticComposition.makeUpdate((model, message) =>
+      Message.match(message, {
+        RequestedResetCounter: () => BoundCounterBinding.reset()(model),
+        RequestedResetEntry: () => ({ model }),
+      }),
+    ),
+    operations: { reset: () => Tuple.make(Message.RequestedResetCounter()) },
+  })
+const staticParent: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof prepareStaticParent
+> = Block.assemble(prepareStaticParent)
 const KeyedComposition = Parent.makeComposition({
   bindings: [BoundCounterBinding, EntriesBinding],
 })
-const keyedParent = KeyedComposition.assembleBlock({
-  init: () => ({ model: initialModel }),
-  update: KeyedComposition.makeUpdate((model, message) =>
-    Message.match(message, {
-      RequestedResetCounter: () => ({ model }),
-      RequestedResetEntry: ({ id }) => EntriesBinding.reset(id)(model),
-    }),
-  ),
-  operations: {
-    reset: (id: number) => Tuple.make(Message.RequestedResetEntry({ id })),
-  },
-})
+const prepareKeyedParent = () =>
+  KeyedComposition.prepareBlock({
+    init: () => ({ model: initialModel }),
+    update: KeyedComposition.makeUpdate((model, message) =>
+      Message.match(message, {
+        RequestedResetCounter: () => ({ model }),
+        RequestedResetEntry: ({ id }) => EntriesBinding.reset(id)(model),
+      }),
+    ),
+    operations: {
+      reset: (id: number) => Tuple.make(Message.RequestedResetEntry({ id })),
+    },
+  })
+const keyedParent: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof prepareKeyedParent
+> = Block.assemble(prepareKeyedParent)
 
 describe('bound OutMessage context', () => {
   it('preserves the previous parent Model for static folds and exposed operations', () => {

@@ -18,8 +18,8 @@ const DeclarationOptionalWrappedKeyedRoomDefinition = Block.makeDefinition(
 )
 const DeclarationOptionalWrappedKeyedRoomComposition =
   DeclarationOptionalWrappedKeyedRoomDefinition.makeComposition()
-export const RoomBlock =
-  DeclarationOptionalWrappedKeyedRoomComposition.assembleBlock({
+const prepareRoomBlock = () =>
+  DeclarationOptionalWrappedKeyedRoomComposition.prepareBlock({
     init: DeclarationOptionalWrappedKeyedRoomComposition.makeInit(
       (count: number) => ({
         model: RoomModel.make({ count }),
@@ -39,6 +39,10 @@ export const RoomBlock =
     },
     EffectsLayer: Layer.empty,
   })
+export const RoomBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof RoomModel,
+  typeof prepareRoomBlock
+> = Block.assemble(prepareRoomBlock)
 const DeclarationOptionalWrappedKeyedPlainRoomDefinition = Block.makeDefinition(
   'DeclarationOptionalWrappedKeyedPlainRoom',
   {
@@ -48,14 +52,18 @@ const DeclarationOptionalWrappedKeyedPlainRoomDefinition = Block.makeDefinition(
 )
 const DeclarationOptionalWrappedKeyedPlainRoomComposition =
   DeclarationOptionalWrappedKeyedPlainRoomDefinition.makeComposition()
-const PlainRoomBlock =
-  DeclarationOptionalWrappedKeyedPlainRoomComposition.assembleBlock({
+const preparePlainRoomBlock = () =>
+  DeclarationOptionalWrappedKeyedPlainRoomComposition.prepareBlock({
     init: DeclarationOptionalWrappedKeyedPlainRoomComposition.makeInit(() => ({
       model: RoomModel.make({ count: 0 }),
     })),
     update: DeclarationOptionalWrappedKeyedPlainRoomComposition.makeUpdate(),
     EffectsLayer: Layer.empty,
   })
+const PlainRoomBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof RoomModel,
+  typeof preparePlainRoomBlock
+> = Block.assemble(preparePlainRoomBlock)
 
 export const RoomInstance = Schema.Struct({
   roomId: RoomId,
@@ -82,7 +90,7 @@ export const DeclarationOptionalWrappedKeyedParentDefinition =
   })
 
 export const RoomBinding =
-  DeclarationOptionalWrappedKeyedParentDefinition.bindChild(RoomBlock, {
+  DeclarationOptionalWrappedKeyedParentDefinition.makeBinding(RoomBlock, {
     field: 'maybeRoomInstance',
     key: 'roomId',
     childField: 'model',
@@ -98,7 +106,7 @@ export const RoomBinding =
     },
   })
 export const LiteralRoomBinding =
-  DeclarationOptionalWrappedKeyedParentDefinition.bindChild(PlainRoomBlock, {
+  DeclarationOptionalWrappedKeyedParentDefinition.makeBinding(PlainRoomBlock, {
     field: 'maybeLiteralRoomInstance',
     key: 'roomId',
     childField: 'model',
@@ -141,7 +149,7 @@ export const makePayloadParent = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
       Message: ParentMessage,
     })
   const Binding =
-    DeclarationOptionalWrappedKeyedPayloadParentDefinition.bindChild(
+    DeclarationOptionalWrappedKeyedPayloadParentDefinition.makeBinding(
       RoomBlock,
       {
         field: 'maybeRoomInstance',

@@ -93,8 +93,13 @@ export const view = CoverLetterComposition.makeView((model, h) => {
   )
 })
 
-export const CoverLetterBlock = CoverLetterComposition.assembleBlock({
-  init,
-  update,
-  view,
-})
+const prepare = () =>
+  CoverLetterComposition.prepareBlock({
+    init,
+    update,
+    view,
+  })
+export const CoverLetterBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)

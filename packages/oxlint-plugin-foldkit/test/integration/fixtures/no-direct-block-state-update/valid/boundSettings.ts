@@ -22,7 +22,8 @@ const update = BoundSettingsComposition.makeUpdate((model, message) =>
     }),
   }),
 )
-export const BoundSettingsBlock = BoundSettingsComposition.assembleBlock({
+const prepare = () =>
+  BoundSettingsComposition.prepareBlock({
   init,
   update,
   operations: {
@@ -30,3 +31,7 @@ export const BoundSettingsBlock = BoundSettingsComposition.assembleBlock({
   },
   EffectsLayer: Layer.empty,
 })
+export const BoundSettingsBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)

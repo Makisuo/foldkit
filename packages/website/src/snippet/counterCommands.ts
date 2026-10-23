@@ -18,7 +18,7 @@ export const ApplicationDefinition = Block.makeDefinition('Application', {
 
 export const ApplicationComposition = ApplicationDefinition.makeComposition()
 
-export const WaitBeforeReset = ApplicationDefinition.command(
+export const WaitBeforeReset = ApplicationDefinition.makeCommand(
   'WaitBeforeReset',
   {
     messages: [Message.CompletedWaitBeforeReset],
@@ -67,9 +67,14 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   ),
 }))
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-  EffectsLayer,
-})
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
+    init,
+    update,
+    view,
+    EffectsLayer,
+  })
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)

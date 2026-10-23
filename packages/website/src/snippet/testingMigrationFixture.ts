@@ -14,14 +14,14 @@ const PinsDefinition = Block.makeDefinition('Pins', {
   Message: PinsMessage,
 })
 
-export const ReadPins = PinsDefinition.command('ReadPins', {
+export const ReadPins = PinsDefinition.makeCommand('ReadPins', {
   messages: [PinsMessage.CompletedReadPins],
   handler: function* () {
     return () => Effect.succeed(PinsMessage.CompletedReadPins({ count: 0 }))
   },
 })
 
-export const pinsSubscriptions = PinsDefinition.subscriptions(entry => ({
+export const pinsSubscriptions = PinsDefinition.makeSubscriptions(entry => ({
   observations: entry('Observations', {
     messages: [PinsMessage.ObservedPins],
     handler: function* () {
@@ -31,29 +31,34 @@ export const pinsSubscriptions = PinsDefinition.subscriptions(entry => ({
 }))
 
 const PinsComposition = PinsDefinition.makeComposition()
-export const PinsBlock = PinsComposition.assembleBlock({
-  init: PinsComposition.makeInit(() => ({ model: { count: 0 } })),
-  update: PinsComposition.makeUpdate((model, message) =>
-    PinsMessage.match(message, {
-      RequestedReadPins: () => ({ model, commands: [ReadPins()] }),
-      CompletedReadPins: ({ count }) => ({
-        model: modifyFields(model, { count: () => count }),
+const prepare = () =>
+  PinsComposition.prepareBlock({
+    init: PinsComposition.makeInit(() => ({ model: { count: 0 } })),
+    update: PinsComposition.makeUpdate((model, message) =>
+      PinsMessage.match(message, {
+        RequestedReadPins: () => ({ model, commands: [ReadPins()] }),
+        CompletedReadPins: ({ count }) => ({
+          model: modifyFields(model, { count: () => count }),
+        }),
+        ObservedPins: ({ count }) => ({
+          model: modifyFields(model, { count: () => count }),
+        }),
       }),
-      ObservedPins: ({ count }) => ({
-        model: modifyFields(model, { count: () => count }),
-      }),
-    }),
-  ),
-  view: PinsComposition.makeView((model, h) =>
-    h.output([], [globalThis.String(model.count)]),
-  ),
-  subscriptions: pinsSubscriptions,
-  operations: { requestReadPins: PinsMessage.RequestedReadPins },
-  EffectsLayer: Layer.merge(
-    ReadPins.layer,
-    pinsSubscriptions.observations.layer,
-  ),
-})
+    ),
+    view: PinsComposition.makeView((model, h) =>
+      h.output([], [globalThis.String(model.count)]),
+    ),
+    subscriptions: pinsSubscriptions,
+    operations: { requestReadPins: PinsMessage.RequestedReadPins },
+    EffectsLayer: Layer.merge(
+      ReadPins.layer,
+      pinsSubscriptions.observations.layer,
+    ),
+  })
+export const PinsBlock: Block.FromAssemblyWithView<
+  typeof PinsModel,
+  typeof prepare
+> = Block.assemble(prepare)
 
 const Model = Schema.Struct({ pins: PinsBlock.Model })
 export const Message = defineMessageUnion({ RequestedRefreshPins: {} })
@@ -61,7 +66,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const PinsBinding = ApplicationDefinition.bindChild(PinsBlock, {
+const PinsBinding = ApplicationDefinition.makeBinding(PinsBlock, {
   field: 'pins',
 })
 

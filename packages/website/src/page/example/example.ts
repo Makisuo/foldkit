@@ -39,7 +39,7 @@ export { CurrentSourcesAsyncData, Model } from './model'
 /** Loads the source files for the example identified by `slug`, producing the
  *  loaded sources on success or a failure Message when the fetch does not
  *  complete. */
-export const LoadExampleSources = ExampleDetailDefinition.command(
+export const LoadExampleSources = ExampleDetailDefinition.makeCommand(
   'LoadExampleSources',
   {
     args: { slug: Schema.String },
@@ -123,7 +123,7 @@ export const init = ExampleDetailComposition.makeInit(
 )
 
 const startLoadingExampleSources = (slug: string) =>
-  ExampleDetailDefinition.step(model => {
+  ExampleDetailDefinition.makeStep(model => {
     return SourceFileTabsBinding.init({
       args: [{ id: SOURCE_FILE_TABS_ID }],
       toParentModel: sourceFileTabs =>
@@ -138,12 +138,12 @@ const startLoadingExampleSources = (slug: string) =>
   })
 
 const showExampleSources = (sources: typeof ExampleSources.Type) =>
-  ExampleDetailDefinition.stepFields(() => ({
+  ExampleDetailDefinition.makeFieldsStep(() => ({
     maybeActiveSourceFilePath: () => maybeFirstSourceFilePath(sources),
     currentSources: () => CurrentSourcesAsyncData.Success({ data: sources }),
   }))
 
-const clearExampleSources = ExampleDetailDefinition.step(model => {
+const clearExampleSources = ExampleDetailDefinition.makeStep(model => {
   return SourceFileTabsBinding.init({
     args: [{ id: SOURCE_FILE_TABS_ID }],
     toParentModel: sourceFileTabs =>
@@ -178,7 +178,7 @@ export const update = ExampleDetailComposition.makeUpdate((model, message) =>
   }),
 )
 
-const changeExampleRoute = ExampleDetailDefinition.step(
+const changeExampleRoute = ExampleDetailDefinition.makeStep(
   (_model, slug: string) => {
     if (isSourceAvailable(slug)) {
       return startLoadingExampleSources(slug)

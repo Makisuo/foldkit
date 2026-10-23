@@ -21,7 +21,7 @@ const nextSequenceNumber = (
   })
 
 const logTransition = (transition: AppTransition) =>
-  ApplicationDefinition.stepFields(() => ({
+  ApplicationDefinition.makeFieldsStep(() => ({
     transitionLog: transitionLog =>
       pipe(
         transitionLog,
@@ -35,7 +35,7 @@ const logTransition = (transition: AppTransition) =>
   }))
 
 const loadCatalogOnGalleryEntry = (transition: AppTransition) =>
-  ApplicationDefinition.step(model =>
+  ApplicationDefinition.makeStep(model =>
     Transition.isEntering(transition, 'Gallery') &&
     model.catalogStatus !== 'Loading'
       ? {
@@ -45,47 +45,37 @@ const loadCatalogOnGalleryEntry = (transition: AppTransition) =>
       : { model },
   )
 
-const loadPaintingOnEntry = (transition: AppTransition) =>
-  ApplicationDefinition.step(model =>
-    Option.match(Transition.entered(transition, 'Painting'), {
-      onNone: () => ({ model }),
-      onSome: ({ paintingId }) => ({
-        model: modifyFields(model, {
-          paintingStatus: () => PaintingStatus.Loading({ paintingId }),
-        }),
-        commands: [LoadPainting({ paintingId })],
-      }),
-    }),
-  )
+const keepModel = ApplicationDefinition.makeNoopStep()
 
-const reloadPaintingOnIdChange = (transition: AppTransition) =>
-  ApplicationDefinition.step(model =>
-    Option.match(Transition.stayed(transition, 'Painting'), {
-      onNone: () => ({ model }),
-      onSome: ({ previousRoute, nextRoute }) =>
-        previousRoute.paintingId === nextRoute.paintingId
-          ? { model }
-          : {
-              model: modifyFields(model, {
-                paintingStatus: () =>
-                  PaintingStatus.Loading({
-                    paintingId: nextRoute.paintingId,
-                  }),
-              }),
-              commands: [LoadPainting({ paintingId: nextRoute.paintingId })],
-            },
+const loadPainting = (paintingId: number) =>
+  ApplicationDefinition.makeStep(model => ({
+    model: modifyFields(model, {
+      paintingStatus: () => PaintingStatus.Loading({ paintingId }),
     }),
+    commands: [LoadPainting({ paintingId })],
+  }))
+
+type PaintingRouteStep = typeof keepModel | ReturnType<typeof loadPainting>
+
+const reconcilePaintingRoute = (transition: AppTransition) =>
+  Transition.matchOrElse<PaintingRouteStep>()(
+    transition,
+    'Painting',
+    {
+      Entered: ({ paintingId }) => loadPainting(paintingId),
+      Stayed: ({ previousRoute, nextRoute }) =>
+        previousRoute.paintingId === nextRoute.paintingId
+          ? keepModel
+          : loadPainting(nextRoute.paintingId),
+    },
+    () => keepModel,
   )
 
 const saveDraftOnStudioExit = (transition: AppTransition) =>
-  ApplicationDefinition.step(model =>
-    Option.match(Transition.exited(transition, 'Studio'), {
-      onNone: () => ({ model }),
-      onSome: () =>
-        model.studioDraft === ''
-          ? { model }
-          : { model, commands: [SaveDraft({ draft: model.studioDraft })] },
-    }),
+  ApplicationDefinition.makeStep(model =>
+    Transition.isExiting(transition, 'Studio') && model.studioDraft !== ''
+      ? { model, commands: [SaveDraft({ draft: model.studioDraft })] }
+      : { model },
   )
 
 export const handleTransition = (
@@ -95,7 +85,6 @@ export const handleTransition = (
   Update.combineSteps(model, [
     logTransition(transition),
     loadCatalogOnGalleryEntry(transition),
-    loadPaintingOnEntry(transition),
-    reloadPaintingOnIdChange(transition),
+    reconcilePaintingRoute(transition),
     saveDraftOnStudioExit(transition),
   ])

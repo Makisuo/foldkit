@@ -38,11 +38,13 @@ const accountSettingsUpdate = AccountSettingsComposition.makeUpdate(
 const accountSettingsView = AccountSettingsComposition.makeView((model, h) =>
   h.p([], [`${model.theme}; audit: ${Array.join(model.auditTrail, ', ')}`]),
 )
-const AccountSettingsBlock = AccountSettingsComposition.assembleBlock({
-  init: accountSettingsInit,
-  update: accountSettingsUpdate,
-  view: accountSettingsView,
-})
+const prepare = () =>
+  AccountSettingsComposition.prepareBlock({
+    init: accountSettingsInit,
+    update: accountSettingsUpdate,
+    view: accountSettingsView,
+  })
+const AccountSettingsBlock = Block.assemble(prepare)
 
 const ProfileModel = Schema.Struct({
   currentUser: CurrentUser,
@@ -54,7 +56,7 @@ const ProfileDefinition = Block.makeDefinition('Profile', {
   Message: ProfileMessage,
 })
 
-export const AccountSettingsBinding = ProfileDefinition.bindChild(
+export const AccountSettingsBinding = ProfileDefinition.makeBinding(
   AccountSettingsBlock,
   {
     field: 'accountSettings',

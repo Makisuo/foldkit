@@ -24,18 +24,18 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const ChildBinding = ApplicationDefinition.bindChild(Child.block, {
+const ChildBinding = ApplicationDefinition.makeBinding(Child.block, {
   field: 'child',
   parentMessage: Message.GotChildMessage,
 })
-const AliasedChildBinding = ApplicationDefinition.bindChild(
+const AliasedChildBinding = ApplicationDefinition.makeBinding(
   ImportedChildBlock,
   {
     field: 'aliasedChild',
     parentMessage: Message.GotAliasedChildMessage,
   },
 )
-const EntriesBinding = ApplicationDefinition.bindChild(Child.block, {
+const EntriesBinding = ApplicationDefinition.makeBinding(Child.block, {
   field: 'entries',
   key: 'id',
   toParentMessage: (id, message) => Message.GotEntryMessage({ id, message }),
@@ -54,7 +54,7 @@ const revealLocalErrors = (child: Child.Model): Child.Model =>
 const revealErrorsThroughParentHelper = (model: Model): Model =>
   modifyFields(model, { child: revealLocalErrors })
 
-const revealChildFields = ApplicationDefinition.stepFields(() => ({
+const revealChildFields = ApplicationDefinition.makeFieldsStep(() => ({
   child: Child.revealErrors,
 }))
 

@@ -231,10 +231,14 @@ type OutgoingBindingIndexes<Bindings extends ReadonlyArray<unknown>> = {
   ]: Index
 }
 
-type ConflictingDeliveryTags<IncomingIndexes, OutgoingIndexes> = {
+type ConflictingDeliveryTags<
+  IncomingIndexes,
+  OutgoingIndexes,
+  OutgoingTags extends keyof OutgoingIndexes = keyof OutgoingIndexes,
+> = {
   [Tag in keyof IncomingIndexes]: true extends IsUnion<
     | IncomingIndexes[Tag]
-    | (Tag extends keyof OutgoingIndexes ? OutgoingIndexes[Tag] : never)
+    | (Tag extends OutgoingTags ? OutgoingIndexes[Tag] : never)
   >
     ? Tag
     : never
@@ -962,7 +966,7 @@ export const makeCompositionUpdate = (
     const delivery = bindingDeliveries.get(childBinding)
     if (delivery === undefined) {
       throw new Error(
-        `[foldkit] Delivery metadata is unavailable for child Binding "${childBinding.placement}". Create Bindings through the parent Definition.bindChild method.`,
+        `[foldkit] Delivery metadata is unavailable for child Binding "${childBinding.placement}". Create Bindings through the parent Definition.makeBinding method.`,
       )
     }
 

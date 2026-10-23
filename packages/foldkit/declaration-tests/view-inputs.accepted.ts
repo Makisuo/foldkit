@@ -41,11 +41,21 @@ export type ViewInputs = Readonly<{
   recursive: RecursiveItem
 }>
 
+export type DateBearingInputs = Readonly<{
+  report: Readonly<{
+    createdAt: Date
+    timeline: ReadonlyArray<Readonly<{ at: Date }>>
+    maybeExpiresAt: Option.Option<Date>
+    range: readonly [Date, Date]
+    byId: Readonly<Record<string, Readonly<{ at: Date }>>>
+  }>
+}>
+
 const DeclarationViewInputsNamespace = Block.makeNamespace(
   'DeclarationViewInputs',
 )
 
-export const Observe = DeclarationViewInputsNamespace.mount('Observe', {
+export const Observe = DeclarationViewInputsNamespace.makeMount('Observe', {
   messages: [ViewInputsMessage.CompletedObserve],
 })
 
@@ -74,21 +84,45 @@ export const DeclarationGenericViewInputsComposition = Block.makeNamespace(
   })
   .makeComposition()
 
+export const dateBearingView =
+  DeclarationGenericViewInputsComposition.makeView.withInputs<DateBearingInputs>(
+    (_model, { report }, h) => h.div([], [report.createdAt.toISOString()]),
+  )
+
+const prepareDateInputBlock = () =>
+  DeclarationGenericViewInputsComposition.prepareBlock({
+    init: () => ({ model: ViewInputsModel.make({ id: 'date-child' }) }),
+    update: DeclarationGenericViewInputsComposition.makeUpdate(model => ({
+      model,
+    })),
+    view: dateBearingView,
+  })
+export const DateInputBlock: Block.FromAssemblyWithView<
+  typeof ViewInputsModel,
+  typeof prepareDateInputBlock
+> = Block.assemble(prepareDateInputBlock)
+
 export const makeGenericBlock = <Item>() => {
   const genericView =
     DeclarationGenericViewInputsComposition.makeView.withInputs<
       GenericViewInputs<Item>
     >((_model, _viewInputs, h) => h.empty)
 
-  return DeclarationGenericViewInputsComposition.assembleBlock({
-    init: () => ({ model: ViewInputsModel.make({ id: 'generic-child' }) }),
-    update: DeclarationGenericViewInputsComposition.makeUpdate(model => ({
-      model,
-    })),
-    view: genericView,
-    EffectsLayer: Layer.empty,
-    operations: {},
-  })
+  const prepare = () =>
+    DeclarationGenericViewInputsComposition.prepareBlock({
+      init: () => ({ model: ViewInputsModel.make({ id: 'generic-child' }) }),
+      update: DeclarationGenericViewInputsComposition.makeUpdate(model => ({
+        model,
+      })),
+      view: genericView,
+      EffectsLayer: Layer.empty,
+      operations: {},
+    })
+  const completedBlock: Block.FromAssemblyWithView<
+    typeof ViewInputsModel,
+    typeof prepare
+  > = Block.assemble(prepare)
+  return completedBlock
 }
 
 const blockView =
@@ -107,15 +141,20 @@ type ViewParametersAreExact = Expect<
   >
 >
 
-export const block = DeclarationGenericViewInputsComposition.assembleBlock({
-  init: () => ({ model: ViewInputsModel.make({ id: 'child' }) }),
-  update: DeclarationGenericViewInputsComposition.makeUpdate(model => ({
-    model,
-  })),
-  view: blockView,
-  EffectsLayer: Layer.empty,
-  operations: {},
-})
+const prepareBlock = () =>
+  DeclarationGenericViewInputsComposition.prepareBlock({
+    init: () => ({ model: ViewInputsModel.make({ id: 'child' }) }),
+    update: DeclarationGenericViewInputsComposition.makeUpdate(model => ({
+      model,
+    })),
+    view: blockView,
+    EffectsLayer: Layer.empty,
+    operations: {},
+  })
+export const block: Block.FromAssemblyWithView<
+  typeof ViewInputsModel,
+  typeof prepareBlock
+> = Block.assemble(prepareBlock)
 
 const ParentModel = Schema.Struct({ child: ViewInputsModel })
 const DeclarationViewInputsParentDefinition = Block.makeDefinition(
@@ -126,7 +165,7 @@ const DeclarationViewInputsParentDefinition = Block.makeDefinition(
   },
 )
 
-export const ChildBinding = DeclarationViewInputsParentDefinition.bindChild(
+export const ChildBinding = DeclarationViewInputsParentDefinition.makeBinding(
   block,
   {
     field: 'child',

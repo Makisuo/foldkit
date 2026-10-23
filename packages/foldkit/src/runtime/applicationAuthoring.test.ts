@@ -36,13 +36,18 @@ const ChildComposition = ChildOwnerNamespace.makeDefinition({
   Model: ChildModel,
   Message: ChildMessage,
 }).makeComposition()
-const childBlock = ChildComposition.assembleBlock({
-  init: () => ({ model: { value: 'child' } }),
-  update: ChildComposition.makeUpdate((model, { value }) => ({
-    model: modifyFields(model, { value: () => value }),
-  })),
-  view: ChildComposition.makeView((model, h) => h.span([], [model.value])),
-})
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
+    init: () => ({ model: { value: 'child' } }),
+    update: ChildComposition.makeUpdate((model, { value }) => ({
+      model: modifyFields(model, { value: () => value }),
+    })),
+    view: ChildComposition.makeView((model, h) => h.span([], [model.value])),
+  })
+const childBlock: Block.FromAssemblyWithView<
+  typeof ChildModel,
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const Model = Schema.Struct({
   rootValue: Schema.String,
@@ -57,14 +62,14 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const ChildBinding = ApplicationDefinition.bindChild(childBlock, {
+const ChildBinding = ApplicationDefinition.makeBinding(childBlock, {
   read: model => Option.some(model.child),
   write: (model, nextChild) => modifyFields(model, { child: () => nextChild }),
 })
 const graphlessComposition = ApplicationDefinition.makeComposition({
   bindings: [ChildBinding],
 })
-const ReadRootValue = ApplicationDefinition.command('ReadRootValue', {
+const ReadRootValue = ApplicationDefinition.makeCommand('ReadRootValue', {
   messages: [Message.CompletedReadRootValue],
   handler: function* () {
     const source = yield* ValueSource
@@ -80,7 +85,7 @@ const documentView = graphlessComposition.makeView((model, h) => ({
 const graphlessElementView = graphlessComposition.makeView((model, h) =>
   h.div([], [model.rootValue]),
 )
-const ObserveRoot = ApplicationDefinition.mount('ObserveRoot', {
+const ObserveRoot = ApplicationDefinition.makeMount('ObserveRoot', {
   messages: [Message.CompletedReadRootValue],
   handler: function* () {
     return () =>
@@ -152,7 +157,7 @@ const noMessageElementView = NoMessageComposition.makeView(
 )
 
 const typecheckRootCompletion = (): void => {
-  NoMessageComposition.assembleBlock({
+  NoMessageComposition.prepareBlock({
     init: noMessageInit,
     update: noMessageUpdate,
     // @ts-expect-error Inline views still require Composition.makeView ownership.
@@ -160,7 +165,7 @@ const typecheckRootCompletion = (): void => {
     EffectsLayer: Layer.empty,
   })
 
-  NoMessageComposition.assembleBlock({
+  NoMessageComposition.prepareBlock({
     init: noMessageInit,
     update: noMessageUpdate,
     // @ts-expect-error Inline views still require Composition.makeView ownership.
@@ -173,30 +178,30 @@ const typecheckRootCompletion = (): void => {
   // @ts-expect-error An Application Definition does not expose the Composition-owned init helper.
   ApplicationDefinition.makeInit
 
-  ApplicationDefinition.command('AcceptedCommand', {
+  ApplicationDefinition.makeCommand('AcceptedCommand', {
     messages: [Message.CompletedReadRootValue],
   })
-  ApplicationDefinition.mount('AcceptedMount', {
+  ApplicationDefinition.makeMount('AcceptedMount', {
     messages: [Message.CompletedReadRootValue],
   })
-  ApplicationDefinition.mountStream('AcceptedMountStream', {
+  ApplicationDefinition.makeMountStream('AcceptedMountStream', {
     messages: [Message.CompletedReadRootValue],
   })
 
-  ApplicationDefinition.command('ForeignCommand', {
+  ApplicationDefinition.makeCommand('ForeignCommand', {
     // @ts-expect-error Root Commands must produce the Application Message.
     messages: [ForeignMessage.ForeignCompleted],
   })
-  ApplicationDefinition.mount('ForeignMount', {
+  ApplicationDefinition.makeMount('ForeignMount', {
     // @ts-expect-error Root Mounts must produce the Application Message.
     messages: [ForeignMessage.ForeignCompleted],
   })
-  ApplicationDefinition.mountStream('ForeignMountStream', {
+  ApplicationDefinition.makeMountStream('ForeignMountStream', {
     // @ts-expect-error Root stream Mounts must produce the Application Message.
     messages: [ForeignMessage.ForeignCompleted],
   })
   // @ts-expect-error Primitive authoring remains on the Application Definition.
-  composition.command
+  composition.makeCommand
 
   composition.makeUpdate((model, message) =>
     Message.match(message, {
@@ -205,20 +210,30 @@ const typecheckRootCompletion = (): void => {
     }),
   )
 
-  const elementBlock = composition.assembleBlock({
-    init,
-    update,
-    view: graphlessElementView,
-    EffectsLayer: ReadRootValue.layer,
-  })
+  const prepareElementBlock = () =>
+    composition.prepareBlock({
+      init,
+      update,
+      view: graphlessElementView,
+      EffectsLayer: ReadRootValue.layer,
+    })
+  const elementBlock: Block.FromAssemblyWithView<
+    typeof Model,
+    typeof prepareElementBlock
+  > = Block.assemble(prepareElementBlock)
   Program.makeElement({ block: elementBlock, container: null })
 
-  const documentBlock = composition.assembleBlock({
-    init,
-    update,
-    view: documentView,
-    EffectsLayer: ReadRootValue.layer,
-  })
+  const prepareDocumentBlock = () =>
+    composition.prepareBlock({
+      init,
+      update,
+      view: documentView,
+      EffectsLayer: ReadRootValue.layer,
+    })
+  const documentBlock: Block.FromAssemblyWithView<
+    typeof Model,
+    typeof prepareDocumentBlock
+  > = Block.assemble(prepareDocumentBlock)
   const application = Program.make({ block: documentBlock, container: null })
   const pendingApplication: Program.Program<
     undefined,
@@ -229,17 +244,27 @@ const typecheckRootCompletion = (): void => {
   > = application
   void pendingApplication
 
-  const noMessageDocumentBlock = NoMessageComposition.assembleBlock({
-    init: noMessageInit,
-    update: noMessageUpdate,
-    view: noMessageDocumentView,
-  })
+  const prepareNoMessageDocumentBlock = () =>
+    NoMessageComposition.prepareBlock({
+      init: noMessageInit,
+      update: noMessageUpdate,
+      view: noMessageDocumentView,
+    })
+  const noMessageDocumentBlock: Block.FromAssemblyWithView<
+    typeof NoMessageModel,
+    typeof prepareNoMessageDocumentBlock
+  > = Block.assemble(prepareNoMessageDocumentBlock)
   Program.make({ block: noMessageDocumentBlock, container: null })
-  const noMessageElementBlock = NoMessageComposition.assembleBlock({
-    init: noMessageInit,
-    update: noMessageUpdate,
-    view: noMessageElementView,
-  })
+  const prepareNoMessageElementBlock = () =>
+    NoMessageComposition.prepareBlock({
+      init: noMessageInit,
+      update: noMessageUpdate,
+      view: noMessageElementView,
+    })
+  const noMessageElementBlock: Block.FromAssemblyWithView<
+    typeof NoMessageModel,
+    typeof prepareNoMessageElementBlock
+  > = Block.assemble(prepareNoMessageElementBlock)
   Program.makeElement({ block: noMessageElementBlock, container: null })
 
   // @ts-expect-error Program.make requires a Document view.
@@ -266,7 +291,7 @@ const typecheckRootCompletion = (): void => {
       }),
   )
 
-  unregisteredComposition.assembleBlock({
+  unregisteredComposition.prepareBlock({
     init: unregisteredInit,
     update: unregisteredUpdate,
     // @ts-expect-error The Composition has not registered the child used by this view.
@@ -274,7 +299,7 @@ const typecheckRootCompletion = (): void => {
     EffectsLayer: ReadRootValue.layer,
   })
 
-  unregisteredComposition.assembleBlock({
+  unregisteredComposition.prepareBlock({
     init: unregisteredInit,
     update: unregisteredUpdate,
     // @ts-expect-error The Composition has not registered the Mount used by this view.
@@ -283,7 +308,7 @@ const typecheckRootCompletion = (): void => {
   })
 
   // @ts-expect-error Root handler definitions must be included in EffectsLayer.
-  composition.assembleBlock({
+  composition.prepareBlock({
     init,
     update,
     view,
@@ -303,12 +328,17 @@ const typecheckRootCompletion = (): void => {
       child: { value: 'child' },
     },
   })
-  const flagsBlock = composition.assembleBlock({
-    init: initWithFlags,
-    update,
-    view,
-    EffectsLayer: ReadRootValue.layer,
-  })
+  const prepareFlagsBlock = () =>
+    composition.prepareBlock({
+      init: initWithFlags,
+      update,
+      view,
+      EffectsLayer: ReadRootValue.layer,
+    })
+  const flagsBlock: Block.FromAssemblyWithView<
+    typeof Model,
+    typeof prepareFlagsBlock
+  > = Block.assemble(prepareFlagsBlock)
   const elementWithFlags = Program.makeElement({
     block: flagsBlock,
     Flags,
@@ -329,7 +359,12 @@ const typecheckRootCompletion = (): void => {
     view: documentView,
     EffectsLayer: ReadRootValue.layer,
   }
-  const routedBlock = composition.assembleBlock(routedImplementation)
+  const prepareRoutedBlock = () =>
+    composition.prepareBlock(routedImplementation)
+  const routedBlock: Block.FromAssemblyWithView<
+    typeof Model,
+    typeof prepareRoutedBlock
+  > = Block.assemble(prepareRoutedBlock)
   const routedApplication = Program.make({
     block: routedBlock,
     container: null,
@@ -360,7 +395,12 @@ const typecheckRootCompletion = (): void => {
     view: documentView,
     EffectsLayer: ReadRootValue.layer,
   }
-  const routedFlagsBlock = composition.assembleBlock(routedFlagsImplementation)
+  const prepareRoutedFlagsBlock = () =>
+    composition.prepareBlock(routedFlagsImplementation)
+  const routedFlagsBlock: Block.FromAssemblyWithView<
+    typeof Model,
+    typeof prepareRoutedFlagsBlock
+  > = Block.assemble(prepareRoutedFlagsBlock)
   const routedFlagsApplication = Program.make({
     block: routedFlagsBlock,
     Flags,
@@ -436,16 +476,16 @@ describe('Program root Block authoring', () => {
   it('stages primitive authoring before composition', () => {
     expectTypeOf(ApplicationDefinition.Model).toEqualTypeOf(Model)
     expectTypeOf(ApplicationDefinition.Message).toEqualTypeOf(Message)
-    expect(ApplicationDefinition.command).toBeTypeOf('function')
-    expect(ApplicationDefinition.mount).toBeTypeOf('function')
-    expect(ApplicationDefinition.mountStream).toBeTypeOf('function')
-    expect(ApplicationDefinition.resource).toBeTypeOf('function')
+    expect(ApplicationDefinition.makeCommand).toBeTypeOf('function')
+    expect(ApplicationDefinition.makeMount).toBeTypeOf('function')
+    expect(ApplicationDefinition.makeMountStream).toBeTypeOf('function')
+    expect(ApplicationDefinition.makeResource).toBeTypeOf('function')
     expect(composition.makeUpdate).toBeTypeOf('function')
-    expect(ApplicationDefinition.step).toBeTypeOf('function')
-    expect(ApplicationDefinition.subscriptions).toBeTypeOf('function')
-    expect(ApplicationDefinition.managedResources).toBeTypeOf('function')
-    expect(composition).not.toHaveProperty('command')
-    expect(composition).not.toHaveProperty('step')
+    expect(ApplicationDefinition.makeStep).toBeTypeOf('function')
+    expect(ApplicationDefinition.makeSubscriptions).toBeTypeOf('function')
+    expect(ApplicationDefinition.makeManagedResources).toBeTypeOf('function')
+    expect(composition).not.toHaveProperty('makeCommand')
+    expect(composition).not.toHaveProperty('makeStep')
     expect(composition.makeInit).toBeTypeOf('function')
     expect(init).not.toBe(initSource)
     expect(init().model).toEqual({
@@ -463,19 +503,25 @@ describe('Program root Block authoring', () => {
 
     // @ts-expect-error A root Definition is not a completed reusable Block.
     void ApplicationDefinition.bind
-    expect(composition.assembleBlock).toBeTypeOf('function')
+    expect(composition.prepareBlock).toBeTypeOf('function')
     // @ts-expect-error an application can only be composed once.
     void composition.makeComposition
   })
 
   it('hosts a completed empty Block', () => {
+    const prepare = () =>
+      NoMessageComposition.prepareBlock({
+        init: noMessageInit,
+        update: noMessageUpdate,
+        view: noMessageElementView,
+      })
+    const completedBlock: Block.FromAssemblyWithView<
+      typeof NoMessageModel,
+      typeof prepare
+    > = Block.assemble(prepare)
     expect(() =>
       Program.makeElement({
-        block: NoMessageComposition.assembleBlock({
-          init: noMessageInit,
-          update: noMessageUpdate,
-          view: noMessageElementView,
-        }),
+        block: completedBlock,
         container: document.createElement('div'),
       }),
     ).not.toThrow()
@@ -486,13 +532,19 @@ describe('Program root Block authoring', () => {
     container.id = 'application-authoring'
     document.body.append(container)
 
-    const element = Program.makeElement({
-      block: composition.assembleBlock({
+    const prepare = () =>
+      composition.prepareBlock({
         init,
         update,
         view,
         EffectsLayer: ReadRootValue.layer,
-      }),
+      })
+    const completedBlock: Block.FromAssemblyWithView<
+      typeof Model,
+      typeof prepare
+    > = Block.assemble(prepare)
+    const element = Program.makeElement({
+      block: completedBlock,
       container,
     })
     const pendingElement: Program.Element<

@@ -37,57 +37,72 @@ const Child = makeDefinition('ParentOwnedBindingChild', {
   Message: ChildMessage,
   OutMessage: ChildOutMessage,
 })
-const selectValue = Child.step(model => ({
+const selectValue = Child.makeStep(model => ({
   model,
   outMessage: ChildOutMessage.SelectedValue({ value: model.value }),
 }))
 const ChildComposition = Child.makeComposition()
-const ChildBlock = ChildComposition.assembleBlock({
-  init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
-  update: ChildComposition.makeUpdate((model, message) =>
-    ChildMessage.match(message, {
-      RequestedSelectValue: () => selectValue(model),
-      RequestedSetPrototypeValue: () => ({ model }),
-      UpdatedValue: ({ value }) => ({
-        model: modifyFields(model, { value: () => value }),
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
+    init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
+    update: ChildComposition.makeUpdate((model, message) =>
+      ChildMessage.match(message, {
+        RequestedSelectValue: () => selectValue(model),
+        RequestedSetPrototypeValue: () => ({ model }),
+        UpdatedValue: ({ value }) => ({
+          model: modifyFields(model, { value: () => value }),
+        }),
       }),
-    }),
-  ),
-  operations: {
-    selectValue: () => Tuple.make(ChildMessage.RequestedSelectValue()),
-  },
-})
+    ),
+    operations: {
+      selectValue: () => Tuple.make(ChildMessage.RequestedSelectValue()),
+    },
+  })
+const ChildBlock: Block.FromAssemblyWithOutMessage<
+  typeof ChildModel,
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const PlainChild = makeDefinition('ParentOwnedBindingPlainChild', {
   Model: ChildModel,
   Message: ChildMessage,
 })
 const PlainChildComposition = PlainChild.makeComposition()
-const setPrototypeValue = PlainChild.step((model, value: string) => ({
+const setPrototypeValue = PlainChild.makeStep((model, value: string) => ({
   model: modifyFields(model, { value: () => value }),
 }))
-const PlainChildBlock = PlainChildComposition.assembleBlock({
-  init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
-  update: PlainChildComposition.makeUpdate((model, message) =>
-    ChildMessage.match(message, {
-      RequestedSelectValue: () => ({ model }),
-      RequestedSetPrototypeValue: ({ value }) =>
-        setPrototypeValue(model, value),
-      UpdatedValue: ({ value }) => ({
-        model: modifyFields(model, { value: () => value }),
+const preparePlainChildBlock = () =>
+  PlainChildComposition.prepareBlock({
+    init: () => ({ model: ChildModel.make({ value: 'initial' }) }),
+    update: PlainChildComposition.makeUpdate((model, message) =>
+      ChildMessage.match(message, {
+        RequestedSelectValue: () => ({ model }),
+        RequestedSetPrototypeValue: ({ value }) =>
+          setPrototypeValue(model, value),
+        UpdatedValue: ({ value }) => ({
+          model: modifyFields(model, { value: () => value }),
+        }),
       }),
-    }),
-  ),
-})
+    ),
+  })
+const PlainChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof preparePlainChildBlock
+> = Block.assemble(preparePlainChildBlock)
 
-const PrototypeOperationChildBlock = PlainChildComposition.assembleBlock({
-  init: PlainChildBlock.init,
-  update: PlainChildBlock.update,
-  operations: {
-    ['__proto__']: (value: string) =>
-      Tuple.make(ChildMessage.RequestedSetPrototypeValue({ value })),
-  },
-})
+const preparePrototypeOperationChildBlock = () =>
+  PlainChildComposition.prepareBlock({
+    init: PlainChildBlock.init,
+    update: PlainChildBlock.update,
+    operations: {
+      ['__proto__']: (value: string) =>
+        Tuple.make(ChildMessage.RequestedSetPrototypeValue({ value })),
+    },
+  })
+const PrototypeOperationChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof preparePrototypeOperationChildBlock
+> = Block.assemble(preparePrototypeOperationChildBlock)
 
 const Entry = Schema.Struct({ id: Schema.Number, child: ChildModel })
 type Entry = typeof Entry.Type
@@ -114,12 +129,12 @@ const Parent = makeDefinition('ParentOwnedBindingParent', {
   OutMessage: ParentOutMessage,
 })
 
-const ExactMessageChildBinding = Parent.bindChild(PlainChildBlock, {
+const ExactMessageChildBinding = Parent.makeBinding(PlainChildBlock, {
   field: 'child',
   placement: 'exactMessageChild',
 })
 
-const ExactCustomMessageChildBinding = Parent.bindChild(PlainChildBlock, {
+const ExactCustomMessageChildBinding = Parent.makeBinding(PlainChildBlock, {
   placement: 'exactCustomMessageChild',
   field: 'maybeChild',
 })
@@ -135,12 +150,12 @@ const foldChildOutMessage = ChildOutMessage.match<
     }),
 })
 
-const DirectChildBinding = Parent.bindChild(ChildBlock, {
+const DirectChildBinding = Parent.makeBinding(ChildBlock, {
   field: 'child',
   init: false,
 }).withOutMessagePolicy({ fold: foldChildOutMessage })
 
-const ForwardingChildBinding = Parent.bindChild(ChildBlock, {
+const ForwardingChildBinding = Parent.makeBinding(ChildBlock, {
   field: 'child',
   placement: 'forwardingChild',
 }).withOutMessagePolicy({
@@ -154,7 +169,7 @@ const ForwardingChildBinding = Parent.bindChild(ChildBlock, {
   },
 })
 
-const OptionalChildBinding = Parent.bindChild(ChildBlock, {
+const OptionalChildBinding = Parent.makeBinding(ChildBlock, {
   placement: 'optionalChild',
   read: model => model.maybeChild,
   write: (model, nextChild) =>
@@ -170,7 +185,7 @@ const OptionalChildBinding = Parent.bindChild(ChildBlock, {
   },
 })
 
-const TaggedChildBinding = Parent.bindChild(ChildBlock, {
+const TaggedChildBinding = Parent.makeBinding(ChildBlock, {
   placement: 'taggedChild',
   read: model =>
     model.slot._tag === 'Child' ? Option.some(model.slot.child) : Option.none(),
@@ -180,7 +195,7 @@ const TaggedChildBinding = Parent.bindChild(ChildBlock, {
     }),
 }).withOutMessagePolicy({ fold: foldChildOutMessage })
 
-const KeyedChildBinding = Parent.bindChild(ChildBlock, {
+const KeyedChildBinding = Parent.makeBinding(ChildBlock, {
   placement: 'entries',
   readAll: model => model.entries,
   key: entry => entry.id,
@@ -217,22 +232,27 @@ const ParentComposition = Parent.makeComposition({
 
 const update = ParentComposition.makeUpdate()
 
-const ParentBlock = ParentComposition.assembleBlock({
-  init: ParentComposition.makeInit(() =>
-    DirectChildBinding.init({
-      args: [],
-      toParentModel: child =>
-        ParentModel.make({
-          child,
-          maybeChild: Option.none(),
-          slot: EmptySlot.make({}),
-          entries: [],
-          selected: Option.none(),
-        }),
-    }),
-  ),
-  update,
-})
+const prepareParentBlock = () =>
+  ParentComposition.prepareBlock({
+    init: ParentComposition.makeInit(() =>
+      DirectChildBinding.init({
+        args: [],
+        toParentModel: child =>
+          ParentModel.make({
+            child,
+            maybeChild: Option.none(),
+            slot: EmptySlot.make({}),
+            entries: [],
+            selected: Option.none(),
+          }),
+      }),
+    ),
+    update,
+  })
+const ParentBlock: Block.FromAssemblyWithOutMessage<
+  typeof ParentModel,
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 
 const makeGenericChoice = <const Value extends string>(
   Value: Schema.Schema<Value>,
@@ -248,12 +268,17 @@ const makeGenericChoice = <const Value extends string>(
       OutMessage,
     })
     .makeComposition()
-  const block = GenericChoiceComposition.assembleBlock({
-    init: (value: Value) => ({ model: Model.make({ value }) }),
-    update: GenericChoiceComposition.makeUpdate((model, { value }) => ({
-      model: modifyFields(model, { value: () => value }),
-    })),
-  })
+  const prepareBlock = () =>
+    GenericChoiceComposition.prepareBlock({
+      init: (value: Value) => ({ model: Model.make({ value }) }),
+      update: GenericChoiceComposition.makeUpdate((model, { value }) => ({
+        model: modifyFields(model, { value: () => value }),
+      })),
+    })
+  const block: Block.FromAssemblyWithOutMessage<
+    typeof Model,
+    typeof prepareBlock
+  > = Block.assemble(prepareBlock)
 
   return { block, Message, OutMessage }
 }
@@ -276,7 +301,7 @@ const foldGenericChoiceOutMessage = GenericParent.makeOutMessageFold(
       },
   },
 )
-const GenericChoiceBinding = GenericParent.bindChild(GenericChoice.block, {
+const GenericChoiceBinding = GenericParent.makeBinding(GenericChoice.block, {
   field: 'choice',
   init: false,
 }).withOutMessagePolicy({
@@ -303,7 +328,7 @@ const makeKeyedGenericParent = <const Value extends string>(
         return { model }
       },
     })
-  const ChildBinding = Parent.bindChild(ChildBlock, {
+  const ChildBinding = Parent.makeBinding(ChildBlock, {
     readAll: model => model.entries,
     key: entry => {
       const payload: Value = entry.payload
@@ -386,7 +411,7 @@ const keyedConfigWithExtraField = {
 
 if (false) {
   // @ts-expect-error Capturing a keyed policy must not accept extra configuration fields.
-  Parent.bindChild(ChildBlock, keyedConfigWithExtraField)
+  Parent.makeBinding(ChildBlock, keyedConfigWithExtraField)
 }
 
 const SingleParentMessage = defineMessageUnion({
@@ -396,10 +421,10 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: SingleParentMessage,
 })
-const ApplicationChildBinding = ApplicationDefinition.bindChild(ChildBlock, {
+const ApplicationChildBinding = ApplicationDefinition.makeBinding(ChildBlock, {
   field: 'child',
 }).withOutMessagePolicy({
-  fold: () => ApplicationDefinition.step(model => ({ model })),
+  fold: () => ApplicationDefinition.makeStep(model => ({ model })),
 })
 const ApplicationComposition = ApplicationDefinition.makeComposition({
   bindings: [ApplicationChildBinding],
@@ -409,34 +434,37 @@ const SnapshotParent = makeDefinition('ParentOwnedSnapshotParent', {
   Model: ParentModel,
   Message: SingleParentMessage,
 })
-const SnapshotChildBinding = SnapshotParent.bindChild(PlainChildBlock, {
+const SnapshotChildBinding = SnapshotParent.makeBinding(PlainChildBlock, {
   field: 'child',
 })
-const SnapshotMount = SnapshotParent.mount('SnapshotMount', {
+const SnapshotMount = SnapshotParent.makeMount('SnapshotMount', {
   messages: [SingleParentMessage.RequestedInvokePrototypeOperation],
 })
-const AlternateSnapshotMount = SnapshotParent.mount('AlternateSnapshotMount', {
-  messages: [SingleParentMessage.RequestedInvokePrototypeOperation],
-})
+const AlternateSnapshotMount = SnapshotParent.makeMount(
+  'AlternateSnapshotMount',
+  {
+    messages: [SingleParentMessage.RequestedInvokePrototypeOperation],
+  },
+)
 
 if (false) {
   // @ts-expect-error Every Block completes through a Composition.
-  Parent.assembleBlock
+  Parent.prepareBlock
   // @ts-expect-error The breaking staging API does not retain register aliases.
   Parent.register
   // @ts-expect-error Every Block completes through a Composition.
-  ApplicationDefinition.assembleBlock
-  void ApplicationComposition.assembleBlock
+  ApplicationDefinition.prepareBlock
+  void ApplicationComposition.prepareBlock
   // @ts-expect-error A completed child has no child-owned Binding factory.
   ChildBlock.connection
   // @ts-expect-error Keyed Bindings are also created by the parent.
   ChildBlock.keyedConnection
 
-  Parent.bindChild(ChildBlock, {
+  Parent.makeBinding(ChildBlock, {
     field: 'maybeChild',
   }).withOutMessagePolicy({ fold: foldChildOutMessage })
 
-  const AlternativeChildBinding = Parent.bindChild(ChildBlock, {
+  const AlternativeChildBinding = Parent.makeBinding(ChildBlock, {
     field: 'child',
     placement: 'alternative',
   }).withOutMessagePolicy({ fold: foldChildOutMessage })
@@ -448,7 +476,7 @@ if (false) {
       KeyedChildBinding,
     ],
   })
-  AlternativeParentComposition.assembleBlock({
+  AlternativeParentComposition.prepareBlock({
     // @ts-expect-error A completed Block's init is bound to its registered child placements.
     init: ParentBlock.init,
     // @ts-expect-error A completed Block's update is bound to its registered child placements.
@@ -508,7 +536,7 @@ it('freezes parent-owned Bindings after their private metadata is registered', (
 })
 
 it('snapshots mutable child and Mount arrays at the Composition boundary', () => {
-  const DuplicateChildBinding = SnapshotParent.bindChild(PlainChildBlock, {
+  const DuplicateChildBinding = SnapshotParent.makeBinding(PlainChildBlock, {
     field: 'child',
   })
   const suppliedChildBindings: Array<typeof SnapshotChildBinding> = [
@@ -578,12 +606,12 @@ it('rejects an authentic Binding created by a different parent identity', () => 
 
 it('keeps child Binding helpers on the Definition after composition', () => {
   const compositionHelper = ParentComposition
-  const DefinitionOwnedChildBinding = Parent.bindChild(ChildBlock, {
+  const DefinitionOwnedChildBinding = Parent.makeBinding(ChildBlock, {
     field: 'child',
     placement: 'definitionOwnedChild',
   }).withOutMessagePolicy({ fold: foldChildOutMessage })
 
-  expect(compositionHelper).not.toHaveProperty('bindChild')
+  expect(compositionHelper).not.toHaveProperty('makeBinding')
   expect(
     Parent.makeComposition({
       bindings: [
@@ -618,7 +646,7 @@ it('accepts shared named contracts and rejects incompatible contracts from that 
     Message: SingleParentMessage,
     OutMessage: ParentOutMessage,
   })
-  const SharedChildBinding = FirstDefinition.bindChild(PlainChildBlock, {
+  const SharedChildBinding = FirstDefinition.makeBinding(PlainChildBlock, {
     field: 'child',
   })
 
@@ -653,11 +681,11 @@ it('uses only own properties to distinguish Binding config forms', () => {
   Object.setPrototypeOf(inheritedMapperConfig, {
     toParentMessage: (_message: ChildMessage) => _message,
   })
-  const InheritedReadAllBinding = SnapshotParent.bindChild(
+  const InheritedReadAllBinding = SnapshotParent.makeBinding(
     PlainChildBlock,
     inheritedReadAllConfig,
   )
-  const InheritedMapperBinding = SnapshotParent.bindChild(
+  const InheritedMapperBinding = SnapshotParent.makeBinding(
     PlainChildBlock,
     inheritedMapperConfig,
   )
@@ -692,7 +720,7 @@ it('uses only own properties to distinguish Binding config forms', () => {
 })
 
 it('binds an exposed operation named __proto__ as an own property', () => {
-  const PrototypeOperationBinding = SnapshotParent.bindChild(
+  const PrototypeOperationBinding = SnapshotParent.makeBinding(
     PrototypeOperationChildBlock,
     {
       field: 'child',
@@ -702,34 +730,39 @@ it('binds an exposed operation named __proto__ as an own property', () => {
   const composition = SnapshotParent.makeComposition({
     bindings: [PrototypeOperationBinding],
   })
-  const invokePrototypeOperation = SnapshotParent.step(
+  const invokePrototypeOperation = SnapshotParent.makeStep(
     (_model, value: string) => {
       const boundOperation = Reflect.get(PrototypeOperationBinding, '__proto__')
       return Reflect.apply(boundOperation, PrototypeOperationBinding, [value])
     },
   )
-  const runtime = composition.assembleBlock({
-    init: composition.makeInit(() => ({
-      model: {
-        maybeChild: Option.none(),
-        slot: EmptySlot.make({}),
-        entries: [],
-        selected: Option.none(),
+  const prepareRuntime = () =>
+    composition.prepareBlock({
+      init: composition.makeInit(() => ({
+        model: {
+          maybeChild: Option.none(),
+          slot: EmptySlot.make({}),
+          entries: [],
+          selected: Option.none(),
+        },
+      })),
+      update: composition.makeUpdate((model, message) =>
+        SingleParentMessage.match(message, {
+          RequestedInvokePrototypeOperation: ({ value }) =>
+            invokePrototypeOperation(model, value),
+        }),
+      ),
+      operations: {
+        invokePrototypeOperation: (value: string) =>
+          Tuple.make(
+            SingleParentMessage.RequestedInvokePrototypeOperation({ value }),
+          ),
       },
-    })),
-    update: composition.makeUpdate((model, message) =>
-      SingleParentMessage.match(message, {
-        RequestedInvokePrototypeOperation: ({ value }) =>
-          invokePrototypeOperation(model, value),
-      }),
-    ),
-    operations: {
-      invokePrototypeOperation: (value: string) =>
-        Tuple.make(
-          SingleParentMessage.RequestedInvokePrototypeOperation({ value }),
-        ),
-    },
-  })
+    })
+  const runtime: Block.FromAssemblyWithoutViewOrOutMessage<
+    typeof ParentModel,
+    typeof prepareRuntime
+  > = Block.assemble(prepareRuntime)
   const boundOperation = Reflect.get(PrototypeOperationBinding, '__proto__')
   const result = runtime.operations.invokePrototypeOperation(
     ParentBlock.init().model,

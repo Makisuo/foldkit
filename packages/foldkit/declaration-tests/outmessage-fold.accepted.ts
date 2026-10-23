@@ -26,7 +26,7 @@ const DeclarationFoldChildDefinition = Block.makeDefinition(
 )
 const DeclarationFoldChildComposition =
   DeclarationFoldChildDefinition.makeComposition()
-export const ObserveChoice = DeclarationFoldChildDefinition.command(
+export const ObserveChoice = DeclarationFoldChildDefinition.makeCommand(
   'ObserveChoice',
   {
     messages: [ChildMessage.CompletedObserveChoice],
@@ -35,26 +35,31 @@ export const ObserveChoice = DeclarationFoldChildDefinition.command(
     },
   },
 )
-export const ChildBlock = DeclarationFoldChildComposition.assembleBlock({
-  init: DeclarationFoldChildComposition.makeInit(() => ({
-    model: { count: 0 },
-  })),
-  update: DeclarationFoldChildComposition.makeUpdate((model, message) =>
-    ChildMessage.match(message, {
-      RequestedChoose: ({ value }) => ({
-        model: Struct.modifyFields(model, { count: Number.increment }),
-        outMessage: ChildOutMessage.Chose({ value }),
+const prepareChildBlock = () =>
+  DeclarationFoldChildComposition.prepareBlock({
+    init: DeclarationFoldChildComposition.makeInit(() => ({
+      model: { count: 0 },
+    })),
+    update: DeclarationFoldChildComposition.makeUpdate((model, message) =>
+      ChildMessage.match(message, {
+        RequestedChoose: ({ value }) => ({
+          model: Struct.modifyFields(model, { count: Number.increment }),
+          outMessage: ChildOutMessage.Chose({ value }),
+        }),
+        RequestedClose: () => ({ model, outMessage: ChildOutMessage.Closed() }),
+        CompletedObserveChoice: () => ({ model }),
       }),
-      RequestedClose: () => ({ model, outMessage: ChildOutMessage.Closed() }),
-      CompletedObserveChoice: () => ({ model }),
-    }),
-  ),
-  operations: {
-    requestChoose: ChildMessage.RequestedChoose,
-    requestClose: ChildMessage.RequestedClose,
-  },
-  EffectsLayer: ObserveChoice.layer,
-})
+    ),
+    operations: {
+      requestChoose: ChildMessage.RequestedChoose,
+      requestClose: ChildMessage.RequestedClose,
+    },
+    EffectsLayer: ObserveChoice.layer,
+  })
+export const ChildBlock: Block.FromAssemblyWithOutMessage<
+  typeof ChildModel,
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 export const LiteralModel = Schema.Struct({
   phase: Schema.Literals(['Idle', 'Done']),
@@ -123,7 +128,7 @@ export const DeclarationFoldParentDefinition = Block.makeDefinition(
   'DeclarationFoldParent',
   { Model, Message: ParentMessage, OutMessage: ParentOutMessage },
 )
-export const RecordChoice = DeclarationFoldParentDefinition.command(
+export const RecordChoice = DeclarationFoldParentDefinition.makeCommand(
   'RecordChoice',
   {
     args: { value: Choice },
@@ -148,7 +153,7 @@ export const foldChoice = DeclarationFoldParentDefinition.makeOutMessageFold(
         commands: [RecordChoice({ value })],
         outMessage: ParentOutMessage.Chose({ value }),
       }),
-    Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+    Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
   },
 )
 export const foldConditionalChoice =
@@ -163,28 +168,28 @@ export const foldConditionalChoice =
               commands: [RecordChoice({ value })],
               outMessage: ParentOutMessage.Chose({ value }),
             },
-    Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+    Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
   })
-export const ChildBinding = DeclarationFoldParentDefinition.bindChild(
+export const ChildBinding = DeclarationFoldParentDefinition.makeBinding(
   ChildBlock,
   { field: 'child' },
 ).withOutMessagePolicy({ fold: foldChoice })
-export const SiblingBinding = DeclarationFoldParentDefinition.bindChild(
+export const SiblingBinding = DeclarationFoldParentDefinition.makeBinding(
   ChildBlock,
   {
     field: 'sibling',
   },
 ).withOutMessagePolicy({
   fold: DeclarationFoldParentDefinition.makeOutMessageFold(ChildBlock, {
-    Chose: () => DeclarationFoldParentDefinition.stepNoop(),
-    Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+    Chose: () => DeclarationFoldParentDefinition.makeNoopStep(),
+    Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
   }),
 })
 export const foldWithInit = DeclarationFoldParentDefinition.makeOutMessageFold(
   ChildBlock,
   {
     Chose: () =>
-      DeclarationFoldParentDefinition.step(model =>
+      DeclarationFoldParentDefinition.makeStep(model =>
         SiblingBinding.init({
           args: [],
           toParentModel: sibling =>
@@ -193,7 +198,7 @@ export const foldWithInit = DeclarationFoldParentDefinition.makeOutMessageFold(
             }),
         }),
       ),
-    Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+    Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
   },
 )
 export const foldLiftedChildCommand =
@@ -206,7 +211,7 @@ export const foldLiftedChildCommand =
         }),
         commands: [liftCommand(ObserveChoice())],
       }),
-    Closed: () => DeclarationFoldParentDefinition.stepNoop(),
+    Closed: () => DeclarationFoldParentDefinition.makeNoopStep(),
   })
 export const foldToSibling = DeclarationFoldParentDefinition.makeOutMessageFold(
   ChildBlock,
@@ -216,7 +221,7 @@ export const foldToSibling = DeclarationFoldParentDefinition.makeOutMessageFold(
   },
 )
 export const CoordinatedChildBinding =
-  DeclarationFoldParentDefinition.bindChild(ChildBlock, {
+  DeclarationFoldParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
   }).withOutMessagePolicy({ fold: foldToSibling })
 // oxlint-disable-next-line foldkit/block-name-matches-variable -- This fixture compares two graphs authored by one Definition.
@@ -242,13 +247,18 @@ export const conditionalParentUpdate =
       ? { model, commands: [RecordChoice({ value: message.value })] }
       : { model },
   )
-export const ParentBlock = DeclarationFoldParentComposition.assembleBlock({
-  init: DeclarationFoldParentComposition.makeInit(() => ({
-    model: { choice: 'Apple' },
-  })),
-  update: parentUpdate,
-  EffectsLayer: RecordChoice.layer,
-})
+const prepareParentBlock = () =>
+  DeclarationFoldParentComposition.prepareBlock({
+    init: DeclarationFoldParentComposition.makeInit(() => ({
+      model: { choice: 'Apple' },
+    })),
+    update: parentUpdate,
+    EffectsLayer: RecordChoice.layer,
+  })
+export const ParentBlock: Block.FromAssemblyWithOutMessage<
+  typeof Model,
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 
 export const RootModel = Schema.Struct({
   child: ChildBlock.Model,
@@ -259,7 +269,7 @@ export const DeclarationFoldRootDefinition = Block.makeDefinition(
   'DeclarationFoldRoot',
   { Model: RootModel, Message: RootMessage },
 )
-export const RootRecord = DeclarationFoldRootDefinition.command('Record', {
+export const RootRecord = DeclarationFoldRootDefinition.makeCommand('Record', {
   messages: [RootMessage.CompletedRecord],
   handler: function* () {
     const store = yield* ChoiceStore
@@ -268,12 +278,15 @@ export const RootRecord = DeclarationFoldRootDefinition.command('Record', {
       store.record('Apple').pipe(Effect.as(RootMessage.CompletedRecord()))
   },
 })
-export const RootBinding = DeclarationFoldRootDefinition.bindChild(ChildBlock, {
-  field: 'child',
-}).withOutMessagePolicy({
+export const RootBinding = DeclarationFoldRootDefinition.makeBinding(
+  ChildBlock,
+  {
+    field: 'child',
+  },
+).withOutMessagePolicy({
   fold: DeclarationFoldRootDefinition.makeOutMessageFold(ChildBlock, {
     Chose: () => model => ({ model, commands: [RootRecord()] }),
-    Closed: () => DeclarationFoldRootDefinition.stepNoop(),
+    Closed: () => DeclarationFoldRootDefinition.makeNoopStep(),
   }),
 })
 export const DeclarationFoldRootComposition =
@@ -289,12 +302,17 @@ export const rootView = DeclarationFoldRootComposition.makeView(() => ({
   title: 'Fold',
   body: null,
 }))
-export const RootBlock = DeclarationFoldRootComposition.assembleBlock({
-  init: rootInit,
-  update: rootUpdate,
-  view: rootView,
-  EffectsLayer: RootRecord.layer,
-})
+const prepareRootBlock = () =>
+  DeclarationFoldRootComposition.prepareBlock({
+    init: rootInit,
+    update: rootUpdate,
+    view: rootView,
+    EffectsLayer: RootRecord.layer,
+  })
+export const RootBlock: Block.FromAssemblyWithView<
+  typeof RootModel,
+  typeof prepareRootBlock
+> = Block.assemble(prepareRootBlock)
 export const program = Program.make({ block: RootBlock, container: null })
 export const runnable = program.provide(
   Layer.succeed(ChoiceStore)({

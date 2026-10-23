@@ -17,7 +17,7 @@ Four values make those responsibilities visible:
 
 The Settings example on this page grows through that sequence. Settings first defines and completes its own state machine. Profile then creates `SettingsBinding`, registers it in `ApplicationComposition`, handles the `ChangedTheme` fact, and embeds the Settings view.
 
-The sequence is Definition → Composition → assembly. A Definition establishes the contracts and authoring methods. A Composition fixes the child Binding and Mount graph. `assembleBlock` checks and packages the authored implementation with that graph. The root follows the same sequence before `Program.make` or `Program.makeElement` adds host behavior.
+The sequence is Definition → Composition → preparation → assembly. A Definition establishes the contracts and authoring methods. A Composition fixes the child Binding and Mount graph. `prepareBlock` checks and packages the authored implementation as an opaque draft. `Block.assemble` finishes that draft as the branded Block accepted by Bindings, Programs, and Server rendering. The root follows the same sequence before `Program.make` or `Program.makeElement` adds host behavior.
 
 Definitions, Compositions, Bindings, Blocks, and Programs are passive. `makeInit`, `makeUpdate`, and `makeView` return functions for the Runtime to call later. At the root, `program.provide(ApplicationLayer)` supplies ordinary Effect Services without building them. `Runtime.run`, `Runtime.hydrate`, or `Runtime.embed` builds the selected handler graph, resolves Flags when required, calls init, and begins performing effects.
 
@@ -49,7 +49,7 @@ Declare the Schemas, then call `Block.makeDefinition('Settings', { Model, Messag
 
 Name the Definition `SettingsDefinition`. Its ID is local to the feature, so it needs no ancestor or filesystem path. Keep this value in one module and import it; creating another Definition with the readable ID `Settings` creates a different Definition.
 
-The Definition supplies `command`, `mount`, `mountStream`, `resource`, `step`, `subscriptions`, `managedResources`, and `bindChild`. These methods declare behavior owned by Settings before its graph exists.
+The Definition supplies `makeCommand`, `makeMount`, `makeMountStream`, `makeResource`, `makeStep`, `makeFieldsStep`, `makeNoopStep`, `makeCommandsStep`, `makeOutMessageStep`, `makeSubscriptions`, `makeManagedResources`, and `makeBinding`. These methods declare behavior owned by Settings before its graph exists.
 
 Add a `ChildInitContext` Schema only when this feature's direct child initializer selectors share one input. [Init & Flags](/core/init-and-flags) explains that boundary and the supported initializer signatures.
 
@@ -65,11 +65,11 @@ Features without children or Mounts still call `makeComposition()`. Creating a C
 
 ### Produce the completed Block
 
-Call `assembleBlock` after the feature's pieces exist. Completion packages the Definition, fixed graph, implementation, and local handler recipe into the value a parent can bind. It does not build a Layer, call init, or start lifecycle work.
+Call `prepareBlock` after the feature's pieces exist, then pass its zero-argument producer to `Block.assemble`. The producer packages the Definition, fixed graph, implementation, and local handler recipe as an opaque draft with no Model or runtime methods. `Block.assemble` creates the Block a parent can bind. Neither step builds a Layer, calls init, or starts lifecycle work.
 
 ::Snippet{name="blockSettings" label="Producing a completed Block"}
 
-Export the completed value as `SettingsBlock`. Parents import that value and bind it through their own Definition. The completed value carries the Model, complete Message Schema, declared OutMessage contract, and embedding inputs.
+Wrap the unchanged preparation call in one private zero-argument producer named `prepare`, then put the checked export immediately after it with no blank line. Annotate the exported value with `Block.FromAssemblyWithViewAndOutMessage<typeof Model, typeof prepare>` and initialize it with `Block.assemble(prepare)`. Use a descriptive producer name only when one file genuinely contains multiple preparation producers. This feature declares an OutMessage and includes a view. Use the [matching helper for the other three shapes](/patterns/project-organization#keep-model-schema-dependencies-small). Parents import the completed `SettingsBlock` and bind it through their own Definition. The completed value carries the Model, complete Message Schema, declared OutMessage contract, and embedding inputs.
 
 `EffectsLayer` contains only the feature's local Foldkit handler recipes. Omit it when the feature has no local handlers; Foldkit uses an empty recipe and still checks completeness. Registered child Bindings contribute their recipes automatically. A handler recipe may require an ordinary HTTP, storage, RPC, clock, or browser Service. Those Service requirements continue through composition until the application root supplies them.
 
@@ -77,13 +77,13 @@ Export the completed value as `SettingsBlock`. Parents import that value and bin
 
 Export the completed `SettingsBlock` as the feature boundary. Keep small features together; split them when separate files make the responsibilities easier to navigate. [Project Organization](/patterns/project-organization) shows compact and split layouts, Composition assembly, and import direction.
 
-Keep the feature barrel limited to `SettingsBlock`. A parent reads its contracts through `SettingsBlock.Model`, `SettingsBlock.Message`, and `SettingsBlock.OutMessage`, and passes that completed Block to its Definition's Binding and OutMessage fold helpers. Put shared domain Schemas and selectors in a separate `domain/` barrel. Internal implementation files import their own contracts and Composition directly, avoiding a cycle through the completed Block:
+Export `SettingsBlock` from the feature barrel and keep Model, local Message, Definition and Composition internal. Parent Schema construction uses `Settings.SettingsBlock.Model`; the explicit header keeps that access independent of full implementation inference. The completed Block supplies complete Message, OutMessage, operation and view contracts. Put shared domain Schemas and selectors in a separate `domain/` barrel. Internal implementation files import their contracts and Composition directly, avoiding a cycle through the completed Block:
 
 ::Snippet{name="blockFeatureExports" label="Exporting a completed feature"}
 
 ## Bind a Child {#embedding}
 
-Call the parent Definition's `bindChild` method with the completed child Block. The resulting Binding belongs to the parent because it describes parent decisions: where the child Model lives, how child Messages enter the parent, and how the parent responds to child OutMessages.
+Call the parent Definition's `makeBinding` method with the completed child Block. The resulting Binding belongs to the parent because it describes parent decisions: where the child Model lives, how child Messages enter the parent, and how the parent responds to child OutMessages.
 
 ::Snippet{name="blockProfile" label="Binding a required child"}
 
@@ -95,7 +95,7 @@ A child whose Message Schema is `Schema.Never` cannot emit a Message. Its Bindin
 
 ::Snippet{name="blockMessageFreeChild" label="Binding a Message-free child"}
 
-`bindChild` creates passive configuration. The example registers `SettingsBinding` in `ApplicationComposition.bindings` so the parent update and view can use it and Foldkit can collect the child's handlers and lifecycle declarations. The same Binding routes child Messages, validates embedded views, collects handler recipes and lifecycle definitions, and assembles child startup. Nothing has run yet.
+`makeBinding` creates passive configuration. The example registers `SettingsBinding` in `ApplicationComposition.bindings` so the parent update and view can use it and Foldkit can collect the child's handlers and lifecycle declarations. The same Binding routes child Messages, validates embedded views, collects handler recipes and lifecycle definitions, and assembles child startup. Nothing has run yet.
 
 ### Route child Messages {#fold-child}
 
@@ -107,7 +107,7 @@ Declare parent-driven operations under `operations`, then call them through the 
 
 ::Snippet{name="blockProjectedSteps" label="Calling a bound public operation"}
 
-These calls are pure. A Binding operation produces a connected parent Update.Step whose Model input requires the exact registered graph. A raw domain Model cannot satisfy that input. Return or compose the connected result intact from `makeUpdate` or startup processing; its public type exposes no `.model` or `.commands` before checked execution. A Definition-owned `step` may preserve or wrap a connected Step for later execution. The Composition consumes it while the graph is active and returns the readable next Model, optional Commands, and optional OutMessage. A completed Block operation is also a checked executor: it accepts the raw Block Model, dispatches its produced Message through update, and returns the readable result. Completion gives the operation the update function's complete Command requirements and OutMessage type even when its selected Message branch returns less. Calling a pure operation does not run effects returned by another branch. Ordinary internal Update.Steps remain directly callable. The Runtime executes returned Commands later.
+These calls are pure. A Binding operation produces a connected parent Update.Step whose Model input requires the exact registered graph. A raw domain Model cannot satisfy that input. Return or compose the connected result intact from `makeUpdate` or startup processing; its public type exposes no `.model` or `.commands` before checked execution. A Definition-owned `makeStep` may preserve or wrap a connected Step for later execution. The Composition consumes it while the graph is active and returns the readable next Model, optional Commands, and optional OutMessage. A completed Block operation is also a checked executor: it accepts the raw Block Model, dispatches its produced Message through update, and returns the readable result. Completion gives the operation the update function's complete Command requirements and OutMessage type even when its selected Message branch returns less. Calling a pure operation does not run effects returned by another branch. Ordinary internal Update.Steps remain directly callable. The Runtime executes returned Commands later.
 
 Name an operation for what the parent communicates, and its Message for what the child received:
 
@@ -125,12 +125,12 @@ The operation below produces `InformedOfRouteChange`; update owns the resulting 
 
 ::Snippet{name="updateCurriedStep" label="Declaring an informRouteChanged operation"}
 
-Use a tuple producer under `operations` when the public inputs need mapping, refinement, defaults, or an exact context tuple. It returns `[Message, ...context]`; inline array literals receive tuple context from `assembleBlock`, and an extracted producer uses `Tuple.make`. Message constructors and tuple producers complete through the same update path. Keep pure helpers for selectors and derived view inputs. Use standalone or Definition-owned Steps for internal composition, and omit `operations` when the Block declares no named operations. See [Calling update as a Step](/core/update#calling-update-as-a-step) for internal curried update composition and the required-context adapter.
+Use a tuple producer under `operations` when the public inputs need mapping, refinement, defaults, or an exact context tuple. It returns `[Message, ...context]`; inline array literals receive tuple context from `prepareBlock`, and an extracted producer uses `Tuple.make`. Message constructors and tuple producers complete through the same update path. Keep pure helpers for selectors and derived view inputs. Use standalone or Definition-owned Steps for internal composition, and omit `operations` when the Block declares no named operations. See [Calling update as a Step](/core/update#calling-update-as-a-step) for internal curried update composition and the required-context adapter.
 
 Binding operations retain the exact argument types, Command requirements, Binding requirement, and OutMessage behavior of the child operation.
 
 :::Info{label="Completion inference"}
-Author `update` as a named value with `Composition.makeUpdate`, then pass it to `assembleBlock`. With a view, operations, Subscriptions, and ManagedResources in one completion record, nesting `makeUpdate` directly in that record can make the current overloads infer an incomplete handler Layer. Naming the authored update first retains its full inferred type without annotations.
+Author `update` as a named value with `Composition.makeUpdate`, then pass it to `prepareBlock`. With a view, operations, Subscriptions, and ManagedResources in one completion record, nesting `makeUpdate` directly in that record can make the current overloads infer an incomplete handler Layer. Naming the authored update first retains its full inferred type without annotations.
 :::
 
 ### Initialize the child
@@ -143,7 +143,7 @@ Use `init: { contextToArgs }` when another child needs inputs, or `init: false` 
 
 The parent init callback returns only parent-owned fields. Composition calls the selected child initializer, stores its Model, and retains its Commands. See [Init & Flags](/core/init-and-flags#child-initialization) for optional children, keyed occurrences, custom storage, Command batching, and initial Steps.
 
-Block init cannot emit an OutMessage. Author it through the Block Composition, then pass that same `init` function to `FeatureComposition.assembleBlock`. An optional `boot` helper is an ordinary initial Step listed in the parent's init plan after the child Model exists; Foldkit has no special Runtime boot phase. When an existing domain operation such as `requestRestore` or `requestOpen` already describes the transition, declare that Message-producing operation and call it through the Binding. The same operation may run later from update. Do not create a separate startup-only Message when an existing Message already records the transition.
+Block init cannot emit an OutMessage. Author it through the Block Composition, then pass that same `init` function to `FeatureComposition.prepareBlock`. An optional `boot` helper is an ordinary initial Step listed in the parent's init plan after the child Model exists; Foldkit has no special Runtime boot phase. When an existing domain operation such as `requestRestore` or `requestOpen` already describes the transition, declare that Message-producing operation and call it through the Binding. The same operation may run later from update. Do not create a separate startup-only Message when an existing Message already records the transition.
 
 The Binding's selected `fold` policy can handle a fact from that initial Step against the complete parent Model. Parent init cannot forward an OutMessage, so a startup Step used there must finish with a plain update result.
 
@@ -175,7 +175,7 @@ A child reports facts to its parent through an OutMessage. A public operation ca
 
 Every Binding for a Block with OutMessages must select an explicit policy with
 `withOutMessagePolicy`. Keep the ordinary case as one fluent declaration:
-`ParentDefinition.bindChild(ChildBlock, config).withOutMessagePolicy(policy)`.
+`ParentDefinition.makeBinding(ChildBlock, config).withOutMessagePolicy(policy)`.
 The selected value is the full Binding to register and use.
 
 - `fold` handles the fact in the current parent and returns a parent Step.
@@ -188,7 +188,7 @@ completed child Block:
 ::Snippet{name="blockOutMessagePolicy" label="Handling a child OutMessage"}
 
 Inline a one-way policy as
-`ParentDefinition.bindChild(ChildBlock, config).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(ChildBlock, handlers) })`.
+`ParentDefinition.makeBinding(ChildBlock, config).withOutMessagePolicy({ fold: ParentDefinition.makeOutMessageFold(ChildBlock, handlers) })`.
 The completed child supplies the exact OutMessage contract, while the parent
 Definition supplies the Model, Message, and OutMessage contracts. Name the fold
 when reuse, keyed adaptation, or reciprocal staging benefits from a separate
@@ -209,7 +209,7 @@ variants that stop here. At least one handler must forward.
 
 ::Snippet{name="blockOutMessageForward" label="Forwarding selected child OutMessages"}
 
-`bindChild` fixes storage, delivery, lifecycle, and child identity before policy
+`makeBinding` fixes storage, delivery, lifecycle, and child identity before policy
 selection. `withOutMessagePolicy` selects one immutable policy for that same
 child Binding. Register the selected Binding in the Composition. A missing
 policy, a missing or extra handler, an undeclared forwarded OutMessage, or a
@@ -234,7 +234,7 @@ The entry gives the completed `ApplicationBlock` to `Program.make` and starts th
 
 The Application Composition carries the child graph. Its completion config supplies root-local handler recipes and lifecycle definitions. Registered child Blocks contribute their own handlers through that graph. `ApplicationLayer` supplies ordinary application Services such as storage or an HTTP client. It does not re-merge each feature's `EffectsLayer`.
 
-`ApplicationComposition.assembleBlock` validates the concrete composition before the Runtime starts. `Program.make` returns another passive value, and `program.provide(ApplicationLayer)` records ordinary Service providers. The Runtime builds those Layers and the selected handler graph when the Program starts. Missing handlers, incompatible child Bindings, unavailable Mount requirements, and an unhandled root OutMessage fail before a user interaction.
+`ApplicationComposition.prepareBlock` validates the concrete composition and returns an opaque draft. `Block.assemble(prepare)` produces the passive root Block before `Program.make` accepts it. `Program.make` returns another passive value, and `program.provide(ApplicationLayer)` records ordinary Service providers. The Runtime builds those Layers and the selected handler graph when the Program starts. Missing handlers, incompatible child Bindings, unavailable Mount requirements, and an unhandled root OutMessage fail before a user interaction.
 
 Server rendering uses the same root:
 
@@ -247,6 +247,8 @@ The server runs init and view. It does not construct browser handler Layers or s
 A child view builds handlers for the child's Message union. A top-level callback in `viewInputs`, such as `toView`, runs in the parent's boundary. Handlers built by that callback reach the parent update directly. Foldkit preserves that boundary when the child invokes the callback.
 
 Keep callbacks at the top level of `viewInputs`. View authoring rejects statically visible functions nested inside records, arrays, tuples, unions, or `Option` values because Foldkit cannot infer which boundary should own them. Generic views retain that check when their inputs become concrete. Runtime validation also checks dynamically typed inputs.
+
+Ordinary `Date` values are data, including inside records, arrays, tuples, and `Option`. Their standard prototype methods do not count as application callbacks. Adding a callback field to a Date still makes that field subject to the nested-callback check. TypeScript cannot distinguish an own override of a standard Date method from the prototype method; the runtime check rejects enumerable own function fields. An invalid input diagnostic can identify the nested field; move an application callback to a top-level input rather than casting the inputs.
 
 ### Publish child attributes {#child-attributes}
 
@@ -265,6 +267,16 @@ Block authors call `childAttributes`; consumers spread the supplied groups. Stat
 Build shared renderers in the parent and pass them as top-level `viewInputs` callbacks. A renderer can embed a sibling Block through that sibling's Binding. Each embed then establishes its own child boundary.
 
 Thread `h` through view functions and render callbacks. Do not store a builder in module state; its dispatch context belongs to the current render boundary.
+
+## Connected Step Diagnostics
+
+A connected Step needs the Composition that registered its Binding. A plain Model has the right data but cannot establish that registration. If a diagnostic asks for a registered Composition, return the connected result intact from that Composition's `makeUpdate`, or define a deferred parent Step with the Definition's `makeStep` and apply it there:
+
+::Snippet{name="blockDeferredConnectedStep" label="Deferring a connected Step to its registered Composition"}
+
+The Definition helper preserves the Binding requirement; it does not register the Binding. Removing `SettingsBinding` from this Composition still makes completion fail. Do not widen the Step to an ordinary Model-returning function or extract `.model` from its opaque result.
+
+At assembly, check the failing implementation field first. Author the primary view through the same Composition's `makeView`; use a plain function only as an extracted rendering helper. A missing handler needs its attached `.layer` in the local `EffectsLayer` or an explicit `hostHandlers` declaration. An invalid init plan needs every parent-owned field with its declared type; registered initialization supplies only the fields its Bindings own. These are different contracts, so changing a view or casting the assembly object cannot repair a missing handler or init field.
 
 ## Child Delivery Context
 
@@ -452,21 +464,33 @@ For a generic factory that shares definitions, `Block.makeNamespace(id)` supplie
 
 `FeatureDefinition.makeComposition({ bindings?, mounts? })` checks the composition graph and returns `FeatureComposition`. Omitted child Bindings and Mounts default to empty collections without granting their capabilities.
 
-### FeatureComposition.assembleBlock
+### FeatureComposition.prepareBlock
 
-`FeatureComposition.assembleBlock({ init, update, view?, operations?, subscriptions?, managedResources?, EffectsLayer?, hostHandlers? })` checks and returns the passive completed Block. `EffectsLayer` may require ordinary Services supplied by `program.provide(ApplicationLayer)`. `hostHandlers` explicitly declares contracts left to the host. Complete those Blocks with their own `provideHandlers(...)` before binding them into `ApplicationBlock`; Program construction rejects unresolved handlers.
+`FeatureComposition.prepareBlock({ init, update, view?, operations?, subscriptions?, managedResources?, EffectsLayer?, hostHandlers? })` checks and returns an opaque draft. It exposes no Model or Block methods. Pass its zero-argument producer to `Block.assemble`, which returns the branded passive Block accepted by Bindings, Programs, and Server rendering. `EffectsLayer` may require ordinary Services supplied by `program.provide(ApplicationLayer)`. `hostHandlers` explicitly declares contracts left to the host. Complete those Blocks with their own `provideHandlers(...)` before binding them into `ApplicationBlock`; Program construction rejects unresolved handlers.
 
-### ParentDefinition.bindChild
+### Block.assemble
 
-`ParentDefinition.bindChild(FooBlock, config)` creates one static, optional, or keyed Binding in the parent Model context. Use `field` for an exact Struct field containing the child Model or `Option<ChildModel>`. Use `presentWhen` for whole-child presence policy, or explicit `read`/`write` for custom storage. Generated delivery carries each child's exact Message Schema and occurrence identity. A child with OutMessages requires `.withOutMessagePolicy({ fold?, forward? })`; register and use that returned full Binding. Chain the call for an ordinary one-way policy. Keep the first Binding in a named value when a self-referential or reciprocal policy needs to call its operations, then name the selected value `<Child>BindingWithOutMessagePolicy`.
+`Block.assemble(prepare)` invokes the zero-argument preparation producer once and returns its branded completed Block. Bindings, Programs, and Server rendering accept this completed value. Ordinary source exports pair the call with the matching `Block.FromAssemblyWith*<typeof Model, typeof prepare>` annotation on the adjacent declaration. Calling `prepare()` directly yields only the opaque draft. `replaceEffectsLayer` and `provideHandlers` preserve the completion brand, metadata, and passive runtime behavior.
+
+### ParentDefinition.makeBinding
+
+`ParentDefinition.makeBinding(FooBlock, config)` creates one static, optional, or keyed Binding in the parent Model context. Use `field` for an exact Struct field containing the child Model or `Option<ChildModel>`. Use `presentWhen` for whole-child presence policy, or explicit `read`/`write` for custom storage. Generated delivery carries each child's exact Message Schema and occurrence identity. A child with OutMessages requires `.withOutMessagePolicy({ fold?, forward? })`; register and use that returned full Binding. Chain the call for an ordinary one-way policy. Keep the first Binding in a named value when a self-referential or reciprocal policy needs to call its operations, then name the selected value `<Child>BindingWithOutMessagePolicy`.
 
 `delivery.when` gates incoming child Messages without making the child absent. `delivery.toUpdateContext` returns the exact additional arguments required by the child update. Unkeyed callbacks receive the parent Model; keyed callbacks also receive the occurrence key. General keyed accessors supply `keySchema`; direct array adapters derive it from the key field. A Message-free child omits delivery configuration. Unkeyed direct fields default placement to `field`; accessor and keyed Bindings default to the child Block ID. `subscriptions.when` gates only Streams. OutMessage handling remains parent policy.
 
-### FeatureDefinition.step
+### FeatureDefinition.makeStep
 
-`FeatureDefinition.stepFields(callback)` authors a unary Model-only Step from field transformers. The callback receives the current Model and returns the same record accepted by `modifyFields`; omit the parameter when the transformers do not need another field. `FeatureDefinition.stepNoop()` authors a Step that preserves the exact incoming Model, which is useful when a named child OutMessage intentionally leaves the parent unchanged. Pass the helper point-free as that variant's handler: `Closed: FeatureDefinition.stepNoop`.
+`FeatureDefinition.makeFieldsStep(callback)` authors a unary Model-only Step from field transformers. The callback receives the current Model and returns the same record accepted by `modifyFields`; omit the parameter when the transformers do not need another field. `FeatureDefinition.makeNoopStep()` authors a Step that preserves the exact incoming Model, which is useful when a named child OutMessage intentionally leaves the parent unchanged. Pass the helper point-free as that variant's handler: `Closed: FeatureDefinition.makeNoopStep`.
 
-`FeatureDefinition.step(producer)` handles parameterized, Command-producing, OutMessage-producing, connected Binding, initialization, delegated, conditional, and composed results. It preserves or wraps a connected value until a Composition interprets it under the registered graph, and infers the operation's arguments, result Messages, Command requirements, and Binding requirements. Ordinary update branches continue to return `{ model: modifyFields(...) }`; do not create and immediately invoke a Step solely to use the field helpers. Public operations belong in the completed Block's `operations` record as local Message constructors or Message tuple producers.
+`FeatureDefinition.makeCommandsStep(commands)` authors a Model-preserving Step from an existing Command collection. Use it when a composed Step only returns Commands, such as focusing a field after opening a Dialog. It retains result Message checks, Service requirements, and Binding registration evidence. Creating or applying the Step does not execute its Commands; Runtime executes them independently.
+
+`FeatureDefinition.makeOutMessageStep(outMessage)` authors a Model-preserving Step that emits one already-known OutMessage and no Commands. It is available only when the Definition declares an OutMessage Schema and preserves the exact variant or refined payload. Use `makeStep` when the OutMessage depends on the current Model or the same Step changes fields or returns Commands. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain result or when the value may be `undefined`.
+
+::Snippet{name="blockOutMessageStep" label="Reporting a fixed OutMessage"}
+
+`Update.combineSteps` rejects OutMessage-producing Steps, including this helper. Attach an OutMessage to the combined plain result with `Update.withOutMessage`.
+
+`FeatureDefinition.makeStep(producer)` handles parameterized, Model-dependent Command or OutMessage production, connected Binding, initialization, delegated, conditional, and composed results. It preserves or wraps a connected value until a Composition interprets it under the registered graph, and infers the operation's arguments, result Messages, Command requirements, and Binding requirements. Ordinary update branches continue to return `{ model: modifyFields(...) }`; do not create and immediately invoke a Step solely to use the narrow helpers. Public operations belong in the completed Block's `operations` record as local Message constructors or Message tuple producers.
 
 ### ParentDefinition.makeOutMessageFold
 
@@ -478,7 +502,7 @@ For a generic factory that shares definitions, `Block.makeNamespace(id)` supplie
 
 ### Declaring operations
 
-Put a local Message constructor directly in `assembleBlock({ operations })`, using the operation name as its key. TypeScript checks its Message shape, and completion verifies that the constructor is an actual member of this Block's declared Message Schema. A same-shaped constructor from another union is rejected at runtime. Routed `Got*` wrappers remain Binding delivery and cannot become local operations.
+Put a local Message constructor directly in `prepareBlock({ operations })`, using the operation name as its key. TypeScript checks its Message shape, and completion verifies that the constructor is an actual member of this Block's declared Message Schema. A same-shaped constructor from another union is rejected at runtime. Routed `Got*` wrappers remain Binding delivery and cannot become local operations.
 
 Completion combines each constructor with the Block's update. A constructor with fields becomes `(model, payload, ...context)` on `block.operations`; a constructor with no fields becomes `(model, ...context)`. The Binding method omits the child Model, and a keyed Binding prepends its key. All operations retain update's complete Command requirements and OutMessage contract.
 
@@ -492,7 +516,7 @@ A declared operation such as `requestClearSelection` becomes `binding.requestCle
 
 ### binding.init
 
-`binding.init({ key?, args, toParentModel, commands? })` returns a passive, noncallable initialization recipe. `key` is required for a keyed Binding, `args` is the exact child init tuple, and `toParentModel` receives the initialized child and constructs the complete parent Model. Return the recipe directly from the owning Composition's `makeInit` or `makeUpdate` callback, or preserve it through the parent's `step` producer. The Composition callbacks interpret it directly. The exact graph then produces all lifted child Commands before optional parent Commands. The recipe has no `.model` or `.commands` fields.
+`binding.init({ key?, args, toParentModel, commands? })` returns a passive, noncallable initialization recipe. `key` is required for a keyed Binding, `args` is the exact child init tuple, and `toParentModel` receives the initialized child and constructs the complete parent Model. Return the recipe directly from the owning Composition's `makeInit` or `makeUpdate` callback, or preserve it through the parent's `makeStep` producer. The Composition callbacks interpret it directly. The exact graph then produces all lifted child Commands before optional parent Commands. The recipe has no `.model` or `.commands` fields.
 
 ### binding.embedView
 
@@ -506,7 +530,7 @@ A declared operation such as `requestClearSelection` becomes `binding.requestCle
 
 ### block.replaceEffectsLayer
 
-`block.replaceEffectsLayer(recipe)` selects another complete local handler recipe and returns a completed Block with the same state, lifecycle, children, and public operations.
+`block.replaceEffectsLayer(recipe)` selects another complete local handler recipe and returns a completed Block with the same completion brand, object metadata, state, lifecycle, children, public operations, and passive runtime behavior. `block.provideHandlers(layer)` preserves the same properties while satisfying declared host handlers.
 
 ### block.provideHandlers
 

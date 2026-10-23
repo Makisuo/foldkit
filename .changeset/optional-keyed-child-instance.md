@@ -5,7 +5,7 @@
 Support the wrapped keyed child shorthand for a required `Schema.Option` field containing one Struct wrapper. Keyed identity does not require a collection: an Application can hold at most one Room while retaining its room ID for delivery and stale-result isolation.
 
 ```ts
-const RoomBinding = ApplicationDefinition.bindChild(RoomBlock, {
+const RoomBinding = ApplicationDefinition.makeBinding(RoomBlock, {
   field: 'maybeRoomInstance',
   key: 'roomId',
   childField: 'model',

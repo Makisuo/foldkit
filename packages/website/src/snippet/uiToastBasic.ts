@@ -48,14 +48,14 @@ const NotificationsDefinition = Block.makeDefinition('Notifications', {
 // parent Definition infers the factory-refined payload from the whole Block:
 const foldToastOutMessage = NotificationsDefinition.makeOutMessageFold(Toast, {
   DismissedToast: ({ payload }) =>
-    NotificationsDefinition.stepFields(() => ({
+    NotificationsDefinition.makeFieldsStep(() => ({
       maybeLastDismissedBody: () => Option.some(payload.bodyText),
     })),
 })
 
 // The Binding delegates Toast Messages, writes the next Toast Model, maps its
 // Commands, handles its OutMessages, and collects its Subscriptions.
-const ToastBinding = NotificationsDefinition.bindChild(Toast, {
+const ToastBinding = NotificationsDefinition.makeBinding(Toast, {
   field: 'toast',
   init: {
     contextToArgs: () => Tuple.make({ id: 'app-toast', swipeToDismiss: {} }),

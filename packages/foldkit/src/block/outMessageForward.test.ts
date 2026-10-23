@@ -17,12 +17,17 @@ const ChildDefinition = Block.makeDefinition('ForwardChild', {
   OutMessage: ChildOutMessage,
 })
 const ChildComposition = ChildDefinition.makeComposition()
-const ChildBlock = ChildComposition.assembleBlock({
-  init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
-  update: ChildComposition.makeUpdate(model => ({ model })),
-  operations: { requestClose: ChildMessage.RequestedClose },
-  EffectsLayer: Layer.empty,
-})
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
+    init: ChildComposition.makeInit(() => ({ model: { count: 0 } })),
+    update: ChildComposition.makeUpdate(model => ({ model })),
+    operations: { requestClose: ChildMessage.RequestedClose },
+    EffectsLayer: Layer.empty,
+  })
+const ChildBlock: Block.FromAssemblyWithOutMessage<
+  typeof ChildModel,
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const ParentModel = Schema.Struct({ choice: Choice })
 const ParentMessage = defineMessageUnion({ RequestedReset: {} })
@@ -151,7 +156,7 @@ it('validates contextual forwarding against the selected child without running h
     Message: ParentMessage,
     OutMessage: ParentOutMessage,
   })
-  const ChildBinding = BindingDefinition.bindChild(ChildBlock, {
+  const ChildBinding = BindingDefinition.makeBinding(ChildBlock, {
     field: 'child',
     init: false,
   })

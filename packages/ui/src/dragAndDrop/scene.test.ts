@@ -21,7 +21,7 @@ const foldDragAndDropOutMessage = DragAndDropSceneDefinition.makeOutMessageFold(
   },
 )
 
-const DragAndDropBinding = DragAndDropSceneDefinition.bindChild(
+const DragAndDropBinding = DragAndDropSceneDefinition.makeBinding(
   DragAndDropBlock,
   {
     read: model => Option.some(model),

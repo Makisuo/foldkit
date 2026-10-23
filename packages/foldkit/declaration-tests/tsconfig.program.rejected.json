@@ -7,6 +7,8 @@
   "include": [
     "../src/vite-env.d.ts",
     "program.accepted.ts",
-    "program.rejected.ts"
+    "program.rejected.ts",
+    "program-union-services.accepted.ts",
+    "program-union-services.rejected.ts"
   ]
 }

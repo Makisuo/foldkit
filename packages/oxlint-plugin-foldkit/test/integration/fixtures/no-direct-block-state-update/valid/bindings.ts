@@ -13,7 +13,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const SettingsBinding = ApplicationDefinition.bindChild(
+const SettingsBinding = ApplicationDefinition.makeBinding(
   BoundSettings.BoundSettingsBlock,
   {
     read: (model: Model) => Option.some(model.settings),

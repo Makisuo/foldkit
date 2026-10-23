@@ -141,7 +141,7 @@ export const runtimeBindingOf = (binding: object): RuntimeBinding => {
   const runtime = bindings.get(canonicalBindingOf(binding))
   if (runtime === undefined) {
     throw new Error(
-      '[foldkit] Child Binding metadata is unavailable. Create Bindings through the parent Definition.bindChild method.',
+      '[foldkit] Child Binding metadata is unavailable. Create Bindings through the parent Definition.makeBinding method.',
     )
   }
   return runtime
@@ -224,7 +224,7 @@ export const assertBindingParentContracts = (
         bindingParent.ChildInitContext !== parentContract.ChildInitContext)
     ) {
       throw new Error(
-        `[foldkit] Child Binding "${childBinding.placement}" belongs to a different parent Definition contract. Create it through the exact "${parentId}" Definition.bindChild method.`,
+        `[foldkit] Child Binding "${childBinding.placement}" belongs to a different parent Definition contract. Create it through the exact "${parentId}" Definition.makeBinding method.`,
       )
     }
   }

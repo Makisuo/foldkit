@@ -43,7 +43,7 @@ type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-export const DetermineStartTime = ApplicationDefinition.command(
+export const DetermineStartTime = ApplicationDefinition.makeCommand(
   'DetermineStartTime',
   {
     args: { elapsedMs: Schema.Number },
@@ -63,7 +63,7 @@ export const DetermineStartTime = ApplicationDefinition.command(
   },
 )
 
-export const DetermineTickTime = ApplicationDefinition.command(
+export const DetermineTickTime = ApplicationDefinition.makeCommand(
   'DetermineTickTime',
   {
     args: { startTime: Schema.Number },
@@ -132,7 +132,7 @@ export const init = ApplicationComposition.makeInit(() => ({
   },
 }))
 
-export const subscriptions = ApplicationDefinition.subscriptions(entry => ({
+export const subscriptions = ApplicationDefinition.makeSubscriptions(entry => ({
   stopwatchTicks: entry(
     'StopwatchTicks',
     { isRunning: Schema.Boolean },
@@ -257,10 +257,15 @@ const startStopButton = (
 const buttonStyle =
   'px-6 py-4 flex-1 font-semibold text-white transition-colors'
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-  subscriptions,
-  EffectsLayer,
-})
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
+    init,
+    update,
+    view,
+    subscriptions,
+    EffectsLayer,
+  })
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)

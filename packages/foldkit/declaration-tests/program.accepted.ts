@@ -51,13 +51,18 @@ const pageUpdate = DeclarationPageComposition.makeUpdate((model, message) =>
   }),
 )
 
-export const PageBlock = DeclarationPageComposition.assembleBlock({
-  init: (flags: typeof Flags.Type, _url: Url.Url) => ({
-    model: Model.make({ status: flags.status }),
-  }),
-  update: pageUpdate,
-  view: pageView,
-})
+const preparePageBlock = () =>
+  DeclarationPageComposition.prepareBlock({
+    init: (flags: typeof Flags.Type, _url: Url.Url) => ({
+      model: Model.make({ status: flags.status }),
+    }),
+    update: pageUpdate,
+    view: pageView,
+  })
+export const PageBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof preparePageBlock
+> = Block.assemble(preparePageBlock)
 
 export const PageProgram = Program.make({
   block: PageBlock,
@@ -95,8 +100,8 @@ const DeclarationAlternativeRoutedPageDefinition = Block.makeDefinition(
 )
 const DeclarationAlternativeRoutedPageComposition =
   DeclarationAlternativeRoutedPageDefinition.makeComposition()
-export const AlternativeRoutedBlock =
-  DeclarationAlternativeRoutedPageComposition.assembleBlock({
+const prepareAlternativeRoutedBlock = () =>
+  DeclarationAlternativeRoutedPageComposition.prepareBlock({
     init: (flags: typeof Flags.Type, _url: Url.Url) => ({
       model: Model.make({ status: flags.status }),
     }),
@@ -112,6 +117,10 @@ export const AlternativeRoutedBlock =
       body: null,
     })),
   })
+export const AlternativeRoutedBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepareAlternativeRoutedBlock
+> = Block.assemble(prepareAlternativeRoutedBlock)
 export const SafeRoutedBlock =
   globalThis.Math.random() > 0.5 ? PageBlock : AlternativeRoutedBlock
 export const SafeUnionRoutedProgram = Program.make({
@@ -133,14 +142,19 @@ const DeclarationPurePageDefinition = Block.makeDefinition(
 )
 const DeclarationPurePageComposition =
   DeclarationPurePageDefinition.makeComposition()
-export const PurePageBlock = DeclarationPurePageComposition.assembleBlock({
-  init: () => ({ model: Model.make({ status: 'ready' }) }),
-  update: DeclarationPurePageComposition.makeUpdate(),
-  view: DeclarationPurePageComposition.makeView(model => ({
-    title: model.status,
-    body: null,
-  })),
-})
+const preparePurePageBlock = () =>
+  DeclarationPurePageComposition.prepareBlock({
+    init: () => ({ model: Model.make({ status: 'ready' }) }),
+    update: DeclarationPurePageComposition.makeUpdate(),
+    view: DeclarationPurePageComposition.makeView(model => ({
+      title: model.status,
+      body: null,
+    })),
+  })
+export const PurePageBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof preparePurePageBlock
+> = Block.assemble(preparePurePageBlock)
 export const PurePageProgram = Program.make({
   block: PurePageBlock,
   container: null,
@@ -167,8 +181,8 @@ const DeclarationAlternativePageDefinition = Block.makeDefinition(
 )
 const DeclarationAlternativePageComposition =
   DeclarationAlternativePageDefinition.makeComposition()
-export const AlternativePageBlock =
-  DeclarationAlternativePageComposition.assembleBlock({
+const prepareAlternativePageBlock = () =>
+  DeclarationAlternativePageComposition.prepareBlock({
     init: () => ({ model: Model.make({ status: 'alternative' }) }),
     update: DeclarationAlternativePageComposition.makeUpdate(),
     view: DeclarationAlternativePageComposition.makeView(model => ({
@@ -176,6 +190,10 @@ export const AlternativePageBlock =
       body: null,
     })),
   })
+export const AlternativePageBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepareAlternativePageBlock
+> = Block.assemble(prepareAlternativePageBlock)
 export const SafePageBlock =
   globalThis.Math.random() > 0.5 ? PurePageBlock : AlternativePageBlock
 export const SafeUnionPageProgram = Program.make({
@@ -196,21 +214,26 @@ const elementView = DeclarationElementComposition.makeView((model, h) =>
   h.div([], [model.status]),
 )
 
-export const ElementBlock = DeclarationElementComposition.assembleBlock({
-  init: (flags: typeof Flags.Type) => ({
-    model: Model.make({ status: flags.status }),
-  }),
-  update: DeclarationElementComposition.makeUpdate((model, message) =>
-    RootMessage.match(message, {
-      RequestedNavigation: () => ({ model }),
-      ChangedUrl: ({ url }) => ({
-        model: Struct.modifyFields(model, { status: () => url.pathname }),
-      }),
+const prepareElementBlock = () =>
+  DeclarationElementComposition.prepareBlock({
+    init: (flags: typeof Flags.Type) => ({
+      model: Model.make({ status: flags.status }),
     }),
-  ),
-  view: elementView,
-  EffectsLayer: Layer.empty,
-})
+    update: DeclarationElementComposition.makeUpdate((model, message) =>
+      RootMessage.match(message, {
+        RequestedNavigation: () => ({ model }),
+        ChangedUrl: ({ url }) => ({
+          model: Struct.modifyFields(model, { status: () => url.pathname }),
+        }),
+      }),
+    ),
+    view: elementView,
+    EffectsLayer: Layer.empty,
+  })
+export const ElementBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepareElementBlock
+> = Block.assemble(prepareElementBlock)
 
 export const ElementProgram = Program.makeElement({
   block: ElementBlock,
@@ -269,32 +292,44 @@ const serviceDecodedPageView = ServiceDecodedProgramComposition.makeView(
 const DispatchDecoderLayer = Layer.succeed(DispatchDecoder, {
   prefix: 'decoded:',
 })
-export const ServiceDecodedBlock =
-  ServiceDecodedProgramComposition.assembleBlock({
+const prepareServiceDecodedBlock = () =>
+  ServiceDecodedProgramComposition.prepareBlock({
     init: serviceDecodedInit,
     update: serviceDecodedUpdate,
     view: serviceDecodedElementView,
   })
-export const ServiceDecodedProvidedElementBlock =
-  ServiceDecodedProgramComposition.assembleBlock({
+export const ServiceDecodedBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepareServiceDecodedBlock
+> = Block.assemble(prepareServiceDecodedBlock)
+const prepareServiceDecodedProvidedElementBlock = () =>
+  ServiceDecodedProgramComposition.prepareBlock({
     init: serviceDecodedInit,
     update: serviceDecodedUpdate,
     view: serviceDecodedElementView,
     EffectsLayer: DispatchDecoderLayer,
   })
-const ServiceDecodedProvidedPageBlock =
-  ServiceDecodedProgramComposition.assembleBlock({
+export const ServiceDecodedProvidedElementBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepareServiceDecodedProvidedElementBlock
+> = Block.assemble(prepareServiceDecodedProvidedElementBlock)
+const prepareServiceDecodedProvidedPageBlock = () =>
+  ServiceDecodedProgramComposition.prepareBlock({
     init: serviceDecodedInit,
     update: serviceDecodedUpdate,
     view: serviceDecodedPageView,
     EffectsLayer: DispatchDecoderLayer,
   })
+const ServiceDecodedProvidedPageBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepareServiceDecodedProvidedPageBlock
+> = Block.assemble(prepareServiceDecodedProvidedPageBlock)
 
 const ManagedDecoderProgramNamespace = Block.makeNamespace(
   'ManagedDecoderProgram',
 )
 const ManagedDecoder =
-  ManagedDecoderProgramNamespace.resource<string>()('DispatchDecoder')
+  ManagedDecoderProgramNamespace.makeResource<string>()('DispatchDecoder')
 const ManagedDecodedString = Schema.String.pipe(
   Schema.decodeTo(
     Schema.String,
@@ -312,7 +347,7 @@ const ManagedDecoderProgramDefinition =
     Model,
     Message: ManagedDecodedMessage,
   })
-const managedDecoders = ManagedDecoderProgramDefinition.managedResources(
+const managedDecoders = ManagedDecoderProgramDefinition.makeManagedResources(
   entry => ({
     dispatchDecoder: entry('DispatchDecoder', Schema.Option(Schema.Null), {
       resource: ManagedDecoder,
@@ -331,21 +366,26 @@ const managedDecoders = ManagedDecoderProgramDefinition.managedResources(
 )
 const ManagedDecoderProgramComposition =
   ManagedDecoderProgramDefinition.makeComposition()
-const ManagedDecodedBlock = ManagedDecoderProgramComposition.assembleBlock({
-  init: () => ({ model: Model.make({ status: 'ready' }) }),
-  update: ManagedDecoderProgramComposition.makeUpdate((model, message) =>
-    ManagedDecodedMessage.match(message, {
-      SubmittedValue: ({ value }) => ({
-        model: Struct.modifyFields(model, { status: () => value }),
+const prepareManagedDecodedBlock = () =>
+  ManagedDecoderProgramComposition.prepareBlock({
+    init: () => ({ model: Model.make({ status: 'ready' }) }),
+    update: ManagedDecoderProgramComposition.makeUpdate((model, message) =>
+      ManagedDecodedMessage.match(message, {
+        SubmittedValue: ({ value }) => ({
+          model: Struct.modifyFields(model, { status: () => value }),
+        }),
       }),
-    }),
-  ),
-  view: ManagedDecoderProgramComposition.makeView((model, h) =>
-    h.div([], [model.status]),
-  ),
-  managedResources: managedDecoders,
-  EffectsLayer: managedDecoders.dispatchDecoder.layer,
-})
+    ),
+    view: ManagedDecoderProgramComposition.makeView((model, h) =>
+      h.div([], [model.status]),
+    ),
+    managedResources: managedDecoders,
+    EffectsLayer: managedDecoders.dispatchDecoder.layer,
+  })
+const ManagedDecodedBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepareManagedDecodedBlock
+> = Block.assemble(prepareManagedDecodedBlock)
 export const RunnableManagedServiceDecodedElement = Program.makeElement({
   block: ManagedDecodedBlock,
   container: null,
@@ -413,7 +453,7 @@ const DeclarationServiceProgramDefinition = Block.makeDefinition(
     Message: ServiceMessage,
   },
 )
-const RunWork = DeclarationServiceProgramDefinition.command('RunWork', {
+const RunWork = DeclarationServiceProgramDefinition.makeCommand('RunWork', {
   messages: [ServiceMessage.CompletedWork],
   handler: function* () {
     const programClient = yield* ProgramClient
@@ -429,19 +469,24 @@ const RunWork = DeclarationServiceProgramDefinition.command('RunWork', {
 })
 const DeclarationServiceProgramComposition =
   DeclarationServiceProgramDefinition.makeComposition()
-const ServiceBlock = DeclarationServiceProgramComposition.assembleBlock({
-  init: () => ({ model: Model.make({ status: 'ready' }) }),
-  update: DeclarationServiceProgramComposition.makeUpdate((model, message) =>
-    ServiceMessage.match(message, {
-      RequestedWork: () => ({ model, commands: [RunWork()] }),
-      CompletedWork: () => ({ model }),
-    }),
-  ),
-  view: DeclarationServiceProgramComposition.makeView((model, h) =>
-    h.div([], [model.status]),
-  ),
-  EffectsLayer: RunWork.layer,
-})
+const prepareServiceBlock = () =>
+  DeclarationServiceProgramComposition.prepareBlock({
+    init: () => ({ model: Model.make({ status: 'ready' }) }),
+    update: DeclarationServiceProgramComposition.makeUpdate((model, message) =>
+      ServiceMessage.match(message, {
+        RequestedWork: () => ({ model, commands: [RunWork()] }),
+        CompletedWork: () => ({ model }),
+      }),
+    ),
+    view: DeclarationServiceProgramComposition.makeView((model, h) =>
+      h.div([], [model.status]),
+    ),
+    EffectsLayer: RunWork.layer,
+  })
+const ServiceBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepareServiceBlock
+> = Block.assemble(prepareServiceBlock)
 export const PendingServiceElement = Program.makeElement({
   block: ServiceBlock,
   container: null,
@@ -479,20 +524,26 @@ const DeclarationRawCommandProgramDefinition = Block.makeDefinition(
 )
 const DeclarationRawCommandProgramComposition =
   DeclarationRawCommandProgramDefinition.makeComposition()
-const RawCommandBlock = DeclarationRawCommandProgramComposition.assembleBlock({
-  init: () => ({ model: Model.make({ status: 'ready' }) }),
-  update: DeclarationRawCommandProgramComposition.makeUpdate((model, message) =>
-    RawCommandMessage.match(message, {
-      RequestedRead: () => ({ model, commands: [ReadValue()] }),
-      CompletedRead: ({ value }) => ({
-        model: Struct.modifyFields(model, { status: () => value }),
-      }),
-    }),
-  ),
-  view: DeclarationRawCommandProgramComposition.makeView((model, h) =>
-    h.div([], [model.status]),
-  ),
-})
+const prepareRawCommandBlock = () =>
+  DeclarationRawCommandProgramComposition.prepareBlock({
+    init: () => ({ model: Model.make({ status: 'ready' }) }),
+    update: DeclarationRawCommandProgramComposition.makeUpdate(
+      (model, message) =>
+        RawCommandMessage.match(message, {
+          RequestedRead: () => ({ model, commands: [ReadValue()] }),
+          CompletedRead: ({ value }) => ({
+            model: Struct.modifyFields(model, { status: () => value }),
+          }),
+        }),
+    ),
+    view: DeclarationRawCommandProgramComposition.makeView((model, h) =>
+      h.div([], [model.status]),
+    ),
+  })
+const RawCommandBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepareRawCommandBlock
+> = Block.assemble(prepareRawCommandBlock)
 export const PendingRawCommandElement = Program.makeElement({
   block: RawCommandBlock,
   container: null,

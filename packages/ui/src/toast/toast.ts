@@ -1,4 +1,5 @@
 import { Match, Option, Schema } from 'effect'
+import * as Block from 'foldkit/block'
 import { type ChildAttribute, type Html, childAttributes } from 'foldkit/html'
 
 import { Position, SwipeState, Variant } from './schema.js'
@@ -132,7 +133,7 @@ const LEFT_MOUSE_BUTTON = 0
  *  Consume the completed Block everywhere. Use `Toast.Model` in your app
  *  Model, `Toast.Message` in your parent Message union, `Toast.operations.requestShow`
  *  and `Toast.operations.requestDismiss` for raw Model operations, and
- *  `Parent.bindChild(Toast, config)` in the parent Block. Exposed
+ *  `Parent.makeBinding(Toast, config)` in the parent Block. Exposed
  *  operations such as `show` and `dismiss` are available directly on the
  *  binding. The separate exports provide
  *  payload-independent Schemas, constants, and Commands.
@@ -319,14 +320,19 @@ export const makeFixture = <A, I>(payloadSchema: Schema.Codec<A, I>) => {
     },
   )
 
-  const block = ToastComposition.assembleBlock({
-    init: toastRuntime.init,
-    update: toastRuntime.update,
-    view,
-    operations: toastRuntime.operations,
-    subscriptions: toastRuntime.subscriptions,
-    EffectsLayer: toastRuntime.EffectsLayer,
-  })
+  const prepare = () =>
+    ToastComposition.prepareBlock({
+      init: toastRuntime.init,
+      update: toastRuntime.update,
+      view,
+      operations: toastRuntime.operations,
+      subscriptions: toastRuntime.subscriptions,
+      EffectsLayer: toastRuntime.EffectsLayer,
+    })
+  const block: Block.FromAssemblyWithViewAndOutMessage<
+    typeof toastRuntime.Model,
+    typeof prepare
+  > = Block.assemble(prepare)
   const test = makeTest({
     block,
     entryAnimationBinding: EntryAnimationBinding,

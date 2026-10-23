@@ -23,7 +23,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-const FetchPosts = ApplicationDefinition.command('FetchPosts', {
+const FetchPosts = ApplicationDefinition.makeCommand('FetchPosts', {
   messages: [Message.CompletedFetchPosts],
   handler: function* () {
     return () =>

@@ -19,35 +19,44 @@ export const ComposedInitDefinition = Block.makeDefinition('ComposedInit', {
   Model,
   Message: LocalMessage,
 })
-export const Prepare = ComposedInitDefinition.command('Prepare', {
+export const Prepare = ComposedInitDefinition.makeCommand('Prepare', {
   messages: [LocalMessage.CompletedPrepare],
   handler: function* () {
     return () => Effect.succeed(LocalMessage.CompletedPrepare())
   },
 })
-export const ChildBinding = ComposedInitDefinition.bindChild(
+export const ChildBinding = ComposedInitDefinition.makeBinding(
   GeneratedDispatchChildBlock,
   { field: 'child' },
 )
 export const ComposedInitComposition = ComposedInitDefinition.makeComposition({
   bindings: [ChildBinding],
 })
-export const prepare = ComposedInitDefinition.step(model => ({
+export const prepare = ComposedInitDefinition.makeStep(model => ({
   model: modifyFields(model, { isReady: () => true }),
   commands: [Prepare()],
 }))
-export const prepareTogether = ComposedInitDefinition.step(() =>
+export const prepareTogether = ComposedInitDefinition.makeStep(() =>
   Update.combineSteps([ChildBinding.requestReadCount(), prepare]),
 )
 export const init = ComposedInitComposition.makeInit((isReady: boolean) => ({
   model: { isReady },
   steps: [prepareTogether],
 }))
-export const ComposedInitBlock = ComposedInitComposition.assembleBlock({
-  init,
-  update: ComposedInitComposition.makeUpdate(model => ({ model })),
-  EffectsLayer: Prepare.layer,
-})
+export const prepareComposedInitBlock = () =>
+  ComposedInitComposition.prepareBlock({
+    init,
+    update: ComposedInitComposition.makeUpdate(model => ({ model })),
+    EffectsLayer: Prepare.layer,
+  })
+
+export const RawComposedInitBlock: CompletedAssembly<
+  typeof prepareComposedInitBlock
+> = Block.assemble(prepareComposedInitBlock)
+export const ComposedInitBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ComposedInitComposition.Model,
+  typeof prepareComposedInitBlock
+> = Block.assemble(prepareComposedInitBlock)
 
 type Equal<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends <
@@ -73,3 +82,8 @@ export type ExactServices = Expect<
 export type ExactConstructorError = Expect<
   Equal<Layer.Error<typeof ComposedInitBlock.EffectsLayer>, PreparationFailure>
 >
+
+type CompletedAssembly<Producer extends () => Block.AssemblyDraft<object>> =
+  ReturnType<Producer> extends Block.AssemblyDraft<infer Completed>
+    ? Completed
+    : never

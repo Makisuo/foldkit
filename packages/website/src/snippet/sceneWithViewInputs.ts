@@ -12,14 +12,14 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model,
   Message,
 })
-const SliderBinding = ApplicationDefinition.bindChild(Slider.SliderBlock, {
+const SliderBinding = ApplicationDefinition.makeBinding(Slider.SliderBlock, {
   field: 'slider',
   init: {
     contextToArgs: () => [{ id: 'volume', min: 0, max: 10, step: 1 }],
   },
 }).withOutMessagePolicy({
   fold: ApplicationDefinition.makeOutMessageFold(Slider.SliderBlock, {
-    ChangedValue: ApplicationDefinition.stepNoop,
+    ChangedValue: ApplicationDefinition.makeNoopStep,
   }),
 })
 const ApplicationComposition = ApplicationDefinition.makeComposition({

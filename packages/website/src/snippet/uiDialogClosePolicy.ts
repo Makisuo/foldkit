@@ -1,5 +1,4 @@
 import { Update } from 'foldkit'
-import { modifyFields } from 'foldkit/struct'
 
 import { Dialog } from '@foldkit/ui'
 
@@ -12,16 +11,16 @@ import {
 const foldDialogOutMessage = EditorDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: EditorDefinition.stepNoop,
+    Opened: EditorDefinition.makeNoopStep,
     Closed: () =>
-      EditorDefinition.stepFields(() => ({
+      EditorDefinition.makeFieldsStep(() => ({
         route: () => '/projects',
       })),
-    CompletedClose: EditorDefinition.stepNoop,
+    CompletedClose: EditorDefinition.makeNoopStep,
   },
 )
 
-export const DialogBinding = EditorDefinition.bindChild(Dialog.DialogBlock, {
+export const DialogBinding = EditorDefinition.makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
 
@@ -29,9 +28,9 @@ export const update = EditorComposition.makeUpdate((model, message) =>
   Message.match(message, {
     SavedProject: ({ project }) =>
       Update.combineSteps(model, [
-        stepModel => ({
-          model: modifyFields(stepModel, { project: () => project }),
-        }),
+        EditorDefinition.makeFieldsStep(() => ({
+          project: () => project,
+        })),
         DialogBinding.requestClose(),
       ]),
   }),

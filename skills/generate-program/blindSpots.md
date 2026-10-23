@@ -69,7 +69,7 @@ const foldFormMessage = Message.match<Update.Step<Model, Message>>({
 })
 ```
 
-`Update.Return` and `Update.Step` default their Command requirement parameter to `never`, so the inline annotation is safe only when the matcher is pure. It also gives nested literal tags a contextual type before TypeScript can widen them. Inside `Composition.makeUpdate`, `Definition.step`, or `Definition.makeOutMessageFold`, omit the matcher return generic so the owner infers Command requirements, OutMessages, and graph evidence. Wrap a standalone Command-producing update or Step in `Update.define` or `Update.defineStep`; create a named return alias only when another matcher, helper, or exported signature reuses it, and include the complete requirement type.
+`Update.Return` and `Update.Step` default their Command requirement parameter to `never`, so the inline annotation is safe only when the matcher is pure. It also gives nested literal tags a contextual type before TypeScript can widen them. Inside `Composition.makeUpdate`, `Definition.makeStep`, or `Definition.makeOutMessageFold`, omit the matcher return generic so the owner infers Command requirements, OutMessages, and graph evidence. Wrap a standalone Command-producing update or Step in `Update.define` or `Update.defineStep`; create a named return alias only when another matcher, helper, or exported signature reuses it, and include the complete requirement type.
 
 **Flag needless scaffolding, repeated types, fixed `R = never` on a Command-producing owner, and a missing guard.** Use `Update.Return<Model, Message>` when an update cannot emit an OutMessage and has no Command requirements, or provide its actual requirement type at a standalone boundary. A missing `outMessage` field means that update emitted nothing. The `outMessage?: never` guard also prevents a result containing an OutMessage from entering code that would keep only its Model and Commands. Code expecting `Update.ReturnWithOutMessage<Model, Message, OutMessage>` can accept either outcome. A hand-written plain-return alias must preserve the same guard. Also flag a full record repeated at the update signature and again inside `Message.match<UpdateReturn>(message, handlers)`, or `: UpdateReturn` repeated on an update already constrained by that match.
 
@@ -83,10 +83,10 @@ A Binding fold or named operation returns a connected Step whose Model input req
 
 When the OutMessage is already known while constructing a new result, include it directly. Use `Update.withOutMessage` when attaching an OutMessage to an existing plain return or when the value has the type `OutMessage | undefined`. Pipe an existing return into the helper, and pass a new result literal first. Flag local attachment helpers and conditional object spreads that duplicate it.
 
-A child with OutMessages needs an explicit `withOutMessagePolicy` selection. Flag a missing policy, an old `outMessage` field inside `bindChild` config, and a policy-selected value omitted from Composition registration. A local fold may handle variants that also continue upward; its derived OutMessage takes precedence for that dispatch.
+A child with OutMessages needs an explicit `withOutMessagePolicy` selection. Flag a missing policy, an old `outMessage` field inside `makeBinding` config, and a policy-selected value omitted from Composition registration. A local fold may handle variants that also continue upward; its derived OutMessage takes precedence for that dispatch.
 
 Inline an ordinary unkeyed policy as
-`bindChild(WholeChildBlock, ...).withOutMessagePolicy({ fold: FeatureDefinition.makeOutMessageFold(WholeChildBlock, handlers) })`.
+`makeBinding(WholeChildBlock, ...).withOutMessagePolicy({ fold: FeatureDefinition.makeOutMessageFold(WholeChildBlock, handlers) })`.
 Flag a raw child matcher, repeated Step or refined payload generics, and a
 wrapper that data-first matches inside the fold. Every fold passes the whole
 completed child explicitly, whether inline, extracted, adapted for keyed policy,
@@ -105,14 +105,21 @@ the declared parent OutMessage union, and a record whose handlers all return
 annotations, generic argument lists, or a raw matcher as a recursion workaround.
 
 For an actual unary Model-only field Step, use
-`FeatureDefinition.stepFields(callback)` and return only field transformers. A
+`FeatureDefinition.makeFieldsStep(callback)` and return only field transformers. A
 named child OutMessage branch that intentionally preserves the parent Model uses
-`FeatureDefinition.stepNoop()`. In a `makeOutMessageFold` case record, pass the
-no-op helper point-free as the handler (`Closed: FeatureDefinition.stepNoop`).
-Parameterized, Command-producing,
-OutMessage-producing, connected Binding, initialization, delegated, conditional,
-and composed results stay on `FeatureDefinition.step`. Do not construct and
-immediately invoke one of these helpers in an ordinary update branch.
+`FeatureDefinition.makeNoopStep()`. In a `makeOutMessageFold` case record, pass the
+no-op helper point-free as the handler (`Closed: FeatureDefinition.makeNoopStep`).
+Use `FeatureDefinition.makeCommandsStep(commands)` when a composed Step only
+returns an existing Command collection. Use
+`FeatureDefinition.makeOutMessageStep(outMessage)` when a Step preserves the
+Model and emits one already-known OutMessage declared by that Definition. Keep
+Model-dependent Commands or OutMessages on `FeatureDefinition.makeStep`. Do not put an
+OutMessage-producing Step in `Update.combineSteps`; its result has no OutMessage
+channel. Attach an OutMessage to the combined result with
+`Update.withOutMessage`. Additional arguments, connected Binding, initialization,
+delegated, conditional, and composed results stay on `FeatureDefinition.makeStep`.
+Do not construct and immediately invoke one of these helpers in an ordinary
+update branch.
 
 When several operations update the same Model in sequence, use `Update.combineSteps`. Initialize each child through its registered Binding recipe so Composition assembles the parent Model and mapped Commands.
 
@@ -142,13 +149,15 @@ A Message named `Incremented` describes the resulting state change, not the user
 
 ### `view-named-after-namespace`
 
-Name the feature's primary implementation `view`, rather than repeating its feature name as `counter`, `home`, or `room`. Pass that implementation to `assembleBlock`. Parents render the completed child through `ChildBinding.embedView`; do not export a parallel loose view solely for parent embedding.
+Name the feature's primary implementation `view`, rather than repeating its feature name as `counter`, `home`, or `room`. Pass that implementation to `prepareBlock`. Parents render the completed child through `ChildBinding.embedView`; do not export a parallel loose view solely for parent embedding.
 
 ### `unearned-type-aliases`
 
 `export const Model = Schema.Struct({...})` followed by `export type Model = typeof Model.Type`.
 
 Flag routine application aliases even when another application module references the decoded type. The owning feature writes `typeof Model.Type`, `typeof Message.Type`, or `typeof OutMessage.Type` directly. A consumer of a completed child writes `typeof ChildBlock.Model.Type`, `typeof ChildBlock.Message.Type`, or `typeof ChildBlock.OutMessage.Type`, which keeps ownership visible and avoids importing child implementation contracts.
+
+For ordinary source features, require one private zero-argument producer named `prepare`, followed immediately with no blank line by the matching four-shape export header, before composing parent state from `ChildBlock.Model`. Accept a descriptive producer name only when one file genuinely contains multiple preparation producers. The feature barrel exports the completed Block and keeps its Model internal. Ordinary decoded-type annotations query `typeof ChildBlock.Model.Type`. Flag casts, broad Block annotations, fake helper names, `satisfies`-only boundaries or an unannotated producer used to evade the inference guard. Keep independently public domain Schemas and published generic contracts. Never create another Definition or repeat a generic factory call to obtain a Model. Local Message stays internal because it omits generated child envelopes.
 
 Do not flag an alias that deliberately publishes a library contract or names a useful generic, mapped, or conditional type. `FeatureViewBuilder = Block.ViewBuilderFor<typeof FeatureComposition>` is purposeful. Owned callbacks should infer their parameters rather than adding either an alias or a repeated direct query.
 
@@ -198,7 +207,7 @@ A `keyed(...)` whose key is built from displayed data (concatenated booleans, a 
 
 ### `authored-child-delivery-message`
 
-Flattening a child's Message variants into the parent's `defineMessageUnion()` record makes every parent handler know the child's tag names, and an authored `GotChildMessage` wrapper duplicates routing metadata that the Binding already owns. The canonical Block pattern keeps the authored parent Message local and lets `bindChild` derive a generated envelope from the completed child Block. The parent Composition's complete Message Schema adds that envelope and routes it to the exact placement, key, and live generation. Use `delivery.when`, `delivery.toUpdateContext`, and `keySchema` for parent policy instead of adding child variants or mappers to the authored union.
+Flattening a child's Message variants into the parent's `defineMessageUnion()` record makes every parent handler know the child's tag names, and an authored `GotChildMessage` wrapper duplicates routing metadata that the Binding already owns. The canonical Block pattern keeps the authored parent Message local and lets `makeBinding` derive a generated envelope from the completed child Block. The parent Composition's complete Message Schema adds that envelope and routes it to the exact placement, key, and live generation. Use `delivery.when`, `delivery.toUpdateContext`, and `keySchema` for parent policy instead of adding child variants or mappers to the authored union.
 
 ## Accessibility
 

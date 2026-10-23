@@ -212,3 +212,31 @@ test('marks embedded examples with the exact website build', context => {
     ),
   )
 })
+
+test('links optional editor guidance to the verified preview deployment', () => {
+  const deployment = 'https://example.vercel.app'
+  const summary = previewReadySummary(manifest, deployment)
+
+  assert.ok(summary.includes('### Editor performance'))
+  assert.ok(
+    summary.indexOf('### Package versions') >
+      summary.indexOf('### Editor performance'),
+  )
+  assert.ok(
+    summary.indexOf('### Agent prompts') >
+      summary.indexOf('### Package versions'),
+  )
+  assert.ok(
+    summary.includes('Large Block compositions can still cause editor latency'),
+  )
+  assert.ok(
+    summary.includes(
+      'We recommend trying the optional tsrs language-server setup',
+    ),
+  )
+  assert.ok(
+    summary.includes(
+      `${deployment}/preview-upgrade#optional-editor-setup-tsrs`,
+    ),
+  )
+})

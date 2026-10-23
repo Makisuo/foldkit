@@ -16,7 +16,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-const WaitBeforeReset = ApplicationDefinition.command('WaitBeforeReset', {
+const WaitBeforeReset = ApplicationDefinition.makeCommand('WaitBeforeReset', {
   args: { delayMs: Schema.Number },
   messages: [Message.CompletedWaitBeforeReset],
   handler: function* () {

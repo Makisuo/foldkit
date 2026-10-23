@@ -30,13 +30,13 @@ const AnimatedDialogExampleDefinition = Block.makeDefinition(
 const foldDialogOutMessage = AnimatedDialogExampleDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: AnimatedDialogExampleDefinition.stepNoop,
-    Closed: AnimatedDialogExampleDefinition.stepNoop,
-    CompletedClose: AnimatedDialogExampleDefinition.stepNoop,
+    Opened: AnimatedDialogExampleDefinition.makeNoopStep,
+    Closed: AnimatedDialogExampleDefinition.makeNoopStep,
+    CompletedClose: AnimatedDialogExampleDefinition.makeNoopStep,
   },
 )
 
-const DialogBinding = AnimatedDialogExampleDefinition.bindChild(
+const DialogBinding = AnimatedDialogExampleDefinition.makeBinding(
   Dialog.DialogBlock,
   {
     field: 'dialog',

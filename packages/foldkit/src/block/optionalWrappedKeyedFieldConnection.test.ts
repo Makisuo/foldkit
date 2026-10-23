@@ -20,6 +20,7 @@ import { modifyFields } from '../struct/index.js'
 import { makeDefinition } from './define.js'
 import { CurrentInstance } from './instanceContext.js'
 import { normalizeKeyedFieldConfig } from './keyedFieldConnection.js'
+import * as Block from './public.js'
 
 const ChildModel = Schema.Struct({ count: Schema.Number })
 const Entry = Schema.Struct({
@@ -211,7 +212,7 @@ const Child = makeDefinition('OptionalWrappedKeyedChild', {
   Message: ChildMessage,
 })
 const ChildComposition = Child.makeComposition()
-const FinishInitialization = Child.command('FinishInitialization', {
+const FinishInitialization = Child.makeCommand('FinishInitialization', {
   args: { count: Schema.Number },
   messages: [ChildMessage.CompletedInitialization],
   handler: function* () {
@@ -219,27 +220,32 @@ const FinishInitialization = Child.command('FinishInitialization', {
       Effect.succeed(ChildMessage.CompletedInitialization({ count }))
   },
 })
-const ChildBlock = ChildComposition.assembleBlock({
-  init: ChildComposition.makeInit((count: number) => ({
-    model: ChildModel.make({ count }),
-    commands: [FinishInitialization({ count })],
-  })),
-  update: ChildComposition.makeUpdate((model, message) =>
-    ChildMessage.match(message, {
-      UpdatedCount: ({ count }) => ({
-        model: modifyFields(model, { count: () => count }),
+const prepareChildBlock = () =>
+  ChildComposition.prepareBlock({
+    init: ChildComposition.makeInit((count: number) => ({
+      model: ChildModel.make({ count }),
+      commands: [FinishInitialization({ count })],
+    })),
+    update: ChildComposition.makeUpdate((model, message) =>
+      ChildMessage.match(message, {
+        UpdatedCount: ({ count }) => ({
+          model: modifyFields(model, { count: () => count }),
+        }),
+        CompletedInitialization: ({ count }) => ({
+          model: modifyFields(model, { count: () => count }),
+        }),
       }),
-      CompletedInitialization: ({ count }) => ({
-        model: modifyFields(model, { count: () => count }),
-      }),
-    }),
-  ),
-  operations: {
-    setCount: (count: number) =>
-      Tuple.make(ChildMessage.UpdatedCount({ count })),
-  },
-  EffectsLayer: FinishInitialization.layer,
-})
+    ),
+    operations: {
+      setCount: (count: number) =>
+        Tuple.make(ChildMessage.UpdatedCount({ count })),
+    },
+    EffectsLayer: FinishInitialization.layer,
+  })
+const ChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 const ParentMessage = defineMessageUnion({
   IgnoredChildMessage: {},
   RequestedSetCount: { id: Schema.String, count: Schema.Number },
@@ -248,26 +254,31 @@ const Parent = makeDefinition('OptionalWrappedKeyedParent', {
   Model: ParentModel,
   Message: ParentMessage,
 })
-const ChildBinding = Parent.bindChild(ChildBlock, {
+const ChildBinding = Parent.makeBinding(ChildBlock, {
   field: 'maybeEntry',
   key: 'id',
   childField: 'child',
 })
 const ParentComposition = Parent.makeComposition({ bindings: [ChildBinding] })
-const ParentBlock = ParentComposition.assembleBlock({
-  init: ParentComposition.makeInit(() => ({ model: noneModel })),
-  update: ParentComposition.makeUpdate((model, message) =>
-    ParentMessage.match(message, {
-      IgnoredChildMessage: () => ({ model }),
-      RequestedSetCount: ({ id, count }) =>
-        ChildBinding.setCount(id, count)(model),
-    }),
-  ),
-  operations: {
-    setCount: (id: string, count: number) =>
-      Tuple.make(ParentMessage.RequestedSetCount({ id, count })),
-  },
-})
+const prepareParentBlock = () =>
+  ParentComposition.prepareBlock({
+    init: ParentComposition.makeInit(() => ({ model: noneModel })),
+    update: ParentComposition.makeUpdate((model, message) =>
+      ParentMessage.match(message, {
+        IgnoredChildMessage: () => ({ model }),
+        RequestedSetCount: ({ id, count }) =>
+          ChildBinding.setCount(id, count)(model),
+      }),
+    ),
+    operations: {
+      setCount: (id: string, count: number) =>
+        Tuple.make(ParentMessage.RequestedSetCount({ id, count })),
+    },
+  })
+const ParentBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ParentModel,
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 
 it('infers the wrapper key and keeps the child Block identity as placement', () => {
   expectTypeOf(

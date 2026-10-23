@@ -1,4 +1,5 @@
 import { Layer, Match, Tuple } from 'effect'
+import { Block } from 'foldkit'
 import type { ChildAttribute, Html, TagName } from 'foldkit/html'
 import type * as Update from 'foldkit/update'
 
@@ -8,7 +9,6 @@ import {
   EffectsLayer,
   WaitForAnimationSettled,
   WaitForPaint,
-  defaultLeaveCommand,
   init,
   update,
 } from './update.js'
@@ -16,13 +16,7 @@ import {
 export type { Hid, InitConfig, Showed } from './schema.js'
 export { init, Message, Model, OutMessage, TransitionState }
 
-export {
-  WaitForAnimationSettled,
-  WaitForPaint,
-  EffectsLayer,
-  defaultLeaveCommand,
-  update,
-}
+export { WaitForAnimationSettled, WaitForPaint, EffectsLayer, update }
 
 // VIEW
 
@@ -145,30 +139,36 @@ export const view = AnimationComposition.makeView.withInputs<ViewInputs>(
   },
 )
 
+const prepare = () =>
+  AnimationComposition.prepareBlock({
+    init,
+    update: (
+      model: Model,
+      message: Message,
+    ): Update.ReturnWithOutMessage<
+      Model,
+      Message,
+      OutMessage,
+      Layer.Success<typeof EffectsLayer>
+    > => update(model, message),
+    view,
+    operations: {
+      requestShow: Message.RequestedShow,
+      requestHide: Message.RequestedHide,
+      requestWaitForLeaveSettlement: Message.RequestedWaitForLeaveSettlement,
+      requestFinish: (generation: number) =>
+        Tuple.make(Message.RequestedFinish({ generation })),
+      requestToggle: Message.RequestedToggle,
+      requestResume: Message.RequestedResume,
+      requestImmediateReset: Message.RequestedImmediateReset,
+    },
+    EffectsLayer,
+  })
 /** Complete Animation Block definition for connecting to a parent. */
-export const AnimationBlock = AnimationComposition.assembleBlock({
-  init,
-  update: (
-    model: Model,
-    message: Message,
-  ): Update.ReturnWithOutMessage<
-    Model,
-    Message,
-    OutMessage,
-    Layer.Success<typeof EffectsLayer>
-  > => update(model, message),
-  view,
-  operations: {
-    requestShow: Message.RequestedShow,
-    requestHide: Message.RequestedHide,
-    requestFinish: (generation: number) =>
-      Tuple.make(Message.RequestedFinish({ generation })),
-    requestToggle: Message.RequestedToggle,
-    requestResume: Message.RequestedResume,
-    requestImmediateReset: Message.RequestedImmediateReset,
-  },
-  EffectsLayer,
-})
+export const AnimationBlock: Block.FromAssemblyWithViewAndOutMessage<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)
 
 /** Programmatically starts the enter lifecycle through Animation update. */
 export const show = AnimationBlock.operations.requestShow

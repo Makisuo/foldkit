@@ -26,7 +26,7 @@ const update = KeyedEntryComposition.makeUpdate((model, message) =>
     }),
   }),
 )
-export const Entry = KeyedEntryComposition.assembleBlock({
+export const Entry = KeyedEntryComposition.prepareBlock({
   init,
   update,
   operations: {

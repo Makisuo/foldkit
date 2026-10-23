@@ -122,11 +122,16 @@ export const view = ApplicationComposition.makeView((model, h) => ({
 
 const buttonStyle = 'bg-black text-white hover:bg-gray-700 px-4 py-2 transition'
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-})
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
+    init,
+    update,
+    view,
+  })
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)
 ```
 
 ```ts
@@ -143,9 +148,10 @@ const program = Program.make({
 Runtime.run(program)
 ```
 
-The `makeComposition`, `makeInit`, `makeUpdate`, `makeView`, `assembleBlock`,
-and `Program.make` calls return passive configuration or authored functions.
-`Runtime.run` starts the completed program.
+The `makeComposition`, `makeInit`, `makeUpdate`, `makeView`, `prepareBlock`,
+`Block.assemble`, and `Program.make` calls return passive configuration or
+authored functions. `Block.assemble` evaluates `prepare` once while constructing
+the passive Block. `Runtime.run` starts the completed program.
 
 Try [Counter in the browser](https://foldkit.dev/example-apps/counter), follow the [walkthrough](https://foldkit.dev/core/counter-example), or explore the [source](https://github.com/foldkit/foldkit/tree/main/examples/counter).
 

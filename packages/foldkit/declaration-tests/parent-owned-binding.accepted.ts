@@ -26,7 +26,7 @@ const DeclarationParentOwnedChildDefinition = Block.makeDefinition(
 )
 const handlerConstruction: Effect.Effect<void, 'HandlerUnavailable'> =
   Effect.void
-export const ReadChildValue = DeclarationParentOwnedChildDefinition.command(
+export const ReadChildValue = DeclarationParentOwnedChildDefinition.makeCommand(
   'ReadChildValue',
   {
     messages: [ChildMessage.CompletedReadChildValue],
@@ -43,32 +43,38 @@ export const ReadChildValue = DeclarationParentOwnedChildDefinition.command(
 )
 const DeclarationParentOwnedChildComposition =
   DeclarationParentOwnedChildDefinition.makeComposition()
-export const ChildBlock = DeclarationParentOwnedChildComposition.assembleBlock({
-  init: DeclarationParentOwnedChildComposition.makeInit(() => ({
-    model: ChildModel.make({ value: 'initial' }),
-  })),
-  update: DeclarationParentOwnedChildComposition.makeUpdate((model, message) =>
-    ChildMessage.match(message, {
-      UpdatedValue: ({ value }) => ({
-        model: Struct.modifyFields(model, { value: () => value }),
-      }),
-      RequestedSelect: () => ({
-        model,
-        outMessage: ChildOutMessage.SelectedValue({ value: model.value }),
-      }),
-      RequestedReadChildValue: () => ({
-        model,
-        commands: [ReadChildValue()],
-      }),
-      CompletedReadChildValue: () => ({ model }),
-    }),
-  ),
-  operations: {
-    select: () => [ChildMessage.RequestedSelect()],
-    refresh: () => [ChildMessage.RequestedReadChildValue()],
-  },
-  EffectsLayer: ReadChildValue.layer,
-})
+const prepareChildBlock = () =>
+  DeclarationParentOwnedChildComposition.prepareBlock({
+    init: DeclarationParentOwnedChildComposition.makeInit(() => ({
+      model: ChildModel.make({ value: 'initial' }),
+    })),
+    update: DeclarationParentOwnedChildComposition.makeUpdate(
+      (model, message) =>
+        ChildMessage.match(message, {
+          UpdatedValue: ({ value }) => ({
+            model: Struct.modifyFields(model, { value: () => value }),
+          }),
+          RequestedSelect: () => ({
+            model,
+            outMessage: ChildOutMessage.SelectedValue({ value: model.value }),
+          }),
+          RequestedReadChildValue: () => ({
+            model,
+            commands: [ReadChildValue()],
+          }),
+          CompletedReadChildValue: () => ({ model }),
+        }),
+    ),
+    operations: {
+      select: () => [ChildMessage.RequestedSelect()],
+      refresh: () => [ChildMessage.RequestedReadChildValue()],
+    },
+    EffectsLayer: ReadChildValue.layer,
+  })
+export const ChildBlock: Block.FromAssemblyWithOutMessage<
+  typeof ChildModel,
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 
 const DeclarationParentOwnedPlainChildDefinition = Block.makeDefinition(
   'DeclarationParentOwnedPlainChild',
@@ -78,7 +84,7 @@ const DeclarationParentOwnedPlainChildDefinition = Block.makeDefinition(
   },
 )
 const PlainChildSubscriptions =
-  DeclarationParentOwnedPlainChildDefinition.subscriptions(entry => ({
+  DeclarationParentOwnedPlainChildDefinition.makeSubscriptions(entry => ({
     values: entry('ObservePlainChildValues', {
       messages: [ChildMessage.UpdatedValue],
       handler: function* () {
@@ -88,8 +94,8 @@ const PlainChildSubscriptions =
   }))
 const DeclarationParentOwnedPlainChildComposition =
   DeclarationParentOwnedPlainChildDefinition.makeComposition()
-export const PlainChildBlock =
-  DeclarationParentOwnedPlainChildComposition.assembleBlock({
+const preparePlainChildBlock = () =>
+  DeclarationParentOwnedPlainChildComposition.prepareBlock({
     init: DeclarationParentOwnedPlainChildComposition.makeInit(() => ({
       model: ChildModel.make({ value: 'initial' }),
     })),
@@ -99,6 +105,10 @@ export const PlainChildBlock =
     subscriptions: PlainChildSubscriptions,
     EffectsLayer: PlainChildSubscriptions.values.layer,
   })
+export const PlainChildBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof ChildModel,
+  typeof preparePlainChildBlock
+> = Block.assemble(preparePlainChildBlock)
 
 const Entry = Schema.Struct({ id: Schema.Number, child: ChildModel })
 const NamedEntry = Schema.Struct({ id: Schema.String, child: ChildModel })
@@ -134,13 +144,13 @@ const foldChildOutMessage = ChildOutMessage.match<
 })
 
 export const DirectChildBinding =
-  DeclarationParentOwnedParentDefinition.bindChild(ChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
     init: false,
   }).withOutMessagePolicy({ fold: foldChildOutMessage })
 export const directChildInspection = Block.inspectBinding(DirectChildBinding)
 export const ForwardingChildBinding =
-  DeclarationParentOwnedParentDefinition.bindChild(ChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeBinding(ChildBlock, {
     field: 'child',
     placement: 'forwardingChild',
   }).withOutMessagePolicy({
@@ -152,7 +162,7 @@ export const ForwardingChildBinding =
   })
 
 export const OptionalChildBinding =
-  DeclarationParentOwnedParentDefinition.bindChild(ChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeBinding(ChildBlock, {
     placement: 'optionalChild',
     field: 'maybeChild',
   }).withOutMessagePolicy({
@@ -171,7 +181,7 @@ export const OptionalChildBinding =
   })
 
 export const TaggedChildBinding =
-  DeclarationParentOwnedParentDefinition.bindChild(ChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeBinding(ChildBlock, {
     placement: 'taggedChild',
     read: model =>
       model.slot._tag === 'Child'
@@ -184,7 +194,7 @@ export const TaggedChildBinding =
   }).withOutMessagePolicy({ fold: foldChildOutMessage })
 
 export const KeyedChildBinding =
-  DeclarationParentOwnedParentDefinition.bindChild(ChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeBinding(ChildBlock, {
     placement: 'entries',
     readAll: model => model.entries,
     key: entry => entry.id,
@@ -211,7 +221,7 @@ export const KeyedChildBinding =
 const readNamedEntries = (model: typeof ParentModel.Type) => model.namedEntries
 
 export const KeyedChildWithoutOutMessageBinding =
-  DeclarationParentOwnedParentDefinition.bindChild(PlainChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeBinding(PlainChildBlock, {
     placement: 'namedEntries',
     readAll: readNamedEntries,
     key: entry => {
@@ -250,7 +260,7 @@ export const KeyedChildWithoutOutMessageBinding =
   })
 
 export const InlineKeyedChildWithoutOutMessageBinding =
-  DeclarationParentOwnedParentDefinition.bindChild(PlainChildBlock, {
+  DeclarationParentOwnedParentDefinition.makeBinding(PlainChildBlock, {
     placement: 'inlineNamedEntries',
     readAll: model => {
       const exactModel: typeof ParentModel.Type = model
@@ -286,8 +296,8 @@ export const DeclarationParentOwnedParentComposition =
       KeyedChildWithoutOutMessageBinding,
     ],
   })
-export const ParentBlock =
-  DeclarationParentOwnedParentComposition.assembleBlock({
+const prepareParentBlock = () =>
+  DeclarationParentOwnedParentComposition.prepareBlock({
     init: DeclarationParentOwnedParentComposition.makeInit(() => ({
       model: ParentModel.make({
         child: ChildModel.make({ value: 'initial' }),
@@ -302,6 +312,10 @@ export const ParentBlock =
         ParentMessage.match(message, { ClickedParent: () => ({ model }) }),
     ),
   })
+export const ParentBlock: Block.FromAssemblyWithOutMessage<
+  typeof ParentModel,
+  typeof prepareParentBlock
+> = Block.assemble(prepareParentBlock)
 
 const ApplicationMessage = Message.defineMessageUnion({
   ClickedApplication: {},
@@ -310,7 +324,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Model: ParentModel,
   Message: ApplicationMessage,
 })
-export const ApplicationChildBinding = ApplicationDefinition.bindChild(
+export const ApplicationChildBinding = ApplicationDefinition.makeBinding(
   ChildBlock,
   {
     field: 'child',
@@ -331,10 +345,17 @@ export const DeclarationPureCompositionComposition = Block.makeDefinition(
     Message: Schema.Never,
   },
 ).makeComposition()
-export const pureBlock = DeclarationPureCompositionComposition.assembleBlock({
-  init: DeclarationPureCompositionComposition.makeInit(() => ({ model: null })),
-  update: DeclarationPureCompositionComposition.makeUpdate(),
-})
+const preparePureBlock = () =>
+  DeclarationPureCompositionComposition.prepareBlock({
+    init: DeclarationPureCompositionComposition.makeInit(() => ({
+      model: null,
+    })),
+    update: DeclarationPureCompositionComposition.makeUpdate(),
+  })
+export const pureBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof Schema.Null,
+  typeof preparePureBlock
+> = Block.assemble(preparePureBlock)
 
 export const emptyLayer = Layer.empty
 
@@ -365,13 +386,13 @@ export const makeGenericKeyedBinding = <const Value extends string>(
     void id
     return ChildOutMessage.match(outMessage, {
       SelectedValue: () =>
-        DeclarationGenericKeyedParentDefinition.step(model => ({
+        DeclarationGenericKeyedParentDefinition.makeStep(model => ({
           model,
           commands: [liftCommand(ReadChildValue())],
         })),
     })
   }
-  const ChildBinding = DeclarationGenericKeyedParentDefinition.bindChild(
+  const ChildBinding = DeclarationGenericKeyedParentDefinition.makeBinding(
     ChildBlock,
     {
       readAll: model => model.entries,

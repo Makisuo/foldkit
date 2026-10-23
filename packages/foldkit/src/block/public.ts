@@ -29,6 +29,7 @@ export type {
 } from './binding.js'
 export { inspectBinding } from './binding.js'
 export type { BindingInitRecipe } from './initRecipe.js'
+export type { AssemblyDraft } from './assemblyState.js'
 export type {
   BindChild,
   BindingWithoutOutMessagePolicy,
@@ -76,7 +77,7 @@ export type {
   InvalidViewInputs,
   ViewBuilderFor,
   OwnedAuthoredView,
-  AssembleBlock,
+  PrepareBlock,
   AuthoredViewInputs,
   OwnedManagedResourceEntryBuilder,
   OwnedSubscriptionEntryBuilder,
@@ -85,6 +86,8 @@ export type {
 } from './definition.js'
 export { makeDefinition, makeNamespace } from './define.js'
 export type { DefineStepFields, DefineStepNoop } from './fieldStep.js'
+export type { CommandsStep, MakeCommandsStep } from './commandsStep.js'
+export type { OutMessageStep, MakeOutMessageStep } from './outMessageStep.js'
 export type {
   Namespace,
   AuthoringDefinition,
@@ -119,3 +122,15 @@ export type {
   OperationParameters,
   OperationPayload,
 } from './operation.js'
+
+export type {
+  AssemblyWithView,
+  AssemblyWithOutMessage,
+  AssemblyWithViewAndOutMessage,
+  AssemblyWithoutViewOrOutMessage,
+  FromAssemblyWithView,
+  FromAssemblyWithOutMessage,
+  FromAssemblyWithViewAndOutMessage,
+  FromAssemblyWithoutViewOrOutMessage,
+} from './fromAssembly.js'
+export { assemble } from './fromAssembly.js'

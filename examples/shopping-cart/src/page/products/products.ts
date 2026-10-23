@@ -13,14 +13,17 @@ export const init = ProductsComposition.makeInit(
   }),
 )
 
-export const ReplaceSearchUrl = ProductsDefinition.command('ReplaceSearchUrl', {
-  args: { url: Schema.String },
-  messages: [Message.CompletedReplaceSearchUrl],
-  handler: function* () {
-    return ({ url }) =>
-      replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceSearchUrl()))
+export const ReplaceSearchUrl = ProductsDefinition.makeCommand(
+  'ReplaceSearchUrl',
+  {
+    args: { url: Schema.String },
+    messages: [Message.CompletedReplaceSearchUrl],
+    handler: function* () {
+      return ({ url }) =>
+        replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceSearchUrl()))
+    },
   },
-})
+)
 
 export const update = ProductsComposition.makeUpdate((model, message) =>
   Message.match(message, {

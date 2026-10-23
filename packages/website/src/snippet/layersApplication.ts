@@ -1,5 +1,7 @@
+import { Block } from 'foldkit'
 import { modifyFields } from 'foldkit/struct'
 
+import type { Model } from './layers'
 import {
   ApplicationDefinition,
   EffectsLayer,
@@ -35,9 +37,14 @@ export const view = ApplicationComposition.makeView((model, h) => ({
   }),
 }))
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-  EffectsLayer,
-})
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
+    init,
+    update,
+    view,
+    EffectsLayer,
+  })
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)

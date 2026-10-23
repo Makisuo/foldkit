@@ -10,7 +10,7 @@ const dialogId = 'preserved-dialog'
 const DialogEvent = Schema.Literals(['Opened', 'Closed'])
 
 const Model = Schema.Struct({
-  dialog: Dialog.DialogBlock.Model,
+  dialog: Dialog.Model,
   dialogEvents: Schema.Array(DialogEvent),
 })
 type Model = typeof Model.Type
@@ -37,7 +37,7 @@ const foldDialogOutMessage = ApplicationDefinition.makeOutMessageFold(
   },
 )
 
-const DialogBinding = ApplicationDefinition.bindChild(Dialog.DialogBlock, {
+const DialogBinding = ApplicationDefinition.makeBinding(Dialog.DialogBlock, {
   field: 'dialog',
   init: { contextToArgs: () => [{ id: dialogId }] },
 }).withOutMessagePolicy({ fold: foldDialogOutMessage })
@@ -91,15 +91,21 @@ const preservedModel = (dialogModel: Dialog.Model): Model => ({
 const preservedOpenModel = (config: Dialog.InitConfig): Dialog.Model =>
   Dialog.update(Dialog.init(config).model, Dialog.Message.RequestedOpen()).model
 
-const makeDialogProgram = (container: HTMLElement) =>
-  Program.makeElement({
-    block: ApplicationComposition.assembleBlock({
+const makeDialogProgram = (container: HTMLElement) => {
+  const prepare = () =>
+    ApplicationComposition.prepareBlock({
       init,
       update,
       view,
-    }),
+    })
+  const block: Block.FromAssemblyWithView<typeof Model, typeof prepare> =
+    Block.assemble(prepare)
+
+  return Program.makeElement({
+    block,
     container,
   })
+}
 
 describe('Dialog runtime lifecycle', () => {
   beforeEach(() => {

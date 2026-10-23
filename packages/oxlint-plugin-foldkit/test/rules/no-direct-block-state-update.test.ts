@@ -810,7 +810,7 @@ describe('completed Block bindings', () => {
     callee: {
       type: 'MemberExpression',
       object: Testing.id('Application'),
-      property: Testing.id('bindChild'),
+      property: Testing.id('makeBinding'),
       computed: false,
     },
     arguments: [
@@ -827,7 +827,7 @@ describe('completed Block bindings', () => {
     callee: {
       type: 'MemberExpression',
       object: Testing.id('Application'),
-      property: Testing.id('bindChild'),
+      property: Testing.id('makeBinding'),
       computed: false,
     },
     arguments: [
@@ -874,7 +874,7 @@ describe('completed Block bindings', () => {
       callee: {
         type: 'MemberExpression',
         object: Testing.id('Application'),
-        property: Testing.id('bindChild'),
+        property: Testing.id('makeBinding'),
         computed: false,
       },
       arguments: [
@@ -891,7 +891,7 @@ describe('completed Block bindings', () => {
     callee: {
       type: 'MemberExpression',
       object: Testing.id('Application'),
-      property: Testing.id('bindChild'),
+      property: Testing.id('makeBinding'),
       computed: false,
     },
     arguments: [
@@ -909,7 +909,7 @@ describe('completed Block bindings', () => {
     callee: {
       type: 'MemberExpression',
       object: Testing.id('Application'),
-      property: Testing.id('bindChild'),
+      property: Testing.id('makeBinding'),
       computed: false,
     },
     arguments: [
@@ -1055,7 +1055,7 @@ describe('completed Block bindings', () => {
     ])
 
   const stepFields = (definition: string, updates: unknown) =>
-    Testing.callOfMember(definition, 'stepFields', [
+    Testing.callOfMember(definition, 'makeFieldsStep', [
       Testing.arrowFn(updates, [Testing.id('model')]),
     ])
 
@@ -1176,7 +1176,7 @@ describe('completed Block bindings', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('flags a child-owned transform returned from Definition.stepFields', () => {
+  it('flags a child-owned transform returned from Definition.makeFieldsStep', () => {
     const result = runRule([
       directSettingsBinding,
       Testing.callOfMember('Update', 'combineSteps', [
@@ -1228,7 +1228,7 @@ describe('completed Block bindings', () => {
     expect(result).toHaveLength(0)
   })
 
-  it('flags a directly applied Definition.stepFields Step', () => {
+  it('flags a directly applied Definition.makeFieldsStep Step', () => {
     const result = runRule([
       directSettingsBinding,
       Testing.callOfMember('settings', 'fold', [
@@ -1253,7 +1253,7 @@ describe('completed Block bindings', () => {
     expect(result).toHaveLength(1)
   })
 
-  it('allows Definition.stepNoop because it has no field transform record', () => {
+  it('allows Definition.makeNoopStep because it has no field transform record', () => {
     const result = runRule([
       directSettingsBinding,
       Testing.callOfMember('Update', 'combineSteps', [
@@ -1261,7 +1261,7 @@ describe('completed Block bindings', () => {
         {
           type: 'ArrayExpression',
           elements: [
-            Testing.callOfMember('Application', 'stepNoop', []),
+            Testing.callOfMember('Application', 'makeNoopStep', []),
             Testing.callOfMember('settings', 'clearSelection', []),
           ],
         },
@@ -1433,7 +1433,7 @@ describe('completed Block bindings', () => {
       callee: {
         type: 'MemberExpression',
         object: namespacedApplication,
-        property: Testing.id('bindChild'),
+        property: Testing.id('makeBinding'),
         computed: false,
       },
       arguments: [
@@ -1539,7 +1539,7 @@ describe('completed Block bindings', () => {
       callee: {
         type: 'MemberExpression',
         object: Testing.id('OtherApplication'),
-        property: Testing.id('bindChild'),
+        property: Testing.id('makeBinding'),
         computed: false,
       },
       arguments: [

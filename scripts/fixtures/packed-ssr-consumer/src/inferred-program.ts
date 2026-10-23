@@ -26,24 +26,38 @@ const applicationView = ApplicationComposition.makeView(
 
 const EffectsLayer = Layer.empty
 
+const prepareElement = () =>
+  ApplicationComposition.prepareBlock({
+    init,
+    update,
+    EffectsLayer,
+    view: elementView,
+  })
+const ElementBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepareElement
+> = Block.assemble(prepareElement)
+
+const prepareApplication = () =>
+  ApplicationComposition.prepareBlock({
+    init,
+    update,
+    EffectsLayer,
+    view: applicationView,
+  })
+const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepareApplication
+> = Block.assemble(prepareApplication)
+
 export const makeInferredElement = (container: HTMLElement) =>
   Program.makeElement({
-    block: ApplicationComposition.assembleBlock({
-      init,
-      update,
-      EffectsLayer,
-      view: elementView,
-    }),
+    block: ElementBlock,
     container,
   })
 
 export const makeInferredApplication = (container: HTMLElement | null) =>
   Program.make({
-    block: ApplicationComposition.assembleBlock({
-      init,
-      update,
-      EffectsLayer,
-      view: applicationView,
-    }),
+    block: ApplicationBlock,
     container,
   })

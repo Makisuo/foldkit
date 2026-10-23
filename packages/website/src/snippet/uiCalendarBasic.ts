@@ -59,13 +59,13 @@ const foldCalendarOutMessage = CalendarExampleDefinition.makeOutMessageFold(
     // to the calendar as `maybeSelectedDate`, so the parent stays the single
     // source of truth for the selection.
     SelectedDate: ({ date }) =>
-      CalendarExampleDefinition.stepFields(() => ({
+      CalendarExampleDefinition.makeFieldsStep(() => ({
         maybeSelectedDate: () => Option.some(date),
       })),
     // The child has emitted `ChangedViewMonth`. In this arm the parent can
     // update its own state or dispatch its own Commands, for example
     // prefetch month data, fire analytics, or trigger a downstream Command.
-    ChangedViewMonth: CalendarExampleDefinition.stepNoop,
+    ChangedViewMonth: CalendarExampleDefinition.makeNoopStep,
   },
 )
 
@@ -73,7 +73,7 @@ const foldCalendarOutMessage = CalendarExampleDefinition.makeOutMessageFold(
 // focus, and picker-mode transitions to UiCalendar.CalendarBlock.update, writes the next
 // Calendar Model back, routes generated delivery and Command results,
 // and hands any OutMessage to the OutMessage fold.
-const CalendarBinding = CalendarExampleDefinition.bindChild(
+const CalendarBinding = CalendarExampleDefinition.makeBinding(
   UiCalendar.CalendarBlock,
   {
     field: 'calendarDemo',

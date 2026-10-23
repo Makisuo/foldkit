@@ -4,13 +4,13 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-import * as Dialog from '../../dialog/index.js'
+import * as Dialog from '../../dialog/block.js'
 
 // MODEL
 
 export const Model = Schema.Struct({
   isEnabled: Schema.Boolean,
-  dialog: Dialog.DialogBlock.Model,
+  dialog: Dialog.Model,
 })
 export type Model = typeof Model.Type
 
@@ -35,13 +35,13 @@ const DisabledButtonTestDefinition = Block.makeDefinition(
 const foldDialogOutMessage = DisabledButtonTestDefinition.makeOutMessageFold(
   Dialog.DialogBlock,
   {
-    Opened: DisabledButtonTestDefinition.stepNoop,
-    Closed: DisabledButtonTestDefinition.stepNoop,
-    CompletedClose: DisabledButtonTestDefinition.stepNoop,
+    Opened: DisabledButtonTestDefinition.makeNoopStep,
+    Closed: DisabledButtonTestDefinition.makeNoopStep,
+    CompletedClose: DisabledButtonTestDefinition.makeNoopStep,
   },
 )
 
-const DialogBinding = DisabledButtonTestDefinition.bindChild(
+const DialogBinding = DisabledButtonTestDefinition.makeBinding(
   Dialog.DialogBlock,
   {
     field: 'dialog',
@@ -137,8 +137,11 @@ export const viewWithDialog = DisabledButtonTestComposition.makeView(
   },
 )
 
-export const block = DisabledButtonTestComposition.assembleBlock({
-  init,
-  update,
-  view: viewWithDialog,
-})
+const prepare = () =>
+  DisabledButtonTestComposition.prepareBlock({
+    init,
+    update,
+    view: viewWithDialog,
+  })
+export const block: Block.FromAssemblyWithView<typeof Model, typeof prepare> =
+  Block.assemble(prepare)

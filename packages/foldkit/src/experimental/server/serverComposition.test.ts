@@ -17,7 +17,7 @@ const ChildMessage = defineMessageUnion({
 })
 let constructions = 0
 let executions = 0
-const Prepare = ChildNamespace.command('Prepare', {
+const Prepare = ChildNamespace.makeCommand('Prepare', {
   messages: [ChildMessage.CompletedPrepare],
   handler: function* () {
     yield* Effect.sync(() => {
@@ -31,7 +31,7 @@ const Prepare = ChildNamespace.command('Prepare', {
       })
   },
 })
-const Observe = ChildNamespace.mount('Observe', {
+const Observe = ChildNamespace.makeMount('Observe', {
   messages: [ChildMessage.CompletedObserve],
   handler: function* () {
     yield* Effect.sync(() => {
@@ -61,14 +61,18 @@ const childImplementation = {
   ),
   EffectsLayer: Layer.merge(Prepare.layer, Observe.layer),
 }
-const childBlock = child.assembleBlock(childImplementation)
+const prepareChildBlock = () => child.prepareBlock(childImplementation)
+const childBlock: Block.FromAssemblyWithView<
+  typeof ChildModel,
+  typeof prepareChildBlock
+> = Block.assemble(prepareChildBlock)
 const RootModel = Schema.Struct({ title: Schema.String })
 const RootApplicationDefinition = Block.makeDefinition('Application', {
   Model: RootModel,
   Message: Schema.Never,
 })
 const PlainMessage = Schema.Never
-const ChildBinding = RootApplicationDefinition.bindChild(childBlock, {
+const ChildBinding = RootApplicationDefinition.makeBinding(childBlock, {
   read: model => Option.some(model),
   write: (_model, nextChild) => nextChild,
 })
@@ -163,14 +167,40 @@ const htmlImplementation = {
 
 const OtherFlags = Schema.Struct({ count: Schema.Number })
 
-const RootBlock = RegisteredApplication.assembleBlock(rootImplementation)
-const FlagsBlock = FlagsComposition.assembleBlock(flagsImplementation)
-const RoutingBlock = RoutingComposition.assembleBlock(routingImplementation)
-const RoutingFlagsBlock = RoutingFlagsComposition.assembleBlock(
-  routingFlagsImplementation,
-)
-const DataBlock = DataComposition.assembleBlock(dataImplementation)
-const HtmlBlock = HtmlComposition.assembleBlock(htmlImplementation)
+const prepareRootBlock = () =>
+  RegisteredApplication.prepareBlock(rootImplementation)
+const RootBlock: Block.FromAssemblyWithView<
+  typeof RootModel,
+  typeof prepareRootBlock
+> = Block.assemble(prepareRootBlock)
+const prepareFlagsBlock = () =>
+  FlagsComposition.prepareBlock(flagsImplementation)
+const FlagsBlock: Block.FromAssemblyWithView<
+  typeof RootModel,
+  typeof prepareFlagsBlock
+> = Block.assemble(prepareFlagsBlock)
+const prepareRoutingBlock = () =>
+  RoutingComposition.prepareBlock(routingImplementation)
+const RoutingBlock: Block.FromAssemblyWithView<
+  typeof RootModel,
+  typeof prepareRoutingBlock
+> = Block.assemble(prepareRoutingBlock)
+const prepareRoutingFlagsBlock = () =>
+  RoutingFlagsComposition.prepareBlock(routingFlagsImplementation)
+const RoutingFlagsBlock: Block.FromAssemblyWithView<
+  typeof RootModel,
+  typeof prepareRoutingFlagsBlock
+> = Block.assemble(prepareRoutingFlagsBlock)
+const prepareDataBlock = () => DataComposition.prepareBlock(dataImplementation)
+const DataBlock: Block.FromAssemblyWithoutViewOrOutMessage<
+  typeof RootModel,
+  typeof prepareDataBlock
+> = Block.assemble(prepareDataBlock)
+const prepareHtmlBlock = () => HtmlComposition.prepareBlock(htmlImplementation)
+const HtmlBlock: Block.FromAssemblyWithView<
+  typeof RootModel,
+  typeof prepareHtmlBlock
+> = Block.assemble(prepareHtmlBlock)
 
 const verifyServerBlockContracts = (): void => {
   const rootRender = renderToString(RootBlock, {}, { isHydratable: false })

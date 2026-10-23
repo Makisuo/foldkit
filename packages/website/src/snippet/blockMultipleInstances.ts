@@ -10,7 +10,7 @@ const ApplicationDefinition = Block.makeDefinition('Application', {
   Message,
 })
 
-export const ApplicantsBinding = ApplicationDefinition.bindChild(
+export const ApplicantsBinding = ApplicationDefinition.makeBinding(
   Applicant.ApplicantBlock,
   {
     field: 'applicants',

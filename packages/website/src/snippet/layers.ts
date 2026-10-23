@@ -31,7 +31,7 @@ class ApiClientService extends Context.Service<ApiClientService, ApiClient>()(
   'ApiClientService',
 ) {}
 
-export const LoadUser = ApplicationDefinition.command('LoadUser', {
+export const LoadUser = ApplicationDefinition.makeCommand('LoadUser', {
   args: { userId: Schema.String },
   messages: [Message.SucceededLoadUser, Message.FailedLoadUser],
   handler: function* () {

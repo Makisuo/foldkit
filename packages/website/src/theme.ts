@@ -31,7 +31,7 @@ const setThemeColorMeta = (color: string): void => {
   }
 }
 
-export const ApplyTheme = ApplicationDefinition.command('ApplyTheme', {
+export const ApplyTheme = ApplicationDefinition.makeCommand('ApplyTheme', {
   args: { theme: ResolvedTheme },
   messages: [Message.CompletedApplyTheme],
   handler: function* () {
@@ -53,7 +53,7 @@ export const ApplyTheme = ApplicationDefinition.command('ApplyTheme', {
   },
 })
 
-export const SaveThemePreference = ApplicationDefinition.command(
+export const SaveThemePreference = ApplicationDefinition.makeCommand(
   'SaveThemePreference',
   {
     args: { preference: ThemePreference },

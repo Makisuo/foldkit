@@ -7,30 +7,30 @@ import { HomeBlock } from '../page'
 import { ExampleSlug } from '../page/example/meta'
 import { ApplicationRoute, playgroundRouter } from '../route'
 
-export const LoadPlayground = ApplicationDefinition.command('LoadPlayground', {
-  args: { exampleSlug: ExampleSlug },
-  messages: [Message.CompletedLoadPlayground],
-  handler: function* () {
-    return ({ exampleSlug }) =>
-      load(playgroundRouter({ exampleSlug })).pipe(
-        Effect.as(Message.CompletedLoadPlayground()),
-      )
+export const LoadPlayground = ApplicationDefinition.makeCommand(
+  'LoadPlayground',
+  {
+    args: { exampleSlug: ExampleSlug },
+    messages: [Message.CompletedLoadPlayground],
+    handler: function* () {
+      return ({ exampleSlug }) =>
+        load(playgroundRouter({ exampleSlug })).pipe(
+          Effect.as(Message.CompletedLoadPlayground()),
+        )
+    },
   },
-})
+)
 
 const foldHomeOutMessage = ApplicationDefinition.makeOutMessageFold(HomeBlock, {
   SelectedPlaygroundExample: ({ exampleSlug }) =>
-    ApplicationDefinition.step(model => ({
-      model,
-      commands: [LoadPlayground({ exampleSlug })],
-    })),
+    ApplicationDefinition.makeCommandsStep([LoadPlayground({ exampleSlug })]),
   UpdatedNewsletterEmail: ({ value }) =>
-    ApplicationDefinition.stepFields(() => ({
+    ApplicationDefinition.makeFieldsStep(() => ({
       newsletterEmail: () => value,
     })),
 })
 
-export const HomeBinding = ApplicationDefinition.bindChild(HomeBlock, {
+export const HomeBinding = ApplicationDefinition.makeBinding(HomeBlock, {
   field: 'maybeHome',
   init: {
     contextToArgs: ({ route }) =>

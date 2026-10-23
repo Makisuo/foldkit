@@ -77,9 +77,10 @@ type ApplicationViewBuilder = Block.ViewBuilderFor<
   typeof ApplicationComposition
 >
 
-const Engine = ApplicationDefinition.resource<ComputeEngine>()('ComputeEngine')
+const Engine =
+  ApplicationDefinition.makeResource<ComputeEngine>()('ComputeEngine')
 
-export const Compute = ApplicationDefinition.command('Compute', {
+export const Compute = ApplicationDefinition.makeCommand('Compute', {
   args: { value: Schema.Number },
   messages: [Message.SucceededCompute, Message.FailedCompute],
   handler: function* () {
@@ -148,7 +149,7 @@ export const init = ApplicationComposition.makeInit(() => ({
 
 // MANAGED RESOURCE
 
-export const managedResources = ApplicationDefinition.managedResources(
+export const managedResources = ApplicationDefinition.makeManagedResources(
   entry => ({
     engine: entry('ManageEngine', Schema.Option(Schema.Null), {
       resource: Engine,
@@ -311,10 +312,15 @@ export const view = ApplicationComposition.makeView((model, h) => {
   }
 })
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-  managedResources,
-  EffectsLayer,
-})
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
+    init,
+    update,
+    view,
+    managedResources,
+    EffectsLayer,
+  })
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)

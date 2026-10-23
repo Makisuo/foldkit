@@ -52,7 +52,7 @@ const heavyPayload = makeHeavyArray(HEAVY_ITEM_COUNT)
 
 // COMMAND
 
-const FillHistoryStep = ApplicationDefinition.command('FillHistoryStep', {
+const FillHistoryStep = ApplicationDefinition.makeCommand('FillHistoryStep', {
   args: { remaining: Schema.Number },
   messages: [Message.CompletedFillHistoryStep],
   handler: function* () {
@@ -233,9 +233,14 @@ export const view = ApplicationComposition.makeView((model, h) => {
   }
 })
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-  EffectsLayer,
-})
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
+    init,
+    update,
+    view,
+    EffectsLayer,
+  })
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)

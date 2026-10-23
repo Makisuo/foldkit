@@ -29,11 +29,13 @@ const themePickerUpdate = ThemePickerComposition.makeUpdate((model, message) =>
 const themePickerView = ThemePickerComposition.makeView((model, h) =>
   h.p([], [`Theme: ${model.theme}`]),
 )
-const ThemePickerBlock = ThemePickerComposition.assembleBlock({
-  init: themePickerInit,
-  update: themePickerUpdate,
-  view: themePickerView,
-})
+const prepare = () =>
+  ThemePickerComposition.prepareBlock({
+    init: themePickerInit,
+    update: themePickerUpdate,
+    view: themePickerView,
+  })
+const ThemePickerBlock = Block.assemble(prepare)
 
 const ProfileModel = Schema.Struct({
   username: Schema.String,
@@ -51,7 +53,7 @@ const ProfileDefinition = Block.makeDefinition('Profile', {
   ChildInitContext: ProfileChildInitContext,
 })
 
-const ThemePickerBinding = ProfileDefinition.bindChild(ThemePickerBlock, {
+const ThemePickerBinding = ProfileDefinition.makeBinding(ThemePickerBlock, {
   field: 'themePicker',
   init: {
     contextToArgs: ({ savedTheme }) => [savedTheme],

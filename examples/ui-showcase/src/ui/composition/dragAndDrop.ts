@@ -45,13 +45,16 @@ const reorderColumns = (
   })
 }
 
-export const DragAndDropDemoBinding = UiDefinition.bindChild(DragAndDropBlock, {
-  field: 'dragAndDropDemo',
-  init: { contextToArgs: () => [{ id: 'drag-and-drop-demo' }] },
-}).withOutMessagePolicy({
+export const DragAndDropDemoBinding = UiDefinition.makeBinding(
+  DragAndDropBlock,
+  {
+    field: 'dragAndDropDemo',
+    init: { contextToArgs: () => [{ id: 'drag-and-drop-demo' }] },
+  },
+).withOutMessagePolicy({
   fold: UiDefinition.makeOutMessageFold(DragAndDropBlock, {
     Reordered: ({ itemId, fromContainerId, toContainerId, toIndex }) =>
-      UiDefinition.stepFields(() => ({
+      UiDefinition.makeFieldsStep(() => ({
         dragAndDropDemoColumns: dragAndDropDemoColumns =>
           reorderColumns(
             dragAndDropDemoColumns,
@@ -61,6 +64,6 @@ export const DragAndDropDemoBinding = UiDefinition.bindChild(DragAndDropBlock, {
             toIndex,
           ),
       })),
-    Cancelled: UiDefinition.stepNoop,
+    Cancelled: UiDefinition.makeNoopStep,
   }),
 })

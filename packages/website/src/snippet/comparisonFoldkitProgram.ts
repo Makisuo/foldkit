@@ -20,16 +20,24 @@ export const init = ApplicationComposition.makeInit((flags: Flags) => ({
 
 // src/application.ts
 
+import { Block } from 'foldkit'
+
 import { ApplicationComposition } from './composition'
 import { init } from './init'
+import type { Model } from './model'
 import { update } from './update'
 import { view } from './view'
 
-export const ApplicationBlock = ApplicationComposition.assembleBlock({
-  init,
-  update,
-  view,
-})
+const prepare = () =>
+  ApplicationComposition.prepareBlock({
+    init,
+    update,
+    view,
+  })
+export const ApplicationBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)
 
 // src/entry.ts
 

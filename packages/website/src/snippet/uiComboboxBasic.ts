@@ -27,14 +27,14 @@ const foldComboboxOutMessage = CityPickerDefinition.makeOutMessageFold(
   CityCombobox,
   {
     Selected: ({ value }) =>
-      CityPickerDefinition.stepFields(() => ({
+      CityPickerDefinition.makeFieldsStep(() => ({
         maybeCity: () => Option.some(value),
       })),
-    ClearedSelection: CityPickerDefinition.stepNoop,
+    ClearedSelection: CityPickerDefinition.makeNoopStep,
   },
 )
 
-const ComboboxBinding = CityPickerDefinition.bindChild(CityCombobox, {
+const ComboboxBinding = CityPickerDefinition.makeBinding(CityCombobox, {
   field: 'combobox',
   init: { contextToArgs: () => Tuple.make({ id: 'city' }) },
 }).withOutMessagePolicy({ fold: foldComboboxOutMessage })
@@ -109,8 +109,13 @@ const view = CityPickerComposition.makeView((model, h) => {
   )
 })
 
-export const CityPickerBlock = CityPickerComposition.assembleBlock({
-  init,
-  update,
-  view,
-})
+const prepare = () =>
+  CityPickerComposition.prepareBlock({
+    init,
+    update,
+    view,
+  })
+export const CityPickerBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepare
+> = Block.assemble(prepare)

@@ -9,19 +9,19 @@ const Definition = Block.makeDefinition('InferredPortableProgram', {
   Model,
   Message: RootMessage,
 })
-const RunWork = Definition.command('RunWork', {
+const RunWork = Definition.makeCommand('RunWork', {
   messages: [RootMessage.CompletedWork],
   handler: function* () {
     return () => Effect.succeed(RootMessage.CompletedWork({ value: 'command' }))
   },
 })
-const ObserveElement = Definition.mount('ObserveElement', {
+const ObserveElement = Definition.makeMount('ObserveElement', {
   messages: [RootMessage.CompletedWork],
   handler: function* () {
     return () => Effect.succeed(RootMessage.CompletedWork({ value: 'mount' }))
   },
 })
-const subscriptions = Definition.subscriptions(entry => ({
+const subscriptions = Definition.makeSubscriptions(entry => ({
   work: entry('ObserveWork', {
     messages: [RootMessage.CompletedWork],
     handler: function* () {
@@ -30,8 +30,8 @@ const subscriptions = Definition.subscriptions(entry => ({
     },
   }),
 }))
-const Resource = Definition.resource<string>()('Resource')
-const managedResources = Definition.managedResources(entry => ({
+const Resource = Definition.makeResource<string>()('Resource')
+const managedResources = Definition.makeManagedResources(entry => ({
   resource: entry('ManageResource', Schema.Option(Schema.Null), {
     resource: Resource,
     modelToMaybeRequirements: () => Option.none<null>(),
@@ -47,27 +47,32 @@ const managedResources = Definition.managedResources(entry => ({
   }),
 }))
 const Composition = Definition.makeComposition({ mounts: [ObserveElement] })
-const RootBlock = Composition.assembleBlock({
-  init: () => ({ model: Model.make({ status: 'ready' }) }),
-  update: Composition.makeUpdate((model, message) =>
-    RootMessage.match(message, {
-      CompletedWork: ({ value }) => ({
-        model: Struct.modifyFields(model, { status: () => value }),
+const prepareRootBlock = () =>
+  Composition.prepareBlock({
+    init: () => ({ model: Model.make({ status: 'ready' }) }),
+    update: Composition.makeUpdate((model, message) =>
+      RootMessage.match(message, {
+        CompletedWork: ({ value }) => ({
+          model: Struct.modifyFields(model, { status: () => value }),
+        }),
       }),
-    }),
-  ),
-  view: Composition.makeView((model, h) =>
-    h.button([h.OnMount(ObserveElement())], [model.status]),
-  ),
-  subscriptions,
-  managedResources,
-  EffectsLayer: Layer.mergeAll(
-    RunWork.layer,
-    ObserveElement.layer,
-    subscriptions.work.layer,
-    managedResources.resource.layer,
-  ),
-})
+    ),
+    view: Composition.makeView((model, h) =>
+      h.button([h.OnMount(ObserveElement())], [model.status]),
+    ),
+    subscriptions,
+    managedResources,
+    EffectsLayer: Layer.mergeAll(
+      RunWork.layer,
+      ObserveElement.layer,
+      subscriptions.work.layer,
+      managedResources.resource.layer,
+    ),
+  })
+const RootBlock: Block.FromAssemblyWithView<
+  typeof Model,
+  typeof prepareRootBlock
+> = Block.assemble(prepareRootBlock)
 
 export const inferredPortableProgram = Program.makeElement({
   block: RootBlock,

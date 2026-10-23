@@ -7,24 +7,22 @@ import {
 } from './definition'
 import { prependToLog } from './messageLog'
 
-export const NoteDurationRadioGroupBinding = NotePlayerDemoDefinition.bindChild(
-  NoteDurationRadioGroupBlock,
-  {
+export const NoteDurationRadioGroupBinding =
+  NotePlayerDemoDefinition.makeBinding(NoteDurationRadioGroupBlock, {
     field: 'noteDurationRadioGroup',
     init: { contextToArgs: () => Tuple.make({ id: 'note-duration' }) },
-  },
-).withOutMessagePolicy({
-  fold: NotePlayerDemoDefinition.makeOutMessageFold(
-    NoteDurationRadioGroupBlock,
-    {
-      Selected: ({ value }) =>
-        NotePlayerDemoDefinition.stepFields(() => ({
-          noteDuration: () => value,
-          messageLog: prependToLog(`Selected(${value})`),
-        })),
-    },
-  ),
-})
+  }).withOutMessagePolicy({
+    fold: NotePlayerDemoDefinition.makeOutMessageFold(
+      NoteDurationRadioGroupBlock,
+      {
+        Selected: ({ value }) =>
+          NotePlayerDemoDefinition.makeFieldsStep(() => ({
+            noteDuration: () => value,
+            messageLog: prependToLog(`Selected(${value})`),
+          })),
+      },
+    ),
+  })
 
 export const NotePlayerDemoComposition =
   NotePlayerDemoDefinition.makeComposition({

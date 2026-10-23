@@ -23,7 +23,7 @@ export const handleCompletedLoadBrowserEnvironment = ({
   )
   const resolvedTheme = resolveTheme(themePreference, systemTheme)
 
-  const applyBrowserEnvironment = ApplicationDefinition.step(model => ({
+  const applyBrowserEnvironment = ApplicationDefinition.makeStep(model => ({
     model: modifyFields(model, {
       currentYear: () => currentYear,
       maybeIsPlaygroundSupported: () => Option.some(isPlaygroundSupported),
@@ -39,7 +39,7 @@ export const handleCompletedLoadBrowserEnvironment = ({
     commands: [ApplyTheme({ theme: resolvedTheme })],
   }))
 
-  const initUiPages = ApplicationDefinition.step(model => {
+  const initUiPages = ApplicationDefinition.makeStep(model => {
     return UiPagesBinding.init({
       args: [today],
       toParentModel: uiPages => modifyFields(model, { uiPages: () => uiPages }),

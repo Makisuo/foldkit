@@ -45,9 +45,8 @@ export const init = AsyncCounterDemoComposition.makeInit(() => ({
   }),
 }))
 
-export const DelayAdvanceAsyncCounterPhase = AsyncCounterDemoDefinition.command(
-  'DelayAdvanceAsyncCounterPhase',
-  {
+export const DelayAdvanceAsyncCounterPhase =
+  AsyncCounterDemoDefinition.makeCommand('DelayAdvanceAsyncCounterPhase', {
     args: { generation: Schema.Number, duration: Schema.DurationFromMillis },
     messages: [Message.CompletedDelayAdvanceAsyncCounterPhase],
     handler: function* () {
@@ -58,8 +57,7 @@ export const DelayAdvanceAsyncCounterPhase = AsyncCounterDemoDefinition.command(
           ),
         )
     },
-  },
-)
+  })
 
 export const EffectsLayer = DelayAdvanceAsyncCounterPhase.layer
 

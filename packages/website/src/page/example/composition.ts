@@ -7,7 +7,7 @@ import { ObserveExampleUrlMessages } from './mount'
 
 export const SOURCE_FILE_TABS_ID = 'source-file-tabs'
 
-export const SourceFileTabsBinding = ExampleDetailDefinition.bindChild(
+export const SourceFileTabsBinding = ExampleDetailDefinition.makeBinding(
   SourceFileTabsBlock,
   {
     field: 'sourceFileTabs',
@@ -16,7 +16,7 @@ export const SourceFileTabsBinding = ExampleDetailDefinition.bindChild(
 ).withOutMessagePolicy({
   fold: ExampleDetailDefinition.makeOutMessageFold(SourceFileTabsBlock, {
     Selected: ({ value }) =>
-      ExampleDetailDefinition.stepFields(() => ({
+      ExampleDetailDefinition.makeFieldsStep(() => ({
         maybeActiveSourceFilePath: () => Option.some(value),
       })),
   }),

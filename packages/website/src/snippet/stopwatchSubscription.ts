@@ -16,7 +16,7 @@ const StopwatchDefinition = Block.makeDefinition('Stopwatch', {
   Message,
 })
 
-const subscriptions = StopwatchDefinition.subscriptions(entry => ({
+const subscriptions = StopwatchDefinition.makeSubscriptions(entry => ({
   stopwatchTicks: entry(
     'StopwatchTicks',
     { isRunning: Schema.Boolean },

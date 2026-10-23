@@ -12,18 +12,23 @@ const NarrowServerRootComposition = Block.makeDefinition('NarrowServerRoot', {
   Model: PageBlock.Model,
   Message: Schema.Never,
 }).makeComposition()
-const NarrowServerRootBlock = NarrowServerRootComposition.assembleBlock({
-  init: NarrowServerRootComposition.makeInit(
-    (flags: typeof NarrowFlags.Type, _url: Url) => ({
-      model: { status: flags.status },
-    }),
-  ),
-  update: NarrowServerRootComposition.makeUpdate(),
-  view: NarrowServerRootComposition.makeView(model => ({
-    title: model.status,
-    body: null,
-  })),
-})
+const prepareNarrowServerRootBlock = () =>
+  NarrowServerRootComposition.prepareBlock({
+    init: NarrowServerRootComposition.makeInit(
+      (flags: typeof NarrowFlags.Type, _url: Url) => ({
+        model: { status: flags.status },
+      }),
+    ),
+    update: NarrowServerRootComposition.makeUpdate(),
+    view: NarrowServerRootComposition.makeView(model => ({
+      title: model.status,
+      body: null,
+    })),
+  })
+const NarrowServerRootBlock: Block.FromAssemblyWithView<
+  typeof PageBlock.Model,
+  typeof prepareNarrowServerRootBlock
+> = Block.assemble(prepareNarrowServerRootBlock)
 const MixedFlagsRoot = isNarrowRoot ? NarrowServerRootBlock : PageBlock
 void Server.renderToString(
   MixedFlagsRoot,

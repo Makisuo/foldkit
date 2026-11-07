@@ -356,7 +356,7 @@ export const makeRenderer = <Model, Message>({
     // browser's animation frames.
     const requestFrame =
       surface._tag === 'Target'
-        ? surface.target.requestFrame
+        ? (frame: () => void): void => surface.target.requestFrame(frame)
         : (frame: () => void): void => {
             requestAnimationFrame(frame)
           }

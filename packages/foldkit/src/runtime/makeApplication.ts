@@ -14,6 +14,7 @@ import {
   findDocumentHydration,
   hasServerRenderedMarkup,
 } from './hydrationHandoff.js'
+import type { RenderSurface, RenderSurfaceConfig } from './renderTarget.js'
 import {
   type FlagsSchemaConfig,
   type MakeRuntimeReturn,
@@ -41,7 +42,6 @@ type BaseApplicationConfig<
     Message,
     Resources | ManagedResourceServices
   >
-  container: HTMLElement | null
   ports?: P
   crash?: CrashConfig<Model, Message>
   slow?: SlowConfig<Model, Message>
@@ -51,7 +51,8 @@ type BaseApplicationConfig<
   resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
   devTools?: DevToolsConfig
-}>
+}> &
+  RenderSurfaceConfig
 
 /** Configuration for `makeApplication` with Flags and URL routing. */
 export type RoutingApplicationConfigWithFlags<
@@ -171,12 +172,51 @@ export type RoutingApplicationInit<
       url: Url,
     ) => UpdateReturn<Model, Message, Resources | ManagedResourceServices>
 
+const resolveApplicationSurface = (
+  config: RenderSurfaceConfig,
+  hasFlags: boolean,
+): Readonly<{
+  surface: RenderSurface
+  hydration: ReturnType<typeof findDocumentHydration>
+}> => {
+  if (config.renderTarget !== undefined) {
+    return {
+      surface: { _tag: 'Target', target: config.renderTarget },
+      hydration: undefined,
+    }
+  }
+  const container = config.container ?? null
+  const hydration = findDocumentHydration(container, hasFlags)
+  const resolvedContainer = hydration?.root ?? container
+  if (resolvedContainer === null) {
+    // A server-rendered page whose root lost its stamp reaches exactly here:
+    // template injection put the render where the placeholder was, so
+    // `getElementById` finds nothing and the stamp that would have named the
+    // root is gone. There is no handoff to refuse further along, and the markup
+    // is as live as any other refused page, so it is contained here.
+    if (hasServerRenderedMarkup(document)) {
+      containRefusedPage(document)
+    }
+    throw new Error(
+      '[foldkit] Container is null. Make sure the element exists in the DOM ' +
+        'before calling makeApplication (e.g. that your <div id="root"></div> has ' +
+        'rendered, and your script runs after it). On a server-rendered page ' +
+        'the runtime instead finds the root by its `data-foldkit-app` stamp.',
+    )
+  }
+  return {
+    surface: { _tag: 'Container', container: resolvedContainer },
+    hydration,
+  }
+}
+
 /** Creates a Foldkit application that owns the page and returns a runtime that
  *  can be passed to `run`. The `view` returns a `Document`, so the runtime
  *  manages `document.title` and the canonical / og:url tags. Add a `routing`
  *  config for URL routing. Use one page-owning application per document. To
  *  mount an app scoped to a node without touching the document `<head>`, use
- *  `makeElement`. */
+ *  `makeElement`. To render outside the DOM, pass a `renderTarget` instead of
+ *  a `container`. */
 export function makeApplication<
   Model,
   Message extends { _tag: string },
@@ -279,30 +319,10 @@ export function makeApplication<
       >
     | ApplicationConfig<Model, Message, Resources, ManagedResourceServices, P>,
 ): MakeRuntimeReturn<P, any, Resources, 'Application'> {
-  const { container } = config
-
   const hasRouting = 'routing' in config
   const hasFlags = 'Flags' in config
 
-  const hydration = findDocumentHydration(container, hasFlags)
-
-  const resolvedContainer = hydration?.root ?? container
-  if (resolvedContainer === null) {
-    // A server-rendered page whose root lost its stamp reaches exactly here:
-    // template injection put the render where the placeholder was, so
-    // `getElementById` finds nothing and the stamp that would have named the
-    // root is gone. There is no handoff to refuse further along, and the markup
-    // is as live as any other refused page, so it is contained here.
-    if (hasServerRenderedMarkup(document)) {
-      containRefusedPage(document)
-    }
-    throw new Error(
-      '[foldkit] Container is null. Make sure the element exists in the DOM ' +
-        'before calling makeApplication (e.g. that your <div id="root"></div> has ' +
-        'rendered, and your script runs after it). On a server-rendered page ' +
-        'the runtime instead finds the root by its `data-foldkit-app` stamp.',
-    )
-  }
+  const { surface, hydration } = resolveApplicationSurface(config, hasFlags)
 
   const currentUrl: Url | undefined = hasRouting
     ? Option.getOrThrow(urlFromString(window.location.href))
@@ -313,10 +333,12 @@ export function makeApplication<
     Model: config.Model,
     update: config.update,
     view: config.view,
-    manageDocument: true,
+    // NOTE: a target receives the whole Document; only a DOM runtime
+    // writes the `<head>`.
+    manageDocument: surface._tag === 'Container',
     ports: config.ports,
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
-    container: resolvedContainer,
+    surface,
     ...(hydration && { hydration }),
     ...(hasRouting && { routing: config.routing }),
     ...(config.crash && { crash: config.crash }),

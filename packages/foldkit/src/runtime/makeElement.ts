@@ -12,6 +12,7 @@ import type {
 } from './crashUI.js'
 import type { DevToolsConfig } from './devToolsConfig.js'
 import type { ApplicationInit } from './makeApplication.js'
+import type { RenderSurface, RenderSurfaceConfig } from './renderTarget.js'
 import {
   type FlagsSchemaConfig,
   type MakeRuntimeReturn,
@@ -39,7 +40,6 @@ type BaseElementConfig<
     Message,
     Resources | ManagedResourceServices
   >
-  container: HTMLElement | null
   ports?: P
   crash?: ElementCrashConfig<Model, Message>
   slow?: SlowConfig<Model, Message>
@@ -48,7 +48,8 @@ type BaseElementConfig<
   resources?: Layer.Layer<Resources>
   managedResources?: ManagedResources<Model, Message, ManagedResourceServices>
   devTools?: DevToolsConfig
-}>
+}> &
+  RenderSurfaceConfig
 
 /** Configuration for `makeElement` with Flags. */
 export type ElementConfigWithFlags<
@@ -127,6 +128,21 @@ const toCrashConfig = <Model, Message>(
   }
 }
 
+const resolveElementSurface = (config: RenderSurfaceConfig): RenderSurface => {
+  if (config.renderTarget !== undefined) {
+    return { _tag: 'Target', target: config.renderTarget }
+  }
+  const container = config.container ?? null
+  if (container === null) {
+    throw new Error(
+      '[foldkit] Container is null. Make sure the element exists in the DOM ' +
+        'before calling makeElement (e.g. that your <div id="root"></div> has ' +
+        'rendered, and your script runs after it).',
+    )
+  }
+  return { _tag: 'Container', container }
+}
+
 /**
  * Creates a Foldkit app scoped to its container and returns a runtime that
  * can be passed to `run`.
@@ -187,14 +203,7 @@ export function makeElement<
       >
     | ElementConfig<Model, Message, Resources, ManagedResourceServices, P>,
 ): MakeRuntimeReturn<P, void, Resources, 'Element'> {
-  const { container } = config
-  if (container === null) {
-    throw new Error(
-      '[foldkit] Container is null. Make sure the element exists in the DOM ' +
-        'before calling makeElement (e.g. that your <div id="root"></div> has ' +
-        'rendered, and your script runs after it).',
-    )
-  }
+  const surface = resolveElementSurface(config)
 
   const hasFlags = 'Flags' in config
 
@@ -214,7 +223,7 @@ export function makeElement<
     manageDocument: false,
     ports: config.ports,
     ...(config.subscriptions && { subscriptions: config.subscriptions }),
-    container,
+    surface,
     ...(Predicate.isNotUndefined(crash) && { crash }),
     ...(Predicate.isNotUndefined(config.slow) && {
       slow: config.slow,

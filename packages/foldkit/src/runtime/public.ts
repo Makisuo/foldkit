@@ -47,3 +47,5 @@ export type {
   ViewTransitionContext,
   ViewTransitionDecision,
 } from './index.js'
+
+export type { RenderTarget, RenderSurfaceConfig } from './renderTarget.js'

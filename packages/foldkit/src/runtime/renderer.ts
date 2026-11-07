@@ -35,6 +35,7 @@ import { Dispatch } from './dispatch.js'
 import { applyDocumentMetadata } from './documentMetadata.js'
 import type { DuplicateIdScanner } from './duplicateIdScanner.js'
 import type { MessageQueue } from './messageQueue.js'
+import type { RenderSurface } from './renderTarget.js'
 import type { RuntimeStatus } from './runtimeStatus.js'
 import {
   type ResolvedSlowPhaseConfig,
@@ -99,8 +100,8 @@ export type Renderer<Model, Message> = Readonly<{
  * Builds the render side of one runtime: the current vnode and, when
  * hydrating, the server-rendered root the first render adopts, the crash
  * renderer, the `Dispatch` service the view binds handlers to, the
- * synchronous render that runs the view and patches the DOM, the render
- * frame that runs in `requestAnimationFrame`, and the View Transition
+ * synchronous render that runs the view and patches the DOM (or commits to
+ * a {@link RenderTarget}), the render frame, and the View Transition
  * that frame may run inside. It also registers the teardown finalizer
  * that patches the tree away and restores the container, so build it
  * before forking the perpetual fibers: scope finalizers run
@@ -109,7 +110,7 @@ export type Renderer<Model, Message> = Readonly<{
  */
 export const makeRenderer = <Model, Message>({
   status,
-  container,
+  surface,
   view,
   htmlBuilder,
   manageDocument,
@@ -128,7 +129,7 @@ export const makeRenderer = <Model, Message>({
   devToolsIntegration,
 }: Readonly<{
   status: RuntimeStatus
-  container: HTMLElement
+  surface: RenderSurface
   view: (model: Model, h: HtmlBuilder<Message>) => Document
   htmlBuilder: HtmlBuilder<Message>
   manageDocument: boolean
@@ -226,6 +227,7 @@ export const makeRenderer = <Model, Message>({
     const vnodeSlot: VNodeSlot = { maybeCurrentVNode: Option.none() }
 
     const patchRuntimeVNode = (
+      container: HTMLElement,
       maybeCurrentVNode: Option.Option<VNode>,
       nextVNode: VNode | null,
       seen?: Set<object>,
@@ -275,6 +277,10 @@ export const makeRenderer = <Model, Message>({
         if (!Exit.hasInterrupts(exit)) {
           return
         }
+        if (surface._tag === 'Target') {
+          return yield* Effect.sync(() => surface.target.release())
+        }
+        const { container } = surface
         const maybeCurrentVNode = vnodeSlot.maybeCurrentVNode
         yield* Option.match(maybeCurrentVNode, {
           onNone: () => Effect.void,
@@ -327,7 +333,7 @@ export const makeRenderer = <Model, Message>({
         renderCrashView(
           { error, model, message: maybeMessage },
           crash,
-          container,
+          surface,
           vnodeSlot,
           manageDocument,
         )
@@ -345,6 +351,15 @@ export const makeRenderer = <Model, Message>({
     const setLastDirtyMessage = (message: Message): void => {
       maybeLastDirtyMessage = Option.some(message)
     }
+
+    // NOTE: a target owns its frame clock; a container renders on the
+    // browser's animation frames.
+    const requestFrame =
+      surface._tag === 'Target'
+        ? surface.target.requestFrame
+        : (frame: () => void): void => {
+            requestAnimationFrame(frame)
+          }
 
     const dispatchSync = (message: unknown): void => {
       /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions */
@@ -424,6 +439,27 @@ export const makeRenderer = <Model, Message>({
 
       const { maybeCurrentVNode } = vnodeSlot
 
+      if (surface._tag === 'Target') {
+        const [, maybeCommitDuration] = measureSlowPhase(
+          maybeLiveSlowPatch,
+          () => surface.target.commit(nextDocument),
+        )
+        vnodeSlot.maybeCurrentVNode = Option.fromNullishOr(nextVNode)
+        reportSlowPhase<SlowPatchContext<Model, Message>>(
+          maybeLiveSlowPatch,
+          maybeCommitDuration,
+          (durationMs, thresholdMs) => ({
+            _tag: 'Patch',
+            model,
+            message: maybeMessage,
+            durationMs,
+            thresholdMs,
+          }),
+        )
+        return
+      }
+      const { container } = surface
+
       const [patchedVNode, maybePatchDuration] = measureSlowPhase(
         maybeLiveSlowPatch,
         () => {
@@ -454,6 +490,7 @@ export const makeRenderer = <Model, Message>({
             )
           }
           return patchRuntimeVNode(
+            container,
             maybeCurrentVNode,
             nextVNode,
             boundaryRegistry.dedupeSeen,
@@ -678,7 +715,7 @@ export const makeRenderer = <Model, Message>({
     const renderFramePlain = (): void => {
       // NOTE: retain the scheduled frame's pending commit while the drain waits.
       if (isLiveModelBehindQueue()) {
-        requestAnimationFrame(renderFramePlain)
+        requestFrame(renderFramePlain)
         return
       }
       isRenderFrameScheduled = false
@@ -739,7 +776,7 @@ export const makeRenderer = <Model, Message>({
       }
       isRenderFrameScheduled = true
       commitNotifier.markCommitPending()
-      requestAnimationFrame(renderFramePlain)
+      requestFrame(renderFramePlain)
     }
 
     const devToolsRenderBridge: DevToolsRenderBridge = {

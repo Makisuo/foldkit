@@ -49,6 +49,7 @@ import { forkManagedResourceFibers } from './managedResourceFibers.js'
 import { type MessageQueue, makeMessageQueue } from './messageQueue.js'
 import { preserveModel } from './modelPreservationBridge.js'
 import { makePreserveScheduler } from './preserveScheduler.js'
+import type { RenderSurface } from './renderTarget.js'
 import { type ResolvedViewTransition, makeRenderer } from './renderer.js'
 import { makeResourceProvider } from './resourceProvider.js'
 import { makeRuntimeStatus } from './runtimeStatus.js'
@@ -115,7 +116,9 @@ export type RuntimeConfig<
     Message,
     Resources | ManagedResourceServices
   >
-  container: HTMLElement
+  /** A DOM container, or a {@link RenderTarget} for runtimes that render
+   *  outside the DOM. */
+  surface: RenderSurface
   /**
    * Present when `makeApplication` found a server-rendered root stamped with
    * `data-foldkit-app`. The first render then adopts that DOM in place
@@ -292,7 +295,7 @@ export const makeRuntime = <
   view,
   manageDocument,
   subscriptions,
-  container,
+  surface,
   hydration,
   routing: routingConfig,
   crash,
@@ -338,6 +341,8 @@ export const makeRuntime = <
     ResolvedViewTransition<Model, Message>
   > = pipe(
     Option.fromNullishOr(viewTransition),
+    // NOTE: View Transitions animate DOM snapshots; a target has none.
+    Option.filter(() => surface._tag === 'Container'),
     Option.flatMap(decide =>
       Option.map(__resolveStartViewTransition(), startViewTransition => ({
         decide,
@@ -368,7 +373,9 @@ export const makeRuntime = <
   const runtimeId =
     hydration !== undefined && hydration.runtimeId !== ''
       ? hydration.runtimeId
-      : (container?.id ?? '')
+      : surface._tag === 'Container'
+        ? surface.container.id
+        : surface.target.id
 
   const startWith = (
     maybeConnector: Option.Option<HostConnector>,
@@ -442,7 +449,7 @@ export const makeRuntime = <
             isFlagsRequired,
             FlagsCodec,
             preservedModel,
-            container,
+            container: surface._tag === 'Container' ? surface.container : null,
             buildId,
             provideResources,
           })
@@ -565,7 +572,8 @@ export const makeRuntime = <
           Model,
           Message
         >({
-          devTools,
+          // NOTE: the DevTools panel is a DOM overlay; a target has no DOM.
+          devTools: surface._tag === 'Container' ? devTools : false,
           update,
           maybeFreezeModel,
           enqueueMessageEffect,
@@ -628,7 +636,7 @@ export const makeRuntime = <
           devToolsRenderBridge,
         } = yield* makeRenderer<Model, Message>({
           status,
-          container,
+          surface,
           view,
           htmlBuilder,
           manageDocument,

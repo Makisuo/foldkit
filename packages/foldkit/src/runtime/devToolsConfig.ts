@@ -120,15 +120,15 @@ export type ResolvedDevToolsConfig = Readonly<{
 export const resolveDevToolsConfig = (
   devTools: DevToolsConfig | undefined,
 ): Option.Option<ResolvedDevToolsConfig> => {
-  const isInIframe = window.self !== window.top
-
   return pipe(
     devTools ?? {},
     Option.liftPredicate(config => config !== false),
     Option.filter(config =>
       isVisible(
         config.show ?? DEFAULT_DEV_TOOLS_SHOW,
-        !!import.meta.hot && !isInIframe,
+        // NOTE: read only for an enabled config, so a disabled one (every
+        // render target) never touches `window`.
+        !!import.meta.hot && window.self === window.top,
       ),
     ),
     Option.map(config => ({

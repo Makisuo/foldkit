@@ -419,7 +419,7 @@ export const resolveHydrationHandoff = <Flags, Resources>({
   isFlagsRequired: boolean
   FlagsCodec: Schema.Codec<Flags, any, unknown, unknown>
   preservedModel: unknown
-  container: HTMLElement
+  container: HTMLElement | null
   buildId: string | undefined
   provideResources: <A>(
     effect: Effect.Effect<A, never, Resources>,

@@ -13,6 +13,7 @@ import { MountTracker } from '../mount/index.js'
 import { VNode, __patchVNode } from '../vdom.js'
 import { Dispatch } from './dispatch.js'
 import { applyDocumentMetadata } from './documentMetadata.js'
+import type { RenderSurface } from './renderTarget.js'
 
 /** Context provided to crash.view and crash.report when the runtime encounters
  *  an unrecoverable error. `message` is the Message being processed when the
@@ -263,10 +264,32 @@ export type VNodeSlot = {
   maybeCurrentVNode: Option.Option<VNode>
 }
 
+const commitCrashDocument = (
+  document: Document,
+  surface: RenderSurface,
+  vnodeSlot: VNodeSlot,
+  manageDocument: boolean,
+): void => {
+  if (surface._tag === 'Target') {
+    surface.target.commit(document)
+    vnodeSlot.maybeCurrentVNode = Option.fromNullishOr(document.body)
+    return
+  }
+  const patchedVNode = __patchVNode(
+    vnodeSlot.maybeCurrentVNode,
+    document.body,
+    surface.container,
+  )
+  vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
+  if (manageDocument) {
+    applyDocumentMetadata(document, patchedVNode.elm)
+  }
+}
+
 export const renderCrashView = <Model, Message>(
   context: CrashContext<Model, Message>,
   crash: CrashConfig<Model, Message> | undefined,
-  container: HTMLElement,
+  surface: RenderSurface,
   vnodeSlot: VNodeSlot,
   manageDocument: boolean,
 ): void => {
@@ -298,15 +321,7 @@ export const renderCrashView = <Model, Message>(
       clearHtmlRuntime()
     }
 
-    const patchedVNode = __patchVNode(
-      vnodeSlot.maybeCurrentVNode,
-      crashDocument.body,
-      container,
-    )
-    vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
-    if (manageDocument) {
-      applyDocumentMetadata(crashDocument, patchedVNode.elm)
-    }
+    commitCrashDocument(crashDocument, surface, vnodeSlot, manageDocument)
   } catch (viewError) {
     console.error('[foldkit] crash.view failed:', viewError)
 
@@ -321,14 +336,6 @@ export const renderCrashView = <Model, Message>(
       clearHtmlRuntime()
     }
 
-    const patchedVNode = __patchVNode(
-      vnodeSlot.maybeCurrentVNode,
-      fallbackDocument.body,
-      container,
-    )
-    vnodeSlot.maybeCurrentVNode = Option.some(patchedVNode)
-    if (manageDocument) {
-      applyDocumentMetadata(fallbackDocument, patchedVNode.elm)
-    }
+    commitCrashDocument(fallbackDocument, surface, vnodeSlot, manageDocument)
   }
 }
